@@ -2,11 +2,8 @@ package com.tamias.user.entity;
 
 import com.tamias.common.entity.BaseEntity;
 import com.tamias.user.enums.RoleCode;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+
 import java.time.OffsetDateTime;
 import lombok.Getter;
 import lombok.Setter;
@@ -29,4 +26,9 @@ public class Role extends BaseEntity {
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = OffsetDateTime.now();
+    }
 }
