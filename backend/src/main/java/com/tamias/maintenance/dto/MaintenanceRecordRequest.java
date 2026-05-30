@@ -13,6 +13,8 @@ public record MaintenanceRecordRequest(
         @NotNull(message = "Property is required")
         UUID propertyId,
 
+        UUID maintenanceCategoryId,
+
         UUID maintenanceTypeId,
 
         UUID maintenancePersonId,

@@ -3,7 +3,6 @@ package com.tamias.catalog.maintenancetype.service;
 import com.tamias.catalog.dto.MaintenanceTypeRequest;
 import com.tamias.catalog.dto.MaintenanceTypeResponse;
 import com.tamias.catalog.enums.CatalogStatus;
-import com.tamias.catalog.maintenancecategory.repository.MaintenanceCategoryRepository;
 import com.tamias.catalog.maintenancetype.entity.MaintenanceType;
 import com.tamias.catalog.maintenancetype.repository.MaintenanceTypeRepository;
 import com.tamias.catalog.mapper.CatalogMapper;
@@ -25,20 +24,17 @@ import org.springframework.transaction.annotation.Transactional;
 public class MaintenanceTypeService {
 
     private final MaintenanceTypeRepository repository;
-    private final MaintenanceCategoryRepository categoryRepository;
     private final OrganizationRepository organizationRepository;
     private final CurrentUserService currentUserService;
     private final CatalogMapper catalogMapper;
 
     public MaintenanceTypeService(
             MaintenanceTypeRepository repository,
-            MaintenanceCategoryRepository categoryRepository,
             OrganizationRepository organizationRepository,
             CurrentUserService currentUserService,
             CatalogMapper catalogMapper
     ) {
         this.repository = repository;
-        this.categoryRepository = categoryRepository;
         this.organizationRepository = organizationRepository;
         this.currentUserService = currentUserService;
         this.catalogMapper = catalogMapper;
@@ -75,8 +71,6 @@ public class MaintenanceTypeService {
         entity.setOrganization(organization);
         catalogMapper.updateMaintenanceType(entity, request);
 
-        setCategory(entity, request.maintenanceCategoryId());
-
         return catalogMapper.toMaintenanceTypeResponse(repository.save(entity));
     }
 
@@ -92,7 +86,6 @@ public class MaintenanceTypeService {
         }
 
         catalogMapper.updateMaintenanceType(entity, request);
-        setCategory(entity, request.maintenanceCategoryId());
 
         return catalogMapper.toMaintenanceTypeResponse(repository.save(entity));
     }
@@ -103,21 +96,6 @@ public class MaintenanceTypeService {
         entity.setStatus(CatalogStatus.DELETED);
         entity.setDeletedAt(OffsetDateTime.now());
         repository.save(entity);
-    }
-
-    private void setCategory(MaintenanceType entity, UUID categoryId) {
-        if (categoryId == null) {
-            entity.setMaintenanceCategory(null);
-            return;
-        }
-
-        UUID organizationId = currentUserService.getCurrentOrganizationId();
-
-        var category = categoryRepository
-                .findByIdAndOrganization_IdAndDeletedAtIsNull(categoryId, organizationId)
-                .orElseThrow(() -> new NotFoundException("maintenance category not found"));
-
-        entity.setMaintenanceCategory(category);
     }
 
     private MaintenanceType findEntity(UUID id) {

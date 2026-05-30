@@ -9,6 +9,8 @@ public record MaintenanceRecordSummaryResponse(
         UUID id,
         UUID propertyId,
         String propertyName,
+        UUID maintenanceCategoryId,
+        String maintenanceCategoryName,
         UUID maintenanceTypeId,
         String maintenanceTypeName,
         String title,

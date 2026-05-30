@@ -1,5 +1,6 @@
 package com.tamias.maintenance.entity;
 
+import com.tamias.catalog.maintenancecategory.entity.MaintenanceCategory;
 import com.tamias.catalog.maintenanceperson.entity.MaintenancePerson;
 import com.tamias.catalog.maintenancetype.entity.MaintenanceType;
 import com.tamias.common.entity.AuditableEntity;
@@ -33,6 +34,10 @@ public class MaintenanceRecord extends AuditableEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "property_id", nullable = false)
     private Property property;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "maintenance_category_id")
+    private MaintenanceCategory maintenanceCategory;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "maintenance_type_id")

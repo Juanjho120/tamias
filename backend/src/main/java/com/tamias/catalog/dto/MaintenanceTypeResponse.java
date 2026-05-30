@@ -9,8 +9,6 @@ public record MaintenanceTypeResponse(
         String name,
         String description,
         CatalogStatus status,
-        UUID maintenanceCategoryId,
-        String maintenanceCategoryName,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt
 ) {

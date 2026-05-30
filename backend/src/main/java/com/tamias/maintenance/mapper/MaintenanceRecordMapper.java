@@ -20,12 +20,15 @@ public class MaintenanceRecordMapper {
 
     public MaintenanceRecordSummaryResponse toSummaryResponse(MaintenanceRecord entity) {
         var property = entity.getProperty();
+        var maintenanceCategory = entity.getMaintenanceCategory();
         var maintenanceType = entity.getMaintenanceType();
 
         return new MaintenanceRecordSummaryResponse(
                 entity.getId(),
                 property.getId(),
                 property.getName(),
+                maintenanceCategory != null ? maintenanceCategory.getId() : null,
+                maintenanceCategory != null ? maintenanceCategory.getName() : null,
                 maintenanceType != null ? maintenanceType.getId() : null,
                 maintenanceType != null ? maintenanceType.getName() : null,
                 entity.getTitle(),
@@ -39,6 +42,7 @@ public class MaintenanceRecordMapper {
 
     public MaintenanceRecordResponse toResponse(MaintenanceRecord entity) {
         var property = entity.getProperty();
+        var maintenanceCategory = entity.getMaintenanceCategory();
         var maintenanceType = entity.getMaintenanceType();
         var maintenancePerson = entity.getMaintenancePerson();
 
@@ -46,6 +50,8 @@ public class MaintenanceRecordMapper {
                 entity.getId(),
                 property.getId(),
                 property.getName(),
+                maintenanceCategory != null ? maintenanceCategory.getId() : null,
+                maintenanceCategory != null ? maintenanceCategory.getName() : null,
                 maintenanceType != null ? maintenanceType.getId() : null,
                 maintenanceType != null ? maintenanceType.getName() : null,
                 maintenancePerson != null ? maintenancePerson.getId() : null,

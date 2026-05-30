@@ -4,7 +4,6 @@ import com.tamias.catalog.enums.CatalogStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import java.util.UUID;
 
 public record MaintenanceTypeRequest(
         @NotBlank(message = "Name is required")
@@ -12,8 +11,6 @@ public record MaintenanceTypeRequest(
         String name,
 
         String description,
-
-        UUID maintenanceCategoryId,
 
         @NotNull(message = "Status is required")
         CatalogStatus status

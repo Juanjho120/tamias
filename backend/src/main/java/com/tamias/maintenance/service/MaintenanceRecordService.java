@@ -1,5 +1,6 @@
 package com.tamias.maintenance.service;
 
+import com.tamias.catalog.maintenancecategory.repository.MaintenanceCategoryRepository;
 import com.tamias.catalog.maintenanceperson.repository.MaintenancePersonRepository;
 import com.tamias.catalog.maintenancetype.repository.MaintenanceTypeRepository;
 import com.tamias.common.dto.PageResponse;
@@ -29,6 +30,7 @@ public class MaintenanceRecordService {
     private final MaintenanceRecordRepository maintenanceRecordRepository;
     private final OrganizationRepository organizationRepository;
     private final PropertyRepository propertyRepository;
+    private final MaintenanceCategoryRepository maintenanceCategoryRepository;
     private final MaintenanceTypeRepository maintenanceTypeRepository;
     private final MaintenancePersonRepository maintenancePersonRepository;
     private final UserRepository userRepository;
@@ -39,6 +41,7 @@ public class MaintenanceRecordService {
             MaintenanceRecordRepository maintenanceRecordRepository,
             OrganizationRepository organizationRepository,
             PropertyRepository propertyRepository,
+            MaintenanceCategoryRepository maintenanceCategoryRepository,
             MaintenanceTypeRepository maintenanceTypeRepository,
             MaintenancePersonRepository maintenancePersonRepository,
             UserRepository userRepository,
@@ -48,6 +51,7 @@ public class MaintenanceRecordService {
         this.maintenanceRecordRepository = maintenanceRecordRepository;
         this.organizationRepository = organizationRepository;
         this.propertyRepository = propertyRepository;
+        this.maintenanceCategoryRepository = maintenanceCategoryRepository;
         this.maintenanceTypeRepository = maintenanceTypeRepository;
         this.maintenancePersonRepository = maintenancePersonRepository;
         this.userRepository = userRepository;
@@ -179,6 +183,16 @@ public class MaintenanceRecordService {
             MaintenanceRecordRequest request,
             UUID organizationId
     ) {
+        if (request.maintenanceCategoryId() == null) {
+            entity.setMaintenanceCategory(null);
+        } else {
+            var maintenanceCategory = maintenanceCategoryRepository
+                    .findByIdAndOrganization_IdAndDeletedAtIsNull(request.maintenanceCategoryId(), organizationId)
+                    .orElseThrow(() -> new NotFoundException("Maintenance category not found"));
+
+            entity.setMaintenanceCategory(maintenanceCategory);
+        }
+
         if (request.maintenanceTypeId() == null) {
             entity.setMaintenanceType(null);
         } else {

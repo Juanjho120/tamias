@@ -41,15 +41,11 @@ public class CatalogMapper {
     }
 
     public MaintenanceTypeResponse toMaintenanceTypeResponse(MaintenanceType entity) {
-        var category = entity.getMaintenanceCategory();
-
         return new MaintenanceTypeResponse(
                 entity.getId(),
                 entity.getName(),
                 entity.getDescription(),
                 entity.getStatus(),
-                category != null ? category.getId() : null,
-                category != null ? category.getName() : null,
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
         );
