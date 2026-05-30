@@ -1,0 +1,31 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: tamias-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tamias
+      POSTGRES_USER: tamias
+      POSTGRES_PASSWORD: tamias
+    ports:
+      - "5434:5432"
+    volumes:
+      - tamias_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tamias -d tamias"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  chroma:
+    image: chromadb/chroma:latest
+    container_name: tamias-chroma
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - tamias_chroma_data:/chroma/chroma
+
+volumes:
+  tamias_postgres_data:
+  tamias_chroma_data:

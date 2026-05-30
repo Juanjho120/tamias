@@ -1,0 +1,38 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5434/tamias
+    username: tamias
+    password: tamias
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+
+logging:
+  level:
+    org.hibernate.SQL: debug
+    org.hibernate.orm.jdbc.bind: trace
+
+security:
+  jwt:
+    secret: local-development-secret-change-me-before-production
+    expiration-minutes: 60
+
+tamias:
+  cors:
+    allowed-origins: http://localhost:4200
+  ai:
+    vector-store:
+      chroma-base-url: http://localhost:8000
+      collection-name: tamias_documents
