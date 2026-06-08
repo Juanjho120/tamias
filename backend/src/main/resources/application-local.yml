@@ -51,8 +51,8 @@ tamias:
   cors:
     allowed-origins: http://localhost:4200
   ai:
-    default-top-k: 5
-    default-similarity-threshold: 0.70
+    default-top-k: 10
+    default-similarity-threshold: 0.30
     vector-store:
       chroma-base-url: http://localhost:8000
       collection-name: tamias_documents

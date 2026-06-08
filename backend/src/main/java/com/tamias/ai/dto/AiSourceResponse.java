@@ -3,6 +3,7 @@ package com.tamias.ai.dto;
 import java.util.UUID;
 
 public record AiSourceResponse(
+        String sourceId,
         String vectorId,
         UUID documentId,
         UUID chunkId,
@@ -11,6 +12,6 @@ public record AiSourceResponse(
         String documentType,
         Integer chunkIndex,
         Double score,
-        String content
+        String excerpt
 ) {
 }

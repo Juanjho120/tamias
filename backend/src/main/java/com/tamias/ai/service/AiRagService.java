@@ -19,6 +19,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class AiRagService {
 
+    private static final int MAX_SOURCE_EXCERPT_LENGTH = 1200;
+
     private final VectorStore vectorStore;
     private final ChatClient chatClient;
     private final CurrentUserService currentUserService;
@@ -29,8 +31,8 @@ public class AiRagService {
             VectorStore vectorStore,
             ChatModel chatModel,
             CurrentUserService currentUserService,
-            @Value("${tamias.ai.default-top-k:5}") int defaultTopK,
-            @Value("${tamias.ai.default-similarity-threshold:0.70}") double defaultSimilarityThreshold
+            @Value("${tamias.ai.default-top-k:10}") int defaultTopK,
+            @Value("${tamias.ai.default-similarity-threshold:0.30}") double defaultSimilarityThreshold
     ) {
         this.vectorStore = vectorStore;
         this.chatClient = ChatClient.create(chatModel);
@@ -47,9 +49,12 @@ public class AiRagService {
                 request.similarityThreshold()
         );
 
+        List<AiSourceResponse> sources = toSourceResponses(matches);
+
         return new AiSearchResponse(
                 request.question(),
-                matches.stream().map(this::toSourceResponse).toList()
+                sources.size(),
+                sources
         );
     }
 
@@ -61,20 +66,38 @@ public class AiRagService {
                 request.similarityThreshold()
         );
 
+        List<AiSourceResponse> sources = toSourceResponses(matches);
+
+        if (matches.isEmpty()) {
+            return new AiChatResponse(
+                    request.question(),
+                    "No encontré información relacionada en los documentos indexados. Puedes intentar bajar el similarityThreshold o indexar documentos más específicos.",
+                    false,
+                    0,
+                    sources
+            );
+        }
+
         String context = buildContext(matches);
 
         String answer = chatClient.prompt()
                 .system("""
-                        You are TAMIAS, an assistant for property management.
-                        Answer only using the provided context.
-                        If the answer is not in the context, say that the information is not available in the indexed documents.
-                        Be concise and include source references using the format [documentTitle | chunkIndex].
+                        Eres TAMIAS, un asistente para administración de propiedades, alojamientos, mantenimiento, reservaciones y documentos internos.
+
+                        Reglas estrictas:
+                        1. Responde en el mismo idioma de la pregunta del usuario.
+                        2. Usa únicamente el CONTEXTO proporcionado.
+                        3. No inventes datos, reglas, fechas, costos, nombres ni recomendaciones que no aparezcan en el contexto.
+                        4. Si la respuesta no está en el contexto, dilo claramente.
+                        5. Cuando sí respondas, cita las fuentes usando el formato [S1], [S2], etc.
+                        6. Sé claro, práctico y directo.
+                        7. Si el contexto tiene reglas o recomendaciones, sepáralas en secciones simples.
                         """)
                 .user("""
-                        Question:
+                        Pregunta del usuario:
                         %s
 
-                        Context:
+                        CONTEXTO:
                         %s
                         """.formatted(request.question(), context))
                 .call()
@@ -83,7 +106,9 @@ public class AiRagService {
         return new AiChatResponse(
                 request.question(),
                 answer,
-                matches.stream().map(this::toSourceResponse).toList()
+                true,
+                sources.size(),
+                sources
         );
     }
 
@@ -123,14 +148,18 @@ public class AiRagService {
     private String buildContext(List<org.springframework.ai.document.Document> documents) {
         StringBuilder context = new StringBuilder();
 
-        for (org.springframework.ai.document.Document document : documents) {
+        for (int index = 0; index < documents.size(); index++) {
+            org.springframework.ai.document.Document document = documents.get(index);
             Map<String, Object> metadata = document.getMetadata();
 
-            context.append("[")
+            context.append("[S")
+                    .append(index + 1)
+                    .append("] ")
                     .append(metadata.getOrDefault(RagMetadataKeys.DOCUMENT_TITLE, "Unknown document"))
-                    .append(" | chunk ")
+                    .append(" | type: ")
+                    .append(metadata.getOrDefault(RagMetadataKeys.DOCUMENT_TYPE, "UNKNOWN"))
+                    .append(" | chunk: ")
                     .append(metadata.getOrDefault(RagMetadataKeys.CHUNK_INDEX, "?"))
-                    .append("]")
                     .append(System.lineSeparator())
                     .append(document.getText())
                     .append(System.lineSeparator())
@@ -140,10 +169,17 @@ public class AiRagService {
         return context.toString();
     }
 
-    private AiSourceResponse toSourceResponse(org.springframework.ai.document.Document document) {
+    private List<AiSourceResponse> toSourceResponses(List<org.springframework.ai.document.Document> documents) {
+        return java.util.stream.IntStream.range(0, documents.size())
+                .mapToObj(index -> toSourceResponse(index + 1, documents.get(index)))
+                .toList();
+    }
+
+    private AiSourceResponse toSourceResponse(int sourceNumber, org.springframework.ai.document.Document document) {
         Map<String, Object> metadata = document.getMetadata();
 
         return new AiSourceResponse(
+                "S" + sourceNumber,
                 document.getId(),
                 parseUuid(metadata.get(RagMetadataKeys.DOCUMENT_ID)),
                 parseUuid(metadata.get(RagMetadataKeys.CHUNK_ID)),
@@ -152,8 +188,27 @@ public class AiRagService {
                 asString(metadata.get(RagMetadataKeys.DOCUMENT_TYPE)),
                 parseInteger(metadata.get(RagMetadataKeys.CHUNK_INDEX)),
                 document.getScore(),
-                document.getText()
+                buildExcerpt(document.getText())
         );
+    }
+
+    private String buildExcerpt(String content) {
+        if (content == null) {
+            return null;
+        }
+
+        String normalized = content
+                .replace("\\r\\n", "\\n")
+                .replace("\\r", "\\n")
+                .replaceAll("[ \\t]+", " ")
+                .replaceAll("\\n{3,}", "\\n\\n")
+                .trim();
+
+        if (normalized.length() <= MAX_SOURCE_EXCERPT_LENGTH) {
+            return normalized;
+        }
+
+        return normalized.substring(0, MAX_SOURCE_EXCERPT_LENGTH).trim() + "...";
     }
 
     private UUID parseUuid(Object value) {
