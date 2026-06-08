@@ -7,10 +7,9 @@ import java.util.UUID;
 public record SupplierResponse(
         UUID id,
         String name,
-        String description,
         String phone,
         String email,
-        String address,
+        String website,
         String notes,
         CatalogStatus status,
         OffsetDateTime createdAt,

@@ -7,11 +7,9 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public record MaintenancePersonRequest(
-        @NotBlank(message = "Name is required")
-        @Size(max = 150, message = "Name must not exceed 150 characters")
-        String name,
-
-        String description,
+        @NotBlank(message = "Full name is required")
+        @Size(max = 150, message = "Full name must not exceed 150 characters")
+        String fullName,
 
         @Size(max = 50, message = "Phone must not exceed 50 characters")
         String phone,

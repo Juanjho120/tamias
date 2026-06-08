@@ -59,7 +59,7 @@ public class ScheduledMaintenanceMapper {
                 type != null ? type.getId() : null,
                 type != null ? type.getName() : null,
                 person != null ? person.getId() : null,
-                person != null ? person.getName() : null,
+                person != null ? person.getFullName() : null,
                 entity.getTitle(),
                 entity.getDescription(),
                 entity.getFrequency(),

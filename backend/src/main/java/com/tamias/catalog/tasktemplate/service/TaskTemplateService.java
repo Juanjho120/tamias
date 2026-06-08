@@ -60,8 +60,8 @@ public class TaskTemplateService {
     public TaskTemplateResponse create(TaskTemplateRequest request) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
-        if (repository.existsByOrganization_IdAndTitleIgnoreCaseAndDeletedAtIsNull(organizationId, request.title())) {
-            throw new ConflictException("task template title already exists");
+        if (repository.existsByOrganization_IdAndNameIgnoreCaseAndDeletedAtIsNull(organizationId, request.name())) {
+            throw new ConflictException("task template name already exists");
         }
 
         var organization = organizationRepository.findByIdAndDeletedAtIsNull(organizationId)
@@ -79,9 +79,9 @@ public class TaskTemplateService {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         TaskTemplate entity = findEntity(id);
 
-        if (!entity.getTitle().equalsIgnoreCase(request.title())
-                && repository.existsByOrganization_IdAndTitleIgnoreCaseAndDeletedAtIsNull(organizationId, request.title())) {
-            throw new ConflictException("task template title already exists");
+        if (!entity.getName().equalsIgnoreCase(request.name())
+                && repository.existsByOrganization_IdAndNameIgnoreCaseAndDeletedAtIsNull(organizationId, request.name())) {
+            throw new ConflictException("task template name already exists");
         }
 
         catalogMapper.updateTaskTemplate(entity, request);

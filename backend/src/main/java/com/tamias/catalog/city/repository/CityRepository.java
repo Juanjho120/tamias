@@ -12,12 +12,7 @@ public interface CityRepository extends JpaRepository<City, UUID> {
 
     Optional<City> findByIdAndOrganization_IdAndDeletedAtIsNull(UUID id, UUID organizationId);
 
-    boolean existsByOrganization_IdAndNameIgnoreCaseAndDepartmentIgnoreCaseAndCountryIgnoreCaseAndDeletedAtIsNull(
-            UUID organizationId,
-            String name,
-            String department,
-            String country
-    );
+    boolean existsByOrganization_IdAndNameIgnoreCaseAndDeletedAtIsNull(UUID organizationId, String name);
 
     Page<City> findByOrganization_IdAndDeletedAtIsNull(UUID organizationId, Pageable pageable);
 

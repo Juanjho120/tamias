@@ -60,13 +60,8 @@ public class CityService {
     public CityResponse create(CityRequest request) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
-        if (repository.existsByOrganization_IdAndNameIgnoreCaseAndDepartmentIgnoreCaseAndCountryIgnoreCaseAndDeletedAtIsNull(
-                organizationId,
-                request.name(),
-                nullToEmpty(request.department()),
-                nullToEmpty(request.country())
-        )) {
-            throw new ConflictException("city already exists");
+        if (repository.existsByOrganization_IdAndNameIgnoreCaseAndDeletedAtIsNull(organizationId, request.name())) {
+            throw new ConflictException("city name already exists");
         }
 
         var organization = organizationRepository.findByIdAndDeletedAtIsNull(organizationId)
@@ -81,8 +76,16 @@ public class CityService {
 
     @Transactional
     public CityResponse update(UUID id, CityRequest request) {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
         City entity = findEntity(id);
+
+        if (!entity.getName().equalsIgnoreCase(request.name())
+                && repository.existsByOrganization_IdAndNameIgnoreCaseAndDeletedAtIsNull(organizationId, request.name())) {
+            throw new ConflictException("city name already exists");
+        }
+
         catalogMapper.updateCity(entity, request);
+
         return catalogMapper.toCityResponse(repository.save(entity));
     }
 
@@ -99,9 +102,5 @@ public class CityService {
 
         return repository.findByIdAndOrganization_IdAndDeletedAtIsNull(id, organizationId)
                 .orElseThrow(() -> new NotFoundException("city not found"));
-    }
-
-    private String nullToEmpty(String value) {
-        return value == null ? "" : value;
     }
 }

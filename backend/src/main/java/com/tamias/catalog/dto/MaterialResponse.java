@@ -4,10 +4,11 @@ import com.tamias.catalog.enums.CatalogStatus;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-public record CityResponse(
+public record MaterialResponse(
         UUID id,
         String name,
-        String country,
+        String description,
+        String unit,
         CatalogStatus status,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt

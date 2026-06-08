@@ -12,7 +12,7 @@ public interface TaskTemplateRepository extends JpaRepository<TaskTemplate, UUID
 
     Optional<TaskTemplate> findByIdAndOrganization_IdAndDeletedAtIsNull(UUID id, UUID organizationId);
 
-    boolean existsByOrganization_IdAndTitleIgnoreCaseAndDeletedAtIsNull(UUID organizationId, String title);
+    boolean existsByOrganization_IdAndNameIgnoreCaseAndDeletedAtIsNull(UUID organizationId, String name);
 
     Page<TaskTemplate> findByOrganization_IdAndDeletedAtIsNull(UUID organizationId, Pageable pageable);
 

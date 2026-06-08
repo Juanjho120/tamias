@@ -60,8 +60,8 @@ public class MaintenancePersonService {
     public MaintenancePersonResponse create(MaintenancePersonRequest request) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
-        if (repository.existsByOrganization_IdAndNameIgnoreCaseAndDeletedAtIsNull(organizationId, request.name())) {
-            throw new ConflictException("maintenance person name already exists");
+        if (repository.existsByOrganization_IdAndFullNameIgnoreCaseAndDeletedAtIsNull(organizationId, request.fullName())) {
+            throw new ConflictException("maintenance person full name already exists");
         }
 
         var organization = organizationRepository.findByIdAndDeletedAtIsNull(organizationId)
@@ -79,9 +79,9 @@ public class MaintenancePersonService {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         MaintenancePerson entity = findEntity(id);
 
-        if (!entity.getName().equalsIgnoreCase(request.name())
-                && repository.existsByOrganization_IdAndNameIgnoreCaseAndDeletedAtIsNull(organizationId, request.name())) {
-            throw new ConflictException("maintenance person name already exists");
+        if (!entity.getFullName().equalsIgnoreCase(request.fullName())
+                && repository.existsByOrganization_IdAndFullNameIgnoreCaseAndDeletedAtIsNull(organizationId, request.fullName())) {
+            throw new ConflictException("maintenance person full name already exists");
         }
 
         catalogMapper.updateMaintenancePerson(entity, request);

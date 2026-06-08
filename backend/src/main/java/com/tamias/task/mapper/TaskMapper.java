@@ -81,7 +81,7 @@ public class TaskMapper {
         return new TaskItemResponse(
                 entity.getId(),
                 entity.getTaskTemplate() != null ? entity.getTaskTemplate().getId() : null,
-                entity.getTaskTemplate() != null ? entity.getTaskTemplate().getTitle() : null,
+                entity.getTaskTemplate() != null ? entity.getTaskTemplate().getName() : null,
                 entity.getTaskName(),
                 entity.getResponsiblePerson(),
                 entity.getCompleted(),

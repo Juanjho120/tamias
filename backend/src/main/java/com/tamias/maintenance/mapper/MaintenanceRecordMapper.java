@@ -55,7 +55,7 @@ public class MaintenanceRecordMapper {
                 maintenanceType != null ? maintenanceType.getId() : null,
                 maintenanceType != null ? maintenanceType.getName() : null,
                 maintenancePerson != null ? maintenancePerson.getId() : null,
-                maintenancePerson != null ? maintenancePerson.getName() : null,
+                maintenancePerson != null ? maintenancePerson.getFullName() : null,
                 entity.getTitle(),
                 entity.getDescription(),
                 entity.getScheduledAt(),

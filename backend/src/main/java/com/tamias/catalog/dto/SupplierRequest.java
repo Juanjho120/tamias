@@ -11,8 +11,6 @@ public record SupplierRequest(
         @Size(max = 150, message = "Name must not exceed 150 characters")
         String name,
 
-        String description,
-
         @Size(max = 50, message = "Phone must not exceed 50 characters")
         String phone,
 
@@ -20,7 +18,7 @@ public record SupplierRequest(
         @Size(max = 150, message = "Email must not exceed 150 characters")
         String email,
 
-        String address,
+        String website,
 
         String notes,
 

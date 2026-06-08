@@ -8,6 +8,8 @@ import com.tamias.catalog.dto.MaintenancePersonRequest;
 import com.tamias.catalog.dto.MaintenancePersonResponse;
 import com.tamias.catalog.dto.MaintenanceTypeRequest;
 import com.tamias.catalog.dto.MaintenanceTypeResponse;
+import com.tamias.catalog.dto.MaterialRequest;
+import com.tamias.catalog.dto.MaterialResponse;
 import com.tamias.catalog.dto.SupplierRequest;
 import com.tamias.catalog.dto.SupplierResponse;
 import com.tamias.catalog.dto.TaskTemplateRequest;
@@ -16,6 +18,7 @@ import com.tamias.catalog.entity.BaseCatalogEntity;
 import com.tamias.catalog.city.entity.City;
 import com.tamias.catalog.maintenanceperson.entity.MaintenancePerson;
 import com.tamias.catalog.maintenancetype.entity.MaintenanceType;
+import com.tamias.catalog.material.entity.Material;
 import com.tamias.catalog.supplier.entity.Supplier;
 import com.tamias.catalog.tasktemplate.entity.TaskTemplate;
 import org.springframework.stereotype.Component;
@@ -40,6 +43,25 @@ public class CatalogMapper {
         );
     }
 
+    public MaterialResponse toMaterialResponse(Material entity) {
+        return new MaterialResponse(
+                entity.getId(),
+                entity.getName(),
+                entity.getDescription(),
+                entity.getUnit(),
+                entity.getStatus(),
+                entity.getCreatedAt(),
+                entity.getUpdatedAt()
+        );
+    }
+
+    public void updateMaterial(Material entity, MaterialRequest request) {
+        entity.setName(request.name());
+        entity.setDescription(request.description());
+        entity.setUnit(request.unit());
+        entity.setStatus(request.status());
+    }
+
     public MaintenanceTypeResponse toMaintenanceTypeResponse(MaintenanceType entity) {
         return new MaintenanceTypeResponse(
                 entity.getId(),
@@ -60,8 +82,7 @@ public class CatalogMapper {
     public MaintenancePersonResponse toMaintenancePersonResponse(MaintenancePerson entity) {
         return new MaintenancePersonResponse(
                 entity.getId(),
-                entity.getName(),
-                entity.getDescription(),
+                entity.getFullName(),
                 entity.getPhone(),
                 entity.getEmail(),
                 entity.getNotes(),
@@ -72,8 +93,7 @@ public class CatalogMapper {
     }
 
     public void updateMaintenancePerson(MaintenancePerson entity, MaintenancePersonRequest request) {
-        entity.setName(request.name());
-        entity.setDescription(request.description());
+        entity.setFullName(request.fullName());
         entity.setPhone(request.phone());
         entity.setEmail(request.email());
         entity.setNotes(request.notes());
@@ -84,10 +104,9 @@ public class CatalogMapper {
         return new SupplierResponse(
                 entity.getId(),
                 entity.getName(),
-                entity.getDescription(),
                 entity.getPhone(),
                 entity.getEmail(),
-                entity.getAddress(),
+                entity.getWebsite(),
                 entity.getNotes(),
                 entity.getStatus(),
                 entity.getCreatedAt(),
@@ -97,10 +116,9 @@ public class CatalogMapper {
 
     public void updateSupplier(Supplier entity, SupplierRequest request) {
         entity.setName(request.name());
-        entity.setDescription(request.description());
         entity.setPhone(request.phone());
         entity.setEmail(request.email());
-        entity.setAddress(request.address());
+        entity.setWebsite(request.website());
         entity.setNotes(request.notes());
         entity.setStatus(request.status());
     }
@@ -109,8 +127,6 @@ public class CatalogMapper {
         return new CityResponse(
                 entity.getId(),
                 entity.getName(),
-                entity.getDescription(),
-                entity.getDepartment(),
                 entity.getCountry(),
                 entity.getStatus(),
                 entity.getCreatedAt(),
@@ -120,16 +136,14 @@ public class CatalogMapper {
 
     public void updateCity(City entity, CityRequest request) {
         entity.setName(request.name());
-        entity.setDescription(request.description());
-        entity.setDepartment(request.department());
-        entity.setCountry(request.country());
+        entity.setCountry(request.country() != null && !request.country().isBlank() ? request.country() : "Guatemala");
         entity.setStatus(request.status());
     }
 
     public TaskTemplateResponse toTaskTemplateResponse(TaskTemplate entity) {
         return new TaskTemplateResponse(
                 entity.getId(),
-                entity.getTitle(),
+                entity.getName(),
                 entity.getDescription(),
                 entity.getStatus(),
                 entity.getCreatedAt(),
@@ -138,7 +152,7 @@ public class CatalogMapper {
     }
 
     public void updateTaskTemplate(TaskTemplate entity, TaskTemplateRequest request) {
-        entity.setTitle(request.title());
+        entity.setName(request.name());
         entity.setDescription(request.description());
         entity.setStatus(request.status());
     }

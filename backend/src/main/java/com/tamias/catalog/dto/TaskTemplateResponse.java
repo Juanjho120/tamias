@@ -6,7 +6,7 @@ import java.util.UUID;
 
 public record TaskTemplateResponse(
         UUID id,
-        String title,
+        String name,
         String description,
         CatalogStatus status,
         OffsetDateTime createdAt,
