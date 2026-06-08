@@ -19,6 +19,24 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: false
 
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      chat:
+        options:
+          model: gpt-4o-mini
+          temperature: 0.2
+      embedding:
+        options:
+          model: text-embedding-3-small
+    vectorstore:
+      chroma:
+        client:
+          host: http://localhost
+          port: 8000
+        collection-name: tamias_documents
+        initialize-schema: true
+
 logging:
   level:
     org.hibernate.SQL: debug
@@ -33,6 +51,8 @@ tamias:
   cors:
     allowed-origins: http://localhost:4200
   ai:
+    default-top-k: 5
+    default-similarity-threshold: 0.70
     vector-store:
       chroma-base-url: http://localhost:8000
       collection-name: tamias_documents

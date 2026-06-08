@@ -1,10 +1,12 @@
 package com.tamias.document.service;
 
+import com.tamias.ai.service.RagVectorStoreService;
 import com.tamias.common.dto.PageResponse;
 import com.tamias.common.exception.BadRequestException;
 import com.tamias.common.exception.NotFoundException;
 import com.tamias.document.dto.DocumentChunkResponse;
 import com.tamias.document.dto.DocumentDownloadUrlResponse;
+import com.tamias.document.dto.DocumentIndexingResponse;
 import com.tamias.document.dto.DocumentProcessingResponse;
 import com.tamias.document.dto.DocumentResponse;
 import com.tamias.document.dto.DocumentSummaryResponse;
@@ -56,6 +58,7 @@ public class DocumentService {
     private final CurrentUserService currentUserService;
     private final FileStorageService fileStorageService;
     private final DocumentProcessingService documentProcessingService;
+    private final RagVectorStoreService ragVectorStoreService;
     private final DocumentMapper documentMapper;
 
     public DocumentService(
@@ -67,6 +70,7 @@ public class DocumentService {
             CurrentUserService currentUserService,
             FileStorageService fileStorageService,
             DocumentProcessingService documentProcessingService,
+            RagVectorStoreService ragVectorStoreService,
             DocumentMapper documentMapper
     ) {
         this.documentRepository = documentRepository;
@@ -77,6 +81,7 @@ public class DocumentService {
         this.currentUserService = currentUserService;
         this.fileStorageService = fileStorageService;
         this.documentProcessingService = documentProcessingService;
+        this.ragVectorStoreService = ragVectorStoreService;
         this.documentMapper = documentMapper;
     }
 
@@ -198,6 +203,12 @@ public class DocumentService {
         return documentProcessingService.process(document);
     }
 
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
+    public DocumentIndexingResponse index(UUID id) {
+        Document document = findDocument(id);
+        return ragVectorStoreService.indexDocument(document);
+    }
+
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF', 'READ_ONLY')")
     public List<DocumentChunkResponse> findChunks(UUID documentId) {
@@ -213,6 +224,8 @@ public class DocumentService {
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
     public void delete(UUID id) {
         Document document = findDocument(id);
+
+        ragVectorStoreService.deleteDocumentVectors(document);
 
         var currentUser = userRepository.findByIdAndDeletedAtIsNull(currentUserService.getCurrentUserId())
                 .orElseThrow(() -> new NotFoundException("User not found"));
