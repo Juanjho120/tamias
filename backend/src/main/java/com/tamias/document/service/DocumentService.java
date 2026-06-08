@@ -10,11 +10,11 @@ import com.tamias.document.dto.DocumentResponse;
 import com.tamias.document.dto.DocumentSummaryResponse;
 import com.tamias.document.dto.DocumentUploadRequest;
 import com.tamias.document.entity.Document;
-import com.tamias.document.entity.DocumentChunk;
 import com.tamias.document.enums.DocumentProcessingStatus;
 import com.tamias.document.enums.DocumentStatus;
 import com.tamias.document.enums.DocumentType;
 import com.tamias.document.mapper.DocumentMapper;
+import com.tamias.document.processing.DocumentProcessingService;
 import com.tamias.document.repository.DocumentChunkRepository;
 import com.tamias.document.repository.DocumentRepository;
 import com.tamias.document.storage.FileStorageService;
@@ -22,8 +22,6 @@ import com.tamias.organization.repository.OrganizationRepository;
 import com.tamias.property.repository.PropertyRepository;
 import com.tamias.security.service.CurrentUserService;
 import com.tamias.user.repository.UserRepository;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Set;
@@ -57,6 +55,7 @@ public class DocumentService {
     private final UserRepository userRepository;
     private final CurrentUserService currentUserService;
     private final FileStorageService fileStorageService;
+    private final DocumentProcessingService documentProcessingService;
     private final DocumentMapper documentMapper;
 
     public DocumentService(
@@ -67,6 +66,7 @@ public class DocumentService {
             UserRepository userRepository,
             CurrentUserService currentUserService,
             FileStorageService fileStorageService,
+            DocumentProcessingService documentProcessingService,
             DocumentMapper documentMapper
     ) {
         this.documentRepository = documentRepository;
@@ -76,6 +76,7 @@ public class DocumentService {
         this.userRepository = userRepository;
         this.currentUserService = currentUserService;
         this.fileStorageService = fileStorageService;
+        this.documentProcessingService = documentProcessingService;
         this.documentMapper = documentMapper;
     }
 
@@ -191,33 +192,10 @@ public class DocumentService {
         return fileStorageService.loadAsResource(document.getS3Key());
     }
 
-    @Transactional
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
     public DocumentProcessingResponse process(UUID id) {
         Document document = findDocument(id);
-
-        document.setProcessingStatus(DocumentProcessingStatus.PROCESSING);
-        documentRepository.saveAndFlush(document);
-
-        try {
-            documentChunkRepository.deleteByDocument_Id(document.getId());
-
-            if ("text/plain".equalsIgnoreCase(document.getContentType())) {
-                processPlainTextDocument(document);
-                document.setProcessingStatus(DocumentProcessingStatus.PROCESSED);
-            } else {
-                // PDF, DOCX and image extraction will be added in the AI/RAG block.
-                // For now the document is marked as PROCESSING so the API contract is ready.
-                document.setProcessingStatus(DocumentProcessingStatus.PROCESSING);
-            }
-
-            documentRepository.save(document);
-            return new DocumentProcessingResponse(document.getId(), document.getProcessingStatus());
-        } catch (Exception ex) {
-            document.setProcessingStatus(DocumentProcessingStatus.FAILED);
-            documentRepository.save(document);
-            return new DocumentProcessingResponse(document.getId(), document.getProcessingStatus());
-        }
+        return documentProcessingService.process(document);
     }
 
     @Transactional(readOnly = true)
@@ -267,60 +245,5 @@ public class DocumentService {
         if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
             throw new BadRequestException("File type is not allowed");
         }
-    }
-
-    private void processPlainTextDocument(Document document) throws IOException {
-        Resource resource = fileStorageService.loadAsResource(document.getS3Key());
-        String content = resource.getContentAsString(StandardCharsets.UTF_8);
-
-        List<String> chunks = splitIntoChunks(content, 4000, 500);
-
-        int index = 0;
-        for (String chunkContent : chunks) {
-            DocumentChunk chunk = new DocumentChunk();
-            chunk.setOrganization(document.getOrganization());
-            chunk.setDocument(document);
-            chunk.setChunkIndex(index++);
-            chunk.setContent(chunkContent);
-            chunk.setTokenCount(estimateTokenCount(chunkContent));
-            chunk.setVectorStoreCollection("tamias_documents");
-            chunk.setVectorStoreId(null);
-
-            documentChunkRepository.save(chunk);
-        }
-    }
-
-    private List<String> splitIntoChunks(String content, int chunkSize, int overlap) {
-        if (content == null || content.isBlank()) {
-            return List.of();
-        }
-
-        if (content.length() <= chunkSize) {
-            return List.of(content);
-        }
-
-        java.util.ArrayList<String> chunks = new java.util.ArrayList<>();
-        int start = 0;
-
-        while (start < content.length()) {
-            int end = Math.min(start + chunkSize, content.length());
-            chunks.add(content.substring(start, end));
-
-            if (end == content.length()) {
-                break;
-            }
-
-            start = Math.max(0, end - overlap);
-        }
-
-        return chunks;
-    }
-
-    private int estimateTokenCount(String content) {
-        if (content == null || content.isBlank()) {
-            return 0;
-        }
-
-        return Math.max(1, content.length() / 4);
     }
 }
