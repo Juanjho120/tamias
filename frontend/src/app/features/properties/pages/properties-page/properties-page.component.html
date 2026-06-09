@@ -10,43 +10,6 @@
   </button>
 </div>
 
-@if (errorMessage()) {
-  <div class="alert alert-danger alert-dismissible fade show" role="alert">
-    {{ errorMessage() }}
-    <button type="button" class="btn-close" aria-label="Close" (click)="errorMessage.set(null)"></button>
-  </div>
-}
-
-@if (successMessage()) {
-  <div class="alert alert-success alert-dismissible fade show" role="alert">
-    {{ successMessage() }}
-    <button type="button" class="btn-close" aria-label="Close" (click)="successMessage.set(null)"></button>
-  </div>
-}
-
-@if (formVisible()) {
-  <div class="card page-card mb-4">
-    <div class="card-header bg-white border-0 pt-4 px-4">
-      <div class="d-flex justify-content-between align-items-start gap-3">
-        <div>
-          <h2 class="h5 mb-1">{{ formMode() === 'create' ? 'Create property' : 'Edit property' }}</h2>
-          <p class="text-muted mb-0">Fill in the main property information.</p>
-        </div>
-        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="closeForm()">
-          <i class="bi bi-x-lg"></i>
-        </button>
-      </div>
-    </div>
-    <div class="card-body p-4">
-      <app-property-form
-        [property]="selectedProperty()"
-        [loading]="saving()"
-        (save)="saveProperty($event)"
-        (cancel)="closeForm()" />
-    </div>
-  </div>
-}
-
 <div class="card page-card mb-4">
   <div class="card-body p-4">
     <div class="row g-3 align-items-end">
@@ -154,7 +117,7 @@
                       type="button"
                       class="btn btn-outline-danger btn-sm"
                       [disabled]="deletingId() === property.id"
-                      (click)="deleteProperty(property)">
+                      (click)="requestDelete(property)">
                       @if (deletingId() === property.id) {
                         <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
                       } @else {
@@ -196,3 +159,38 @@
     }
   </div>
 </div>
+
+@if (formVisible()) {
+  <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title">{{ formTitle() }}</h5>
+            <div class="small text-muted">Fill in the main property information.</div>
+          </div>
+          <button type="button" class="btn-close" aria-label="Close" [disabled]="saving()" (click)="closeForm()"></button>
+        </div>
+        <div class="modal-body">
+          <app-property-form
+            [property]="selectedProperty()"
+            [loading]="saving()"
+            (save)="saveProperty($event)"
+            (cancel)="closeForm()" />
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}
+
+<app-confirm-modal
+  [open]="!!propertyToDelete()"
+  title="Delete property"
+  [message]="deleteMessage()"
+  confirmText="Delete"
+  cancelText="Cancel"
+  confirmButtonClass="btn-danger"
+  [loading]="!!deletingId()"
+  (confirm)="confirmDelete()"
+  (cancel)="cancelDelete()" />

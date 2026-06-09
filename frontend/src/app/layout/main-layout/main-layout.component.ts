@@ -2,6 +2,7 @@ import { NgClass } from '@angular/common';
 import { Component, computed, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { ToastContainerComponent } from '../../shared/toast/toast-container.component';
 
 interface MenuItem {
   label: string;
@@ -12,7 +13,7 @@ interface MenuItem {
 @Component({
   selector: 'app-main-layout',
   standalone: true,
-  imports: [NgClass, RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [NgClass, RouterOutlet, RouterLink, RouterLinkActive, ToastContainerComponent],
   templateUrl: './main-layout.component.html'
 })
 export class MainLayoutComponent {

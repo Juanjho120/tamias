@@ -1,31 +1,34 @@
 import { DatePipe, NgClass } from '@angular/common';
-import { Component, OnInit, computed, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiError } from '../../../../core/models/api-error.model';
 import { PageResponse } from '../../../../core/models/page-response.model';
+import { ConfirmModalComponent } from '../../../../shared/confirm-modal/confirm-modal.component';
+import { ToastService } from '../../../../shared/toast/toast.service';
 import { Property, PropertyRequest, PropertyStatus, PropertySummary, PROPERTY_STATUSES } from '../../models/property.model';
-import { PropertyService } from '../../services/property.service';
 import { PropertyFormComponent } from '../../components/property-form/property-form.component';
+import { PropertyService } from '../../services/property.service';
 
 type FormMode = 'create' | 'edit';
 
 @Component({
   selector: 'app-properties-page',
   standalone: true,
-  imports: [DatePipe, FormsModule, NgClass, PropertyFormComponent],
+  imports: [DatePipe, FormsModule, NgClass, PropertyFormComponent, ConfirmModalComponent],
   templateUrl: './properties-page.component.html'
 })
 export class PropertiesPageComponent implements OnInit {
+  private readonly toastService = inject(ToastService);
+
   readonly statuses = PROPERTY_STATUSES;
 
   readonly loading = signal(false);
   readonly saving = signal(false);
   readonly deletingId = signal<string | null>(null);
-  readonly errorMessage = signal<string | null>(null);
-  readonly successMessage = signal<string | null>(null);
 
   readonly properties = signal<PropertySummary[]>([]);
   readonly selectedProperty = signal<Property | null>(null);
+  readonly propertyToDelete = signal<PropertySummary | null>(null);
   readonly formVisible = signal(false);
   readonly formMode = signal<FormMode>('create');
 
@@ -38,12 +41,19 @@ export class PropertiesPageComponent implements OnInit {
   readonly first = signal(true);
   readonly last = signal(true);
 
+  readonly formTitle = computed(() => this.formMode() === 'create' ? 'Create property' : 'Edit property');
+
   readonly pageLabel = computed(() => {
     if (this.totalElements() === 0) {
       return 'No properties';
     }
 
     return `Page ${this.page() + 1} of ${this.totalPages()}`;
+  });
+
+  readonly deleteMessage = computed(() => {
+    const property = this.propertyToDelete();
+    return property ? `Delete property "${property.name}"? This action will mark it as deleted.` : '';
   });
 
   constructor(private readonly propertyService: PropertyService) {
@@ -55,7 +65,6 @@ export class PropertiesPageComponent implements OnInit {
 
   loadProperties(): void {
     this.loading.set(true);
-    this.errorMessage.set(null);
 
     this.propertyService.findAll({
       status: this.status(),
@@ -70,7 +79,7 @@ export class PropertiesPageComponent implements OnInit {
       },
       error: (error) => {
         this.loading.set(false);
-        this.errorMessage.set(this.extractErrorMessage(error, 'Unable to load properties.'));
+        this.toastService.error(this.extractErrorMessage(error, 'Unable to load properties.'));
       }
     });
   }
@@ -112,16 +121,12 @@ export class PropertiesPageComponent implements OnInit {
   }
 
   openCreateForm(): void {
-    this.errorMessage.set(null);
-    this.successMessage.set(null);
     this.formMode.set('create');
     this.selectedProperty.set(null);
     this.formVisible.set(true);
   }
 
   openEditForm(propertyId: string): void {
-    this.errorMessage.set(null);
-    this.successMessage.set(null);
     this.loading.set(true);
 
     this.propertyService.findById(propertyId).subscribe({
@@ -133,12 +138,16 @@ export class PropertiesPageComponent implements OnInit {
       },
       error: (error) => {
         this.loading.set(false);
-        this.errorMessage.set(this.extractErrorMessage(error, 'Unable to load property details.'));
+        this.toastService.error(this.extractErrorMessage(error, 'Unable to load property details.'));
       }
     });
   }
 
   closeForm(): void {
+    if (this.saving()) {
+      return;
+    }
+
     this.formVisible.set(false);
     this.selectedProperty.set(null);
     this.formMode.set('create');
@@ -146,8 +155,6 @@ export class PropertiesPageComponent implements OnInit {
 
   saveProperty(request: PropertyRequest): void {
     this.saving.set(true);
-    this.errorMessage.set(null);
-    this.successMessage.set(null);
 
     const selectedProperty = this.selectedProperty();
 
@@ -158,37 +165,48 @@ export class PropertiesPageComponent implements OnInit {
     saveRequest.subscribe({
       next: () => {
         this.saving.set(false);
-        this.successMessage.set(this.formMode() === 'edit' ? 'Property updated successfully.' : 'Property created successfully.');
+        this.toastService.success(this.formMode() === 'edit' ? 'Property updated successfully.' : 'Property created successfully.');
         this.closeForm();
         this.loadProperties();
       },
       error: (error) => {
         this.saving.set(false);
-        this.errorMessage.set(this.extractErrorMessage(error, 'Unable to save property.'));
+        this.toastService.error(this.extractErrorMessage(error, 'Unable to save property.'));
       }
     });
   }
 
-  deleteProperty(property: PropertySummary): void {
-    const confirmed = window.confirm(`Delete property "${property.name}"?`);
+  requestDelete(property: PropertySummary): void {
+    this.propertyToDelete.set(property);
+  }
 
-    if (!confirmed) {
+  cancelDelete(): void {
+    if (this.deletingId()) {
+      return;
+    }
+
+    this.propertyToDelete.set(null);
+  }
+
+  confirmDelete(): void {
+    const property = this.propertyToDelete();
+
+    if (!property) {
       return;
     }
 
     this.deletingId.set(property.id);
-    this.errorMessage.set(null);
-    this.successMessage.set(null);
 
     this.propertyService.delete(property.id).subscribe({
       next: () => {
         this.deletingId.set(null);
-        this.successMessage.set('Property deleted successfully.');
+        this.propertyToDelete.set(null);
+        this.toastService.success('Property deleted successfully.');
         this.loadProperties();
       },
       error: (error) => {
         this.deletingId.set(null);
-        this.errorMessage.set(this.extractErrorMessage(error, 'Unable to delete property.'));
+        this.toastService.error(this.extractErrorMessage(error, 'Unable to delete property.'));
       }
     });
   }
