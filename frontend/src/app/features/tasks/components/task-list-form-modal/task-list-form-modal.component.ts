@@ -1,5 +1,5 @@
-import { DatePipe, NgClass } from '@angular/common';
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, computed, inject, signal } from '@angular/core';
+import { NgClass } from '@angular/common';
+import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslatePipe } from '@ngx-translate/core';
 import {
@@ -19,7 +19,7 @@ import {
 @Component({
   selector: 'app-task-list-form-modal',
   standalone: true,
-  imports: [DatePipe, NgClass, ReactiveFormsModule, TranslatePipe],
+  imports: [NgClass, ReactiveFormsModule, TranslatePipe],
   templateUrl: './task-list-form-modal.component.html'
 })
 export class TaskListFormModalComponent implements OnChanges {
@@ -58,7 +58,7 @@ export class TaskListFormModalComponent implements OnChanges {
     sortOrder: ['']
   });
 
-  readonly selectedPropertyReservations = computed(() => {
+  selectedPropertyReservations(): TaskReservationOption[] {
     const propertyId = this.form.controls.propertyId.value;
 
     if (!propertyId) {
@@ -66,9 +66,9 @@ export class TaskListFormModalComponent implements OnChanges {
     }
 
     return this.reservations.filter((reservation) => reservation.propertyId === propertyId);
-  });
+  }
 
-  readonly selectedPropertyMaintenanceRecords = computed(() => {
+  selectedPropertyMaintenanceRecords(): TaskMaintenanceRecordOption[] {
     const propertyId = this.form.controls.propertyId.value;
 
     if (!propertyId) {
@@ -76,7 +76,7 @@ export class TaskListFormModalComponent implements OnChanges {
     }
 
     return this.maintenanceRecords.filter((record) => record.propertyId === propertyId);
-  });
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['taskList'] || changes['open']) {

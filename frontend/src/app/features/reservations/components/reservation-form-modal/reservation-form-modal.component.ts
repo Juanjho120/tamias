@@ -1,4 +1,4 @@
-import { DecimalPipe, NgClass } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -14,7 +14,7 @@ import { ReservationPlatformOption, ReservationPropertyOption } from '../../mode
 @Component({
   selector: 'app-reservation-form-modal',
   standalone: true,
-  imports: [DecimalPipe, NgClass, ReactiveFormsModule, TranslatePipe],
+  imports: [NgClass, ReactiveFormsModule, TranslatePipe],
   templateUrl: './reservation-form-modal.component.html'
 })
 export class ReservationFormModalComponent implements OnChanges {
