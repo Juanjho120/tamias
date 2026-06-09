@@ -1,0 +1,66 @@
+@if (open) {
+  <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title">{{ 'scheduledMaintenance.history.title' | translate }}</h5>
+            <div class="small text-muted">{{ title }}</div>
+          </div>
+          <button type="button" class="btn-close" aria-label="Close" [disabled]="loading" (click)="close.emit()"></button>
+        </div>
+
+        <div class="modal-body p-0">
+          @if (loading) {
+            <div class="p-5 text-center">
+              <div class="spinner-border text-primary" role="status"></div>
+              <div class="text-muted mt-3">{{ 'scheduledMaintenance.history.loading' | translate }}</div>
+            </div>
+          } @else if (history.length === 0) {
+            <div class="p-5 text-center text-muted">{{ 'scheduledMaintenance.history.empty' | translate }}</div>
+          } @else {
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                <tr>
+                  <th>{{ 'scheduledMaintenance.history.changedAt' | translate }}</th>
+                  <th>{{ 'scheduledMaintenance.history.status' | translate }}</th>
+                  <th>{{ 'scheduledMaintenance.history.date' | translate }}</th>
+                  <th>{{ 'scheduledMaintenance.history.reason' | translate }}</th>
+                  <th>{{ 'scheduledMaintenance.history.changedBy' | translate }}</th>
+                </tr>
+                </thead>
+                <tbody>
+                  @for (item of history; track item.id) {
+                    <tr>
+                      <td>{{ item.changedAt | date:'medium' }}</td>
+                      <td>
+                        {{ item.previousStatus ? ('scheduledMaintenance.status.' + item.previousStatus | translate) : '—' }}
+                        →
+                        {{ item.newStatus ? ('scheduledMaintenance.status.' + item.newStatus | translate) : '—' }}
+                      </td>
+                      <td>
+                        {{ item.previousPlannedDate || '—' }}
+                        →
+                        {{ item.newPlannedDate || '—' }}
+                      </td>
+                      <td>{{ item.reason || '—' }}</td>
+                      <td>{{ item.changedByName || '—' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" [disabled]="loading" (click)="close.emit()">
+            {{ 'common.close' | translate }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}

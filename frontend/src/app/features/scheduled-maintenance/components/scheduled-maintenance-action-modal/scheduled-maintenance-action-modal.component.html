@@ -1,0 +1,57 @@
+@if (open && action) {
+  <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title">{{ 'scheduledMaintenance.actions.' + action + '.title' | translate }}</h5>
+            <div class="small text-muted">{{ title }}</div>
+          </div>
+          <button type="button" class="btn-close" aria-label="Close" [disabled]="loading" (click)="cancel.emit()"></button>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+          <div class="modal-body">
+            @if (action === 'reschedule') {
+              <div class="mb-3">
+                <label for="scheduled-action-next-due-date" class="form-label">
+                  {{ 'scheduledMaintenance.actions.reschedule.nextDueDate' | translate }}
+                </label>
+                <input
+                  id="scheduled-action-next-due-date"
+                  type="date"
+                  class="form-control"
+                  formControlName="nextDueDate">
+                @if (form.controls.nextDueDate.invalid && (form.controls.nextDueDate.touched || form.controls.nextDueDate.dirty)) {
+                  <div class="text-danger small mt-1">{{ 'scheduledMaintenance.validation.nextDueDateRequired' | translate }}</div>
+                }
+              </div>
+            }
+
+            <div>
+              <label for="scheduled-action-reason" class="form-label">
+                {{ 'scheduledMaintenance.actions.reason' | translate }}
+              </label>
+              <textarea id="scheduled-action-reason" class="form-control" rows="3" formControlName="reason"></textarea>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" [disabled]="loading" (click)="cancel.emit()">
+              {{ 'common.cancel' | translate }}
+            </button>
+            <button type="submit" class="btn btn-primary" [disabled]="loading">
+              @if (loading) {
+                <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+                {{ 'common.saving' | translate }}
+              } @else {
+                {{ 'scheduledMaintenance.actions.' + action + '.confirm' | translate }}
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}

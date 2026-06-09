@@ -362,5 +362,139 @@
         "description": "Plantillas reutilizables para checklists operativos."
       }
     }
+  },
+  "scheduledMaintenance": {
+    "title": "Mantenimiento programado",
+    "subtitle": "Planifica mantenimientos recurrentes, revisa vencimientos y genera registros de mantenimiento.",
+    "newItem": "Nuevo mantenimiento programado",
+    "loading": "Cargando mantenimientos programados...",
+    "confirmDeleteTitle": "Eliminar mantenimiento programado",
+    "confirmDeleteMessage": "¿Eliminar el mantenimiento programado \"{{title}}\"? Esta acción lo marcará como eliminado.",
+    "views": {
+      "all": "Todos los mantenimientos",
+      "due": "Mantenimientos vencidos"
+    },
+    "filters": {
+      "property": "Propiedad",
+      "allProperties": "Todas las propiedades",
+      "status": "Estado",
+      "allStatuses": "Todos los estados",
+      "dueDate": "Vence en o antes de"
+    },
+    "table": {
+      "title": "Título",
+      "property": "Propiedad",
+      "category": "Categoría / Tipo",
+      "frequency": "Frecuencia",
+      "nextDueDate": "Próximo vencimiento",
+      "estimatedCost": "Costo estimado",
+      "status": "Estado",
+      "actions": "Acciones"
+    },
+    "empty": {
+      "title": "No se encontraron mantenimientos programados",
+      "description": "Crea un plan de mantenimiento programado para continuar."
+    },
+    "pagination": {
+      "noItems": "Sin items",
+      "pageOf": "Página {{page}} de {{totalPages}}"
+    },
+    "status": {
+      "ACTIVE": "Activo",
+      "PAUSED": "Pausado",
+      "COMPLETED": "Completado",
+      "DELETED": "Eliminado"
+    },
+    "frequency": {
+      "DAILY": "Diario",
+      "WEEKLY": "Semanal",
+      "MONTHLY": "Mensual",
+      "YEARLY": "Anual"
+    },
+    "form": {
+      "createTitle": "Crear mantenimiento programado",
+      "editTitle": "Editar mantenimiento programado",
+      "subtitle": "Completa la información del mantenimiento recurrente.",
+      "property": "Propiedad",
+      "selectProperty": "Selecciona una propiedad",
+      "category": "Categoría",
+      "noCategory": "Sin categoría",
+      "type": "Tipo",
+      "noType": "Sin tipo",
+      "person": "Persona",
+      "noPerson": "Sin persona",
+      "status": "Estado",
+      "title": "Título",
+      "description": "Descripción",
+      "frequency": "Frecuencia",
+      "intervalValue": "Cada",
+      "startDate": "Fecha de inicio",
+      "endDate": "Fecha de finalización",
+      "nextDueDate": "Próximo vencimiento",
+      "estimatedCost": "Costo estimado",
+      "save": "Guardar mantenimiento programado"
+    },
+    "validation": {
+      "propertyRequired": "La propiedad es requerida.",
+      "titleRequired": "El título es requerido y no debe exceder 150 caracteres.",
+      "statusRequired": "El estado es requerido.",
+      "frequencyRequired": "La frecuencia es requerida.",
+      "intervalRequired": "El intervalo debe ser mayor o igual a 1.",
+      "startDateRequired": "La fecha de inicio es requerida.",
+      "nextDueDateRequired": "El próximo vencimiento es requerido."
+    },
+    "messages": {
+      "loadError": "No se pudieron cargar los mantenimientos programados.",
+      "referencesError": "No se pudo cargar la información de referencia.",
+      "detailError": "No se pudo cargar el detalle del mantenimiento programado.",
+      "saveError": "No se pudo guardar el mantenimiento programado.",
+      "deleteError": "No se pudo eliminar el mantenimiento programado.",
+      "created": "Mantenimiento programado creado correctamente.",
+      "updated": "Mantenimiento programado actualizado correctamente.",
+      "deleted": "Mantenimiento programado eliminado correctamente.",
+      "actionSuccess": "Mantenimiento programado actualizado correctamente.",
+      "actionError": "No se pudo actualizar el mantenimiento programado.",
+      "recordGenerated": "Registro de mantenimiento generado correctamente.",
+      "generateError": "No se pudo generar el registro de mantenimiento.",
+      "historyError": "No se pudo cargar el historial."
+    },
+    "actions": {
+      "history": "Historial",
+      "reason": "Razón",
+      "pause": {
+        "short": "Pausar",
+        "title": "Pausar mantenimiento programado",
+        "confirm": "Pausar"
+      },
+      "resume": {
+        "short": "Reanudar",
+        "title": "Reanudar mantenimiento programado",
+        "confirm": "Reanudar"
+      },
+      "cancel": {
+        "short": "Cancelar",
+        "title": "Cancelar mantenimiento programado",
+        "confirm": "Cancelar"
+      },
+      "reschedule": {
+        "short": "Reprogramar",
+        "title": "Reprogramar mantenimiento",
+        "confirm": "Reprogramar",
+        "nextDueDate": "Nuevo próximo vencimiento"
+      },
+      "generate": {
+        "short": "Generar registro"
+      }
+    },
+    "history": {
+      "title": "Historial de mantenimiento programado",
+      "loading": "Cargando historial...",
+      "empty": "No se encontró historial.",
+      "changedAt": "Fecha de cambio",
+      "status": "Estado",
+      "date": "Fecha planificada",
+      "reason": "Razón",
+      "changedBy": "Cambiado por"
+    }
   }
 }

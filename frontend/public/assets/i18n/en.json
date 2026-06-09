@@ -362,5 +362,139 @@
         "description": "Reusable task templates for operational checklists."
       }
     }
+  },
+  "scheduledMaintenance": {
+    "title": "Scheduled Maintenance",
+    "subtitle": "Plan recurring maintenance, monitor due work and generate maintenance records.",
+    "newItem": "New scheduled maintenance",
+    "loading": "Loading scheduled maintenance...",
+    "confirmDeleteTitle": "Delete scheduled maintenance",
+    "confirmDeleteMessage": "Delete scheduled maintenance \"{{title}}\"? This action will mark it as deleted.",
+    "views": {
+      "all": "All scheduled maintenance",
+      "due": "Due maintenance"
+    },
+    "filters": {
+      "property": "Property",
+      "allProperties": "All properties",
+      "status": "Status",
+      "allStatuses": "All statuses",
+      "dueDate": "Due on or before"
+    },
+    "table": {
+      "title": "Title",
+      "property": "Property",
+      "category": "Category / Type",
+      "frequency": "Frequency",
+      "nextDueDate": "Next due",
+      "estimatedCost": "Estimated cost",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "empty": {
+      "title": "No scheduled maintenance found",
+      "description": "Create a scheduled maintenance plan to continue."
+    },
+    "pagination": {
+      "noItems": "No items",
+      "pageOf": "Page {{page}} of {{totalPages}}"
+    },
+    "status": {
+      "ACTIVE": "Active",
+      "PAUSED": "Paused",
+      "COMPLETED": "Completed",
+      "DELETED": "Deleted"
+    },
+    "frequency": {
+      "DAILY": "Daily",
+      "WEEKLY": "Weekly",
+      "MONTHLY": "Monthly",
+      "YEARLY": "Yearly"
+    },
+    "form": {
+      "createTitle": "Create scheduled maintenance",
+      "editTitle": "Edit scheduled maintenance",
+      "subtitle": "Fill in the recurring maintenance information.",
+      "property": "Property",
+      "selectProperty": "Select a property",
+      "category": "Category",
+      "noCategory": "No category",
+      "type": "Type",
+      "noType": "No type",
+      "person": "Person",
+      "noPerson": "No person",
+      "status": "Status",
+      "title": "Title",
+      "description": "Description",
+      "frequency": "Frequency",
+      "intervalValue": "Every",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "nextDueDate": "Next due date",
+      "estimatedCost": "Estimated cost",
+      "save": "Save scheduled maintenance"
+    },
+    "validation": {
+      "propertyRequired": "Property is required.",
+      "titleRequired": "Title is required and must not exceed 150 characters.",
+      "statusRequired": "Status is required.",
+      "frequencyRequired": "Frequency is required.",
+      "intervalRequired": "Interval must be greater than or equal to 1.",
+      "startDateRequired": "Start date is required.",
+      "nextDueDateRequired": "Next due date is required."
+    },
+    "messages": {
+      "loadError": "Unable to load scheduled maintenance.",
+      "referencesError": "Unable to load reference data.",
+      "detailError": "Unable to load scheduled maintenance details.",
+      "saveError": "Unable to save scheduled maintenance.",
+      "deleteError": "Unable to delete scheduled maintenance.",
+      "created": "Scheduled maintenance created successfully.",
+      "updated": "Scheduled maintenance updated successfully.",
+      "deleted": "Scheduled maintenance deleted successfully.",
+      "actionSuccess": "Scheduled maintenance updated successfully.",
+      "actionError": "Unable to update scheduled maintenance.",
+      "recordGenerated": "Maintenance record generated successfully.",
+      "generateError": "Unable to generate maintenance record.",
+      "historyError": "Unable to load history."
+    },
+    "actions": {
+      "history": "History",
+      "reason": "Reason",
+      "pause": {
+        "short": "Pause",
+        "title": "Pause scheduled maintenance",
+        "confirm": "Pause"
+      },
+      "resume": {
+        "short": "Resume",
+        "title": "Resume scheduled maintenance",
+        "confirm": "Resume"
+      },
+      "cancel": {
+        "short": "Cancel",
+        "title": "Cancel scheduled maintenance",
+        "confirm": "Cancel"
+      },
+      "reschedule": {
+        "short": "Reschedule",
+        "title": "Reschedule maintenance",
+        "confirm": "Reschedule",
+        "nextDueDate": "New next due date"
+      },
+      "generate": {
+        "short": "Generate record"
+      }
+    },
+    "history": {
+      "title": "Scheduled maintenance history",
+      "loading": "Loading history...",
+      "empty": "No history found.",
+      "changedAt": "Changed at",
+      "status": "Status",
+      "date": "Planned date",
+      "reason": "Reason",
+      "changedBy": "Changed by"
+    }
   }
 }

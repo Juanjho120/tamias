@@ -40,7 +40,7 @@ export const routes: Routes = [
       },
       {
         path: 'scheduled-maintenance',
-        loadComponent: () => import('./features/placeholders/scheduled-maintenance-page.component').then((m) => m.ScheduledMaintenancePageComponent),
+        loadComponent: () => import('./features/scheduled-maintenance/pages/scheduled-maintenance-page/scheduled-maintenance-page.component').then((m) => m.ScheduledMaintenancePageComponent),
         title: 'Scheduled Maintenance | TAMIAS'
       },
       {

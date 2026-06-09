@@ -1,0 +1,260 @@
+<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+  <div>
+    <h1 class="h3 mb-1">{{ 'scheduledMaintenance.title' | translate }}</h1>
+    <p class="text-muted mb-0">{{ 'scheduledMaintenance.subtitle' | translate }}</p>
+  </div>
+
+  <button type="button" class="btn btn-primary" [disabled]="loadingReferences()" (click)="openCreateForm()">
+    <i class="bi bi-plus-lg me-1"></i>
+    {{ 'scheduledMaintenance.newItem' | translate }}
+  </button>
+</div>
+
+<div class="card page-card mb-4">
+  <div class="card-body p-4">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-end gap-3 mb-3">
+      <div class="btn-group" role="group">
+        <button
+          type="button"
+          class="btn"
+          [class.btn-primary]="viewMode() === 'all'"
+          [class.btn-outline-primary]="viewMode() !== 'all'"
+          (click)="setViewMode('all')">
+          {{ 'scheduledMaintenance.views.all' | translate }}
+        </button>
+        <button
+          type="button"
+          class="btn"
+          [class.btn-primary]="viewMode() === 'due'"
+          [class.btn-outline-primary]="viewMode() !== 'due'"
+          (click)="setViewMode('due')">
+          {{ 'scheduledMaintenance.views.due' | translate }}
+        </button>
+      </div>
+    </div>
+
+    <div class="row g-3 align-items-end">
+      @if (viewMode() === 'all') {
+        <div class="col-12 col-md-6 col-lg-4">
+          <label for="scheduled-property-filter" class="form-label">{{ 'scheduledMaintenance.filters.property' | translate }}</label>
+          <select
+            id="scheduled-property-filter"
+            class="form-select"
+            [ngModel]="propertyId()"
+            (ngModelChange)="propertyId.set($event)">
+            <option value="">{{ 'scheduledMaintenance.filters.allProperties' | translate }}</option>
+            @for (property of references().properties; track property.id) {
+              <option [value]="property.id">{{ property.name }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="col-12 col-md-6 col-lg-4">
+          <label for="scheduled-status-filter" class="form-label">{{ 'scheduledMaintenance.filters.status' | translate }}</label>
+          <select
+            id="scheduled-status-filter"
+            class="form-select"
+            [ngModel]="status()"
+            (ngModelChange)="status.set($event)">
+            <option value="">{{ 'scheduledMaintenance.filters.allStatuses' | translate }}</option>
+            @for (item of statuses; track item) {
+              <option [value]="item">{{ 'scheduledMaintenance.status.' + item | translate }}</option>
+            }
+          </select>
+        </div>
+      } @else {
+        <div class="col-12 col-md-6 col-lg-4">
+          <label for="scheduled-due-date-filter" class="form-label">{{ 'scheduledMaintenance.filters.dueDate' | translate }}</label>
+          <input
+            id="scheduled-due-date-filter"
+            type="date"
+            class="form-control"
+            [ngModel]="dueDate()"
+            (ngModelChange)="dueDate.set($event)">
+        </div>
+      }
+
+      <div class="col-12 col-lg-4 d-flex gap-2">
+        <button type="button" class="btn btn-primary" (click)="applyFilters()">
+          <i class="bi bi-search me-1"></i>
+          {{ 'common.search' | translate }}
+        </button>
+        <button type="button" class="btn btn-outline-secondary" (click)="clearFilters()">
+          {{ 'common.clear' | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card page-card">
+  <div class="card-body p-0">
+    @if (loading()) {
+      <div class="p-5 text-center">
+        <div class="spinner-border text-primary" role="status"></div>
+        <div class="text-muted mt-3">{{ 'scheduledMaintenance.loading' | translate }}</div>
+      </div>
+    } @else if (items().length === 0) {
+      <div class="p-5 text-center">
+        <div class="d-inline-flex align-items-center justify-content-center rounded-4 bg-secondary-subtle text-secondary p-4 mb-3">
+          <i class="bi bi-calendar-check fs-1"></i>
+        </div>
+        <h2 class="h5">{{ 'scheduledMaintenance.empty.title' | translate }}</h2>
+        <p class="text-muted mb-3">{{ 'scheduledMaintenance.empty.description' | translate }}</p>
+        <button type="button" class="btn btn-primary" [disabled]="loadingReferences()" (click)="openCreateForm()">
+          {{ 'scheduledMaintenance.newItem' | translate }}
+        </button>
+      </div>
+    } @else {
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+          <tr>
+            <th>{{ 'scheduledMaintenance.table.title' | translate }}</th>
+            <th>{{ 'scheduledMaintenance.table.property' | translate }}</th>
+            <th>{{ 'scheduledMaintenance.table.category' | translate }}</th>
+            <th>{{ 'scheduledMaintenance.table.frequency' | translate }}</th>
+            <th>{{ 'scheduledMaintenance.table.nextDueDate' | translate }}</th>
+            <th>{{ 'scheduledMaintenance.table.estimatedCost' | translate }}</th>
+            <th>{{ 'scheduledMaintenance.table.status' | translate }}</th>
+            <th class="text-end">{{ 'scheduledMaintenance.table.actions' | translate }}</th>
+          </tr>
+          </thead>
+          <tbody>
+            @for (item of items(); track item.id) {
+              <tr>
+                <td>
+                  <div class="fw-semibold">{{ item.title }}</div>
+                  <div class="small text-muted">{{ item.createdAt | date:'mediumDate' }}</div>
+                </td>
+                <td>{{ item.propertyName }}</td>
+                <td>
+                  <div>{{ item.maintenanceCategoryName || '—' }}</div>
+                  <div class="small text-muted">{{ item.maintenanceTypeName || '—' }}</div>
+                </td>
+                <td>
+                  {{ frequencyLabelKey(item.frequency) | translate }}
+                  <span class="text-muted">× {{ item.intervalValue }}</span>
+                </td>
+                <td>{{ item.nextDueDate ? (item.nextDueDate | date:'mediumDate') : '—' }}</td>
+                <td>{{ item.estimatedCost | quetzalCurrency }}</td>
+                <td>
+                  <span class="badge" [ngClass]="statusBadgeClass(item.status)">
+                    {{ 'scheduledMaintenance.status.' + item.status | translate }}
+                  </span>
+                </td>
+                <td class="text-end">
+                  <div class="btn-group">
+                    <button type="button" class="btn btn-outline-primary btn-sm" (click)="openEditForm(item.id)">
+                      <i class="bi bi-pencil-square me-1"></i>
+                      {{ 'common.edit' | translate }}
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" (click)="openHistory(item)">
+                      <i class="bi bi-clock-history me-1"></i>
+                      {{ 'scheduledMaintenance.actions.history' | translate }}
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" (click)="openAction(item, 'reschedule')">
+                      <i class="bi bi-calendar-event me-1"></i>
+                      {{ 'scheduledMaintenance.actions.reschedule.short' | translate }}
+                    </button>
+                    @if (canPause(item)) {
+                      <button type="button" class="btn btn-outline-warning btn-sm" (click)="openAction(item, 'pause')">
+                        {{ 'scheduledMaintenance.actions.pause.short' | translate }}
+                      </button>
+                    }
+                    @if (canResume(item)) {
+                      <button type="button" class="btn btn-outline-success btn-sm" (click)="openAction(item, 'resume')">
+                        {{ 'scheduledMaintenance.actions.resume.short' | translate }}
+                      </button>
+                    }
+                    @if (canGenerate(item)) {
+                      <button type="button" class="btn btn-outline-info btn-sm" [disabled]="actionLoading()" (click)="generateRecord(item)">
+                        {{ 'scheduledMaintenance.actions.generate.short' | translate }}
+                      </button>
+                    }
+                    <button type="button" class="btn btn-outline-danger btn-sm" (click)="openAction(item, 'cancel')">
+                      {{ 'scheduledMaintenance.actions.cancel.short' | translate }}
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-outline-danger btn-sm"
+                      [disabled]="deletingId() === item.id"
+                      (click)="requestDelete(item)">
+                      @if (deletingId() === item.id) {
+                        <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+                      } @else {
+                        <i class="bi bi-trash me-1"></i>
+                      }
+                      {{ 'common.delete' | translate }}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 p-3 border-top">
+        <div class="d-flex align-items-center gap-2">
+          <span class="text-muted small">{{ 'common.rowsPerPage' | translate }}</span>
+          <select class="form-select form-select-sm w-auto" [ngModel]="size()" (ngModelChange)="changePageSize($event)">
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+          </select>
+        </div>
+
+        <div class="d-flex align-items-center gap-3">
+          <span class="text-muted small">{{ pageLabel() }} · {{ totalElements() }} {{ 'common.total' | translate }}</span>
+          <div class="btn-group">
+            <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="first()" (click)="previousPage()">
+              {{ 'common.previous' | translate }}
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="last()" (click)="nextPage()">
+              {{ 'common.next' | translate }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+</div>
+
+<app-scheduled-maintenance-form-modal
+  [open]="formVisible()"
+  [scheduledMaintenance]="selectedItem()"
+  [properties]="references().properties"
+  [categories]="references().categories"
+  [types]="references().types"
+  [people]="references().people"
+  [loading]="saving()"
+  (save)="saveItem($event)"
+  (cancel)="closeForm()" />
+
+<app-scheduled-maintenance-action-modal
+  [open]="!!action()"
+  [action]="action()"
+  [title]="actionTitle()"
+  [loading]="actionLoading()"
+  (confirm)="confirmAction($event)"
+  (cancel)="closeAction()" />
+
+<app-scheduled-maintenance-history-modal
+  [open]="historyVisible()"
+  [title]="historyTitle()"
+  [loading]="historyLoading()"
+  [history]="historyItems()"
+  (close)="closeHistory()" />
+
+<app-confirm-modal
+  [open]="!!itemToDelete()"
+  title="scheduledMaintenance.confirmDeleteTitle"
+  [message]="deleteMessage()"
+  confirmText="common.delete"
+  cancelText="common.cancel"
+  confirmButtonClass="btn-danger"
+  [loading]="!!deletingId()"
+  (confirm)="confirmDelete()"
+  (cancel)="cancelDelete()" />
