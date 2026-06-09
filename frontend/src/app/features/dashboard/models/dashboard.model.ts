@@ -14,19 +14,10 @@ export interface DashboardPropertySummary {
   address: string | null;
 }
 
-export interface DashboardReservationGuest {
-  id: string;
-  guestId: string | null;
-  fullName: string | null;
-  phone: string | null;
-  primary: boolean | null;
-}
-
 export interface DashboardReservationSummary {
   id: string;
   propertyId: string;
   propertyName: string;
-  platformId: string | null;
   platformName: string | null;
   reservationCode: string | null;
   checkIn: string;
@@ -35,6 +26,14 @@ export interface DashboardReservationSummary {
   reservationValue: number | null;
   status: string;
   createdAt: string;
+}
+
+export interface DashboardReservationGuest {
+  id: string;
+  guestId: string | null;
+  fullName: string | null;
+  phone: string | null;
+  primary: boolean | null;
 }
 
 export interface DashboardReservationDetail {
@@ -117,6 +116,50 @@ export interface DashboardDocumentSummary {
   createdAt: string;
 }
 
+export interface DashboardCalendarDay {
+  date: string;
+  dayNumber: number;
+  currentMonth: boolean;
+  today: boolean;
+}
+
+export interface DashboardCalendarRow {
+  id: string;
+  days: DashboardCalendarDay[];
+  segments: DashboardReservationCalendarSegment[];
+  maxLanes: number;
+}
+
+/**
+ * Segmento visual de una reservación.
+ *
+ * La reservación sigue siendo un solo rango checkIn -> checkOut.
+ * Si el rango cruza una línea del calendario mensual, el navegador necesita
+ * dibujarlo en más de una fila visual. Todos los segmentos comparten
+ * reservationId y la información completa de la misma reservación.
+ */
+export interface DashboardReservationCalendarSegment {
+  id: string;
+  reservationId: string;
+  propertyId: string;
+  propertyName: string;
+  platformName: string | null;
+  reservationCode: string | null;
+  checkIn: string;
+  checkOut: string;
+  guestNames: string[];
+  primaryGuestName: string;
+  guestCount: number;
+  invoiceStatus: 'INVOICED' | 'NOT_INVOICED';
+  status: string;
+  rangeStartsHere: boolean;
+  rangeEndsHere: boolean;
+  gridColumnStart: number;
+  gridColumnEnd: number;
+  lane: number;
+  topRem: number;
+}
+
 export interface DashboardData {
   activeProperties: number;
   activeReservations: number;
@@ -133,30 +176,4 @@ export interface DashboardData {
   openTasks: DashboardTaskListSummary[];
   openPurchases: DashboardPurchaseListSummary[];
   documentAlerts: DashboardDocumentSummary[];
-}
-
-export interface DashboardCalendarDay {
-  date: string;
-  dayNumber: number;
-  currentMonth: boolean;
-  today: boolean;
-  events: DashboardReservationCalendarEvent[];
-}
-
-export interface DashboardReservationCalendarEvent {
-  id: string;
-  propertyId: string;
-  propertyName: string;
-  platformName: string | null;
-  reservationCode: string | null;
-  checkIn: string;
-  checkOut: string;
-  guestNames: string[];
-  primaryGuestName: string;
-  guestCount: number;
-  invoiceStatus: 'INVOICED' | 'NOT_INVOICED';
-  status: string;
-  startsOnDate: boolean;
-  endsOnDate: boolean;
-  tooltip: string;
 }

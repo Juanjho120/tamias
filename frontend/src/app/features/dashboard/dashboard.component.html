@@ -46,7 +46,7 @@
         <div class="small text-muted">{{ 'dashboard.calendar.subtitle' | translate }}</div>
       </div>
 
-      <div class="d-flex align-items-center gap-2 flex-wrap">
+      <div class="d-flex align-items-center gap-2">
         <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="loadingCalendar()" (click)="previousMonth()">
           <i class="bi bi-chevron-left"></i>
         </button>
@@ -73,33 +73,37 @@
           }
         </div>
 
-        <div class="reservation-calendar-grid">
-          @for (week of calendarWeeks(); track $index) {
-            @for (day of week; track trackByDate($index, day)) {
-              <div
-                class="reservation-calendar-day"
-                [class.reservation-calendar-day-muted]="!day.currentMonth"
-                [class.reservation-calendar-day-today]="day.today">
-                <div class="reservation-calendar-day-number">{{ day.dayNumber }}</div>
-
-                <div class="reservation-calendar-events">
-                  @for (event of day.events; track trackByCalendarEvent($index, event)) {
-                    <div
-                      class="reservation-calendar-event"
-                      [ngClass]="[calendarEventClass(event), calendarEventShapeClass(event)]"
-                      [attr.title]="event.tooltip">
-                      <span class="reservation-calendar-event-label">
-                        @if (event.startsOnDate) {
-                          {{ event.primaryGuestName }}
-                        } @else {
-                          &nbsp;
-                        }
-                      </span>
-                    </div>
-                  }
-                </div>
+        <div class="reservation-calendar-rows">
+          @for (row of calendarRows(); track trackByRow($index, row)) {
+            <div class="reservation-calendar-row" [style.min-height.rem]="calendarRowMinHeightRem(row)">
+              <div class="reservation-calendar-row-days">
+                @for (day of row.days; track trackByDate($index, day)) {
+                  <div
+                    class="reservation-calendar-day"
+                    [class.reservation-calendar-day-muted]="!day.currentMonth"
+                    [class.reservation-calendar-day-today]="day.today">
+                    <div class="reservation-calendar-day-number">{{ day.dayNumber }}</div>
+                  </div>
+                }
               </div>
-            }
+
+              <div class="reservation-calendar-row-bars">
+                @for (segment of row.segments; track trackByCalendarSegment($index, segment)) {
+                  <div
+                    #reservationTooltip
+                    class="reservation-calendar-event"
+                    tabindex="0"
+                    data-bs-toggle="tooltip"
+                    data-bs-html="true"
+                    [attr.data-bs-title]="calendarTooltipHtml(segment)"
+                    [ngClass]="[calendarSegmentClass(segment), calendarSegmentShapeClass(segment)]"
+                    [style.grid-column]="calendarSegmentGridColumn(segment)"
+                    [style.top.rem]="segment.topRem">
+                    <span class="reservation-calendar-event-label">{{ segment.primaryGuestName }}</span>
+                  </div>
+                }
+              </div>
+            </div>
           }
         </div>
       </div>

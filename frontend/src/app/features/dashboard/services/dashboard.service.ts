@@ -86,6 +86,26 @@ export class DashboardService {
     return this.apiService.get<DashboardReservationDetail>(`/reservations/${id}`);
   }
 
+
+  loadReservationCalendar(startDate: string, endDate: string): Observable<DashboardReservationDetail[]> {
+    return this.getPage<DashboardReservationSummary>('/reservations/calendar', {
+      startDate,
+      endDate,
+      page: 0,
+      size: 200,
+      sort: 'checkIn,asc'
+    }).pipe(
+      switchMap((response) => {
+        const requests = response.content.map((reservation) => this.apiService.get<DashboardReservationDetail>(`/reservations/${reservation.id}`));
+
+        return requests.length ? forkJoin(requests) : new Observable<DashboardReservationDetail[]>((subscriber) => {
+          subscriber.next([]);
+          subscriber.complete();
+        });
+      })
+    );
+  }
+
   private getPage<T>(path: string, params: Record<string, string | number | boolean | null | undefined>): Observable<PageResponse<T>> {
     return this.apiService.get<PageResponse<T>>(path, params);
   }
