@@ -2,26 +2,21 @@ package com.tamias.scheduledmaintenance.controller;
 
 import com.tamias.common.dto.PageResponse;
 import com.tamias.scheduledmaintenance.dto.ScheduledMaintenanceRequest;
+import com.tamias.scheduledmaintenance.dto.ScheduledMaintenanceRescheduleRequest;
 import com.tamias.scheduledmaintenance.dto.ScheduledMaintenanceResponse;
+import com.tamias.scheduledmaintenance.dto.ScheduledMaintenanceStatusChangeRequest;
 import com.tamias.scheduledmaintenance.dto.ScheduledMaintenanceSummaryResponse;
 import com.tamias.scheduledmaintenance.enums.ScheduledMaintenanceStatus;
+import com.tamias.scheduledmaintenance.history.dto.ScheduledMaintenanceHistoryResponse;
 import com.tamias.scheduledmaintenance.service.ScheduledMaintenanceService;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/scheduled-maintenance")
@@ -57,6 +52,11 @@ public class ScheduledMaintenanceController {
         return scheduledMaintenanceService.findById(id);
     }
 
+    @GetMapping("/{id}/history")
+    public List<ScheduledMaintenanceHistoryResponse> findHistory(@PathVariable UUID id) {
+        return scheduledMaintenanceService.findHistory(id);
+    }
+
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ScheduledMaintenanceResponse create(@Valid @RequestBody ScheduledMaintenanceRequest request) {
@@ -69,6 +69,38 @@ public class ScheduledMaintenanceController {
             @Valid @RequestBody ScheduledMaintenanceRequest request
     ) {
         return scheduledMaintenanceService.update(id, request);
+    }
+
+    @PatchMapping("/{id}/reschedule")
+    public ScheduledMaintenanceResponse reschedule(
+            @PathVariable UUID id,
+            @Valid @RequestBody ScheduledMaintenanceRescheduleRequest request
+    ) {
+        return scheduledMaintenanceService.reschedule(id, request);
+    }
+
+    @PatchMapping("/{id}/pause")
+    public ScheduledMaintenanceResponse pause(
+            @PathVariable UUID id,
+            @RequestBody(required = false) ScheduledMaintenanceStatusChangeRequest request
+    ) {
+        return scheduledMaintenanceService.pause(id, request != null ? request.reason() : null);
+    }
+
+    @PatchMapping("/{id}/resume")
+    public ScheduledMaintenanceResponse resume(
+            @PathVariable UUID id,
+            @RequestBody(required = false) ScheduledMaintenanceStatusChangeRequest request
+    ) {
+        return scheduledMaintenanceService.resume(id, request != null ? request.reason() : null);
+    }
+
+    @PatchMapping("/{id}/cancel")
+    public ScheduledMaintenanceResponse cancel(
+            @PathVariable UUID id,
+            @RequestBody(required = false) ScheduledMaintenanceStatusChangeRequest request
+    ) {
+        return scheduledMaintenanceService.cancel(id, request != null ? request.reason() : null);
     }
 
     @PostMapping("/{id}/generate-record")

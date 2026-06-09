@@ -4,5 +4,6 @@ public enum ScheduledMaintenanceStatus {
     ACTIVE,
     PAUSED,
     COMPLETED,
+    CANCELLED,
     DELETED
 }
