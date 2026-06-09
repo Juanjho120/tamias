@@ -134,3 +134,65 @@ a {
   max-height: 420px;
   overflow: auto;
 }
+
+.ai-chat-card {
+  min-height: calc(100vh - 12rem);
+}
+
+.ai-session-list {
+  max-height: calc(100vh - 20rem);
+  overflow: auto;
+}
+
+.ai-messages {
+  height: calc(100vh - 23rem);
+  min-height: 420px;
+  overflow: auto;
+  background:
+    radial-gradient(circle at top left, rgba(13, 110, 253, 0.04), transparent 28rem),
+    var(--bs-body-bg);
+}
+
+.ai-message {
+  display: flex;
+}
+
+.ai-message-user {
+  justify-content: flex-end;
+}
+
+.ai-message-assistant {
+  justify-content: flex-start;
+}
+
+.ai-message-bubble {
+  max-width: min(780px, 92%);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 1rem;
+  padding: 1rem;
+  background: var(--bs-white);
+  box-shadow: 0 0.25rem 1rem rgba(0, 0, 0, 0.04);
+}
+
+.ai-message-user .ai-message-bubble {
+  background: var(--bs-primary-bg-subtle);
+  border-color: var(--bs-primary-border-subtle);
+}
+
+.ai-message-content,
+.ai-source-content {
+  white-space: pre-wrap;
+}
+
+.ai-source-content {
+  max-height: 260px;
+  overflow: auto;
+  background: var(--bs-light);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+}
+
+.ai-number-input {
+  width: 5.5rem;
+}

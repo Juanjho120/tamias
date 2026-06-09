@@ -958,5 +958,73 @@
       "indexed": "Document indexed successfully. Indexed chunks: {{chunks}}.",
       "deleted": "Document deleted successfully."
     }
+  },
+  "aiAssistant": {
+    "title": "AI Assistant",
+    "subtitle": "Ask questions over processed and indexed property documents.",
+    "properties": {
+      "label": "Property context",
+      "all": "All properties",
+      "selected": "Selected property"
+    },
+    "sessions": {
+      "title": "Chat sessions",
+      "empty": "No chat sessions found.",
+      "untitled": "Untitled session",
+      "renameTitle": "Rename chat session",
+      "titleLabel": "Session title"
+    },
+    "chat": {
+      "newSession": "New session",
+      "loadingSession": "Loading session...",
+      "thinking": "Thinking...",
+      "grounded": "Grounded",
+      "notGrounded": "Not grounded"
+    },
+    "mode": {
+      "chat": "Chat",
+      "search": "Search"
+    },
+    "settings": {
+      "topK": "Top K",
+      "threshold": "Threshold"
+    },
+    "input": {
+      "chatPlaceholder": "Ask a question about your documents...",
+      "searchPlaceholder": "Search relevant chunks...",
+      "send": "Send",
+      "search": "Search",
+      "help": "Tip: Ctrl + Enter sends the question."
+    },
+    "empty": {
+      "title": "Start asking about your property documents",
+      "description": "Use processed and indexed documents to answer questions about rules, manuals, plans and more."
+    },
+    "search": {
+      "searching": "Searching relevant sources...",
+      "foundSources": "Found {{count}} relevant sources."
+    },
+    "sources": {
+      "title": "Sources ({{count}})",
+      "unknownDocument": "Unknown document",
+      "chunk": "Chunk {{index}}"
+    },
+    "role": {
+      "USER": "You",
+      "ASSISTANT": "Assistant",
+      "SYSTEM": "System"
+    },
+    "validation": {
+      "titleRequired": "Title is required and must not exceed 150 characters."
+    },
+    "messages": {
+      "referencesError": "Unable to load properties.",
+      "sessionsError": "Unable to load chat sessions.",
+      "sessionLoadError": "Unable to load chat session.",
+      "chatError": "Unable to send question.",
+      "searchError": "Unable to search relevant sources.",
+      "renameError": "Unable to rename chat session.",
+      "renamed": "Chat session renamed successfully."
+    }
   }
 }

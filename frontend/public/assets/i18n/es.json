@@ -958,5 +958,73 @@
       "indexed": "Documento indexado correctamente. Chunks indexados: {{chunks}}.",
       "deleted": "Documento eliminado correctamente."
     }
+  },
+  "aiAssistant": {
+    "title": "Asistente IA",
+    "subtitle": "Haz preguntas sobre documentos procesados e indexados de tus propiedades.",
+    "properties": {
+      "label": "Contexto de propiedad",
+      "all": "Todas las propiedades",
+      "selected": "Propiedad seleccionada"
+    },
+    "sessions": {
+      "title": "Sesiones de chat",
+      "empty": "No se encontraron sesiones de chat.",
+      "untitled": "Sesión sin título",
+      "renameTitle": "Renombrar sesión de chat",
+      "titleLabel": "Título de la sesión"
+    },
+    "chat": {
+      "newSession": "Nueva sesión",
+      "loadingSession": "Cargando sesión...",
+      "thinking": "Pensando...",
+      "grounded": "Con fuentes",
+      "notGrounded": "Sin fuentes"
+    },
+    "mode": {
+      "chat": "Chat",
+      "search": "Búsqueda"
+    },
+    "settings": {
+      "topK": "Top K",
+      "threshold": "Threshold"
+    },
+    "input": {
+      "chatPlaceholder": "Pregunta algo sobre tus documentos...",
+      "searchPlaceholder": "Busca chunks relevantes...",
+      "send": "Enviar",
+      "search": "Buscar",
+      "help": "Tip: Ctrl + Enter envía la pregunta."
+    },
+    "empty": {
+      "title": "Empieza a preguntar sobre tus documentos",
+      "description": "Usa documentos procesados e indexados para responder preguntas sobre reglas, manuales, planos y más."
+    },
+    "search": {
+      "searching": "Buscando fuentes relevantes...",
+      "foundSources": "Se encontraron {{count}} fuentes relevantes."
+    },
+    "sources": {
+      "title": "Fuentes ({{count}})",
+      "unknownDocument": "Documento desconocido",
+      "chunk": "Chunk {{index}}"
+    },
+    "role": {
+      "USER": "Tú",
+      "ASSISTANT": "Asistente",
+      "SYSTEM": "Sistema"
+    },
+    "validation": {
+      "titleRequired": "El título es requerido y no debe exceder 150 caracteres."
+    },
+    "messages": {
+      "referencesError": "No se pudieron cargar las propiedades.",
+      "sessionsError": "No se pudieron cargar las sesiones de chat.",
+      "sessionLoadError": "No se pudo cargar la sesión de chat.",
+      "chatError": "No se pudo enviar la pregunta.",
+      "searchError": "No se pudieron buscar fuentes relevantes.",
+      "renameError": "No se pudo renombrar la sesión.",
+      "renamed": "Sesión renombrada correctamente."
+    }
   }
 }

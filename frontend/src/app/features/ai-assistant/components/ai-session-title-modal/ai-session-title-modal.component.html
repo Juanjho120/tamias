@@ -1,0 +1,37 @@
+@if (open) {
+  <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header">
+          <h5 class="modal-title">{{ 'aiAssistant.sessions.renameTitle' | translate }}</h5>
+          <button type="button" class="btn-close" aria-label="Close" [disabled]="loading" (click)="cancel.emit()"></button>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+          <div class="modal-body">
+            <label for="ai-session-title" class="form-label">{{ 'aiAssistant.sessions.titleLabel' | translate }}</label>
+            <input id="ai-session-title" type="text" class="form-control" maxlength="150" formControlName="title">
+            @if (form.controls.title.invalid && (form.controls.title.touched || form.controls.title.dirty)) {
+              <div class="text-danger small mt-1">{{ 'aiAssistant.validation.titleRequired' | translate }}</div>
+            }
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" [disabled]="loading" (click)="cancel.emit()">
+              {{ 'common.cancel' | translate }}
+            </button>
+            <button type="submit" class="btn btn-primary" [disabled]="loading">
+              @if (loading) {
+                <span class="spinner-border spinner-border-sm me-2"></span>
+                {{ 'common.saving' | translate }}
+              } @else {
+                {{ 'common.save' | translate }}
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}

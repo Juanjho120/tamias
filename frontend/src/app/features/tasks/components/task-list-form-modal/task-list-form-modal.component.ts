@@ -1,4 +1,4 @@
-import { DatePipe, NgClass } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -19,7 +19,7 @@ import {
 @Component({
   selector: 'app-task-list-form-modal',
   standalone: true,
-  imports: [DatePipe, NgClass, ReactiveFormsModule, TranslatePipe],
+  imports: [NgClass, ReactiveFormsModule, TranslatePipe],
   templateUrl: './task-list-form-modal.component.html'
 })
 export class TaskListFormModalComponent implements OnChanges {

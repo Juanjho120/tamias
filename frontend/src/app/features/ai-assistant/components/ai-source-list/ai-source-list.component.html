@@ -1,0 +1,55 @@
+@if (sources.length > 0) {
+  <div class="ai-sources">
+    <div class="small fw-semibold text-muted mb-2">
+      {{ 'aiAssistant.sources.title' | translate:{ count: sources.length } }}
+    </div>
+
+    <div class="accordion" [id]="compact ? 'ai-sources-compact' : 'ai-sources'">
+      @for (source of sources; track trackBySource($index, source)) {
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button
+              class="accordion-button collapsed py-2"
+              type="button"
+              data-bs-toggle="collapse"
+              [attr.data-bs-target]="'#ai-source-' + (source.chunkId || source.vectorId || $index)"
+              aria-expanded="false"
+              [attr.aria-controls]="'ai-source-' + (source.chunkId || source.vectorId || $index)">
+              <span class="me-2 text-truncate">
+                {{ source.documentTitle || ('aiAssistant.sources.unknownDocument' | translate) }}
+              </span>
+              @if (source.chunkIndex !== null && source.chunkIndex !== undefined) {
+                <span class="badge text-bg-secondary me-2">
+                  {{ 'aiAssistant.sources.chunk' | translate:{ index: source.chunkIndex } }}
+                </span>
+              }
+              @if (scorePercent(source.score) !== null) {
+                <span class="badge text-bg-info">
+                  {{ scorePercent(source.score) | number:'1.0-1' }}%
+                </span>
+              }
+            </button>
+          </h2>
+
+          <div
+            [id]="'ai-source-' + (source.chunkId || source.vectorId || $index)"
+            class="accordion-collapse collapse"
+            [attr.data-bs-parent]="compact ? '#ai-sources-compact' : '#ai-sources'">
+            <div class="accordion-body">
+              <div class="small text-muted mb-2">
+                {{ source.documentType || '—' }}
+                @if (source.documentId) {
+                  · {{ source.documentId }}
+                }
+              </div>
+
+              <div class="ai-source-content">
+                {{ source.content || '—' }}
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+}
