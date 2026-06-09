@@ -100,7 +100,7 @@
                 <td>{{ record.maintenanceTypeName || '—' }}</td>
                 <td>{{ record.scheduledAt ? (record.scheduledAt | date:'mediumDate') : '—' }}</td>
                 <td>{{ record.performedAt ? (record.performedAt | date:'mediumDate') : '—' }}</td>
-                <td>{{ record.cost !== null ? (record.cost | currency:'USD') : '—' }}</td>
+                <td>{{ record.cost | quetzalCurrency }}</td>
                 <td>
                   <span class="badge" [ngClass]="statusBadgeClass(record.status)">
                     {{ 'maintenance.status.' + record.status | translate }}

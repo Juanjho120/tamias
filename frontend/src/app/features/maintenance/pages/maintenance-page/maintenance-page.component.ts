@@ -1,4 +1,4 @@
-import { CurrencyPipe, DatePipe, NgClass } from '@angular/common';
+import { DatePipe, NgClass } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -6,6 +6,7 @@ import { LanguageService } from '../../../../core/i18n/language.service';
 import { ApiError } from '../../../../core/models/api-error.model';
 import { PageResponse } from '../../../../core/models/page-response.model';
 import { ConfirmModalComponent } from '../../../../shared/confirm-modal/confirm-modal.component';
+import { QuetzalCurrencyPipe } from '../../../../shared/pipes/quetzal-currency.pipe';
 import { ToastService } from '../../../../shared/toast/toast.service';
 import { MaintenanceImagesModalComponent } from '../../components/maintenance-images-modal/maintenance-images-modal.component';
 import { MaintenanceRecordFormModalComponent } from '../../components/maintenance-record-form-modal/maintenance-record-form-modal.component';
@@ -25,12 +26,12 @@ type FormMode = 'create' | 'edit';
   selector: 'app-maintenance-page',
   standalone: true,
   imports: [
-    CurrencyPipe,
     DatePipe,
     FormsModule,
     NgClass,
     TranslatePipe,
     ConfirmModalComponent,
+    QuetzalCurrencyPipe,
     MaintenanceImagesModalComponent,
     MaintenanceRecordFormModalComponent
   ],
