@@ -1,0 +1,108 @@
+@if (open) {
+  <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title">{{ 'documents.upload.title' | translate }}</h5>
+            <div class="small text-muted">{{ 'documents.upload.subtitle' | translate }}</div>
+          </div>
+          <button type="button" class="btn-close" aria-label="Close" [disabled]="loading" (click)="cancel.emit()"></button>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-12">
+                <label for="document-upload-file" class="form-label">{{ 'documents.upload.file' | translate }}</label>
+                <input
+                  id="document-upload-file"
+                  type="file"
+                  class="form-control"
+                  [disabled]="loading"
+                  (change)="onFileSelected($event)">
+                <div class="form-text">{{ 'documents.upload.fileHelp' | translate }}</div>
+                @if (!selectedFile()) {
+                  <div class="small text-muted mt-1">{{ 'documents.upload.noFileSelected' | translate }}</div>
+                }
+              </div>
+
+              <div class="col-12 col-lg-6">
+                <label for="document-upload-property" class="form-label">{{ 'documents.form.property' | translate }}</label>
+                <select id="document-upload-property" class="form-select" formControlName="propertyId">
+                  <option value="">{{ 'documents.form.noProperty' | translate }}</option>
+                  @for (property of properties; track property.id) {
+                    <option [value]="property.id">{{ property.name }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="col-12 col-lg-6">
+                <label for="document-upload-type" class="form-label">{{ 'documents.form.documentType' | translate }}</label>
+                <select
+                  id="document-upload-type"
+                  class="form-select"
+                  [ngClass]="{ 'is-invalid': isInvalid('documentType') }"
+                  formControlName="documentType">
+                  @for (documentType of documentTypes; track documentType) {
+                    <option [value]="documentType">{{ 'documents.type.' + documentType | translate }}</option>
+                  }
+                </select>
+                @if (isInvalid('documentType')) {
+                  <div class="invalid-feedback">{{ 'documents.validation.documentTypeRequired' | translate }}</div>
+                }
+              </div>
+
+              <div class="col-12">
+                <label for="document-upload-title" class="form-label">{{ 'documents.form.title' | translate }}</label>
+                <input
+                  id="document-upload-title"
+                  type="text"
+                  class="form-control"
+                  maxlength="150"
+                  [ngClass]="{ 'is-invalid': isInvalid('title') }"
+                  formControlName="title">
+                @if (isInvalid('title')) {
+                  <div class="invalid-feedback">{{ 'documents.validation.titleRequired' | translate }}</div>
+                }
+              </div>
+
+              <div class="col-12">
+                <label for="document-upload-description" class="form-label">{{ 'documents.form.description' | translate }}</label>
+                <textarea id="document-upload-description" class="form-control" rows="3" formControlName="description"></textarea>
+              </div>
+
+              @if (selectedFile()) {
+                <div class="col-12">
+                  <div class="alert alert-light border mb-0">
+                    <div class="fw-semibold">{{ selectedFile()?.name }}</div>
+                    <div class="small text-muted">
+                      {{ selectedFile()?.type || 'application/octet-stream' }} ·
+                      {{ ((selectedFile()?.size || 0) / 1024 / 1024).toFixed(2) }} MB
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" [disabled]="loading" (click)="cancel.emit()">
+              {{ 'common.cancel' | translate }}
+            </button>
+            <button type="submit" class="btn btn-primary" [disabled]="loading || !selectedFile()">
+              @if (loading) {
+                <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+                {{ 'documents.upload.uploading' | translate }}
+              } @else {
+                <i class="bi bi-upload me-1"></i>
+                {{ 'documents.upload.button' | translate }}
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}

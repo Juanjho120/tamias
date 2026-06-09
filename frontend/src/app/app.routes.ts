@@ -60,7 +60,7 @@ export const routes: Routes = [
       },
       {
         path: 'documents',
-        loadComponent: () => import('./features/placeholders/documents-page.component').then((m) => m.DocumentsPageComponent),
+        loadComponent: () => import('./features/documents/pages/documents-page/documents-page.component').then((m) => m.DocumentsPageComponent),
         title: 'Documents | TAMIAS'
       },
       {

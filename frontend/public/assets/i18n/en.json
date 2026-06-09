@@ -845,5 +845,104 @@
         "purchasedError": "Unable to update purchase item status."
       }
     }
+  },
+  "documents": {
+    "title": "Documents",
+    "subtitle": "Upload, process, index and review documents used by the AI assistant.",
+    "loading": "Loading documents...",
+    "confirmDeleteTitle": "Delete document",
+    "confirmDeleteMessage": "Delete document \"{{title}}\"? This action will mark it as deleted.",
+    "filters": {
+      "property": "Property",
+      "allProperties": "All properties",
+      "documentType": "Document type",
+      "allTypes": "All types",
+      "processingStatus": "Processing",
+      "allProcessingStatuses": "All processing statuses",
+      "status": "Status",
+      "allStatuses": "All statuses"
+    },
+    "table": {
+      "title": "Title",
+      "property": "Property",
+      "type": "Type",
+      "file": "File",
+      "processing": "Processing",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "empty": {
+      "title": "No documents found",
+      "description": "Upload your first document to continue."
+    },
+    "pagination": {
+      "noItems": "No documents",
+      "pageOf": "Page {{page}} of {{totalPages}}"
+    },
+    "type": {
+      "HOUSE_RULES": "House rules",
+      "BATHROOM_RULES": "Bathroom rules",
+      "PROPERTY_SIGNS": "Property signs",
+      "BLUEPRINT": "Blueprint",
+      "ELECTRICAL_PLAN": "Electrical plan",
+      "PLUMBING_PLAN": "Plumbing plan",
+      "DRAINAGE_PLAN": "Drainage plan",
+      "MANUAL": "Manual",
+      "OTHER": "Other"
+    },
+    "processing": {
+      "PENDING": "Pending",
+      "PROCESSING": "Processing",
+      "PROCESSED": "Processed",
+      "FAILED": "Failed"
+    },
+    "form": {
+      "property": "Property",
+      "noProperty": "No property",
+      "documentType": "Document type",
+      "title": "Title",
+      "description": "Description"
+    },
+    "upload": {
+      "title": "Upload document",
+      "subtitle": "Select a document and metadata.",
+      "file": "File",
+      "fileHelp": "Allowed file types and size are controlled by backend configuration.",
+      "noFileSelected": "No file selected.",
+      "button": "Upload document",
+      "uploading": "Uploading..."
+    },
+    "actions": {
+      "open": "Open",
+      "process": "Process",
+      "index": "Index",
+      "chunks": "Chunks"
+    },
+    "chunks": {
+      "title": "Document chunks",
+      "loading": "Loading chunks...",
+      "empty": "No chunks found. Process and index the document first.",
+      "chunk": "Chunk {{index}}",
+      "collection": "Collection",
+      "vectorStoreId": "Vector store ID"
+    },
+    "validation": {
+      "documentTypeRequired": "Document type is required.",
+      "titleRequired": "Title is required and must not exceed 150 characters."
+    },
+    "messages": {
+      "loadError": "Unable to load documents.",
+      "referencesError": "Unable to load reference data.",
+      "uploadError": "Unable to upload document.",
+      "downloadError": "Unable to open document.",
+      "processError": "Unable to process document.",
+      "indexError": "Unable to index document.",
+      "chunksError": "Unable to load chunks.",
+      "deleteError": "Unable to delete document.",
+      "uploaded": "Document uploaded successfully.",
+      "processed": "Document processed successfully.",
+      "indexed": "Document indexed successfully. Indexed chunks: {{chunks}}.",
+      "deleted": "Document deleted successfully."
+    }
   }
 }

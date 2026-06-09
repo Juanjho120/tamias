@@ -845,5 +845,104 @@
         "purchasedError": "No se pudo actualizar el estado del item."
       }
     }
+  },
+  "documents": {
+    "title": "Documentos",
+    "subtitle": "Sube, procesa, indexa y revisa documentos usados por el asistente IA.",
+    "loading": "Cargando documentos...",
+    "confirmDeleteTitle": "Eliminar documento",
+    "confirmDeleteMessage": "¿Eliminar el documento \"{{title}}\"? Esta acción lo marcará como eliminado.",
+    "filters": {
+      "property": "Propiedad",
+      "allProperties": "Todas las propiedades",
+      "documentType": "Tipo de documento",
+      "allTypes": "Todos los tipos",
+      "processingStatus": "Procesamiento",
+      "allProcessingStatuses": "Todos los estados de procesamiento",
+      "status": "Estado",
+      "allStatuses": "Todos los estados"
+    },
+    "table": {
+      "title": "Título",
+      "property": "Propiedad",
+      "type": "Tipo",
+      "file": "Archivo",
+      "processing": "Procesamiento",
+      "status": "Estado",
+      "actions": "Acciones"
+    },
+    "empty": {
+      "title": "No se encontraron documentos",
+      "description": "Sube tu primer documento para continuar."
+    },
+    "pagination": {
+      "noItems": "Sin documentos",
+      "pageOf": "Página {{page}} de {{totalPages}}"
+    },
+    "type": {
+      "HOUSE_RULES": "Reglas de la casa",
+      "BATHROOM_RULES": "Reglas del baño",
+      "PROPERTY_SIGNS": "Rótulos de la propiedad",
+      "BLUEPRINT": "Plano",
+      "ELECTRICAL_PLAN": "Plano eléctrico",
+      "PLUMBING_PLAN": "Plano de plomería",
+      "DRAINAGE_PLAN": "Plano de drenajes",
+      "MANUAL": "Manual",
+      "OTHER": "Otro"
+    },
+    "processing": {
+      "PENDING": "Pendiente",
+      "PROCESSING": "Procesando",
+      "PROCESSED": "Procesado",
+      "FAILED": "Fallido"
+    },
+    "form": {
+      "property": "Propiedad",
+      "noProperty": "Sin propiedad",
+      "documentType": "Tipo de documento",
+      "title": "Título",
+      "description": "Descripción"
+    },
+    "upload": {
+      "title": "Subir documento",
+      "subtitle": "Selecciona un documento y sus metadatos.",
+      "file": "Archivo",
+      "fileHelp": "Los tipos y tamaños permitidos los controla la configuración del backend.",
+      "noFileSelected": "No has seleccionado archivo.",
+      "button": "Subir documento",
+      "uploading": "Subiendo..."
+    },
+    "actions": {
+      "open": "Abrir",
+      "process": "Procesar",
+      "index": "Indexar",
+      "chunks": "Chunks"
+    },
+    "chunks": {
+      "title": "Chunks del documento",
+      "loading": "Cargando chunks...",
+      "empty": "No se encontraron chunks. Procesa e indexa el documento primero.",
+      "chunk": "Chunk {{index}}",
+      "collection": "Colección",
+      "vectorStoreId": "Vector store ID"
+    },
+    "validation": {
+      "documentTypeRequired": "El tipo de documento es requerido.",
+      "titleRequired": "El título es requerido y no debe exceder 150 caracteres."
+    },
+    "messages": {
+      "loadError": "No se pudieron cargar los documentos.",
+      "referencesError": "No se pudo cargar la información de referencia.",
+      "uploadError": "No se pudo subir el documento.",
+      "downloadError": "No se pudo abrir el documento.",
+      "processError": "No se pudo procesar el documento.",
+      "indexError": "No se pudo indexar el documento.",
+      "chunksError": "No se pudieron cargar los chunks.",
+      "deleteError": "No se pudo eliminar el documento.",
+      "uploaded": "Documento subido correctamente.",
+      "processed": "Documento procesado correctamente.",
+      "indexed": "Documento indexado correctamente. Chunks indexados: {{chunks}}.",
+      "deleted": "Documento eliminado correctamente."
+    }
   }
 }

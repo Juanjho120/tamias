@@ -1,4 +1,4 @@
-import { DatePipe, NgClass, PercentPipe } from '@angular/common';
+import { DatePipe, NgClass } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -28,7 +28,6 @@ type FormMode = 'create' | 'edit';
     DatePipe,
     FormsModule,
     NgClass,
-    PercentPipe,
     TranslatePipe,
     ConfirmModalComponent,
     TaskItemsModalComponent,

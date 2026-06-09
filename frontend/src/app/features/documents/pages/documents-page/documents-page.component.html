@@ -1,0 +1,244 @@
+<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+  <div>
+    <h1 class="h3 mb-1">{{ 'documents.title' | translate }}</h1>
+    <p class="text-muted mb-0">{{ 'documents.subtitle' | translate }}</p>
+  </div>
+
+  <button type="button" class="btn btn-primary" [disabled]="loadingReferences()" (click)="openUploadModal()">
+    <i class="bi bi-upload me-1"></i>
+    {{ 'documents.upload.button' | translate }}
+  </button>
+</div>
+
+<div class="card page-card mb-4">
+  <div class="card-body p-4">
+    <div class="row g-3 align-items-end">
+      <div class="col-12 col-md-6 col-xl-3">
+        <label for="document-property-filter" class="form-label">{{ 'documents.filters.property' | translate }}</label>
+        <select
+          id="document-property-filter"
+          class="form-select"
+          [ngModel]="propertyId()"
+          (ngModelChange)="propertyId.set($event)">
+          <option value="">{{ 'documents.filters.allProperties' | translate }}</option>
+          @for (property of properties(); track property.id) {
+            <option [value]="property.id">{{ property.name }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="col-12 col-md-6 col-xl-3">
+        <label for="document-type-filter" class="form-label">{{ 'documents.filters.documentType' | translate }}</label>
+        <select
+          id="document-type-filter"
+          class="form-select"
+          [ngModel]="documentType()"
+          (ngModelChange)="documentType.set($event)">
+          <option value="">{{ 'documents.filters.allTypes' | translate }}</option>
+          @for (item of documentTypes; track item) {
+            <option [value]="item">{{ 'documents.type.' + item | translate }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="col-12 col-md-6 col-xl-2">
+        <label for="document-processing-filter" class="form-label">{{ 'documents.filters.processingStatus' | translate }}</label>
+        <select
+          id="document-processing-filter"
+          class="form-select"
+          [ngModel]="processingStatus()"
+          (ngModelChange)="processingStatus.set($event)">
+          <option value="">{{ 'documents.filters.allProcessingStatuses' | translate }}</option>
+          @for (item of processingStatuses; track item) {
+            <option [value]="item">{{ 'documents.processing.' + item | translate }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="col-12 col-md-6 col-xl-2">
+        <label for="document-status-filter" class="form-label">{{ 'documents.filters.status' | translate }}</label>
+        <select
+          id="document-status-filter"
+          class="form-select"
+          [ngModel]="status()"
+          (ngModelChange)="status.set($event)">
+          <option value="">{{ 'documents.filters.allStatuses' | translate }}</option>
+          @for (item of statuses; track item) {
+            <option [value]="item">{{ 'status.' + item | translate }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="col-12 col-xl-2 d-flex gap-2">
+        <button type="button" class="btn btn-primary" (click)="applyFilters()">
+          <i class="bi bi-search me-1"></i>
+          {{ 'common.search' | translate }}
+        </button>
+        <button type="button" class="btn btn-outline-secondary" (click)="clearFilters()">
+          {{ 'common.clear' | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card page-card">
+  <div class="card-body p-0">
+    @if (loading()) {
+      <div class="p-5 text-center">
+        <div class="spinner-border text-primary" role="status"></div>
+        <div class="text-muted mt-3">{{ 'documents.loading' | translate }}</div>
+      </div>
+    } @else if (documents().length === 0) {
+      <div class="p-5 text-center">
+        <div class="d-inline-flex align-items-center justify-content-center rounded-4 bg-secondary-subtle text-secondary p-4 mb-3">
+          <i class="bi bi-file-earmark-text fs-1"></i>
+        </div>
+        <h2 class="h5">{{ 'documents.empty.title' | translate }}</h2>
+        <p class="text-muted mb-3">{{ 'documents.empty.description' | translate }}</p>
+        <button type="button" class="btn btn-primary" [disabled]="loadingReferences()" (click)="openUploadModal()">
+          {{ 'documents.upload.button' | translate }}
+        </button>
+      </div>
+    } @else {
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+          <tr>
+            <th>{{ 'documents.table.title' | translate }}</th>
+            <th>{{ 'documents.table.property' | translate }}</th>
+            <th>{{ 'documents.table.type' | translate }}</th>
+            <th>{{ 'documents.table.file' | translate }}</th>
+            <th>{{ 'documents.table.processing' | translate }}</th>
+            <th>{{ 'documents.table.status' | translate }}</th>
+            <th class="text-end">{{ 'documents.table.actions' | translate }}</th>
+          </tr>
+          </thead>
+          <tbody>
+            @for (document of documents(); track document.id) {
+              <tr>
+                <td>
+                  <div class="fw-semibold">{{ document.title }}</div>
+                  <div class="small text-muted">{{ document.createdAt | date:'mediumDate' }}</div>
+                </td>
+                <td>{{ document.propertyName || '—' }}</td>
+                <td>{{ 'documents.type.' + document.documentType | translate }}</td>
+                <td>
+                  <div class="text-truncate" style="max-width: 240px;" [title]="document.originalFilename">
+                    {{ document.originalFilename }}
+                  </div>
+                  <div class="small text-muted">
+                    {{ document.contentType }} · {{ sizeInMb(document.sizeBytes) | number:'1.2-2' }} MB
+                  </div>
+                </td>
+                <td>
+                  <span class="badge" [ngClass]="processingBadgeClass(document.processingStatus)">
+                    {{ 'documents.processing.' + document.processingStatus | translate }}
+                  </span>
+                </td>
+                <td>
+                  <span class="badge" [ngClass]="statusBadgeClass(document.status)">
+                    {{ 'status.' + document.status | translate }}
+                  </span>
+                </td>
+                <td class="text-end">
+                  <div class="btn-group">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="downloadId() === document.id" (click)="download(document)">
+                      @if (downloadId() === document.id) {
+                        <span class="spinner-border spinner-border-sm me-1"></span>
+                      } @else {
+                        <i class="bi bi-box-arrow-up-right me-1"></i>
+                      }
+                      {{ 'documents.actions.open' | translate }}
+                    </button>
+
+                    <button type="button" class="btn btn-outline-primary btn-sm" [disabled]="!canProcess(document) || processingId() === document.id" (click)="process(document)">
+                      @if (processingId() === document.id) {
+                        <span class="spinner-border spinner-border-sm me-1"></span>
+                      } @else {
+                        <i class="bi bi-gear me-1"></i>
+                      }
+                      {{ 'documents.actions.process' | translate }}
+                    </button>
+
+                    <button type="button" class="btn btn-outline-info btn-sm" [disabled]="!canIndex(document) || indexingId() === document.id" (click)="index(document)">
+                      @if (indexingId() === document.id) {
+                        <span class="spinner-border spinner-border-sm me-1"></span>
+                      } @else {
+                        <i class="bi bi-database-add me-1"></i>
+                      }
+                      {{ 'documents.actions.index' | translate }}
+                    </button>
+
+                    <button type="button" class="btn btn-outline-dark btn-sm" (click)="openChunks(document)">
+                      <i class="bi bi-card-text me-1"></i>
+                      {{ 'documents.actions.chunks' | translate }}
+                    </button>
+
+                    <button type="button" class="btn btn-outline-danger btn-sm" [disabled]="deletingId() === document.id" (click)="requestDelete(document)">
+                      @if (deletingId() === document.id) {
+                        <span class="spinner-border spinner-border-sm me-1"></span>
+                      } @else {
+                        <i class="bi bi-trash me-1"></i>
+                      }
+                      {{ 'common.delete' | translate }}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 p-3 border-top">
+        <div class="d-flex align-items-center gap-2">
+          <span class="text-muted small">{{ 'common.rowsPerPage' | translate }}</span>
+          <select class="form-select form-select-sm w-auto" [ngModel]="size()" (ngModelChange)="changePageSize($event)">
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+          </select>
+        </div>
+
+        <div class="d-flex align-items-center gap-3">
+          <span class="text-muted small">{{ pageLabel() }} · {{ totalElements() }} {{ 'common.total' | translate }}</span>
+          <div class="btn-group">
+            <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="first()" (click)="previousPage()">
+              {{ 'common.previous' | translate }}
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="last()" (click)="nextPage()">
+              {{ 'common.next' | translate }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+</div>
+
+<app-document-upload-modal
+  [open]="uploadModalVisible()"
+  [properties]="properties()"
+  [loading]="uploading()"
+  (upload)="uploadDocument($event)"
+  (cancel)="closeUploadModal()" />
+
+<app-document-chunks-modal
+  [open]="!!selectedDocumentForChunks()"
+  [document]="selectedDocumentForChunks()"
+  [chunks]="chunks()"
+  [loading]="loadingChunks()"
+  (close)="closeChunks()" />
+
+<app-confirm-modal
+  [open]="!!documentToDelete()"
+  title="documents.confirmDeleteTitle"
+  [message]="deleteMessage()"
+  confirmText="common.delete"
+  cancelText="common.cancel"
+  confirmButtonClass="btn-danger"
+  [loading]="!!deletingId()"
+  (confirm)="confirmDelete()"
+  (cancel)="cancelDelete()" />
