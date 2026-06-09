@@ -169,5 +169,69 @@
         "deleteError": "Unable to delete image."
       }
     }
+  },
+  "maintenance": {
+    "title": "Maintenance",
+    "subtitle": "Review maintenance records and manage maintenance evidence images.",
+    "loading": "Loading maintenance records...",
+    "filters": {
+      "status": "Status",
+      "allStatuses": "All statuses"
+    },
+    "table": {
+      "title": "Title",
+      "property": "Property",
+      "category": "Category",
+      "type": "Type",
+      "performedAt": "Performed at",
+      "cost": "Cost",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "empty": {
+      "title": "No maintenance records found",
+      "description": "Maintenance records will appear here once they are created."
+    },
+    "pagination": {
+      "noRecords": "No records",
+      "pageOf": "Page {{page}} of {{totalPages}}"
+    },
+    "messages": {
+      "loadError": "Unable to load maintenance records."
+    },
+    "status": {
+      "PENDING": "Pending",
+      "IN_PROGRESS": "In progress",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled",
+      "DELETED": "Deleted"
+    },
+    "images": {
+      "button": "Images",
+      "title": "Maintenance images",
+      "loading": "Loading images...",
+      "previewUnavailable": "Preview unavailable",
+      "urlExpiresIn": "URL expires in {{seconds}} seconds",
+      "confirmDeleteTitle": "Delete image",
+      "confirmDeleteMessage": "Delete image \"{{filename}}\"?",
+      "upload": {
+        "file": "Image file",
+        "help": "Allowed types: JPG, PNG, WEBP. Maximum size is controlled by backend configuration.",
+        "button": "Upload image",
+        "uploading": "Uploading..."
+      },
+      "empty": {
+        "title": "No images yet",
+        "description": "Upload maintenance evidence images for this record."
+      },
+      "messages": {
+        "loadError": "Unable to load maintenance images.",
+        "fileRequired": "Select an image file first.",
+        "uploaded": "Image uploaded successfully.",
+        "uploadError": "Unable to upload image.",
+        "deleted": "Image deleted successfully.",
+        "deleteError": "Unable to delete image."
+      }
+    }
   }
 }

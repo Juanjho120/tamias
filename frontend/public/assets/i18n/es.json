@@ -169,5 +169,69 @@
         "deleteError": "No se pudo eliminar la imagen."
       }
     }
+  },
+  "maintenance": {
+    "title": "Mantenimiento",
+    "subtitle": "Revisa registros de mantenimiento y administra imágenes de evidencia.",
+    "loading": "Cargando registros de mantenimiento...",
+    "filters": {
+      "status": "Estado",
+      "allStatuses": "Todos los estados"
+    },
+    "table": {
+      "title": "Título",
+      "property": "Propiedad",
+      "category": "Categoría",
+      "type": "Tipo",
+      "performedAt": "Realizado",
+      "cost": "Costo",
+      "status": "Estado",
+      "actions": "Acciones"
+    },
+    "empty": {
+      "title": "No se encontraron registros de mantenimiento",
+      "description": "Los registros de mantenimiento aparecerán aquí cuando sean creados."
+    },
+    "pagination": {
+      "noRecords": "Sin registros",
+      "pageOf": "Página {{page}} de {{totalPages}}"
+    },
+    "messages": {
+      "loadError": "No se pudieron cargar los registros de mantenimiento."
+    },
+    "status": {
+      "PENDING": "Pendiente",
+      "IN_PROGRESS": "En progreso",
+      "COMPLETED": "Completado",
+      "CANCELLED": "Cancelado",
+      "DELETED": "Eliminado"
+    },
+    "images": {
+      "button": "Imágenes",
+      "title": "Imágenes de mantenimiento",
+      "loading": "Cargando imágenes...",
+      "previewUnavailable": "Vista previa no disponible",
+      "urlExpiresIn": "URL expira en {{seconds}} segundos",
+      "confirmDeleteTitle": "Eliminar imagen",
+      "confirmDeleteMessage": "¿Eliminar la imagen \"{{filename}}\"?",
+      "upload": {
+        "file": "Archivo de imagen",
+        "help": "Tipos permitidos: JPG, PNG, WEBP. El tamaño máximo lo controla la configuración del backend.",
+        "button": "Subir imagen",
+        "uploading": "Subiendo..."
+      },
+      "empty": {
+        "title": "Aún no hay imágenes",
+        "description": "Sube imágenes de evidencia para este registro de mantenimiento."
+      },
+      "messages": {
+        "loadError": "No se pudieron cargar las imágenes de mantenimiento.",
+        "fileRequired": "Selecciona primero un archivo de imagen.",
+        "uploaded": "Imagen subida correctamente.",
+        "uploadError": "No se pudo subir la imagen.",
+        "deleted": "Imagen eliminada correctamente.",
+        "deleteError": "No se pudo eliminar la imagen."
+      }
+    }
   }
 }

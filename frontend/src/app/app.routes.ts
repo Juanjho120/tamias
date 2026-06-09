@@ -35,7 +35,7 @@ export const routes: Routes = [
       },
       {
         path: 'maintenance',
-        loadComponent: () => import('./features/placeholders/maintenance-page.component').then((m) => m.MaintenancePageComponent),
+        loadComponent: () => import('./features/maintenance/pages/maintenance-page/maintenance-page.component').then((m) => m.MaintenancePageComponent),
         title: 'Maintenance | TAMIAS'
       },
       {
