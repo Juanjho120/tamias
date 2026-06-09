@@ -403,59 +403,84 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   private segmentsForCalendarRow(days: DashboardCalendarDay[], reservations: DashboardReservationDetail[]): DashboardReservationCalendarSegment[] {
-    const rowStart = days[0].date;
-    const rowEnd = days[6].date;
+    const rowStartDate = this.parseDashboardDate(days[0].date);
+    const rowEndDate = this.parseDashboardDate(days[6].date);
 
-    const overlappingReservations = reservations
-      .map((reservation) => {
-        const checkIn = this.normalizeApiDate(reservation.checkIn);
-        const checkOut = this.normalizeApiDate(reservation.checkOut);
+    if (!rowStartDate || !rowEndDate) {
+      return [];
+    }
 
-        const segmentStart = checkIn > rowStart ? checkIn : rowStart;
-        const segmentEnd = checkOut < rowEnd ? checkOut : rowEnd;
+    const overlappingReservations: Array<{
+      reservation: DashboardReservationDetail;
+      checkInDate: Date;
+      checkOutDate: Date;
+      segmentStartDate: Date;
+      segmentEndDate: Date;
+      startIndex: number;
+      endIndex: number;
+    }> = [];
 
-        return {
-          reservation,
-          checkIn,
-          checkOut,
-          segmentStart,
-          segmentEnd
-        };
-      })
-      .filter((item) => item.segmentStart <= item.segmentEnd)
-      .sort((left, right) => {
-        const byStart = left.segmentStart.localeCompare(right.segmentStart);
+    for (const reservation of reservations) {
+      const checkInDate = this.parseDashboardDate(reservation.checkIn);
+      const checkOutDate = this.parseDashboardDate(reservation.checkOut);
 
-        if (byStart !== 0) {
-          return byStart;
-        }
+      if (!checkInDate || !checkOutDate) {
+        continue;
+      }
 
-        return right.segmentEnd.localeCompare(left.segmentEnd);
+      // Visual rule requested for the dashboard:
+      // checkIn starts at half of the check-in day cell and checkOut ends at
+      // half of the checkout day cell. Therefore checkOut is part of the visual
+      // range, even though it is not a full occupied night.
+      if (this.compareDashboardDates(checkOutDate, rowStartDate) < 0 || this.compareDashboardDates(checkInDate, rowEndDate) > 0) {
+        continue;
+      }
+
+      const segmentStartDate = this.maxDashboardDate(checkInDate, rowStartDate);
+      const segmentEndDate = this.minDashboardDate(checkOutDate, rowEndDate);
+      const startIndex = this.daysBetween(rowStartDate, segmentStartDate);
+      const endIndex = this.daysBetween(rowStartDate, segmentEndDate);
+
+      if (startIndex < 0 || startIndex > 6 || endIndex < 0 || endIndex > 6 || startIndex > endIndex) {
+        continue;
+      }
+
+      overlappingReservations.push({
+        reservation,
+        checkInDate,
+        checkOutDate,
+        segmentStartDate,
+        segmentEndDate,
+        startIndex,
+        endIndex
       });
+    }
+
+    overlappingReservations.sort((left, right) => {
+      const byStart = this.compareDashboardDates(left.segmentStartDate, right.segmentStartDate);
+
+      if (byStart !== 0) {
+        return byStart;
+      }
+
+      return this.compareDashboardDates(right.segmentEndDate, left.segmentEndDate);
+    });
 
     const laneEndIndexes: number[] = [];
     const segments: DashboardReservationCalendarSegment[] = [];
 
     for (const item of overlappingReservations) {
-      const startIndex = days.findIndex((day) => day.date === item.segmentStart);
-      const endIndex = days.findIndex((day) => day.date === item.segmentEnd);
-
-      // Safety guard: never allow grid line 0 or invalid CSS grid placement.
-      if (startIndex < 0 || endIndex < 0) {
-        continue;
-      }
-
-      const lane = this.findAvailableLane(laneEndIndexes, startIndex);
-      laneEndIndexes[lane] = endIndex;
+      const lane = this.findAvailableLane(laneEndIndexes, item.startIndex);
+      laneEndIndexes[lane] = item.endIndex;
 
       segments.push(this.toCalendarSegment(
         item.reservation,
-        item.checkIn,
-        item.checkOut,
-        item.segmentStart,
-        item.segmentEnd,
-        startIndex,
-        endIndex,
+        item.checkInDate,
+        item.checkOutDate,
+        item.segmentStartDate,
+        item.segmentEndDate,
+        item.startIndex,
+        item.endIndex,
         lane
       ));
     }
@@ -475,10 +500,10 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
 
   private toCalendarSegment(
     reservation: DashboardReservationDetail,
-    checkIn: string,
-    checkOut: string,
-    segmentStart: string,
-    segmentEnd: string,
+    checkInDate: Date,
+    checkOutDate: Date,
+    segmentStartDate: Date,
+    segmentEndDate: Date,
     startIndex: number,
     endIndex: number,
     lane: number
@@ -486,6 +511,10 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
     const guests = reservation.guests ?? [];
     const primaryGuest = guests.find((guest) => guest.primary) ?? guests[0] ?? null;
     const invoiceStatus = reservation.invoiceNumber || reservation.invoiceSeries ? 'INVOICED' : 'NOT_INVOICED';
+    const checkIn = this.toLocalDateString(checkInDate);
+    const checkOut = this.toLocalDateString(checkOutDate);
+    const segmentStart = this.toLocalDateString(segmentStartDate);
+    const segmentEnd = this.toLocalDateString(segmentEndDate);
 
     return {
       id: `${reservation.id}-${segmentStart}-${segmentEnd}`,
@@ -502,10 +531,10 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
       guestCount: guests.length,
       invoiceStatus,
       status: reservation.status,
-      rangeStartsHere: checkIn === segmentStart,
-      rangeEndsHere: checkOut === segmentEnd,
-      startsAtCheckIn: checkIn === segmentStart,
-      endsAtCheckOut: checkOut === segmentEnd,
+      rangeStartsHere: this.isSameDashboardDate(checkInDate, segmentStartDate),
+      rangeEndsHere: this.isSameDashboardDate(checkOutDate, segmentEndDate),
+      startsAtCheckIn: this.isSameDashboardDate(checkInDate, segmentStartDate),
+      endsAtCheckOut: this.isSameDashboardDate(checkOutDate, segmentEndDate),
       gridColumnStart: startIndex + 1,
       gridColumnEnd: endIndex + 2,
       lane,
@@ -586,7 +615,49 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
     return this.languageService.currentLanguage() === 'es' ? 'es-GT' : 'en-US';
   }
 
-  private normalizeApiDate(value: string): string {
-    return value.slice(0, 10);
+  private parseDashboardDate(value: string): Date | null {
+    const rawValue = String(value ?? '').trim();
+
+    if (!rawValue) {
+      return null;
+    }
+
+    const isoMatch = rawValue.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+    if (isoMatch) {
+      return new Date(Number(isoMatch[1]), Number(isoMatch[2]) - 1, Number(isoMatch[3]));
+    }
+
+    const fallbackDate = new Date(rawValue);
+
+    if (Number.isNaN(fallbackDate.getTime())) {
+      return null;
+    }
+
+    return new Date(fallbackDate.getFullYear(), fallbackDate.getMonth(), fallbackDate.getDate());
+  }
+
+  private compareDashboardDates(left: Date, right: Date): number {
+    return this.dashboardDateNumber(left) - this.dashboardDateNumber(right);
+  }
+
+  private isSameDashboardDate(left: Date, right: Date): boolean {
+    return this.compareDashboardDates(left, right) === 0;
+  }
+
+  private maxDashboardDate(left: Date, right: Date): Date {
+    return this.compareDashboardDates(left, right) >= 0 ? left : right;
+  }
+
+  private minDashboardDate(left: Date, right: Date): Date {
+    return this.compareDashboardDates(left, right) <= 0 ? left : right;
+  }
+
+  private daysBetween(start: Date, end: Date): number {
+    return this.dashboardDateNumber(end) - this.dashboardDateNumber(start);
+  }
+
+  private dashboardDateNumber(date: Date): number {
+    return Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86_400_000);
   }
 }
