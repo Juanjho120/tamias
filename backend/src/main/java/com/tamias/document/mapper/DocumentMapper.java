@@ -5,10 +5,17 @@ import com.tamias.document.dto.DocumentResponse;
 import com.tamias.document.dto.DocumentSummaryResponse;
 import com.tamias.document.entity.Document;
 import com.tamias.document.entity.DocumentChunk;
+import com.tamias.document.storage.FileStorageService;
 import org.springframework.stereotype.Component;
 
 @Component
 public class DocumentMapper {
+
+    private final FileStorageService fileStorageService;
+
+    public DocumentMapper(FileStorageService fileStorageService) {
+        this.fileStorageService = fileStorageService;
+    }
 
     public DocumentSummaryResponse toSummaryResponse(Document entity) {
         var property = entity.getProperty();
@@ -24,7 +31,9 @@ public class DocumentMapper {
                 entity.getSizeBytes(),
                 entity.getProcessingStatus(),
                 entity.getStatus(),
-                entity.getCreatedAt()
+                entity.getCreatedAt(),
+                fileStorageService.buildDownloadUrl(entity.getS3Key(), entity.getId().toString()),
+                fileStorageService.getDownloadUrlExpirationSeconds()
         );
     }
 
@@ -45,7 +54,9 @@ public class DocumentMapper {
                 entity.getProcessingStatus(),
                 entity.getStatus(),
                 entity.getCreatedAt(),
-                entity.getUpdatedAt()
+                entity.getUpdatedAt(),
+                fileStorageService.buildDownloadUrl(entity.getS3Key(), entity.getId().toString()),
+                fileStorageService.getDownloadUrlExpirationSeconds()
         );
     }
 

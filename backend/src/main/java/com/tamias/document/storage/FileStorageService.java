@@ -11,5 +11,7 @@ public interface FileStorageService {
 
     String buildDownloadUrl(String storageKey, String documentId);
 
+    String buildFileUrl(String storageKey);
+
     int getDownloadUrlExpirationSeconds();
 }

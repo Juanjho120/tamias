@@ -100,6 +100,11 @@ public class S3FileStorageService implements FileStorageService {
 
     @Override
     public String buildDownloadUrl(String storageKey, String documentId) {
+        return buildFileUrl(storageKey);
+    }
+
+    @Override
+    public String buildFileUrl(String storageKey) {
         validateConfiguration();
 
         GetObjectRequest getObjectRequest = GetObjectRequest.builder()

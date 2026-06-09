@@ -20,6 +20,8 @@ public record DocumentResponse(
         DocumentProcessingStatus processingStatus,
         DocumentStatus status,
         OffsetDateTime createdAt,
-        OffsetDateTime updatedAt
+        OffsetDateTime updatedAt,
+        String downloadUrl,
+        Integer downloadUrlExpiresIn
 ) {
 }

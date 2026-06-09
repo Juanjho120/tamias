@@ -91,6 +91,11 @@ public class LocalFileStorageService implements FileStorageService {
     }
 
     @Override
+    public String buildFileUrl(String storageKey) {
+        return null;
+    }
+
+    @Override
     public int getDownloadUrlExpirationSeconds() {
         return expirationSeconds;
     }

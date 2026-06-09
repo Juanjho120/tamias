@@ -17,6 +17,8 @@ public record DocumentSummaryResponse(
         Long sizeBytes,
         DocumentProcessingStatus processingStatus,
         DocumentStatus status,
-        OffsetDateTime createdAt
+        OffsetDateTime createdAt,
+        String downloadUrl,
+        Integer downloadUrlExpiresIn
 ) {
 }

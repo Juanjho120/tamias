@@ -1,5 +1,6 @@
 package com.tamias.image.mapper;
 
+import com.tamias.document.storage.FileStorageService;
 import com.tamias.image.dto.ImageResponse;
 import com.tamias.image.dto.ImageUploadResponse;
 import com.tamias.image.maintenance.entity.MaintenanceRecordImage;
@@ -8,6 +9,12 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class ImageMapper {
+
+    private final FileStorageService fileStorageService;
+
+    public ImageMapper(FileStorageService fileStorageService) {
+        this.fileStorageService = fileStorageService;
+    }
 
     public ImageResponse toResponse(PropertyImage entity) {
         return new ImageResponse(
@@ -19,7 +26,9 @@ public class ImageMapper {
                 entity.getSizeBytes(),
                 entity.getCover(),
                 entity.getStatus(),
-                entity.getCreatedAt()
+                entity.getCreatedAt(),
+                fileStorageService.buildFileUrl(entity.getS3Key()),
+                fileStorageService.getDownloadUrlExpirationSeconds()
         );
     }
 
@@ -32,7 +41,9 @@ public class ImageMapper {
                 entity.getSizeBytes(),
                 entity.getCover(),
                 entity.getStatus(),
-                entity.getCreatedAt()
+                entity.getCreatedAt(),
+                fileStorageService.buildFileUrl(entity.getS3Key()),
+                fileStorageService.getDownloadUrlExpirationSeconds()
         );
     }
 
@@ -46,7 +57,9 @@ public class ImageMapper {
                 entity.getSizeBytes(),
                 null,
                 entity.getStatus(),
-                entity.getCreatedAt()
+                entity.getCreatedAt(),
+                fileStorageService.buildFileUrl(entity.getS3Key()),
+                fileStorageService.getDownloadUrlExpirationSeconds()
         );
     }
 
@@ -59,7 +72,9 @@ public class ImageMapper {
                 entity.getSizeBytes(),
                 null,
                 entity.getStatus(),
-                entity.getCreatedAt()
+                entity.getCreatedAt(),
+                fileStorageService.buildFileUrl(entity.getS3Key()),
+                fileStorageService.getDownloadUrlExpirationSeconds()
         );
     }
 }

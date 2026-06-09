@@ -13,6 +13,8 @@ public record ImageResponse(
         Long sizeBytes,
         Boolean cover,
         ImageStatus status,
-        OffsetDateTime createdAt
+        OffsetDateTime createdAt,
+        String fileUrl,
+        Integer fileUrlExpiresIn
 ) {
 }
