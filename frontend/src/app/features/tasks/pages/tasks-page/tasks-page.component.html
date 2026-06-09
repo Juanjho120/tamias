@@ -1,0 +1,207 @@
+<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+  <div>
+    <h1 class="h3 mb-1">{{ 'tasks.title' | translate }}</h1>
+    <p class="text-muted mb-0">{{ 'tasks.subtitle' | translate }}</p>
+  </div>
+
+  <button type="button" class="btn btn-primary" [disabled]="loadingReferences()" (click)="openCreateForm()">
+    <i class="bi bi-plus-lg me-1"></i>
+    {{ 'tasks.newTaskList' | translate }}
+  </button>
+</div>
+
+<div class="card page-card mb-4">
+  <div class="card-body p-4">
+    <div class="row g-3 align-items-end">
+      <div class="col-12 col-md-6 col-lg-4">
+        <label for="task-property-filter" class="form-label">{{ 'tasks.filters.property' | translate }}</label>
+        <select
+          id="task-property-filter"
+          class="form-select"
+          [ngModel]="propertyId()"
+          (ngModelChange)="propertyId.set($event)">
+          <option value="">{{ 'tasks.filters.allProperties' | translate }}</option>
+          @for (property of references().properties; track property.id) {
+            <option [value]="property.id">{{ property.name }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="col-12 col-md-6 col-lg-4">
+        <label for="task-status-filter" class="form-label">{{ 'tasks.filters.status' | translate }}</label>
+        <select
+          id="task-status-filter"
+          class="form-select"
+          [ngModel]="status()"
+          (ngModelChange)="status.set($event)">
+          <option value="">{{ 'tasks.filters.allStatuses' | translate }}</option>
+          @for (item of statuses; track item) {
+            <option [value]="item">{{ 'tasks.status.' + item | translate }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="col-12 col-lg-4 d-flex gap-2">
+        <button type="button" class="btn btn-primary" (click)="applyFilters()">
+          <i class="bi bi-search me-1"></i>
+          {{ 'common.search' | translate }}
+        </button>
+        <button type="button" class="btn btn-outline-secondary" (click)="clearFilters()">
+          {{ 'common.clear' | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card page-card">
+  <div class="card-body p-0">
+    @if (loading()) {
+      <div class="p-5 text-center">
+        <div class="spinner-border text-primary" role="status"></div>
+        <div class="text-muted mt-3">{{ 'tasks.loading' | translate }}</div>
+      </div>
+    } @else if (taskLists().length === 0) {
+      <div class="p-5 text-center">
+        <div class="d-inline-flex align-items-center justify-content-center rounded-4 bg-secondary-subtle text-secondary p-4 mb-3">
+          <i class="bi bi-list-check fs-1"></i>
+        </div>
+        <h2 class="h5">{{ 'tasks.empty.title' | translate }}</h2>
+        <p class="text-muted mb-3">{{ 'tasks.empty.description' | translate }}</p>
+        <button type="button" class="btn btn-primary" [disabled]="loadingReferences()" (click)="openCreateForm()">
+          {{ 'tasks.newTaskList' | translate }}
+        </button>
+      </div>
+    } @else {
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+          <tr>
+            <th>{{ 'tasks.table.title' | translate }}</th>
+            <th>{{ 'tasks.table.property' | translate }}</th>
+            <th>{{ 'tasks.table.dates' | translate }}</th>
+            <th>{{ 'tasks.table.progress' | translate }}</th>
+            <th>{{ 'tasks.table.status' | translate }}</th>
+            <th class="text-end">{{ 'tasks.table.actions' | translate }}</th>
+          </tr>
+          </thead>
+          <tbody>
+            @for (taskList of taskLists(); track taskList.id) {
+              <tr>
+                <td>
+                  <div class="fw-semibold">{{ taskList.title }}</div>
+                  <div class="small text-muted">
+                    @if (taskList.reservationId) {
+                      {{ 'tasks.table.linkedReservation' | translate }}
+                    }
+                    @if (taskList.maintenanceRecordId) {
+                      {{ 'tasks.table.linkedMaintenance' | translate }}
+                    }
+                    @if (!taskList.reservationId && !taskList.maintenanceRecordId) {
+                      {{ taskList.createdAt | date:'mediumDate' }}
+                    }
+                  </div>
+                </td>
+                <td>{{ taskList.propertyName }}</td>
+                <td>
+                  <div>{{ taskList.creationDate ? (taskList.creationDate | date:'mediumDate') : '—' }}</div>
+                  <div class="small text-muted">{{ taskList.dueDate ? (taskList.dueDate | date:'mediumDate') : '—' }}</div>
+                </td>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="progress flex-grow-1" style="height: 0.5rem;">
+                      <div class="progress-bar" [style.width.%]="completionRatio(taskList) * 100"></div>
+                    </div>
+                    <span class="small text-muted">{{ taskList.completedItems }}/{{ taskList.totalItems }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="badge" [ngClass]="statusBadgeClass(taskList.status)">
+                    {{ 'tasks.status.' + taskList.status | translate }}
+                  </span>
+                </td>
+                <td class="text-end">
+                  <div class="btn-group">
+                    <button type="button" class="btn btn-outline-dark btn-sm" (click)="openItems(taskList)">
+                      <i class="bi bi-list-check me-1"></i>
+                      {{ 'tasks.items.button' | translate }}
+                    </button>
+                    <button type="button" class="btn btn-outline-primary btn-sm" (click)="openEditForm(taskList.id)">
+                      <i class="bi bi-pencil-square me-1"></i>
+                      {{ 'common.edit' | translate }}
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-outline-danger btn-sm"
+                      [disabled]="deletingId() === taskList.id"
+                      (click)="requestDelete(taskList)">
+                      @if (deletingId() === taskList.id) {
+                        <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+                      } @else {
+                        <i class="bi bi-trash me-1"></i>
+                      }
+                      {{ 'common.delete' | translate }}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 p-3 border-top">
+        <div class="d-flex align-items-center gap-2">
+          <span class="text-muted small">{{ 'common.rowsPerPage' | translate }}</span>
+          <select class="form-select form-select-sm w-auto" [ngModel]="size()" (ngModelChange)="changePageSize($event)">
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+          </select>
+        </div>
+
+        <div class="d-flex align-items-center gap-3">
+          <span class="text-muted small">{{ pageLabel() }} · {{ totalElements() }} {{ 'common.total' | translate }}</span>
+          <div class="btn-group">
+            <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="first()" (click)="previousPage()">
+              {{ 'common.previous' | translate }}
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="last()" (click)="nextPage()">
+              {{ 'common.next' | translate }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+</div>
+
+<app-task-list-form-modal
+  [open]="formVisible()"
+  [taskList]="selectedTaskList()"
+  [properties]="references().properties"
+  [reservations]="references().reservations"
+  [maintenanceRecords]="references().maintenanceRecords"
+  [taskTemplates]="references().taskTemplates"
+  [loading]="saving()"
+  (save)="saveTaskList($event)"
+  (cancel)="closeForm()" />
+
+<app-task-items-modal
+  [open]="!!taskListForItems()"
+  [taskListSummary]="taskListForItems()"
+  [taskTemplates]="references().taskTemplates"
+  (close)="closeItems()"
+  (itemsChanged)="loadTaskLists()" />
+
+<app-confirm-modal
+  [open]="!!taskListToDelete()"
+  title="tasks.confirmDeleteTitle"
+  [message]="deleteMessage()"
+  confirmText="common.delete"
+  cancelText="common.cancel"
+  confirmButtonClass="btn-danger"
+  [loading]="!!deletingId()"
+  (confirm)="confirmDelete()"
+  (cancel)="cancelDelete()" />

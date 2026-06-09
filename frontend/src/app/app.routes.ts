@@ -50,7 +50,7 @@ export const routes: Routes = [
       },
       {
         path: 'tasks',
-        loadComponent: () => import('./features/placeholders/tasks-page.component').then((m) => m.TasksPageComponent),
+        loadComponent: () => import('./features/tasks/pages/tasks-page/tasks-page.component').then((m) => m.TasksPageComponent),
         title: 'Tasks | TAMIAS'
       },
       {

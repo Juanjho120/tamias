@@ -635,5 +635,107 @@
       "deleted": "Reservation deleted successfully.",
       "cancelled": "Reservation cancelled successfully."
     }
+  },
+  "tasks": {
+    "title": "Tasks",
+    "subtitle": "Manage operational task lists and checklist items.",
+    "newTaskList": "New task list",
+    "loading": "Loading task lists...",
+    "confirmDeleteTitle": "Delete task list",
+    "confirmDeleteMessage": "Delete task list \"{{title}}\"? This action will mark it as deleted.",
+    "filters": {
+      "property": "Property",
+      "allProperties": "All properties",
+      "status": "Status",
+      "allStatuses": "All statuses"
+    },
+    "table": {
+      "title": "Title",
+      "property": "Property",
+      "dates": "Dates",
+      "progress": "Progress",
+      "status": "Status",
+      "actions": "Actions",
+      "linkedReservation": "Linked to reservation",
+      "linkedMaintenance": "Linked to maintenance"
+    },
+    "empty": {
+      "title": "No task lists found",
+      "description": "Create your first task list to continue."
+    },
+    "pagination": {
+      "noItems": "No task lists",
+      "pageOf": "Page {{page}} of {{totalPages}}"
+    },
+    "status": {
+      "OPEN": "Open",
+      "IN_PROGRESS": "In progress",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled",
+      "DELETED": "Deleted"
+    },
+    "form": {
+      "createTitle": "Create task list",
+      "editTitle": "Edit task list",
+      "subtitle": "Fill in the task list details and checklist items.",
+      "property": "Property",
+      "selectProperty": "Select a property",
+      "title": "Title",
+      "creationDate": "Creation date",
+      "dueDate": "Due date",
+      "status": "Status",
+      "reservation": "Reservation",
+      "noReservation": "No reservation",
+      "maintenanceRecord": "Maintenance record",
+      "noMaintenanceRecord": "No maintenance record",
+      "save": "Save task list"
+    },
+    "validation": {
+      "propertyRequired": "Property is required.",
+      "titleRequired": "Title is required and must not exceed 150 characters.",
+      "statusRequired": "Status is required.",
+      "taskNameRequired": "Task name is required and must not exceed 150 characters."
+    },
+    "messages": {
+      "loadError": "Unable to load task lists.",
+      "referencesError": "Unable to load reference data.",
+      "detailError": "Unable to load task list details.",
+      "saveError": "Unable to save task list.",
+      "deleteError": "Unable to delete task list.",
+      "created": "Task list created successfully.",
+      "updated": "Task list updated successfully.",
+      "deleted": "Task list deleted successfully."
+    },
+    "items": {
+      "button": "Items",
+      "title": "Checklist items",
+      "modalTitle": "Task list items",
+      "loading": "Loading task items...",
+      "newItem": "New item",
+      "editItem": "Edit item",
+      "template": "Template",
+      "noTemplate": "No template",
+      "taskName": "Task name",
+      "responsiblePerson": "Responsible person",
+      "sortOrder": "Order",
+      "completed": "Completed",
+      "add": "Add item",
+      "update": "Update item",
+      "empty": "No task items added yet.",
+      "markDone": "Mark done",
+      "markPending": "Mark pending",
+      "confirmDeleteTitle": "Delete task item",
+      "confirmDeleteMessage": "Delete task item \"{{name}}\"?",
+      "messages": {
+        "loadError": "Unable to load task items.",
+        "saveError": "Unable to save task item.",
+        "deleteError": "Unable to delete task item.",
+        "created": "Task item created successfully.",
+        "updated": "Task item updated successfully.",
+        "deleted": "Task item deleted successfully.",
+        "completionUpdated": "Task item completion updated.",
+        "completionError": "Unable to update task item completion."
+      }
+    }
   }
 }

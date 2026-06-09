@@ -1,0 +1,169 @@
+@if (open) {
+  <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title">{{ 'tasks.items.modalTitle' | translate }}</h5>
+            <div class="small text-muted">{{ taskList()?.title || taskListSummary?.title }}</div>
+          </div>
+          <button type="button" class="btn-close" aria-label="Close" [disabled]="loading() || saving() || !!deletingId()" (click)="requestClose()"></button>
+        </div>
+
+        <div class="modal-body">
+          @if (loading()) {
+            <div class="p-5 text-center">
+              <div class="spinner-border text-primary" role="status"></div>
+              <div class="text-muted mt-3">{{ 'tasks.items.loading' | translate }}</div>
+            </div>
+          } @else {
+            <div class="row g-4">
+              <div class="col-12 col-xl-5">
+                <div class="card border-0 bg-light">
+                  <div class="card-body">
+                    <h6 class="mb-3">{{ editingItem() ? ('tasks.items.editItem' | translate) : ('tasks.items.newItem' | translate) }}</h6>
+
+                    <form [formGroup]="itemForm" (ngSubmit)="saveItem()" novalidate>
+                      <div class="mb-3">
+                        <label for="task-item-modal-template" class="form-label">{{ 'tasks.items.template' | translate }}</label>
+                        <select
+                          id="task-item-modal-template"
+                          class="form-select"
+                          formControlName="taskTemplateId"
+                          (ngModelChange)="onTemplateSelected($event)">
+                          <option value="">{{ 'tasks.items.noTemplate' | translate }}</option>
+                          @for (template of taskTemplates; track template.id) {
+                            <option [value]="template.id">{{ template.name }}</option>
+                          }
+                        </select>
+                      </div>
+
+                      <div class="mb-3">
+                        <label for="task-item-modal-name" class="form-label">{{ 'tasks.items.taskName' | translate }}</label>
+                        <input
+                          id="task-item-modal-name"
+                          type="text"
+                          class="form-control"
+                          maxlength="150"
+                          formControlName="taskName">
+                        @if (isItemInvalid('taskName')) {
+                          <div class="text-danger small mt-1">{{ 'tasks.validation.taskNameRequired' | translate }}</div>
+                        }
+                      </div>
+
+                      <div class="mb-3">
+                        <label for="task-item-modal-responsible" class="form-label">{{ 'tasks.items.responsiblePerson' | translate }}</label>
+                        <input
+                          id="task-item-modal-responsible"
+                          type="text"
+                          class="form-control"
+                          maxlength="150"
+                          formControlName="responsiblePerson">
+                      </div>
+
+                      <div class="mb-3">
+                        <label for="task-item-modal-sort" class="form-label">{{ 'tasks.items.sortOrder' | translate }}</label>
+                        <input id="task-item-modal-sort" type="number" class="form-control" min="1" formControlName="sortOrder">
+                      </div>
+
+                      <div class="form-check mb-3">
+                        <input id="task-item-modal-completed" type="checkbox" class="form-check-input" formControlName="completed">
+                        <label for="task-item-modal-completed" class="form-check-label">{{ 'tasks.items.completed' | translate }}</label>
+                      </div>
+
+                      <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary" [disabled]="saving()">
+                          @if (saving()) {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                          } @else {
+                            <i class="bi bi-check-lg me-1"></i>
+                          }
+                          {{ editingItem() ? ('tasks.items.update' | translate) : ('tasks.items.add' | translate) }}
+                        </button>
+                        @if (editingItem()) {
+                          <button type="button" class="btn btn-outline-secondary" [disabled]="saving()" (click)="cancelEdit()">
+                            {{ 'common.cancel' | translate }}
+                          </button>
+                        }
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-12 col-xl-7">
+                @if (!taskList()?.items?.length) {
+                  <div class="p-5 text-center border rounded-4 text-muted">
+                    {{ 'tasks.items.empty' | translate }}
+                  </div>
+                } @else {
+                  <div class="list-group">
+                    @for (item of taskList()?.items || []; track trackById($index, item)) {
+                      <div class="list-group-item d-flex justify-content-between align-items-start gap-3">
+                        <div>
+                          <div class="fw-semibold">
+                            @if (item.completed) {
+                              <i class="bi bi-check-circle-fill text-success me-1"></i>
+                            }
+                            {{ item.taskName }}
+                          </div>
+                          <div class="small text-muted">
+                            {{ item.responsiblePerson || '—' }}
+                            @if (item.taskTemplateName) {
+                              · {{ item.taskTemplateName }}
+                            }
+                            @if (item.completionDate) {
+                              · {{ item.completionDate | date:'mediumDate' }}
+                            }
+                          </div>
+                        </div>
+
+                        <div class="btn-group">
+                          <button type="button" class="btn btn-outline-success btn-sm" (click)="toggleCompletion(item)">
+                            @if (item.completed) {
+                              {{ 'tasks.items.markPending' | translate }}
+                            } @else {
+                              {{ 'tasks.items.markDone' | translate }}
+                            }
+                          </button>
+                          <button type="button" class="btn btn-outline-primary btn-sm" (click)="editItem(item)">
+                            <i class="bi bi-pencil-square"></i>
+                          </button>
+                          <button type="button" class="btn btn-outline-danger btn-sm" [disabled]="deletingId() === item.id" (click)="requestDeleteItem(item)">
+                            @if (deletingId() === item.id) {
+                              <span class="spinner-border spinner-border-sm"></span>
+                            } @else {
+                              <i class="bi bi-trash"></i>
+                            }
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" [disabled]="loading() || saving() || !!deletingId()" (click)="requestClose()">
+            {{ 'common.close' | translate }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}
+
+<app-confirm-modal
+  [open]="!!itemToDelete()"
+  title="tasks.items.confirmDeleteTitle"
+  [message]="'tasks.items.confirmDeleteMessage' | translate:{ name: itemToDelete()?.taskName }"
+  confirmText="common.delete"
+  cancelText="common.cancel"
+  confirmButtonClass="btn-danger"
+  [loading]="!!deletingId()"
+  (confirm)="confirmDelete()"
+  (cancel)="cancelDelete()" />

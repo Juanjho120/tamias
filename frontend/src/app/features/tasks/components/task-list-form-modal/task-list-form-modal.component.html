@@ -1,0 +1,224 @@
+@if (open) {
+  <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title">
+              {{ (taskList ? 'tasks.form.editTitle' : 'tasks.form.createTitle') | translate }}
+            </h5>
+            <div class="small text-muted">{{ 'tasks.form.subtitle' | translate }}</div>
+          </div>
+          <button type="button" class="btn-close" aria-label="Close" [disabled]="loading" (click)="cancel.emit()"></button>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+          <div class="modal-body">
+            <div class="row g-4">
+              <div class="col-12 col-xl-6">
+                <div class="row g-3">
+                  <div class="col-12">
+                    <label for="task-property" class="form-label">{{ 'tasks.form.property' | translate }}</label>
+                    <select
+                      id="task-property"
+                      class="form-select"
+                      [ngClass]="{ 'is-invalid': isInvalid('propertyId') }"
+                      formControlName="propertyId">
+                      <option value="">{{ 'tasks.form.selectProperty' | translate }}</option>
+                      @for (property of properties; track property.id) {
+                        <option [value]="property.id">{{ property.name }}</option>
+                      }
+                    </select>
+                    @if (isInvalid('propertyId')) {
+                      <div class="invalid-feedback">{{ 'tasks.validation.propertyRequired' | translate }}</div>
+                    }
+                  </div>
+
+                  <div class="col-12">
+                    <label for="task-title" class="form-label">{{ 'tasks.form.title' | translate }}</label>
+                    <input
+                      id="task-title"
+                      type="text"
+                      class="form-control"
+                      maxlength="150"
+                      [ngClass]="{ 'is-invalid': isInvalid('title') }"
+                      formControlName="title">
+                    @if (isInvalid('title')) {
+                      <div class="invalid-feedback">{{ 'tasks.validation.titleRequired' | translate }}</div>
+                    }
+                  </div>
+
+                  <div class="col-12 col-lg-6">
+                    <label for="task-creation-date" class="form-label">{{ 'tasks.form.creationDate' | translate }}</label>
+                    <input id="task-creation-date" type="date" class="form-control" formControlName="creationDate">
+                  </div>
+
+                  <div class="col-12 col-lg-6">
+                    <label for="task-due-date" class="form-label">{{ 'tasks.form.dueDate' | translate }}</label>
+                    <input id="task-due-date" type="date" class="form-control" formControlName="dueDate">
+                  </div>
+
+                  <div class="col-12">
+                    <label for="task-status" class="form-label">{{ 'tasks.form.status' | translate }}</label>
+                    <select
+                      id="task-status"
+                      class="form-select"
+                      [ngClass]="{ 'is-invalid': isInvalid('status') }"
+                      formControlName="status">
+                      @for (status of statuses; track status) {
+                        <option [value]="status">{{ 'tasks.status.' + status | translate }}</option>
+                      }
+                    </select>
+                    @if (isInvalid('status')) {
+                      <div class="invalid-feedback">{{ 'tasks.validation.statusRequired' | translate }}</div>
+                    }
+                  </div>
+
+                  <div class="col-12">
+                    <label for="task-reservation" class="form-label">{{ 'tasks.form.reservation' | translate }}</label>
+                    <select id="task-reservation" class="form-select" formControlName="reservationId">
+                      <option value="">{{ 'tasks.form.noReservation' | translate }}</option>
+                      @for (reservation of selectedPropertyReservations(); track reservation.id) {
+                        <option [value]="reservation.id">{{ reservationLabel(reservation) }}</option>
+                      }
+                    </select>
+                  </div>
+
+                  <div class="col-12">
+                    <label for="task-maintenance-record" class="form-label">{{ 'tasks.form.maintenanceRecord' | translate }}</label>
+                    <select id="task-maintenance-record" class="form-select" formControlName="maintenanceRecordId">
+                      <option value="">{{ 'tasks.form.noMaintenanceRecord' | translate }}</option>
+                      @for (record of selectedPropertyMaintenanceRecords(); track record.id) {
+                        <option [value]="record.id">{{ maintenanceRecordLabel(record) }}</option>
+                      }
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-12 col-xl-6">
+                <div class="card border-0 bg-light h-100">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                      <h6 class="mb-0">{{ 'tasks.items.title' | translate }}</h6>
+                      <span class="badge text-bg-secondary">{{ items().length }}</span>
+                    </div>
+
+                    <div [formGroup]="itemForm" class="row g-2 mb-3">
+                      <div class="col-12">
+                        <label for="task-template" class="form-label">{{ 'tasks.items.template' | translate }}</label>
+                        <select
+                          id="task-template"
+                          class="form-select"
+                          formControlName="taskTemplateId"
+                          (ngModelChange)="onTemplateSelected($event)">
+                          <option value="">{{ 'tasks.items.noTemplate' | translate }}</option>
+                          @for (template of taskTemplates; track template.id) {
+                            <option [value]="template.id">{{ template.name }}</option>
+                          }
+                        </select>
+                      </div>
+
+                      <div class="col-12">
+                        <label for="task-item-name" class="form-label">{{ 'tasks.items.taskName' | translate }}</label>
+                        <input
+                          id="task-item-name"
+                          type="text"
+                          class="form-control"
+                          maxlength="150"
+                          [ngClass]="{ 'is-invalid': isItemInvalid('taskName') }"
+                          formControlName="taskName">
+                        @if (isItemInvalid('taskName')) {
+                          <div class="invalid-feedback">{{ 'tasks.validation.taskNameRequired' | translate }}</div>
+                        }
+                      </div>
+
+                      <div class="col-12 col-lg-6">
+                        <label for="task-item-responsible" class="form-label">{{ 'tasks.items.responsiblePerson' | translate }}</label>
+                        <input id="task-item-responsible" type="text" class="form-control" maxlength="150" formControlName="responsiblePerson">
+                      </div>
+
+                      <div class="col-12 col-lg-3">
+                        <label for="task-item-sort" class="form-label">{{ 'tasks.items.sortOrder' | translate }}</label>
+                        <input id="task-item-sort" type="number" class="form-control" min="1" formControlName="sortOrder">
+                      </div>
+
+                      <div class="col-12 col-lg-3 d-flex align-items-end">
+                        <div class="form-check">
+                          <input id="task-item-completed" type="checkbox" class="form-check-input" formControlName="completed">
+                          <label for="task-item-completed" class="form-check-label">{{ 'tasks.items.completed' | translate }}</label>
+                        </div>
+                      </div>
+
+                      <div class="col-12 d-flex gap-2">
+                        <button type="button" class="btn btn-primary" (click)="addOrUpdateItem()">
+                          <i class="bi bi-plus-lg me-1"></i>
+                          {{ (editingItemIndex() === null ? 'tasks.items.add' : 'tasks.items.update') | translate }}
+                        </button>
+                        @if (editingItemIndex() !== null) {
+                          <button type="button" class="btn btn-outline-secondary" (click)="cancelItemEdit()">
+                            {{ 'common.cancel' | translate }}
+                          </button>
+                        }
+                      </div>
+                    </div>
+
+                    @if (items().length === 0) {
+                      <div class="text-muted small border rounded-3 p-3 bg-white">
+                        {{ 'tasks.items.empty' | translate }}
+                      </div>
+                    } @else {
+                      <div class="list-group">
+                        @for (item of items(); track $index) {
+                          <div class="list-group-item d-flex justify-content-between align-items-start gap-3">
+                            <div>
+                              <div class="fw-semibold">
+                                @if (item.completed) {
+                                  <i class="bi bi-check-circle-fill text-success me-1"></i>
+                                }
+                                {{ item.taskName }}
+                              </div>
+                              <div class="small text-muted">
+                                {{ item.responsiblePerson || '—' }}
+                                @if (item.sortOrder) {
+                                  · #{{ item.sortOrder }}
+                                }
+                              </div>
+                            </div>
+                            <div class="btn-group">
+                              <button type="button" class="btn btn-outline-primary btn-sm" (click)="editItem($index)">
+                                <i class="bi bi-pencil-square"></i>
+                              </button>
+                              <button type="button" class="btn btn-outline-danger btn-sm" (click)="removeItem($index)">
+                                <i class="bi bi-trash"></i>
+                              </button>
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" [disabled]="loading" (click)="cancel.emit()">
+              {{ 'common.cancel' | translate }}
+            </button>
+            <button type="submit" class="btn btn-primary" [disabled]="loading">
+              @if (loading) {
+                <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+                {{ 'common.saving' | translate }}
+              } @else {
+                {{ 'tasks.form.save' | translate }}
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}

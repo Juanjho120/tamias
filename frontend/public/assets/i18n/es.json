@@ -635,5 +635,107 @@
       "deleted": "Reservación eliminada correctamente.",
       "cancelled": "Reservación cancelada correctamente."
     }
+  },
+  "tasks": {
+    "title": "Tareas",
+    "subtitle": "Administra listas operativas de tareas y checklist items.",
+    "newTaskList": "Nueva lista de tareas",
+    "loading": "Cargando listas de tareas...",
+    "confirmDeleteTitle": "Eliminar lista de tareas",
+    "confirmDeleteMessage": "¿Eliminar la lista de tareas \"{{title}}\"? Esta acción la marcará como eliminada.",
+    "filters": {
+      "property": "Propiedad",
+      "allProperties": "Todas las propiedades",
+      "status": "Estado",
+      "allStatuses": "Todos los estados"
+    },
+    "table": {
+      "title": "Título",
+      "property": "Propiedad",
+      "dates": "Fechas",
+      "progress": "Progreso",
+      "status": "Estado",
+      "actions": "Acciones",
+      "linkedReservation": "Vinculada a reservación",
+      "linkedMaintenance": "Vinculada a mantenimiento"
+    },
+    "empty": {
+      "title": "No se encontraron listas de tareas",
+      "description": "Crea tu primera lista de tareas para continuar."
+    },
+    "pagination": {
+      "noItems": "Sin listas de tareas",
+      "pageOf": "Página {{page}} de {{totalPages}}"
+    },
+    "status": {
+      "OPEN": "Abierta",
+      "IN_PROGRESS": "En progreso",
+      "COMPLETED": "Completada",
+      "CANCELLED": "Cancelada",
+      "DELETED": "Eliminada"
+    },
+    "form": {
+      "createTitle": "Crear lista de tareas",
+      "editTitle": "Editar lista de tareas",
+      "subtitle": "Completa los detalles de la lista y sus items.",
+      "property": "Propiedad",
+      "selectProperty": "Selecciona una propiedad",
+      "title": "Título",
+      "creationDate": "Fecha de creación",
+      "dueDate": "Fecha límite",
+      "status": "Estado",
+      "reservation": "Reservación",
+      "noReservation": "Sin reservación",
+      "maintenanceRecord": "Registro de mantenimiento",
+      "noMaintenanceRecord": "Sin registro de mantenimiento",
+      "save": "Guardar lista"
+    },
+    "validation": {
+      "propertyRequired": "La propiedad es requerida.",
+      "titleRequired": "El título es requerido y no debe exceder 150 caracteres.",
+      "statusRequired": "El estado es requerido.",
+      "taskNameRequired": "El nombre de la tarea es requerido y no debe exceder 150 caracteres."
+    },
+    "messages": {
+      "loadError": "No se pudieron cargar las listas de tareas.",
+      "referencesError": "No se pudo cargar la información de referencia.",
+      "detailError": "No se pudo cargar el detalle de la lista.",
+      "saveError": "No se pudo guardar la lista de tareas.",
+      "deleteError": "No se pudo eliminar la lista de tareas.",
+      "created": "Lista de tareas creada correctamente.",
+      "updated": "Lista de tareas actualizada correctamente.",
+      "deleted": "Lista de tareas eliminada correctamente."
+    },
+    "items": {
+      "button": "Items",
+      "title": "Checklist items",
+      "modalTitle": "Items de la lista",
+      "loading": "Cargando items...",
+      "newItem": "Nuevo item",
+      "editItem": "Editar item",
+      "template": "Plantilla",
+      "noTemplate": "Sin plantilla",
+      "taskName": "Nombre de tarea",
+      "responsiblePerson": "Persona responsable",
+      "sortOrder": "Orden",
+      "completed": "Completado",
+      "add": "Agregar item",
+      "update": "Actualizar item",
+      "empty": "Aún no hay items agregados.",
+      "markDone": "Marcar hecho",
+      "markPending": "Marcar pendiente",
+      "confirmDeleteTitle": "Eliminar item",
+      "confirmDeleteMessage": "¿Eliminar el item \"{{name}}\"?",
+      "messages": {
+        "loadError": "No se pudieron cargar los items.",
+        "saveError": "No se pudo guardar el item.",
+        "deleteError": "No se pudo eliminar el item.",
+        "created": "Item creado correctamente.",
+        "updated": "Item actualizado correctamente.",
+        "deleted": "Item eliminado correctamente.",
+        "completionUpdated": "Estado del item actualizado.",
+        "completionError": "No se pudo actualizar el estado del item."
+      }
+    }
   }
 }
