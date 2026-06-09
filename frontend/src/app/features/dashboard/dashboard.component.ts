@@ -8,6 +8,7 @@ import {
   QueryList,
   ViewChildren,
   computed,
+  effect,
   inject,
   signal
 } from '@angular/core';
@@ -53,15 +54,24 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
   readonly calendarMonth = signal(new Date().getMonth());
   readonly calendarRows = signal<DashboardCalendarRow[]>([]);
 
-  readonly weekDayKeys = [
-    'dashboard.calendar.weekdays.sun',
-    'dashboard.calendar.weekdays.mon',
-    'dashboard.calendar.weekdays.tue',
-    'dashboard.calendar.weekdays.wed',
-    'dashboard.calendar.weekdays.thu',
-    'dashboard.calendar.weekdays.fri',
-    'dashboard.calendar.weekdays.sat'
-  ];
+  readonly weekDayLabels = computed(() => {
+    const locale = this.calendarLocale();
+    const sunday = new Date(2026, 0, 4);
+
+    return Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(sunday);
+      date.setDate(sunday.getDate() + index);
+
+      return date.toLocaleDateString(locale, {
+        weekday: 'short'
+      });
+    });
+  });
+
+  private readonly languageChangeEffect = effect(() => {
+    this.languageService.currentLanguage();
+    this.needsTooltipRefresh = true;
+  });
 
   readonly metrics = computed<DashboardMetric[]>(() => {
     const data = this.data();
@@ -137,7 +147,7 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
   readonly calendarMonthLabel = computed(() => {
     const date = new Date(this.calendarYear(), this.calendarMonth(), 1);
 
-    return date.toLocaleDateString(undefined, {
+    return date.toLocaleDateString(this.calendarLocale(), {
       month: 'long',
       year: 'numeric'
     });
@@ -292,6 +302,7 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   calendarTooltipHtml(segment: DashboardReservationCalendarSegment): string {
+    this.languageService.currentLanguage();
     const rows = [
       [this.languageService.instant('dashboard.calendar.tooltip.guestCount'), String(segment.guestCount)],
       [this.languageService.instant('dashboard.calendar.tooltip.code'), segment.reservationCode || '—'],
@@ -529,5 +540,9 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
   private extractErrorMessage(error: unknown, fallback: string): string {
     const maybeHttpError = error as { error?: ApiError };
     return maybeHttpError.error?.message ?? fallback;
+  }
+
+  private calendarLocale(): string {
+    return this.languageService.currentLanguage() === 'es' ? 'es-GT' : 'en-US';
   }
 }

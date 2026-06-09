@@ -68,8 +68,8 @@
     <div class="card-body p-0">
       <div class="reservation-calendar">
         <div class="reservation-calendar-weekdays">
-          @for (weekDayKey of weekDayKeys; track weekDayKey) {
-            <div class="reservation-calendar-weekday">{{ weekDayKey | translate }}</div>
+          @for (weekDayLabel of weekDayLabels(); track weekDayLabel) {
+            <div class="reservation-calendar-weekday text-capitalize">{{ weekDayLabel }}</div>
           }
         </div>
 
