@@ -1,0 +1,88 @@
+@if (open && config) {
+  <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title">
+              {{ (item ? 'catalogs.form.editTitle' : 'catalogs.form.createTitle') | translate:{ catalog: (config.titleKey | translate) } }}
+            </h5>
+            <div class="small text-muted">{{ config.descriptionKey | translate }}</div>
+          </div>
+          <button type="button" class="btn-close" aria-label="Close" [disabled]="loading" (click)="cancel.emit()"></button>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+          <div class="modal-body">
+            <div class="row g-3">
+              @for (field of config.fields; track field.key) {
+                <div class="col-12" [class.col-lg-6]="field.type !== 'textarea'">
+                  <label [for]="'catalog-field-' + field.key" class="form-label">
+                    {{ field.labelKey | translate }}
+                  </label>
+
+                  @if (field.type === 'textarea') {
+                    <textarea
+                      [id]="'catalog-field-' + field.key"
+                      class="form-control"
+                      [ngClass]="{ 'is-invalid': isInvalid(field) }"
+                      [formControlName]="field.key"
+                      [rows]="field.rows || 3">
+                    </textarea>
+                  } @else {
+                    <input
+                      [id]="'catalog-field-' + field.key"
+                      [type]="fieldInputType(field)"
+                      class="form-control"
+                      [ngClass]="{ 'is-invalid': isInvalid(field) }"
+                      [formControlName]="field.key"
+                      [attr.maxlength]="field.maxLength || null">
+                  }
+
+                  @if (isInvalid(field)) {
+                    <div class="invalid-feedback">
+                      {{ 'catalogs.validation.fieldInvalid' | translate:{ field: (field.labelKey | translate) } }}
+                    </div>
+                  }
+                </div>
+              }
+
+              <div class="col-12 col-lg-6">
+                <label for="catalog-status" class="form-label">{{ 'catalogs.fields.status' | translate }}</label>
+                <select
+                  id="catalog-status"
+                  class="form-select"
+                  [ngClass]="{ 'is-invalid': isInvalid('status') }"
+                  formControlName="status">
+                  @for (status of statuses; track status) {
+                    <option [value]="status">{{ 'status.' + status | translate }}</option>
+                  }
+                </select>
+                @if (isInvalid('status')) {
+                  <div class="invalid-feedback">
+                    {{ 'catalogs.validation.statusRequired' | translate }}
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" [disabled]="loading" (click)="cancel.emit()">
+              {{ 'common.cancel' | translate }}
+            </button>
+            <button type="submit" class="btn btn-primary" [disabled]="loading">
+              @if (loading) {
+                <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+                {{ 'common.saving' | translate }}
+              } @else {
+                {{ 'catalogs.form.save' | translate }}
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}

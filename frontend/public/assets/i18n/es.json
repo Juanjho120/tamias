@@ -233,5 +233,96 @@
         "deleteError": "No se pudo eliminar la imagen."
       }
     }
+  },
+  "catalogs": {
+    "title": "Catálogos",
+    "subtitle": "Administra catálogos operativos reutilizables para propiedades, mantenimiento, reservaciones, compras y tareas.",
+    "newItem": "Nuevo item",
+    "loading": "Cargando items del catálogo...",
+    "confirmDeleteTitle": "Eliminar item de catálogo",
+    "confirmDeleteMessage": "¿Eliminar \"{{name}}\"? Esta acción lo marcará como eliminado.",
+    "filters": {
+      "status": "Estado",
+      "allStatuses": "Todos los estados"
+    },
+    "table": {
+      "actions": "Acciones"
+    },
+    "fields": {
+      "name": "Nombre",
+      "fullName": "Nombre completo",
+      "description": "Descripción",
+      "country": "País",
+      "unit": "Unidad",
+      "phone": "Teléfono",
+      "email": "Correo electrónico",
+      "website": "Sitio web",
+      "notes": "Notas",
+      "status": "Estado",
+      "createdAt": "Creado"
+    },
+    "form": {
+      "createTitle": "Crear {{catalog}}",
+      "editTitle": "Editar {{catalog}}",
+      "save": "Guardar item"
+    },
+    "validation": {
+      "fieldInvalid": "{{field}} es inválido o requerido.",
+      "statusRequired": "El estado es requerido."
+    },
+    "empty": {
+      "title": "No se encontraron items",
+      "description": "Crea el primer item para este catálogo."
+    },
+    "pagination": {
+      "noItems": "Sin items",
+      "pageOf": "Página {{page}} de {{totalPages}}"
+    },
+    "messages": {
+      "loadError": "No se pudieron cargar los items del catálogo.",
+      "saveError": "No se pudo guardar el item del catálogo.",
+      "deleteError": "No se pudo eliminar el item del catálogo.",
+      "created": "Item de catálogo creado correctamente.",
+      "updated": "Item de catálogo actualizado correctamente.",
+      "deleted": "Item de catálogo eliminado correctamente."
+    },
+    "items": {
+      "cities": {
+        "title": "Ciudades",
+        "description": "Ciudades donde se ubican las propiedades."
+      },
+      "brands": {
+        "title": "Marcas",
+        "description": "Marcas usadas para materiales, herramientas e inventario."
+      },
+      "materials": {
+        "title": "Materiales",
+        "description": "Materiales e insumos usados en mantenimiento y compras."
+      },
+      "suppliers": {
+        "title": "Proveedores",
+        "description": "Proveedores usados para compras y servicios."
+      },
+      "maintenanceCategories": {
+        "title": "Categorías de mantenimiento",
+        "description": "Áreas operativas como filtros, bombas, puertas y ventanas."
+      },
+      "maintenanceTypes": {
+        "title": "Tipos de mantenimiento",
+        "description": "Acciones de mantenimiento como limpieza, reparación o construcción."
+      },
+      "maintenancePeople": {
+        "title": "Personas de mantenimiento",
+        "description": "Personas o proveedores involucrados en trabajos de mantenimiento."
+      },
+      "platforms": {
+        "title": "Plataformas",
+        "description": "Plataformas de reservación como Airbnb, Booking o reservas directas."
+      },
+      "taskTemplates": {
+        "title": "Plantillas de tareas",
+        "description": "Plantillas reutilizables para checklists operativos."
+      }
+    }
   }
 }

@@ -30,7 +30,7 @@ export const routes: Routes = [
       },
       {
         path: 'catalogs',
-        loadComponent: () => import('./features/placeholders/catalogs-page.component').then((m) => m.CatalogsPageComponent),
+        loadComponent: () => import('./features/catalogs/pages/catalogs-page/catalogs-page.component').then((m) => m.CatalogsPageComponent),
         title: 'Catalogs | TAMIAS'
       },
       {

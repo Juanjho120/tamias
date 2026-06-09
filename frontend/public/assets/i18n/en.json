@@ -233,5 +233,96 @@
         "deleteError": "Unable to delete image."
       }
     }
+  },
+  "catalogs": {
+    "title": "Catalogs",
+    "subtitle": "Manage reusable operational catalogs for properties, maintenance, reservations, purchases and tasks.",
+    "newItem": "New item",
+    "loading": "Loading catalog items...",
+    "confirmDeleteTitle": "Delete catalog item",
+    "confirmDeleteMessage": "Delete \"{{name}}\"? This action will mark it as deleted.",
+    "filters": {
+      "status": "Status",
+      "allStatuses": "All statuses"
+    },
+    "table": {
+      "actions": "Actions"
+    },
+    "fields": {
+      "name": "Name",
+      "fullName": "Full name",
+      "description": "Description",
+      "country": "Country",
+      "unit": "Unit",
+      "phone": "Phone",
+      "email": "Email",
+      "website": "Website",
+      "notes": "Notes",
+      "status": "Status",
+      "createdAt": "Created"
+    },
+    "form": {
+      "createTitle": "Create {{catalog}}",
+      "editTitle": "Edit {{catalog}}",
+      "save": "Save item"
+    },
+    "validation": {
+      "fieldInvalid": "{{field}} is invalid or required.",
+      "statusRequired": "Status is required."
+    },
+    "empty": {
+      "title": "No catalog items found",
+      "description": "Create your first item for this catalog."
+    },
+    "pagination": {
+      "noItems": "No items",
+      "pageOf": "Page {{page}} of {{totalPages}}"
+    },
+    "messages": {
+      "loadError": "Unable to load catalog items.",
+      "saveError": "Unable to save catalog item.",
+      "deleteError": "Unable to delete catalog item.",
+      "created": "Catalog item created successfully.",
+      "updated": "Catalog item updated successfully.",
+      "deleted": "Catalog item deleted successfully."
+    },
+    "items": {
+      "cities": {
+        "title": "Cities",
+        "description": "Cities where properties are located."
+      },
+      "brands": {
+        "title": "Brands",
+        "description": "Brands used for materials, tools and inventory."
+      },
+      "materials": {
+        "title": "Materials",
+        "description": "Materials and supplies used in maintenance and purchases."
+      },
+      "suppliers": {
+        "title": "Suppliers",
+        "description": "Suppliers used for purchases and services."
+      },
+      "maintenanceCategories": {
+        "title": "Maintenance categories",
+        "description": "Operational areas such as filters, pumps, doors and windows."
+      },
+      "maintenanceTypes": {
+        "title": "Maintenance types",
+        "description": "Maintenance actions such as cleaning, repair or construction."
+      },
+      "maintenancePeople": {
+        "title": "Maintenance people",
+        "description": "People or vendors involved in maintenance work."
+      },
+      "platforms": {
+        "title": "Platforms",
+        "description": "Reservation platforms such as Airbnb, Booking or direct reservations."
+      },
+      "taskTemplates": {
+        "title": "Task templates",
+        "description": "Reusable task templates for operational checklists."
+      }
+    }
   }
 }
