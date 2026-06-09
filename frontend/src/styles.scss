@@ -1,0 +1,62 @@
+@import "bootstrap/scss/bootstrap";
+@import "bootstrap-icons/font/bootstrap-icons.css";
+
+:root {
+  --tamias-sidebar-width: 280px;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: #f6f7fb;
+}
+
+a {
+  text-decoration: none;
+}
+
+.auth-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(13, 110, 253, 0.16), transparent 28rem),
+    linear-gradient(135deg, #f8f9fa, #e9ecef);
+}
+
+.app-shell {
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: var(--tamias-sidebar-width);
+  min-height: 100vh;
+  background: #111827;
+}
+
+.sidebar .nav-link {
+  color: rgba(255, 255, 255, 0.72);
+  border-radius: 0.75rem;
+  padding: 0.7rem 0.85rem;
+}
+
+.sidebar .nav-link:hover,
+.sidebar .nav-link.active {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.10);
+}
+
+.main-content {
+  min-width: 0;
+}
+
+.page-card {
+  border: 0;
+  border-radius: 1rem;
+  box-shadow: 0 0.75rem 2rem rgba(15, 23, 42, 0.06);
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}

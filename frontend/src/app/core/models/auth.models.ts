@@ -1,0 +1,25 @@
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface AuthOrganization {
+  id: string;
+  name: string;
+}
+
+export interface AuthUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+  organization: AuthOrganization;
+}
+
+export interface LoginResponse {
+  accessToken: string;
+  tokenType: string;
+  expiresIn: number;
+  user: AuthUser;
+}

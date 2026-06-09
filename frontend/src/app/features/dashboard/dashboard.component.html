@@ -1,0 +1,24 @@
+<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+  <div>
+    <h1 class="h3 mb-1">Dashboard</h1>
+    <p class="text-muted mb-0">TAMIAS frontend shell is ready. Continue building modules in roadmap order.</p>
+  </div>
+</div>
+
+<div class="row g-3">
+  @for (card of cards; track card.route) {
+    <div class="col-12 col-md-6 col-xl-4">
+      <a class="card page-card h-100 text-reset" [routerLink]="card.route">
+        <div class="card-body p-4">
+          <div class="d-flex align-items-center gap-3 mb-3">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-3 bg-primary-subtle text-primary p-3">
+              <i class="bi fs-4" [class]="card.icon"></i>
+            </div>
+            <h2 class="h5 mb-0">{{ card.title }}</h2>
+          </div>
+          <p class="text-muted mb-0">{{ card.description }}</p>
+        </div>
+      </a>
+    </div>
+  }
+</div>
