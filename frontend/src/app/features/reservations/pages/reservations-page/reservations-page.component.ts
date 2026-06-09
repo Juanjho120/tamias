@@ -8,6 +8,7 @@ import { PageResponse } from '../../../../core/models/page-response.model';
 import { ConfirmModalComponent } from '../../../../shared/confirm-modal/confirm-modal.component';
 import { QuetzalCurrencyPipe } from '../../../../shared/pipes/quetzal-currency.pipe';
 import { ToastService } from '../../../../shared/toast/toast.service';
+import { RelatedTaskListsModalComponent } from '../../../tasks/components/related-task-lists-modal/related-task-lists-modal.component';
 import { CancelReservationModalComponent } from '../../components/cancel-reservation-modal/cancel-reservation-modal.component';
 import { ReservationFormModalComponent } from '../../components/reservation-form-modal/reservation-form-modal.component';
 import {
@@ -33,6 +34,7 @@ type ViewMode = 'list' | 'calendar';
     TranslatePipe,
     ConfirmModalComponent,
     QuetzalCurrencyPipe,
+    RelatedTaskListsModalComponent,
     CancelReservationModalComponent,
     ReservationFormModalComponent
   ],
@@ -56,6 +58,7 @@ export class ReservationsPageComponent implements OnInit {
   readonly selectedReservation = signal<Reservation | null>(null);
   readonly reservationToDelete = signal<ReservationSummary | null>(null);
   readonly reservationToCancel = signal<ReservationSummary | null>(null);
+  readonly reservationForTasks = signal<ReservationSummary | null>(null);
 
   readonly references = signal<ReservationReferenceData>({
     properties: [],
@@ -102,6 +105,11 @@ export class ReservationsPageComponent implements OnInit {
 
   readonly cancelReservationTitle = computed(() => {
     const reservation = this.reservationToCancel();
+    return reservation ? this.reservationDisplayName(reservation) : '';
+  });
+
+  readonly reservationTasksTitle = computed(() => {
+    const reservation = this.reservationForTasks();
     return reservation ? this.reservationDisplayName(reservation) : '';
   });
 
@@ -299,6 +307,14 @@ export class ReservationsPageComponent implements OnInit {
         this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('reservations.messages.cancelError')));
       }
     });
+  }
+
+  openTasks(reservation: ReservationSummary): void {
+    this.reservationForTasks.set(reservation);
+  }
+
+  closeTasks(): void {
+    this.reservationForTasks.set(null);
   }
 
   requestDelete(reservation: ReservationSummary): void {

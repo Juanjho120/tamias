@@ -736,6 +736,20 @@
         "completionUpdated": "Task item completion updated.",
         "completionError": "Unable to update task item completion."
       }
+    },
+    "related": {
+      "button": "Tasks",
+      "reservationTitle": "Reservation task lists",
+      "maintenanceTitle": "Maintenance task lists",
+      "taskLists": "Related task lists",
+      "subtitle": "Create and manage task lists linked to this record.",
+      "newTaskList": "New related task list",
+      "defaultReservationTaskTitle": "Reservation tasks",
+      "defaultMaintenanceTaskTitle": "Maintenance tasks",
+      "empty": {
+        "title": "No related task lists found",
+        "description": "Create a task list linked to this record."
+      }
     }
   },
   "purchases": {

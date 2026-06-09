@@ -8,6 +8,7 @@ import { PageResponse } from '../../../../core/models/page-response.model';
 import { ConfirmModalComponent } from '../../../../shared/confirm-modal/confirm-modal.component';
 import { QuetzalCurrencyPipe } from '../../../../shared/pipes/quetzal-currency.pipe';
 import { ToastService } from '../../../../shared/toast/toast.service';
+import { RelatedTaskListsModalComponent } from '../../../tasks/components/related-task-lists-modal/related-task-lists-modal.component';
 import { MaintenanceDetailsModalComponent } from '../../components/maintenance-details-modal/maintenance-details-modal.component';
 import { MaintenanceImagesModalComponent } from '../../components/maintenance-images-modal/maintenance-images-modal.component';
 import { MaintenanceRecordFormModalComponent } from '../../components/maintenance-record-form-modal/maintenance-record-form-modal.component';
@@ -33,6 +34,7 @@ type FormMode = 'create' | 'edit';
     TranslatePipe,
     ConfirmModalComponent,
     QuetzalCurrencyPipe,
+    RelatedTaskListsModalComponent,
     MaintenanceDetailsModalComponent,
     MaintenanceImagesModalComponent,
     MaintenanceRecordFormModalComponent
@@ -55,6 +57,7 @@ export class MaintenancePageComponent implements OnInit {
   readonly selectedRecord = signal<MaintenanceRecord | null>(null);
   readonly selectedRecordForImages = signal<MaintenanceRecordSummary | null>(null);
   readonly selectedRecordForDetails = signal<MaintenanceRecordSummary | null>(null);
+  readonly selectedRecordForTasks = signal<MaintenanceRecordSummary | null>(null);
   readonly recordToDelete = signal<MaintenanceRecordSummary | null>(null);
 
   readonly references = signal<MaintenanceReferenceData>({
@@ -98,6 +101,11 @@ export class MaintenancePageComponent implements OnInit {
     return this.languageService.instant('maintenance.confirmDeleteMessage', {
       title: record.title
     });
+  });
+
+  readonly taskContextTitle = computed(() => {
+    const record = this.selectedRecordForTasks();
+    return record ? `${record.title} · ${record.propertyName}` : '';
   });
 
   constructor(private readonly maintenanceRecordService: MaintenanceRecordService) {
@@ -295,6 +303,14 @@ export class MaintenancePageComponent implements OnInit {
 
   closeDetails(): void {
     this.selectedRecordForDetails.set(null);
+  }
+
+  openTasks(record: MaintenanceRecordSummary): void {
+    this.selectedRecordForTasks.set(record);
+  }
+
+  closeTasks(): void {
+    this.selectedRecordForTasks.set(null);
   }
 
   statusBadgeClass(status: MaintenanceStatus): string {

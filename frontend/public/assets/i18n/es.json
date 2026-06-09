@@ -736,6 +736,20 @@
         "completionUpdated": "Estado del item actualizado.",
         "completionError": "No se pudo actualizar el estado del item."
       }
+    },
+    "related": {
+      "button": "Tareas",
+      "reservationTitle": "Listas de tareas de la reservación",
+      "maintenanceTitle": "Listas de tareas del mantenimiento",
+      "taskLists": "Listas de tareas relacionadas",
+      "subtitle": "Crea y administra listas de tareas vinculadas a este registro.",
+      "newTaskList": "Nueva lista relacionada",
+      "defaultReservationTaskTitle": "Tareas de reservación",
+      "defaultMaintenanceTaskTitle": "Tareas de mantenimiento",
+      "empty": {
+        "title": "No se encontraron listas relacionadas",
+        "description": "Crea una lista de tareas vinculada a este registro."
+      }
     }
   },
   "purchases": {

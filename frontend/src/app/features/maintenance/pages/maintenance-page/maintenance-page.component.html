@@ -112,6 +112,10 @@
                       <i class="bi bi-list-check me-1"></i>
                       {{ 'maintenance.details.button' | translate }}
                     </button>
+                    <button type="button" class="btn btn-outline-dark btn-sm" (click)="openTasks(record)">
+                      <i class="bi bi-list-check me-1"></i>
+                      {{ 'tasks.related.button' | translate }}
+                    </button>
                     <button type="button" class="btn btn-outline-secondary btn-sm" (click)="openImages(record)">
                       <i class="bi bi-images me-1"></i>
                       {{ 'maintenance.images.button' | translate }}
@@ -185,6 +189,14 @@
   [materialOptions]="references().materials"
   (close)="closeDetails()"
   (detailsChanged)="loadRecords()" />
+
+<app-related-task-lists-modal
+  [open]="!!selectedRecordForTasks()"
+  contextType="maintenance"
+  [contextId]="selectedRecordForTasks()?.id ?? null"
+  [propertyId]="selectedRecordForTasks()?.propertyId ?? null"
+  [contextTitle]="taskContextTitle()"
+  (close)="closeTasks()" />
 
 <app-maintenance-images-modal
   [open]="!!selectedRecordForImages()"

@@ -1,4 +1,4 @@
-import { NgClass } from '@angular/common';
+import { DatePipe, NgClass } from '@angular/common';
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -19,7 +19,7 @@ import {
 @Component({
   selector: 'app-task-list-form-modal',
   standalone: true,
-  imports: [NgClass, ReactiveFormsModule, TranslatePipe],
+  imports: [DatePipe, NgClass, ReactiveFormsModule, TranslatePipe],
   templateUrl: './task-list-form-modal.component.html'
 })
 export class TaskListFormModalComponent implements OnChanges {
@@ -32,6 +32,12 @@ export class TaskListFormModalComponent implements OnChanges {
   @Input() maintenanceRecords: TaskMaintenanceRecordOption[] = [];
   @Input() taskTemplates: TaskTemplateOption[] = [];
   @Input() loading = false;
+
+  @Input() presetPropertyId: string | null = null;
+  @Input() presetReservationId: string | null = null;
+  @Input() presetMaintenanceRecordId: string | null = null;
+  @Input() presetTitle: string | null = null;
+  @Input() lockContext = false;
 
   @Output() save = new EventEmitter<TaskListRequest>();
   @Output() cancel = new EventEmitter<void>();
@@ -58,28 +64,15 @@ export class TaskListFormModalComponent implements OnChanges {
     sortOrder: ['']
   });
 
-  selectedPropertyReservations(): TaskReservationOption[] {
-    const propertyId = this.form.controls.propertyId.value;
-
-    if (!propertyId) {
-      return this.reservations;
-    }
-
-    return this.reservations.filter((reservation) => reservation.propertyId === propertyId);
-  }
-
-  selectedPropertyMaintenanceRecords(): TaskMaintenanceRecordOption[] {
-    const propertyId = this.form.controls.propertyId.value;
-
-    if (!propertyId) {
-      return this.maintenanceRecords;
-    }
-
-    return this.maintenanceRecords.filter((record) => record.propertyId === propertyId);
-  }
-
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['taskList'] || changes['open']) {
+    if (
+      changes['taskList']
+      || changes['open']
+      || changes['presetPropertyId']
+      || changes['presetReservationId']
+      || changes['presetMaintenanceRecordId']
+      || changes['presetTitle']
+    ) {
       this.patchForm();
     }
   }
@@ -180,6 +173,26 @@ export class TaskListFormModalComponent implements OnChanges {
     }
   }
 
+  selectedPropertyReservations(): TaskReservationOption[] {
+    const propertyId = this.form.controls.propertyId.value;
+
+    if (!propertyId) {
+      return this.reservations;
+    }
+
+    return this.reservations.filter((reservation) => reservation.propertyId === propertyId);
+  }
+
+  selectedPropertyMaintenanceRecords(): TaskMaintenanceRecordOption[] {
+    const propertyId = this.form.controls.propertyId.value;
+
+    if (!propertyId) {
+      return this.maintenanceRecords;
+    }
+
+    return this.maintenanceRecords.filter((record) => record.propertyId === propertyId);
+  }
+
   isInvalid(controlName: keyof typeof this.form.controls): boolean {
     const control = this.form.controls[controlName];
     return control.invalid && (control.touched || control.dirty);
@@ -201,14 +214,16 @@ export class TaskListFormModalComponent implements OnChanges {
   private patchForm(): void {
     if (!this.taskList) {
       this.form.reset({
-        propertyId: '',
-        reservationId: '',
-        maintenanceRecordId: '',
-        title: '',
+        propertyId: this.presetPropertyId ?? '',
+        reservationId: this.presetReservationId ?? '',
+        maintenanceRecordId: this.presetMaintenanceRecordId ?? '',
+        title: this.presetTitle ?? '',
         creationDate: this.today(),
         dueDate: '',
         status: 'OPEN'
       });
+
+      this.applyContextLock();
       this.items.set([]);
       this.cancelItemEdit();
       return;
@@ -224,6 +239,8 @@ export class TaskListFormModalComponent implements OnChanges {
       status: this.taskList.status === 'DELETED' ? 'CANCELLED' : this.taskList.status
     });
 
+    this.applyContextLock();
+
     this.items.set((this.taskList.items ?? [])
       .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
       .map((item) => ({
@@ -235,6 +252,19 @@ export class TaskListFormModalComponent implements OnChanges {
       })));
 
     this.cancelItemEdit();
+  }
+
+  private applyContextLock(): void {
+    if (this.lockContext) {
+      this.form.controls.propertyId.disable({ emitEvent: false });
+      this.form.controls.reservationId.disable({ emitEvent: false });
+      this.form.controls.maintenanceRecordId.disable({ emitEvent: false });
+      return;
+    }
+
+    this.form.controls.propertyId.enable({ emitEvent: false });
+    this.form.controls.reservationId.enable({ emitEvent: false });
+    this.form.controls.maintenanceRecordId.enable({ emitEvent: false });
   }
 
   private today(): string {
