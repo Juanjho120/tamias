@@ -7,12 +7,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
+@ConditionalOnProperty(prefix = "tamias.storage", name = "provider", havingValue = "local", matchIfMissing = true)
 public class LocalFileStorageService implements FileStorageService {
 
     private final Path rootPath;
@@ -43,6 +45,7 @@ public class LocalFileStorageService implements FileStorageService {
                     : "document";
 
             String storageKey = organizationId + "/" + UUID.randomUUID() + "_" + safeOriginalName;
+
             Path targetPath = rootPath.resolve(storageKey).normalize();
 
             if (!targetPath.startsWith(rootPath)) {

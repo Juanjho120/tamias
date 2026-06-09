@@ -41,6 +41,13 @@ spring:
       max-file-size: 8MB
       max-request-size: 8MB
 
+  storage:
+    provider: s3
+    s3:
+      bucket: ${AWS_S3_BUCKET}
+      region: ${AWS_REGION}
+      presigned-url-expiration-seconds: 300
+
 logging:
   level:
     org.hibernate.SQL: debug
