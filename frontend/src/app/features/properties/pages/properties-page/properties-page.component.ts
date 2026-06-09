@@ -17,7 +17,15 @@ type FormMode = 'create' | 'edit';
 @Component({
   selector: 'app-properties-page',
   standalone: true,
-  imports: [DatePipe, FormsModule, NgClass, TranslatePipe, PropertyFormComponent, PropertyImagesModalComponent, ConfirmModalComponent],
+  imports: [
+    DatePipe,
+    FormsModule,
+    NgClass,
+    TranslatePipe,
+    PropertyFormComponent,
+    PropertyImagesModalComponent,
+    ConfirmModalComponent
+  ],
   templateUrl: './properties-page.component.html'
 })
 export class PropertiesPageComponent implements OnInit {
@@ -34,6 +42,7 @@ export class PropertiesPageComponent implements OnInit {
   readonly selectedProperty = signal<Property | null>(null);
   readonly propertyToDelete = signal<PropertySummary | null>(null);
   readonly propertyForImages = signal<PropertySummary | null>(null);
+
   readonly formVisible = signal(false);
   readonly formMode = signal<FormMode>('create');
 
@@ -46,7 +55,11 @@ export class PropertiesPageComponent implements OnInit {
   readonly first = signal(true);
   readonly last = signal(true);
 
-  readonly formTitleKey = computed(() => this.formMode() === 'create' ? 'properties.form.createTitle' : 'properties.form.editTitle');
+  readonly formTitleKey = computed(() =>
+    this.formMode() === 'create'
+      ? 'properties.form.createTitle'
+      : 'properties.form.editTitle'
+  );
 
   readonly pageLabel = computed(() => {
     if (this.totalElements() === 0) {
@@ -88,11 +101,11 @@ export class PropertiesPageComponent implements OnInit {
       size: this.size(),
       sort: 'createdAt,desc'
     }).subscribe({
-      next: (response) => {
+      next: (response: PageResponse<PropertySummary>) => {
         this.applyPage(response);
         this.loading.set(false);
       },
-      error: (error) => {
+      error: (error: unknown) => {
         this.loading.set(false);
         this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('properties.messages.loadError')));
       }
@@ -145,13 +158,13 @@ export class PropertiesPageComponent implements OnInit {
     this.loading.set(true);
 
     this.propertyService.findById(propertyId).subscribe({
-      next: (property) => {
+      next: (property: Property) => {
         this.selectedProperty.set(property);
         this.formMode.set('edit');
         this.formVisible.set(true);
         this.loading.set(false);
       },
-      error: (error) => {
+      error: (error: unknown) => {
         this.loading.set(false);
         this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('properties.messages.detailError')));
       }
@@ -196,7 +209,7 @@ export class PropertiesPageComponent implements OnInit {
         this.closeForm();
         this.loadProperties();
       },
-      error: (error) => {
+      error: (error: unknown) => {
         this.saving.set(false);
         this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('properties.messages.saveError')));
       }
@@ -231,7 +244,7 @@ export class PropertiesPageComponent implements OnInit {
         this.toastService.success(this.languageService.instant('properties.messages.deleted'));
         this.loadProperties();
       },
-      error: (error) => {
+      error: (error: unknown) => {
         this.deletingId.set(null);
         this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('properties.messages.deleteError')));
       }

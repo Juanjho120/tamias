@@ -86,3 +86,21 @@ a {
   height: 72px;
   object-fit: cover;
 }
+
+.property-image-card-preview {
+  position: relative;
+  height: 220px;
+  overflow: hidden;
+}
+
+.property-image-card-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.property-image-upload-preview {
+  width: 96px;
+  height: 72px;
+  object-fit: cover;
+}
