@@ -1,0 +1,141 @@
+@if (open) {
+  <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title">
+              {{ (record ? 'maintenance.form.editTitle' : 'maintenance.form.createTitle') | translate }}
+            </h5>
+            <div class="small text-muted">{{ 'maintenance.form.subtitle' | translate }}</div>
+          </div>
+          <button type="button" class="btn-close" aria-label="Close" [disabled]="loading" (click)="cancel.emit()"></button>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-12 col-lg-6">
+                <label for="maintenance-property" class="form-label">{{ 'maintenance.form.property' | translate }}</label>
+                <select
+                  id="maintenance-property"
+                  class="form-select"
+                  [ngClass]="{ 'is-invalid': isInvalid('propertyId') }"
+                  formControlName="propertyId">
+                  <option value="">{{ 'maintenance.form.selectProperty' | translate }}</option>
+                  @for (property of properties; track property.id) {
+                    <option [value]="property.id">{{ property.name }}</option>
+                  }
+                </select>
+                @if (isInvalid('propertyId')) {
+                  <div class="invalid-feedback">{{ 'maintenance.validation.propertyRequired' | translate }}</div>
+                }
+              </div>
+
+              <div class="col-12 col-lg-6">
+                <label for="maintenance-status" class="form-label">{{ 'maintenance.form.status' | translate }}</label>
+                <select
+                  id="maintenance-status"
+                  class="form-select"
+                  [ngClass]="{ 'is-invalid': isInvalid('status') }"
+                  formControlName="status">
+                  @for (status of statuses; track status) {
+                    <option [value]="status">{{ 'maintenance.status.' + status | translate }}</option>
+                  }
+                </select>
+                @if (isInvalid('status')) {
+                  <div class="invalid-feedback">{{ 'maintenance.validation.statusRequired' | translate }}</div>
+                }
+              </div>
+
+              <div class="col-12 col-lg-6">
+                <label for="maintenance-category" class="form-label">{{ 'maintenance.form.category' | translate }}</label>
+                <select id="maintenance-category" class="form-select" formControlName="maintenanceCategoryId">
+                  <option value="">{{ 'maintenance.form.noCategory' | translate }}</option>
+                  @for (category of categories; track category.id) {
+                    <option [value]="category.id">{{ category.name }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="col-12 col-lg-6">
+                <label for="maintenance-type" class="form-label">{{ 'maintenance.form.type' | translate }}</label>
+                <select id="maintenance-type" class="form-select" formControlName="maintenanceTypeId">
+                  <option value="">{{ 'maintenance.form.noType' | translate }}</option>
+                  @for (type of types; track type.id) {
+                    <option [value]="type.id">{{ type.name }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="col-12 col-lg-6">
+                <label for="maintenance-person" class="form-label">{{ 'maintenance.form.person' | translate }}</label>
+                <select id="maintenance-person" class="form-select" formControlName="maintenancePersonId">
+                  <option value="">{{ 'maintenance.form.noPerson' | translate }}</option>
+                  @for (person of people; track person.id) {
+                    <option [value]="person.id">{{ person.fullName }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="col-12 col-lg-6">
+                <label for="maintenance-cost" class="form-label">{{ 'maintenance.form.cost' | translate }}</label>
+                <input
+                  id="maintenance-cost"
+                  type="number"
+                  class="form-control"
+                  min="0"
+                  step="0.01"
+                  formControlName="cost">
+              </div>
+
+              <div class="col-12">
+                <label for="maintenance-title" class="form-label">{{ 'maintenance.form.title' | translate }}</label>
+                <input
+                  id="maintenance-title"
+                  type="text"
+                  class="form-control"
+                  maxlength="150"
+                  [ngClass]="{ 'is-invalid': isInvalid('title') }"
+                  formControlName="title">
+                @if (isInvalid('title')) {
+                  <div class="invalid-feedback">{{ 'maintenance.validation.titleRequired' | translate }}</div>
+                }
+              </div>
+
+              <div class="col-12">
+                <label for="maintenance-description" class="form-label">{{ 'maintenance.form.description' | translate }}</label>
+                <textarea id="maintenance-description" class="form-control" rows="3" formControlName="description"></textarea>
+              </div>
+
+              <div class="col-12 col-lg-6">
+                <label for="maintenance-scheduled-at" class="form-label">{{ 'maintenance.form.scheduledAt' | translate }}</label>
+                <input id="maintenance-scheduled-at" type="datetime-local" class="form-control" formControlName="scheduledAt">
+              </div>
+
+              <div class="col-12 col-lg-6">
+                <label for="maintenance-performed-at" class="form-label">{{ 'maintenance.form.performedAt' | translate }}</label>
+                <input id="maintenance-performed-at" type="datetime-local" class="form-control" formControlName="performedAt">
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" [disabled]="loading" (click)="cancel.emit()">
+              {{ 'common.cancel' | translate }}
+            </button>
+            <button type="submit" class="btn btn-primary" [disabled]="loading">
+              @if (loading) {
+                <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+                {{ 'common.saving' | translate }}
+              } @else {
+                {{ 'maintenance.form.save' | translate }}
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}

@@ -3,11 +3,30 @@
     <h1 class="h3 mb-1">{{ 'maintenance.title' | translate }}</h1>
     <p class="text-muted mb-0">{{ 'maintenance.subtitle' | translate }}</p>
   </div>
+
+  <button type="button" class="btn btn-primary" [disabled]="loadingReferences()" (click)="openCreateForm()">
+    <i class="bi bi-plus-lg me-1"></i>
+    {{ 'maintenance.newRecord' | translate }}
+  </button>
 </div>
 
 <div class="card page-card mb-4">
   <div class="card-body p-4">
     <div class="row g-3 align-items-end">
+      <div class="col-12 col-md-6 col-lg-4">
+        <label for="maintenance-property-filter" class="form-label">{{ 'maintenance.filters.property' | translate }}</label>
+        <select
+          id="maintenance-property-filter"
+          class="form-select"
+          [ngModel]="propertyId()"
+          (ngModelChange)="propertyId.set($event)">
+          <option value="">{{ 'maintenance.filters.allProperties' | translate }}</option>
+          @for (property of references().properties; track property.id) {
+            <option [value]="property.id">{{ property.name }}</option>
+          }
+        </select>
+      </div>
+
       <div class="col-12 col-md-6 col-lg-4">
         <label for="maintenance-status-filter" class="form-label">{{ 'maintenance.filters.status' | translate }}</label>
         <select
@@ -22,7 +41,7 @@
         </select>
       </div>
 
-      <div class="col-12 col-md-6 col-lg-4 d-flex gap-2">
+      <div class="col-12 col-lg-4 d-flex gap-2">
         <button type="button" class="btn btn-primary" (click)="applyFilters()">
           <i class="bi bi-search me-1"></i>
           {{ 'common.search' | translate }}
@@ -48,7 +67,10 @@
           <i class="bi bi-tools fs-1"></i>
         </div>
         <h2 class="h5">{{ 'maintenance.empty.title' | translate }}</h2>
-        <p class="text-muted mb-0">{{ 'maintenance.empty.description' | translate }}</p>
+        <p class="text-muted mb-3">{{ 'maintenance.empty.description' | translate }}</p>
+        <button type="button" class="btn btn-primary" [disabled]="loadingReferences()" (click)="openCreateForm()">
+          {{ 'maintenance.newRecord' | translate }}
+        </button>
       </div>
     } @else {
       <div class="table-responsive">
@@ -59,6 +81,7 @@
             <th>{{ 'maintenance.table.property' | translate }}</th>
             <th>{{ 'maintenance.table.category' | translate }}</th>
             <th>{{ 'maintenance.table.type' | translate }}</th>
+            <th>{{ 'maintenance.table.scheduledAt' | translate }}</th>
             <th>{{ 'maintenance.table.performedAt' | translate }}</th>
             <th>{{ 'maintenance.table.cost' | translate }}</th>
             <th>{{ 'maintenance.table.status' | translate }}</th>
@@ -75,6 +98,7 @@
                 <td>{{ record.propertyName }}</td>
                 <td>{{ record.maintenanceCategoryName || '—' }}</td>
                 <td>{{ record.maintenanceTypeName || '—' }}</td>
+                <td>{{ record.scheduledAt ? (record.scheduledAt | date:'mediumDate') : '—' }}</td>
                 <td>{{ record.performedAt ? (record.performedAt | date:'mediumDate') : '—' }}</td>
                 <td>{{ record.cost !== null ? (record.cost | currency:'USD') : '—' }}</td>
                 <td>
@@ -83,10 +107,28 @@
                   </span>
                 </td>
                 <td class="text-end">
-                  <button type="button" class="btn btn-outline-secondary btn-sm" (click)="openImages(record)">
-                    <i class="bi bi-images me-1"></i>
-                    {{ 'maintenance.images.button' | translate }}
-                  </button>
+                  <div class="btn-group">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" (click)="openImages(record)">
+                      <i class="bi bi-images me-1"></i>
+                      {{ 'maintenance.images.button' | translate }}
+                    </button>
+                    <button type="button" class="btn btn-outline-primary btn-sm" (click)="openEditForm(record.id)">
+                      <i class="bi bi-pencil-square me-1"></i>
+                      {{ 'common.edit' | translate }}
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-outline-danger btn-sm"
+                      [disabled]="deletingId() === record.id"
+                      (click)="requestDelete(record)">
+                      @if (deletingId() === record.id) {
+                        <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+                      } @else {
+                        <i class="bi bi-trash me-1"></i>
+                      }
+                      {{ 'common.delete' | translate }}
+                    </button>
+                  </div>
                 </td>
               </tr>
             }
@@ -121,8 +163,30 @@
   </div>
 </div>
 
+<app-maintenance-record-form-modal
+  [open]="formVisible()"
+  [record]="selectedRecord()"
+  [properties]="references().properties"
+  [categories]="references().categories"
+  [types]="references().types"
+  [people]="references().people"
+  [loading]="saving()"
+  (save)="saveRecord($event)"
+  (cancel)="closeForm()" />
+
 <app-maintenance-images-modal
   [open]="!!selectedRecordForImages()"
   [maintenanceRecord]="selectedRecordForImages()"
   (close)="closeImages()"
   (imagesChanged)="loadRecords()" />
+
+<app-confirm-modal
+  [open]="!!recordToDelete()"
+  title="maintenance.confirmDeleteTitle"
+  [message]="deleteMessage()"
+  confirmText="common.delete"
+  cancelText="common.cancel"
+  confirmButtonClass="btn-danger"
+  [loading]="!!deletingId()"
+  (confirm)="confirmDelete()"
+  (cancel)="cancelDelete()" />

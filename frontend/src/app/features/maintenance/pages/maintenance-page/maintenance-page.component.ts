@@ -5,27 +5,65 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { LanguageService } from '../../../../core/i18n/language.service';
 import { ApiError } from '../../../../core/models/api-error.model';
 import { PageResponse } from '../../../../core/models/page-response.model';
+import { ConfirmModalComponent } from '../../../../shared/confirm-modal/confirm-modal.component';
 import { ToastService } from '../../../../shared/toast/toast.service';
 import { MaintenanceImagesModalComponent } from '../../components/maintenance-images-modal/maintenance-images-modal.component';
-import { MaintenanceRecordSummary, MaintenanceStatus, MAINTENANCE_STATUSES } from '../../models/maintenance-record.model';
+import { MaintenanceRecordFormModalComponent } from '../../components/maintenance-record-form-modal/maintenance-record-form-modal.component';
+import {
+  MaintenanceRecord,
+  MaintenanceRecordRequest,
+  MaintenanceRecordSummary,
+  MaintenanceStatus,
+  MAINTENANCE_STATUSES
+} from '../../models/maintenance-record.model';
+import { MaintenanceReferenceData, MaintenanceReferenceDataService } from '../../services/maintenance-reference-data.service';
 import { MaintenanceRecordService } from '../../services/maintenance-record.service';
+
+type FormMode = 'create' | 'edit';
 
 @Component({
   selector: 'app-maintenance-page',
   standalone: true,
-  imports: [CurrencyPipe, DatePipe, FormsModule, NgClass, TranslatePipe, MaintenanceImagesModalComponent],
+  imports: [
+    CurrencyPipe,
+    DatePipe,
+    FormsModule,
+    NgClass,
+    TranslatePipe,
+    ConfirmModalComponent,
+    MaintenanceImagesModalComponent,
+    MaintenanceRecordFormModalComponent
+  ],
   templateUrl: './maintenance-page.component.html'
 })
 export class MaintenancePageComponent implements OnInit {
   private readonly toastService = inject(ToastService);
   private readonly languageService = inject(LanguageService);
+  private readonly referenceDataService = inject(MaintenanceReferenceDataService);
 
   readonly statuses = MAINTENANCE_STATUSES;
 
   readonly loading = signal(false);
-  readonly records = signal<MaintenanceRecordSummary[]>([]);
-  readonly selectedRecordForImages = signal<MaintenanceRecordSummary | null>(null);
+  readonly saving = signal(false);
+  readonly deletingId = signal<string | null>(null);
+  readonly loadingReferences = signal(false);
 
+  readonly records = signal<MaintenanceRecordSummary[]>([]);
+  readonly selectedRecord = signal<MaintenanceRecord | null>(null);
+  readonly selectedRecordForImages = signal<MaintenanceRecordSummary | null>(null);
+  readonly recordToDelete = signal<MaintenanceRecordSummary | null>(null);
+
+  readonly references = signal<MaintenanceReferenceData>({
+    properties: [],
+    categories: [],
+    types: [],
+    people: []
+  });
+
+  readonly formVisible = signal(false);
+  readonly formMode = signal<FormMode>('create');
+
+  readonly propertyId = signal('');
   readonly status = signal<MaintenanceStatus | ''>('');
   readonly page = signal(0);
   readonly size = signal(10);
@@ -45,17 +83,46 @@ export class MaintenancePageComponent implements OnInit {
     });
   });
 
+  readonly deleteMessage = computed(() => {
+    const record = this.recordToDelete();
+
+    if (!record) {
+      return '';
+    }
+
+    return this.languageService.instant('maintenance.confirmDeleteMessage', {
+      title: record.title
+    });
+  });
+
   constructor(private readonly maintenanceRecordService: MaintenanceRecordService) {
   }
 
   ngOnInit(): void {
+    this.loadReferences();
     this.loadRecords();
+  }
+
+  loadReferences(): void {
+    this.loadingReferences.set(true);
+
+    this.referenceDataService.loadAll().subscribe({
+      next: (references) => {
+        this.references.set(references);
+        this.loadingReferences.set(false);
+      },
+      error: (error: unknown) => {
+        this.loadingReferences.set(false);
+        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('maintenance.messages.referencesError')));
+      }
+    });
   }
 
   loadRecords(): void {
     this.loading.set(true);
 
     this.maintenanceRecordService.findAll({
+      propertyId: this.propertyId() || undefined,
       status: this.status(),
       page: this.page(),
       size: this.size(),
@@ -84,6 +151,7 @@ export class MaintenancePageComponent implements OnInit {
   }
 
   clearFilters(): void {
+    this.propertyId.set('');
     this.status.set('');
     this.page.set(0);
     this.loadRecords();
@@ -111,6 +179,101 @@ export class MaintenancePageComponent implements OnInit {
     this.size.set(Number(value));
     this.page.set(0);
     this.loadRecords();
+  }
+
+  openCreateForm(): void {
+    this.formMode.set('create');
+    this.selectedRecord.set(null);
+    this.formVisible.set(true);
+  }
+
+  openEditForm(recordId: string): void {
+    this.loading.set(true);
+
+    this.maintenanceRecordService.findById(recordId).subscribe({
+      next: (record: MaintenanceRecord) => {
+        this.selectedRecord.set(record);
+        this.formMode.set('edit');
+        this.formVisible.set(true);
+        this.loading.set(false);
+      },
+      error: (error: unknown) => {
+        this.loading.set(false);
+        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('maintenance.messages.detailError')));
+      }
+    });
+  }
+
+  closeForm(): void {
+    if (this.saving()) {
+      return;
+    }
+
+    this.formVisible.set(false);
+    this.selectedRecord.set(null);
+    this.formMode.set('create');
+  }
+
+  saveRecord(request: MaintenanceRecordRequest): void {
+    const selectedRecord = this.selectedRecord();
+
+    this.saving.set(true);
+
+    const saveRequest = this.formMode() === 'edit' && selectedRecord
+      ? this.maintenanceRecordService.update(selectedRecord.id, request)
+      : this.maintenanceRecordService.create(request);
+
+    saveRequest.subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.toastService.success(
+          this.formMode() === 'edit'
+            ? this.languageService.instant('maintenance.messages.updated')
+            : this.languageService.instant('maintenance.messages.created')
+        );
+        this.closeForm();
+        this.loadRecords();
+      },
+      error: (error: unknown) => {
+        this.saving.set(false);
+        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('maintenance.messages.saveError')));
+      }
+    });
+  }
+
+  requestDelete(record: MaintenanceRecordSummary): void {
+    this.recordToDelete.set(record);
+  }
+
+  cancelDelete(): void {
+    if (this.deletingId()) {
+      return;
+    }
+
+    this.recordToDelete.set(null);
+  }
+
+  confirmDelete(): void {
+    const record = this.recordToDelete();
+
+    if (!record) {
+      return;
+    }
+
+    this.deletingId.set(record.id);
+
+    this.maintenanceRecordService.delete(record.id).subscribe({
+      next: () => {
+        this.deletingId.set(null);
+        this.recordToDelete.set(null);
+        this.toastService.success(this.languageService.instant('maintenance.messages.deleted'));
+        this.loadRecords();
+      },
+      error: (error: unknown) => {
+        this.deletingId.set(null);
+        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('maintenance.messages.deleteError')));
+      }
+    });
   }
 
   openImages(record: MaintenanceRecordSummary): void {

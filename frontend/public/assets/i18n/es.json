@@ -172,9 +172,14 @@
   },
   "maintenance": {
     "title": "Mantenimiento",
-    "subtitle": "Revisa registros de mantenimiento y administra imágenes de evidencia.",
+    "subtitle": "Crea, actualiza y revisa registros de mantenimiento e imágenes de evidencia.",
+    "newRecord": "Nuevo mantenimiento",
     "loading": "Cargando registros de mantenimiento...",
+    "confirmDeleteTitle": "Eliminar registro de mantenimiento",
+    "confirmDeleteMessage": "¿Eliminar el registro de mantenimiento \"{{title}}\"? Esta acción lo marcará como eliminado.",
     "filters": {
+      "property": "Propiedad",
+      "allProperties": "Todas las propiedades",
       "status": "Estado",
       "allStatuses": "Todos los estados"
     },
@@ -183,6 +188,7 @@
       "property": "Propiedad",
       "category": "Categoría",
       "type": "Tipo",
+      "scheduledAt": "Programado",
       "performedAt": "Realizado",
       "cost": "Costo",
       "status": "Estado",
@@ -190,14 +196,21 @@
     },
     "empty": {
       "title": "No se encontraron registros de mantenimiento",
-      "description": "Los registros de mantenimiento aparecerán aquí cuando sean creados."
+      "description": "Crea tu primer registro de mantenimiento para continuar."
     },
     "pagination": {
       "noRecords": "Sin registros",
       "pageOf": "Página {{page}} de {{totalPages}}"
     },
     "messages": {
-      "loadError": "No se pudieron cargar los registros de mantenimiento."
+      "loadError": "No se pudieron cargar los registros de mantenimiento.",
+      "referencesError": "No se pudo cargar la información de referencia.",
+      "detailError": "No se pudo cargar el detalle del mantenimiento.",
+      "saveError": "No se pudo guardar el registro de mantenimiento.",
+      "deleteError": "No se pudo eliminar el registro de mantenimiento.",
+      "created": "Registro de mantenimiento creado correctamente.",
+      "updated": "Registro de mantenimiento actualizado correctamente.",
+      "deleted": "Registro de mantenimiento eliminado correctamente."
     },
     "status": {
       "PENDING": "Pendiente",
@@ -205,6 +218,31 @@
       "COMPLETED": "Completado",
       "CANCELLED": "Cancelado",
       "DELETED": "Eliminado"
+    },
+    "form": {
+      "createTitle": "Crear registro de mantenimiento",
+      "editTitle": "Editar registro de mantenimiento",
+      "subtitle": "Completa la información del mantenimiento.",
+      "property": "Propiedad",
+      "selectProperty": "Selecciona una propiedad",
+      "category": "Categoría",
+      "noCategory": "Sin categoría",
+      "type": "Tipo",
+      "noType": "Sin tipo",
+      "person": "Persona",
+      "noPerson": "Sin persona",
+      "status": "Estado",
+      "title": "Título",
+      "description": "Descripción",
+      "scheduledAt": "Programado para",
+      "performedAt": "Realizado el",
+      "cost": "Costo",
+      "save": "Guardar mantenimiento"
+    },
+    "validation": {
+      "propertyRequired": "La propiedad es requerida.",
+      "titleRequired": "El título es requerido y no debe exceder 150 caracteres.",
+      "statusRequired": "El estado es requerido."
     },
     "images": {
       "button": "Imágenes",

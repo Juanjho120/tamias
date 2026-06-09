@@ -172,9 +172,14 @@
   },
   "maintenance": {
     "title": "Maintenance",
-    "subtitle": "Review maintenance records and manage maintenance evidence images.",
+    "subtitle": "Create, update and review maintenance records and evidence images.",
+    "newRecord": "New maintenance record",
     "loading": "Loading maintenance records...",
+    "confirmDeleteTitle": "Delete maintenance record",
+    "confirmDeleteMessage": "Delete maintenance record \"{{title}}\"? This action will mark it as deleted.",
     "filters": {
+      "property": "Property",
+      "allProperties": "All properties",
       "status": "Status",
       "allStatuses": "All statuses"
     },
@@ -183,21 +188,29 @@
       "property": "Property",
       "category": "Category",
       "type": "Type",
-      "performedAt": "Performed at",
+      "scheduledAt": "Scheduled",
+      "performedAt": "Performed",
       "cost": "Cost",
       "status": "Status",
       "actions": "Actions"
     },
     "empty": {
       "title": "No maintenance records found",
-      "description": "Maintenance records will appear here once they are created."
+      "description": "Create your first maintenance record to continue."
     },
     "pagination": {
       "noRecords": "No records",
       "pageOf": "Page {{page}} of {{totalPages}}"
     },
     "messages": {
-      "loadError": "Unable to load maintenance records."
+      "loadError": "Unable to load maintenance records.",
+      "referencesError": "Unable to load maintenance reference data.",
+      "detailError": "Unable to load maintenance record details.",
+      "saveError": "Unable to save maintenance record.",
+      "deleteError": "Unable to delete maintenance record.",
+      "created": "Maintenance record created successfully.",
+      "updated": "Maintenance record updated successfully.",
+      "deleted": "Maintenance record deleted successfully."
     },
     "status": {
       "PENDING": "Pending",
@@ -205,6 +218,31 @@
       "COMPLETED": "Completed",
       "CANCELLED": "Cancelled",
       "DELETED": "Deleted"
+    },
+    "form": {
+      "createTitle": "Create maintenance record",
+      "editTitle": "Edit maintenance record",
+      "subtitle": "Fill in the maintenance information.",
+      "property": "Property",
+      "selectProperty": "Select a property",
+      "category": "Category",
+      "noCategory": "No category",
+      "type": "Type",
+      "noType": "No type",
+      "person": "Person",
+      "noPerson": "No person",
+      "status": "Status",
+      "title": "Title",
+      "description": "Description",
+      "scheduledAt": "Scheduled at",
+      "performedAt": "Performed at",
+      "cost": "Cost",
+      "save": "Save maintenance record"
+    },
+    "validation": {
+      "propertyRequired": "Property is required.",
+      "titleRequired": "Title is required and must not exceed 150 characters.",
+      "statusRequired": "Status is required."
     },
     "images": {
       "button": "Images",
