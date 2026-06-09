@@ -168,7 +168,7 @@
         "status": "Status",
         "dates": "Dates"
       },
-      "weekDays": {
+      "weekdays": {
         "sun": "Sun",
         "mon": "Mon",
         "tue": "Tue",
