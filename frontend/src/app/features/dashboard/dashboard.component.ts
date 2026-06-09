@@ -299,6 +299,10 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
     return `${segment.gridColumnStart} / ${segment.gridColumnEnd}`;
   }
 
+  calendarSegmentGridRow(segment: DashboardReservationCalendarSegment): string {
+    return `${segment.lane + 1}`;
+  }
+
   calendarRowMinHeightRem(row: DashboardCalendarRow): number {
     return 4.4 + Math.max(1, row.maxLanes) * 1.7;
   }
@@ -404,11 +408,16 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
 
     const overlappingReservations = reservations
       .map((reservation) => {
-        const segmentStart = reservation.checkIn > rowStart ? reservation.checkIn : rowStart;
-        const segmentEnd = reservation.checkOut < rowEnd ? reservation.checkOut : rowEnd;
+        const checkIn = this.normalizeApiDate(reservation.checkIn);
+        const checkOut = this.normalizeApiDate(reservation.checkOut);
+
+        const segmentStart = checkIn > rowStart ? checkIn : rowStart;
+        const segmentEnd = checkOut < rowEnd ? checkOut : rowEnd;
 
         return {
           reservation,
+          checkIn,
+          checkOut,
           segmentStart,
           segmentEnd
         };
@@ -425,16 +434,33 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
       });
 
     const laneEndIndexes: number[] = [];
+    const segments: DashboardReservationCalendarSegment[] = [];
 
-    return overlappingReservations.map((item) => {
+    for (const item of overlappingReservations) {
       const startIndex = days.findIndex((day) => day.date === item.segmentStart);
       const endIndex = days.findIndex((day) => day.date === item.segmentEnd);
-      const lane = this.findAvailableLane(laneEndIndexes, startIndex);
 
+      // Safety guard: never allow grid line 0 or invalid CSS grid placement.
+      if (startIndex < 0 || endIndex < 0) {
+        continue;
+      }
+
+      const lane = this.findAvailableLane(laneEndIndexes, startIndex);
       laneEndIndexes[lane] = endIndex;
 
-      return this.toCalendarSegment(item.reservation, item.segmentStart, item.segmentEnd, startIndex, endIndex, lane);
-    });
+      segments.push(this.toCalendarSegment(
+        item.reservation,
+        item.checkIn,
+        item.checkOut,
+        item.segmentStart,
+        item.segmentEnd,
+        startIndex,
+        endIndex,
+        lane
+      ));
+    }
+
+    return segments;
   }
 
   private findAvailableLane(laneEndIndexes: number[], startIndex: number): number {
@@ -449,6 +475,8 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
 
   private toCalendarSegment(
     reservation: DashboardReservationDetail,
+    checkIn: string,
+    checkOut: string,
     segmentStart: string,
     segmentEnd: string,
     startIndex: number,
@@ -467,17 +495,17 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
       propertyCoverImageUrl: reservation.propertyCoverImageUrl ?? null,
       platformName: reservation.platformName,
       reservationCode: reservation.reservationCode,
-      checkIn: reservation.checkIn,
-      checkOut: reservation.checkOut,
+      checkIn,
+      checkOut,
       guestNames: guests.map((guest) => guest.fullName).filter((name): name is string => !!name),
       primaryGuestName: primaryGuest?.fullName ?? this.languageService.instant('dashboard.calendar.noGuest'),
       guestCount: guests.length,
       invoiceStatus,
       status: reservation.status,
-      rangeStartsHere: reservation.checkIn === segmentStart,
-      rangeEndsHere: reservation.checkOut === segmentEnd,
-      startsAtCheckIn: reservation.checkIn === segmentStart,
-      endsAtCheckOut: reservation.checkOut === segmentEnd,
+      rangeStartsHere: checkIn === segmentStart,
+      rangeEndsHere: checkOut === segmentEnd,
+      startsAtCheckIn: checkIn === segmentStart,
+      endsAtCheckOut: checkOut === segmentEnd,
       gridColumnStart: startIndex + 1,
       gridColumnEnd: endIndex + 2,
       lane,
@@ -503,12 +531,6 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
     gridEnd.setDate(lastDayOfMonth.getDate() + (6 - lastDayOfMonth.getDay()) + 1);
 
     return this.toLocalDateString(gridEnd);
-  }
-
-  private previousDateString(date: string): string {
-    const value = new Date(`${date}T00:00:00`);
-    value.setDate(value.getDate() - 1);
-    return this.toLocalDateString(value);
   }
 
   private toLocalDateString(date: Date): string {
@@ -562,5 +584,9 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
 
   private calendarLocale(): string {
     return this.languageService.currentLanguage() === 'es' ? 'es-GT' : 'en-US';
+  }
+
+  private normalizeApiDate(value: string): string {
+    return value.slice(0, 10);
   }
 }
