@@ -14,10 +14,19 @@ export interface DashboardPropertySummary {
   address: string | null;
 }
 
+export interface DashboardReservationGuest {
+  id: string;
+  guestId: string | null;
+  fullName: string | null;
+  phone: string | null;
+  primary: boolean | null;
+}
+
 export interface DashboardReservationSummary {
   id: string;
   propertyId: string;
   propertyName: string;
+  platformId: string | null;
   platformName: string | null;
   reservationCode: string | null;
   checkIn: string;
@@ -26,6 +35,26 @@ export interface DashboardReservationSummary {
   reservationValue: number | null;
   status: string;
   createdAt: string;
+}
+
+export interface DashboardReservationDetail {
+  id: string;
+  propertyId: string;
+  propertyName: string;
+  platformId: string | null;
+  platformName: string | null;
+  reservationCode: string | null;
+  checkIn: string;
+  checkOut: string;
+  suppliesDelivered: boolean | null;
+  observations: string | null;
+  reservationValue: number | null;
+  invoiceNumber: string | null;
+  invoiceSeries: string | null;
+  guests: DashboardReservationGuest[];
+  status: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface DashboardMaintenanceRecordSummary {
@@ -104,4 +133,30 @@ export interface DashboardData {
   openTasks: DashboardTaskListSummary[];
   openPurchases: DashboardPurchaseListSummary[];
   documentAlerts: DashboardDocumentSummary[];
+}
+
+export interface DashboardCalendarDay {
+  date: string;
+  dayNumber: number;
+  currentMonth: boolean;
+  today: boolean;
+  events: DashboardReservationCalendarEvent[];
+}
+
+export interface DashboardReservationCalendarEvent {
+  id: string;
+  propertyId: string;
+  propertyName: string;
+  platformName: string | null;
+  reservationCode: string | null;
+  checkIn: string;
+  checkOut: string;
+  guestNames: string[];
+  primaryGuestName: string;
+  guestCount: number;
+  invoiceStatus: 'INVOICED' | 'NOT_INVOICED';
+  status: string;
+  startsOnDate: boolean;
+  endsOnDate: boolean;
+  tooltip: string;
 }

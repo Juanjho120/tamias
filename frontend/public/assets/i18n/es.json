@@ -148,6 +148,39 @@
     },
     "messages": {
       "loadError": "No se pudo cargar la información del dashboard."
+    },
+    "calendar": {
+      "title": "Calendario de reservaciones",
+      "subtitle": "Vista mensual de reservaciones por fechas de estadía.",
+      "tooltipHelp": "Coloca el cursor sobre una barra para ver detalles.",
+      "invoiced": "FACTURADO",
+      "notInvoiced": "SIN FACTURAR",
+      "noGuest": "Sin huésped",
+      "messages": {
+        "loadError": "No se pudo cargar el calendario de reservaciones."
+      },
+      "tooltip": {
+        "guest": "Huésped principal",
+        "guestCount": "Total de huéspedes",
+        "code": "Código de reservación",
+        "platform": "Plataforma",
+        "invoice": "Factura",
+        "status": "Estado",
+        "dates": "Fechas"
+      },
+      "weekDays": {
+        "sun": "Dom",
+        "mon": "Lun",
+        "tue": "Mar",
+        "wed": "Mié",
+        "thu": "Jue",
+        "fri": "Vie",
+        "sat": "Sáb"
+      },
+      "note": {
+        "title": "Comportamiento del calendario",
+        "description": "El check-out se trata como fecha exclusiva, por eso la barra se muestra hasta la noche anterior al check-out."
+      }
     }
   },
   "properties": {

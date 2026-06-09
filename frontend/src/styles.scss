@@ -275,3 +275,153 @@ a {
     border-radius: var(--bs-border-radius-sm) !important;
   }
 }
+
+.reservation-calendar {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.reservation-calendar-weekdays,
+.reservation-calendar-grid {
+  min-width: 900px;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.reservation-calendar-weekday {
+  padding: 0.75rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--bs-secondary-color);
+  border-bottom: 1px solid var(--bs-border-color);
+  background: var(--bs-light);
+  text-align: center;
+}
+
+.reservation-calendar-day {
+  min-height: 8.25rem;
+  border-right: 1px solid var(--bs-border-color);
+  border-bottom: 1px solid var(--bs-border-color);
+  padding: 0.4rem;
+  background: var(--bs-white);
+  position: relative;
+}
+
+.reservation-calendar-day:nth-child(7n) {
+  border-right: 0;
+}
+
+.reservation-calendar-day-muted {
+  background: var(--bs-tertiary-bg);
+  color: var(--bs-secondary-color);
+}
+
+.reservation-calendar-day-today {
+  outline: 2px solid var(--bs-primary);
+  outline-offset: -2px;
+}
+
+.reservation-calendar-day-number {
+  width: 1.8rem;
+  height: 1.8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.reservation-calendar-day-today .reservation-calendar-day-number {
+  background: var(--bs-primary);
+  color: var(--bs-white);
+}
+
+.reservation-calendar-events {
+  margin-top: 0.25rem;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.reservation-calendar-event {
+  height: 1.4rem;
+  line-height: 1.4rem;
+  padding: 0 0.45rem;
+  color: var(--bs-white);
+  font-size: 0.75rem;
+  font-weight: 600;
+  overflow: hidden;
+  cursor: help;
+  box-shadow: 0 0.2rem 0.5rem rgba(15, 23, 42, 0.12);
+}
+
+.reservation-calendar-event-label {
+  display: block;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.calendar-event-single {
+  border-radius: 999px;
+}
+
+.calendar-event-start {
+  border-radius: 999px 0 0 999px;
+}
+
+.calendar-event-middle {
+  border-radius: 0;
+  margin-left: -0.4rem;
+  margin-right: -0.4rem;
+}
+
+.calendar-event-end {
+  border-radius: 0 999px 999px 0;
+  margin-left: -0.4rem;
+}
+
+.calendar-event-active,
+.reservation-calendar-legend-active {
+  color: #25c206;
+}
+
+.calendar-event-active {
+  background: #25c206;
+  color: #fff;
+}
+
+.calendar-event-cancelled,
+.reservation-calendar-legend-cancelled {
+  color: #f70404;
+}
+
+.calendar-event-cancelled {
+  background: #f70404;
+  color: #fff;
+}
+
+.calendar-event-deleted,
+.reservation-calendar-legend-deleted {
+  color: #756365;
+}
+
+.calendar-event-deleted {
+  background: #756365;
+  color: #fff;
+}
+
+.calendar-event-default {
+  background: #6c757d;
+  color: #fff;
+}
+
+.calendar-month-label {
+  min-width: 12rem;
+}
+
+@media (max-width: 991.98px) {
+  .reservation-calendar-day {
+    min-height: 7.5rem;
+  }
+}

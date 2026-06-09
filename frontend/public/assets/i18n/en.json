@@ -148,6 +148,39 @@
     },
     "messages": {
       "loadError": "Unable to load dashboard data."
+    },
+    "calendar": {
+      "title": "Reservation calendar",
+      "subtitle": "Monthly view of reservations by stay date.",
+      "tooltipHelp": "Hover over a reservation bar to see details.",
+      "invoiced": "INVOICED",
+      "notInvoiced": "NOT INVOICED",
+      "noGuest": "No guest",
+      "messages": {
+        "loadError": "Unable to load reservation calendar."
+      },
+      "tooltip": {
+        "guest": "Primary guest",
+        "guestCount": "Total guests",
+        "code": "Reservation code",
+        "platform": "Platform",
+        "invoice": "Invoice",
+        "status": "Status",
+        "dates": "Dates"
+      },
+      "weekDays": {
+        "sun": "Sun",
+        "mon": "Mon",
+        "tue": "Tue",
+        "wed": "Wed",
+        "thu": "Thu",
+        "fri": "Fri",
+        "sat": "Sat"
+      },
+      "note": {
+        "title": "Calendar behavior",
+        "description": "Check-out is treated as an exclusive date, so the bar is shown until the night before check-out."
+      }
     }
   },
   "properties": {
