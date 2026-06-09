@@ -12,7 +12,7 @@ import {
   signal
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Tooltip } from 'bootstrap';
+import Tooltip from 'bootstrap/js/dist/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 import { LanguageService } from '../../core/i18n/language.service';
 import { ApiError } from '../../core/models/api-error.model';
