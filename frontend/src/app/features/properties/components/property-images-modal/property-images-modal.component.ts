@@ -13,7 +13,7 @@ import { PropertyImageService } from '../../services/property-image.service';
 @Component({
   selector: 'app-property-images-modal',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, FormsModule, NgClass, TranslatePipe, ConfirmModalComponent],
+  imports: [DatePipe, DecimalPipe, FormsModule, TranslatePipe, ConfirmModalComponent],
   templateUrl: './property-images-modal.component.html'
 })
 export class PropertyImagesModalComponent implements OnChanges {
