@@ -1,0 +1,255 @@
+@if (open) {
+  <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title">{{ 'maintenance.details.title' | translate }}</h5>
+            <div class="small text-muted">
+              {{ maintenanceRecord?.title }} · {{ maintenanceRecord?.propertyName }}
+            </div>
+          </div>
+          <button
+            type="button"
+            class="btn-close"
+            aria-label="Close"
+            [disabled]="loading() || addingPerson() || savingMaterial() || deleting()"
+            (click)="requestClose()">
+          </button>
+        </div>
+
+        <div class="modal-body">
+          @if (loading()) {
+            <div class="p-5 text-center">
+              <div class="spinner-border text-primary" role="status"></div>
+              <div class="text-muted mt-3">{{ 'maintenance.details.loading' | translate }}</div>
+            </div>
+          } @else {
+            <div class="row g-4">
+              <div class="col-12 col-xl-5">
+                <div class="card border-0 bg-light h-100">
+                  <div class="card-body">
+                    <h6 class="mb-3">{{ 'maintenance.details.people.title' | translate }}</h6>
+
+                    <form [formGroup]="personForm" class="row g-2 align-items-end mb-3" (ngSubmit)="addPerson()">
+                      <div class="col-12 col-lg-8">
+                        <label for="maintenance-detail-person" class="form-label">
+                          {{ 'maintenance.details.people.person' | translate }}
+                        </label>
+                        <select
+                          id="maintenance-detail-person"
+                          class="form-select"
+                          formControlName="maintenancePersonId">
+                          <option value="">{{ 'maintenance.details.people.selectPerson' | translate }}</option>
+                          @for (person of availablePeople(); track person.id) {
+                            <option [value]="person.id">{{ person.fullName }}</option>
+                          }
+                        </select>
+                      </div>
+
+                      <div class="col-12 col-lg-4">
+                        <button type="submit" class="btn btn-primary w-100" [disabled]="addingPerson() || availablePeople().length === 0">
+                          @if (addingPerson()) {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                          } @else {
+                            <i class="bi bi-plus-lg me-1"></i>
+                          }
+                          {{ 'maintenance.details.people.add' | translate }}
+                        </button>
+                      </div>
+                    </form>
+
+                    @if (people().length === 0) {
+                      <div class="text-muted small border rounded-3 p-3 bg-white">
+                        {{ 'maintenance.details.people.empty' | translate }}
+                      </div>
+                    } @else {
+                      <div class="list-group">
+                        @for (person of people(); track trackById($index, person)) {
+                          <div class="list-group-item d-flex justify-content-between align-items-start gap-3">
+                            <div>
+                              <div class="fw-semibold">{{ person.fullName }}</div>
+                              <div class="small text-muted">
+                                {{ person.phone || '—' }} · {{ person.email || '—' }}
+                              </div>
+                              @if (person.notes) {
+                                <div class="small text-muted">{{ person.notes }}</div>
+                              }
+                            </div>
+                            <button
+                              type="button"
+                              class="btn btn-outline-danger btn-sm"
+                              [disabled]="deleting()"
+                              (click)="requestRemovePerson(person)">
+                              <i class="bi bi-trash"></i>
+                            </button>
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-12 col-xl-7">
+                <div class="card border-0 bg-light h-100">
+                  <div class="card-body">
+                    <h6 class="mb-3">{{ 'maintenance.details.materials.title' | translate }}</h6>
+
+                    <form [formGroup]="materialForm" class="mb-3" (ngSubmit)="saveMaterial()">
+                      <div class="row g-2">
+                        <div class="col-12 col-lg-6">
+                          <label for="maintenance-detail-material" class="form-label">
+                            {{ 'maintenance.details.materials.material' | translate }}
+                          </label>
+                          <select
+                            id="maintenance-detail-material"
+                            class="form-select"
+                            formControlName="materialId"
+                            (ngModelChange)="onMaterialSelected($event)">
+                            <option value="">{{ 'maintenance.details.materials.noCatalogMaterial' | translate }}</option>
+                            @for (material of materialOptions; track material.id) {
+                              <option [value]="material.id">{{ material.name }}</option>
+                            }
+                          </select>
+                        </div>
+
+                        <div class="col-12 col-lg-6">
+                          <label for="maintenance-detail-material-name" class="form-label">
+                            {{ 'maintenance.details.materials.manualName' | translate }}
+                          </label>
+                          <input
+                            id="maintenance-detail-material-name"
+                            type="text"
+                            class="form-control"
+                            maxlength="150"
+                            formControlName="materialNameSnapshot">
+                        </div>
+
+                        <div class="col-12 col-lg-4">
+                          <label for="maintenance-detail-material-quantity" class="form-label">
+                            {{ 'maintenance.details.materials.quantity' | translate }}
+                          </label>
+                          <input
+                            id="maintenance-detail-material-quantity"
+                            type="number"
+                            class="form-control"
+                            min="0.01"
+                            step="0.01"
+                            formControlName="quantity">
+                        </div>
+
+                        <div class="col-12 col-lg-4">
+                          <label for="maintenance-detail-material-unit" class="form-label">
+                            {{ 'maintenance.details.materials.unit' | translate }}
+                          </label>
+                          <input
+                            id="maintenance-detail-material-unit"
+                            type="text"
+                            class="form-control"
+                            maxlength="50"
+                            formControlName="unit">
+                        </div>
+
+                        <div class="col-12 col-lg-4 d-flex align-items-end gap-2">
+                          <button type="submit" class="btn btn-primary flex-fill" [disabled]="savingMaterial()">
+                            @if (savingMaterial()) {
+                              <span class="spinner-border spinner-border-sm me-1"></span>
+                            } @else {
+                              <i class="bi bi-check-lg me-1"></i>
+                            }
+                            {{ (editingMaterial() ? 'maintenance.details.materials.update' : 'maintenance.details.materials.add') | translate }}
+                          </button>
+
+                          @if (editingMaterial()) {
+                            <button type="button" class="btn btn-outline-secondary" [disabled]="savingMaterial()" (click)="cancelEditMaterial()">
+                              {{ 'common.cancel' | translate }}
+                            </button>
+                          }
+                        </div>
+
+                        <div class="col-12">
+                          <label for="maintenance-detail-material-notes" class="form-label">
+                            {{ 'maintenance.details.materials.notes' | translate }}
+                          </label>
+                          <textarea
+                            id="maintenance-detail-material-notes"
+                            class="form-control"
+                            rows="2"
+                            formControlName="notes">
+                          </textarea>
+                        </div>
+                      </div>
+                    </form>
+
+                    @if (materials().length === 0) {
+                      <div class="text-muted small border rounded-3 p-3 bg-white">
+                        {{ 'maintenance.details.materials.empty' | translate }}
+                      </div>
+                    } @else {
+                      <div class="table-responsive bg-white rounded-3 border">
+                        <table class="table table-hover align-middle mb-0">
+                          <thead class="table-light">
+                          <tr>
+                            <th>{{ 'maintenance.details.materials.material' | translate }}</th>
+                            <th>{{ 'maintenance.details.materials.quantity' | translate }}</th>
+                            <th>{{ 'maintenance.details.materials.unit' | translate }}</th>
+                            <th>{{ 'maintenance.details.materials.notes' | translate }}</th>
+                            <th class="text-end">{{ 'maintenance.table.actions' | translate }}</th>
+                          </tr>
+                          </thead>
+                          <tbody>
+                            @for (material of materials(); track trackById($index, material)) {
+                              <tr>
+                                <td class="fw-semibold">{{ materialDisplayName(material) }}</td>
+                                <td>{{ material.quantity ?? '—' }}</td>
+                                <td>{{ material.unit || '—' }}</td>
+                                <td>{{ material.notes || '—' }}</td>
+                                <td class="text-end">
+                                  <div class="btn-group">
+                                    <button type="button" class="btn btn-outline-primary btn-sm" [disabled]="savingMaterial() || deleting()" (click)="editMaterial(material)">
+                                      <i class="bi bi-pencil-square"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger btn-sm" [disabled]="savingMaterial() || deleting()" (click)="requestRemoveMaterial(material)">
+                                      <i class="bi bi-trash"></i>
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            [disabled]="loading() || addingPerson() || savingMaterial() || deleting()"
+            (click)="requestClose()">
+            {{ 'common.close' | translate }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}
+
+<app-confirm-modal
+  [open]="!!deleteTarget()"
+  title="maintenance.details.confirmDeleteTitle"
+  [message]="deleteMessage()"
+  confirmText="common.delete"
+  cancelText="common.cancel"
+  confirmButtonClass="btn-danger"
+  [loading]="deleting()"
+  (confirm)="confirmDelete()"
+  (cancel)="cancelDelete()" />

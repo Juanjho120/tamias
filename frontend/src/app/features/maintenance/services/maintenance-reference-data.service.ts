@@ -3,13 +3,19 @@ import { forkJoin, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { PageResponse } from '../../../core/models/page-response.model';
 import { ApiService } from '../../../core/services/api.service';
-import { MaintenancePersonOption, MaintenanceReferenceOption, PropertyOption } from '../models/maintenance-reference.model';
+import {
+  MaintenanceMaterialOption,
+  MaintenancePersonOption,
+  MaintenanceReferenceOption,
+  PropertyOption
+} from '../models/maintenance-reference.model';
 
 export interface MaintenanceReferenceData {
   properties: PropertyOption[];
   categories: MaintenanceReferenceOption[];
   types: MaintenanceReferenceOption[];
   people: MaintenancePersonOption[];
+  materials: MaintenanceMaterialOption[];
 }
 
 @Injectable({
@@ -44,6 +50,12 @@ export class MaintenanceReferenceDataService {
         page: 0,
         size: 200,
         sort: 'fullName,asc'
+      }).pipe(map((response) => response.content)),
+      materials: this.apiService.get<PageResponse<MaintenanceMaterialOption>>('/catalogs/materials', {
+        status: 'ACTIVE',
+        page: 0,
+        size: 200,
+        sort: 'name,asc'
       }).pipe(map((response) => response.content))
     });
   }

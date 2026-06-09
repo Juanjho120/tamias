@@ -8,6 +8,7 @@ import { PageResponse } from '../../../../core/models/page-response.model';
 import { ConfirmModalComponent } from '../../../../shared/confirm-modal/confirm-modal.component';
 import { QuetzalCurrencyPipe } from '../../../../shared/pipes/quetzal-currency.pipe';
 import { ToastService } from '../../../../shared/toast/toast.service';
+import { MaintenanceDetailsModalComponent } from '../../components/maintenance-details-modal/maintenance-details-modal.component';
 import { MaintenanceImagesModalComponent } from '../../components/maintenance-images-modal/maintenance-images-modal.component';
 import { MaintenanceRecordFormModalComponent } from '../../components/maintenance-record-form-modal/maintenance-record-form-modal.component';
 import {
@@ -32,6 +33,7 @@ type FormMode = 'create' | 'edit';
     TranslatePipe,
     ConfirmModalComponent,
     QuetzalCurrencyPipe,
+    MaintenanceDetailsModalComponent,
     MaintenanceImagesModalComponent,
     MaintenanceRecordFormModalComponent
   ],
@@ -52,13 +54,15 @@ export class MaintenancePageComponent implements OnInit {
   readonly records = signal<MaintenanceRecordSummary[]>([]);
   readonly selectedRecord = signal<MaintenanceRecord | null>(null);
   readonly selectedRecordForImages = signal<MaintenanceRecordSummary | null>(null);
+  readonly selectedRecordForDetails = signal<MaintenanceRecordSummary | null>(null);
   readonly recordToDelete = signal<MaintenanceRecordSummary | null>(null);
 
   readonly references = signal<MaintenanceReferenceData>({
     properties: [],
     categories: [],
     types: [],
-    people: []
+    people: [],
+    materials: []
   });
 
   readonly formVisible = signal(false);
@@ -283,6 +287,14 @@ export class MaintenancePageComponent implements OnInit {
 
   closeImages(): void {
     this.selectedRecordForImages.set(null);
+  }
+
+  openDetails(record: MaintenanceRecordSummary): void {
+    this.selectedRecordForDetails.set(record);
+  }
+
+  closeDetails(): void {
+    this.selectedRecordForDetails.set(null);
   }
 
   statusBadgeClass(status: MaintenanceStatus): string {

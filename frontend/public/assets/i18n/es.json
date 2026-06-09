@@ -270,6 +270,45 @@
         "deleted": "Imagen eliminada correctamente.",
         "deleteError": "No se pudo eliminar la imagen."
       }
+    },
+    "details": {
+      "button": "Detalles",
+      "title": "Detalles del mantenimiento",
+      "loading": "Cargando detalles del mantenimiento...",
+      "confirmDeleteTitle": "Remover detalle",
+      "confirmRemovePersonMessage": "¿Remover a \"{{name}}\" de este mantenimiento?",
+      "confirmRemoveMaterialMessage": "¿Remover el material \"{{name}}\" de este mantenimiento?",
+      "people": {
+        "title": "Personas asignadas",
+        "person": "Persona",
+        "selectPerson": "Selecciona una persona",
+        "add": "Agregar",
+        "empty": "Aún no hay personas adicionales asignadas."
+      },
+      "materials": {
+        "title": "Materiales usados",
+        "material": "Material",
+        "noCatalogMaterial": "Sin material de catálogo",
+        "manualName": "Nombre manual del material",
+        "quantity": "Cantidad",
+        "unit": "Unidad",
+        "notes": "Notas",
+        "add": "Agregar",
+        "update": "Actualizar",
+        "empty": "Aún no hay materiales usados."
+      },
+      "messages": {
+        "loadError": "No se pudieron cargar los detalles del mantenimiento.",
+        "personAdded": "Persona asignada correctamente.",
+        "personAddError": "No se pudo asignar la persona.",
+        "personRemoved": "Persona removida correctamente.",
+        "materialRequired": "Selecciona un material de catálogo o ingresa un nombre manual.",
+        "materialAdded": "Material agregado correctamente.",
+        "materialUpdated": "Material actualizado correctamente.",
+        "materialSaveError": "No se pudo guardar el material.",
+        "materialRemoved": "Material removido correctamente.",
+        "deleteError": "No se pudo remover el detalle."
+      }
     }
   },
   "catalogs": {

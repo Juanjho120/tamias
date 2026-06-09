@@ -8,6 +8,12 @@ export interface MaintenancePersonOption {
   fullName: string;
 }
 
+export interface MaintenanceMaterialOption {
+  id: string;
+  name: string;
+  unit: string | null;
+}
+
 export interface PropertyOption {
   id: string;
   name: string;

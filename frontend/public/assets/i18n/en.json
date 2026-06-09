@@ -270,6 +270,45 @@
         "deleted": "Image deleted successfully.",
         "deleteError": "Unable to delete image."
       }
+    },
+    "details": {
+      "button": "Details",
+      "title": "Maintenance details",
+      "loading": "Loading maintenance details...",
+      "confirmDeleteTitle": "Remove detail",
+      "confirmRemovePersonMessage": "Remove \"{{name}}\" from this maintenance record?",
+      "confirmRemoveMaterialMessage": "Remove material \"{{name}}\" from this maintenance record?",
+      "people": {
+        "title": "Assigned people",
+        "person": "Person",
+        "selectPerson": "Select a person",
+        "add": "Add",
+        "empty": "No additional people assigned yet."
+      },
+      "materials": {
+        "title": "Materials used",
+        "material": "Material",
+        "noCatalogMaterial": "No catalog material",
+        "manualName": "Manual material name",
+        "quantity": "Quantity",
+        "unit": "Unit",
+        "notes": "Notes",
+        "add": "Add",
+        "update": "Update",
+        "empty": "No materials used yet."
+      },
+      "messages": {
+        "loadError": "Unable to load maintenance details.",
+        "personAdded": "Person assigned successfully.",
+        "personAddError": "Unable to assign person.",
+        "personRemoved": "Person removed successfully.",
+        "materialRequired": "Select a catalog material or enter a manual material name.",
+        "materialAdded": "Material added successfully.",
+        "materialUpdated": "Material updated successfully.",
+        "materialSaveError": "Unable to save material.",
+        "materialRemoved": "Material removed successfully.",
+        "deleteError": "Unable to remove detail."
+      }
     }
   },
   "catalogs": {

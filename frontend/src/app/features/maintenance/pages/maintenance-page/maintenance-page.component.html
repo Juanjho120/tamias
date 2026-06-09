@@ -108,6 +108,10 @@
                 </td>
                 <td class="text-end">
                   <div class="btn-group">
+                    <button type="button" class="btn btn-outline-dark btn-sm" (click)="openDetails(record)">
+                      <i class="bi bi-list-check me-1"></i>
+                      {{ 'maintenance.details.button' | translate }}
+                    </button>
                     <button type="button" class="btn btn-outline-secondary btn-sm" (click)="openImages(record)">
                       <i class="bi bi-images me-1"></i>
                       {{ 'maintenance.images.button' | translate }}
@@ -173,6 +177,14 @@
   [loading]="saving()"
   (save)="saveRecord($event)"
   (cancel)="closeForm()" />
+
+<app-maintenance-details-modal
+  [open]="!!selectedRecordForDetails()"
+  [maintenanceRecord]="selectedRecordForDetails()"
+  [peopleOptions]="references().people"
+  [materialOptions]="references().materials"
+  (close)="closeDetails()"
+  (detailsChanged)="loadRecords()" />
 
 <app-maintenance-images-modal
   [open]="!!selectedRecordForImages()"
