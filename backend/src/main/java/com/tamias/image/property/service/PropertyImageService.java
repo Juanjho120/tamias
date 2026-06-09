@@ -105,7 +105,7 @@ public class PropertyImageService {
         entity.setCover(shouldBeCover);
         entity.setStatus(ImageStatus.ACTIVE);
         entity.setCreatedBy(currentUser);
-
+        System.out.println("Storage implementation: " + fileStorageService.getClass().getName());
         return imageMapper.toUploadResponse(propertyImageRepository.save(entity));
     }
 

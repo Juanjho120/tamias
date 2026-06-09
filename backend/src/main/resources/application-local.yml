@@ -41,13 +41,6 @@ spring:
       max-file-size: 8MB
       max-request-size: 8MB
 
-  storage:
-    provider: s3
-    s3:
-      bucket: ${AWS_S3_BUCKET}
-      region: ${AWS_REGION}
-      presigned-url-expiration-seconds: 300
-
 logging:
   level:
     org.hibernate.SQL: debug
@@ -61,6 +54,12 @@ security:
 tamias:
   cors:
     allowed-origins: http://localhost:4200
+  storage:
+    provider: s3
+    s3:
+      bucket: ${AWS_S3_BUCKET}
+      region: ${AWS_REGION}
+      presigned-url-expiration-seconds: 300
   ai:
     default-top-k: 10
     default-similarity-threshold: 0.30
