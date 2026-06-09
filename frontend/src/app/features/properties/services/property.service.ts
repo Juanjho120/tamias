@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { ApiService } from '../../../core/services/api.service';
 import { PageResponse } from '../../../core/models/page-response.model';
+import { ApiService } from '../../../core/services/api.service';
 import { Property, PropertyFilters, PropertyRequest, PropertySummary } from '../models/property.model';
 
 @Injectable({

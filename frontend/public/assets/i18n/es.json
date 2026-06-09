@@ -1,0 +1,140 @@
+{
+  "common": {
+    "success": "Éxito",
+    "error": "Error",
+    "warning": "Advertencia",
+    "info": "Información",
+    "logout": "Cerrar sesión",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "confirmAction": "Confirmar acción",
+    "confirmContinue": "¿Seguro que quieres continuar?",
+    "saving": "Guardando...",
+    "search": "Buscar",
+    "clear": "Limpiar",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "rowsPerPage": "Filas por página",
+    "total": "total"
+  },
+  "status": {
+    "ACTIVE": "Activo",
+    "INACTIVE": "Inactivo",
+    "DELETED": "Eliminado"
+  },
+  "errors": {
+    "network": "Backend no disponible. Verifica que la API esté levantada.",
+    "forbidden": "No tienes permisos para realizar esta acción.",
+    "server": "Error interno inesperado del servidor.",
+    "unexpected": "Error inesperado."
+  },
+  "layout": {
+    "subtitle": "Plataforma de Operaciones"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "properties": "Propiedades",
+    "catalogs": "Catálogos",
+    "maintenance": "Mantenimiento",
+    "scheduledMaintenance": "Mantenimiento programado",
+    "reservations": "Reservaciones",
+    "tasks": "Tareas",
+    "purchases": "Compras",
+    "documents": "Documentos",
+    "aiAssistant": "Asistente IA"
+  },
+  "login": {
+    "title": "Bienvenido a TAMIAS",
+    "subtitle": "Inicia sesión para administrar tus propiedades.",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "passwordPlaceholder": "Tu contraseña",
+    "signIn": "Iniciar sesión",
+    "signingIn": "Iniciando sesión...",
+    "validation": {
+      "email": "Ingresa un correo electrónico válido.",
+      "password": "La contraseña es requerida."
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "La base del frontend de TAMIAS está lista. Continúa construyendo módulos según el roadmap.",
+    "cards": {
+      "properties": {
+        "title": "Propiedades",
+        "description": "Administra casas, apartamentos, bungalows y villas."
+      },
+      "maintenance": {
+        "title": "Mantenimiento",
+        "description": "Controla mantenimientos, materiales, responsables y evidencias."
+      },
+      "reservations": {
+        "title": "Reservaciones",
+        "description": "Administra huéspedes, reservaciones y tareas operativas."
+      },
+      "documents": {
+        "title": "Documentos",
+        "description": "Sube documentos importantes e indéxalos para búsqueda con IA."
+      },
+      "aiAssistant": {
+        "title": "Asistente IA",
+        "description": "Haz preguntas sobre documentos indexados con citas de fuente."
+      }
+    }
+  },
+  "properties": {
+    "title": "Propiedades",
+    "subtitle": "Administra casas, apartamentos, bungalows y villas de alquiler.",
+    "newProperty": "Nueva propiedad",
+    "loading": "Cargando propiedades...",
+    "confirmDeleteTitle": "Eliminar propiedad",
+    "confirmDeleteMessage": "¿Eliminar la propiedad \"{{name}}\"? Esta acción la marcará como eliminada.",
+    "filters": {
+      "search": "Buscar",
+      "searchPlaceholder": "Buscar por nombre o dirección",
+      "status": "Estado",
+      "allStatuses": "Todos los estados"
+    },
+    "table": {
+      "name": "Nombre",
+      "address": "Dirección",
+      "status": "Estado",
+      "created": "Creado",
+      "actions": "Acciones"
+    },
+    "empty": {
+      "title": "No se encontraron propiedades",
+      "description": "Crea tu primera propiedad para continuar."
+    },
+    "pagination": {
+      "noProperties": "Sin propiedades",
+      "pageOf": "Página {{page}} de {{totalPages}}"
+    },
+    "form": {
+      "createTitle": "Crear propiedad",
+      "editTitle": "Editar propiedad",
+      "subtitle": "Completa la información principal de la propiedad.",
+      "name": "Nombre",
+      "address": "Dirección",
+      "description": "Descripción",
+      "descriptionPlaceholder": "Descripción corta de la propiedad",
+      "status": "Estado",
+      "save": "Guardar propiedad"
+    },
+    "validation": {
+      "name": "El nombre es requerido y no debe exceder 150 caracteres.",
+      "status": "El estado es requerido."
+    },
+    "messages": {
+      "loadError": "No se pudieron cargar las propiedades.",
+      "detailError": "No se pudo cargar el detalle de la propiedad.",
+      "saveError": "No se pudo guardar la propiedad.",
+      "deleteError": "No se pudo eliminar la propiedad.",
+      "created": "Propiedad creada correctamente.",
+      "updated": "Propiedad actualizada correctamente.",
+      "deleted": "Propiedad eliminada correctamente."
+    }
+  }
+}

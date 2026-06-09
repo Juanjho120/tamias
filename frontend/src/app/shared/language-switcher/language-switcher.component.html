@@ -1,0 +1,27 @@
+<div class="dropdown">
+  <button
+    type="button"
+    class="btn btn-outline-secondary btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-expanded="false">
+    <i class="bi bi-translate me-1"></i>
+    {{ languageService.currentLanguage().toUpperCase() }}
+  </button>
+
+  <ul class="dropdown-menu dropdown-menu-end">
+    @for (language of languageService.languages; track language.code) {
+      <li>
+        <button
+          type="button"
+          class="dropdown-item d-flex justify-content-between align-items-center"
+          [class.active]="languageService.currentLanguage() === language.code"
+          (click)="changeLanguage(language.code)">
+          <span>{{ language.label }}</span>
+          @if (languageService.currentLanguage() === language.code) {
+            <i class="bi bi-check-lg"></i>
+          }
+        </button>
+      </li>
+    }
+  </ul>
+</div>

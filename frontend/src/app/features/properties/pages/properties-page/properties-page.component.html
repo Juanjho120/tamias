@@ -1,12 +1,12 @@
 <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
   <div>
-    <h1 class="h3 mb-1">Properties</h1>
-    <p class="text-muted mb-0">Manage rental houses, apartments, bungalows and villas.</p>
+    <h1 class="h3 mb-1">{{ 'properties.title' | translate }}</h1>
+    <p class="text-muted mb-0">{{ 'properties.subtitle' | translate }}</p>
   </div>
 
   <button type="button" class="btn btn-primary" (click)="openCreateForm()">
     <i class="bi bi-plus-lg me-1"></i>
-    New property
+    {{ 'properties.newProperty' | translate }}
   </button>
 </div>
 
@@ -14,27 +14,27 @@
   <div class="card-body p-4">
     <div class="row g-3 align-items-end">
       <div class="col-12 col-lg-6">
-        <label for="property-search" class="form-label">Search</label>
+        <label for="property-search" class="form-label">{{ 'properties.filters.search' | translate }}</label>
         <input
           id="property-search"
           type="search"
           class="form-control"
-          placeholder="Search by name or address"
+          [placeholder]="'properties.filters.searchPlaceholder' | translate"
           [ngModel]="search()"
           (ngModelChange)="search.set($event)"
           (keyup.enter)="applyFilters()">
       </div>
 
       <div class="col-12 col-md-6 col-lg-3">
-        <label for="property-status-filter" class="form-label">Status</label>
+        <label for="property-status-filter" class="form-label">{{ 'properties.filters.status' | translate }}</label>
         <select
           id="property-status-filter"
           class="form-select"
           [ngModel]="status()"
           (ngModelChange)="status.set($event)">
-          <option value="">All statuses</option>
+          <option value="">{{ 'properties.filters.allStatuses' | translate }}</option>
           @for (item of statuses; track item) {
-            <option [value]="item">{{ item }}</option>
+            <option [value]="item">{{ 'status.' + item | translate }}</option>
           }
         </select>
       </div>
@@ -42,10 +42,10 @@
       <div class="col-12 col-md-6 col-lg-3 d-flex gap-2">
         <button type="button" class="btn btn-primary flex-fill" (click)="applyFilters()">
           <i class="bi bi-search me-1"></i>
-          Search
+          {{ 'common.search' | translate }}
         </button>
         <button type="button" class="btn btn-outline-secondary" (click)="clearFilters()">
-          Clear
+          {{ 'common.clear' | translate }}
         </button>
       </div>
     </div>
@@ -57,17 +57,17 @@
     @if (loading()) {
       <div class="p-5 text-center">
         <div class="spinner-border text-primary" role="status"></div>
-        <div class="text-muted mt-3">Loading properties...</div>
+        <div class="text-muted mt-3">{{ 'properties.loading' | translate }}</div>
       </div>
     } @else if (properties().length === 0) {
       <div class="p-5 text-center">
         <div class="d-inline-flex align-items-center justify-content-center rounded-4 bg-secondary-subtle text-secondary p-4 mb-3">
           <i class="bi bi-houses fs-1"></i>
         </div>
-        <h2 class="h5">No properties found</h2>
-        <p class="text-muted mb-3">Create your first property to continue.</p>
+        <h2 class="h5">{{ 'properties.empty.title' | translate }}</h2>
+        <p class="text-muted mb-3">{{ 'properties.empty.description' | translate }}</p>
         <button type="button" class="btn btn-primary" (click)="openCreateForm()">
-          New property
+          {{ 'properties.newProperty' | translate }}
         </button>
       </div>
     } @else {
@@ -75,11 +75,11 @@
         <table class="table table-hover align-middle mb-0">
           <thead class="table-light">
           <tr>
-            <th>Name</th>
-            <th>Address</th>
-            <th>Status</th>
-            <th>Created</th>
-            <th class="text-end">Actions</th>
+            <th>{{ 'properties.table.name' | translate }}</th>
+            <th>{{ 'properties.table.address' | translate }}</th>
+            <th>{{ 'properties.table.status' | translate }}</th>
+            <th>{{ 'properties.table.created' | translate }}</th>
+            <th class="text-end">{{ 'properties.table.actions' | translate }}</th>
           </tr>
           </thead>
           <tbody>
@@ -98,7 +98,7 @@
                 </td>
                 <td>
                   <span class="badge" [ngClass]="statusBadgeClass(property.status)">
-                    {{ property.status }}
+                    {{ 'status.' + property.status | translate }}
                   </span>
                 </td>
                 <td>
@@ -111,7 +111,7 @@
                       class="btn btn-outline-primary btn-sm"
                       (click)="openEditForm(property.id)">
                       <i class="bi bi-pencil-square me-1"></i>
-                      Edit
+                      {{ 'common.edit' | translate }}
                     </button>
                     <button
                       type="button"
@@ -123,7 +123,7 @@
                       } @else {
                         <i class="bi bi-trash me-1"></i>
                       }
-                      Delete
+                      {{ 'common.delete' | translate }}
                     </button>
                   </div>
                 </td>
@@ -135,7 +135,7 @@
 
       <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 p-3 border-top">
         <div class="d-flex align-items-center gap-2">
-          <span class="text-muted small">Rows per page</span>
+          <span class="text-muted small">{{ 'common.rowsPerPage' | translate }}</span>
           <select class="form-select form-select-sm w-auto" [ngModel]="size()" (ngModelChange)="changePageSize($event)">
             <option value="5">5</option>
             <option value="10">10</option>
@@ -145,13 +145,13 @@
         </div>
 
         <div class="d-flex align-items-center gap-3">
-          <span class="text-muted small">{{ pageLabel() }} · {{ totalElements() }} total</span>
+          <span class="text-muted small">{{ pageLabel() }} · {{ totalElements() }} {{ 'common.total' | translate }}</span>
           <div class="btn-group">
             <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="first()" (click)="previousPage()">
-              Previous
+              {{ 'common.previous' | translate }}
             </button>
             <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="last()" (click)="nextPage()">
-              Next
+              {{ 'common.next' | translate }}
             </button>
           </div>
         </div>
@@ -166,8 +166,8 @@
       <div class="modal-content border-0 shadow-lg">
         <div class="modal-header">
           <div>
-            <h5 class="modal-title">{{ formTitle() }}</h5>
-            <div class="small text-muted">Fill in the main property information.</div>
+            <h5 class="modal-title">{{ formTitleKey() | translate }}</h5>
+            <div class="small text-muted">{{ 'properties.form.subtitle' | translate }}</div>
           </div>
           <button type="button" class="btn-close" aria-label="Close" [disabled]="saving()" (click)="closeForm()"></button>
         </div>
@@ -186,10 +186,10 @@
 
 <app-confirm-modal
   [open]="!!propertyToDelete()"
-  title="Delete property"
+  title="properties.confirmDeleteTitle"
   [message]="deleteMessage()"
-  confirmText="Delete"
-  cancelText="Cancel"
+  confirmText="common.delete"
+  cancelText="common.cancel"
   confirmButtonClass="btn-danger"
   [loading]="!!deletingId()"
   (confirm)="confirmDelete()"

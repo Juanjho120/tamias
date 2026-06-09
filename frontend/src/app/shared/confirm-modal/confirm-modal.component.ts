@@ -1,16 +1,18 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-confirm-modal',
   standalone: true,
+  imports: [TranslatePipe],
   templateUrl: './confirm-modal.component.html'
 })
 export class ConfirmModalComponent {
   @Input() open = false;
-  @Input() title = 'Confirm action';
-  @Input() message = 'Are you sure you want to continue?';
-  @Input() confirmText = 'Confirm';
-  @Input() cancelText = 'Cancel';
+  @Input() title = 'common.confirmAction';
+  @Input() message = 'common.confirmContinue';
+  @Input() confirmText = 'common.confirm';
+  @Input() cancelText = 'common.cancel';
   @Input() loading = false;
   @Input() confirmButtonClass = 'btn-danger';
 

@@ -1,6 +1,6 @@
 <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
   <div class="mb-3">
-    <label for="property-name" class="form-label">Name</label>
+    <label for="property-name" class="form-label">{{ 'properties.form.name' | translate }}</label>
     <input
       id="property-name"
       type="text"
@@ -11,13 +11,13 @@
       placeholder="Casa Vista Hermosa">
     @if (isInvalid('name')) {
       <div class="invalid-feedback">
-        Name is required and must not exceed 150 characters.
+        {{ 'properties.validation.name' | translate }}
       </div>
     }
   </div>
 
   <div class="mb-3">
-    <label for="property-address" class="form-label">Address</label>
+    <label for="property-address" class="form-label">{{ 'properties.form.address' | translate }}</label>
     <textarea
       id="property-address"
       class="form-control"
@@ -27,43 +27,43 @@
   </div>
 
   <div class="mb-3">
-    <label for="property-description" class="form-label">Description</label>
+    <label for="property-description" class="form-label">{{ 'properties.form.description' | translate }}</label>
     <textarea
       id="property-description"
       class="form-control"
       formControlName="description"
       rows="4"
-      placeholder="Short description of the property"></textarea>
+      [placeholder]="'properties.form.descriptionPlaceholder' | translate"></textarea>
   </div>
 
   <div class="mb-4">
-    <label for="property-status" class="form-label">Status</label>
+    <label for="property-status" class="form-label">{{ 'properties.form.status' | translate }}</label>
     <select
       id="property-status"
       class="form-select"
       [ngClass]="{ 'is-invalid': isInvalid('status') }"
       formControlName="status">
       @for (status of statuses; track status) {
-        <option [value]="status">{{ status }}</option>
+        <option [value]="status">{{ 'status.' + status | translate }}</option>
       }
     </select>
     @if (isInvalid('status')) {
       <div class="invalid-feedback">
-        Status is required.
+        {{ 'properties.validation.status' | translate }}
       </div>
     }
   </div>
 
   <div class="d-flex justify-content-end gap-2">
     <button type="button" class="btn btn-outline-secondary" (click)="cancel.emit()" [disabled]="loading">
-      Cancel
+      {{ 'common.cancel' | translate }}
     </button>
     <button type="submit" class="btn btn-primary" [disabled]="loading">
       @if (loading) {
         <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
-        Saving...
+        {{ 'common.saving' | translate }}
       } @else {
-        Save property
+        {{ 'properties.form.save' | translate }}
       }
     </button>
   </div>

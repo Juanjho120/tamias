@@ -1,0 +1,140 @@
+{
+  "common": {
+    "success": "Success",
+    "error": "Error",
+    "warning": "Warning",
+    "info": "Info",
+    "logout": "Logout",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "confirmAction": "Confirm action",
+    "confirmContinue": "Are you sure you want to continue?",
+    "saving": "Saving...",
+    "search": "Search",
+    "clear": "Clear",
+    "edit": "Edit",
+    "delete": "Delete",
+    "previous": "Previous",
+    "next": "Next",
+    "rowsPerPage": "Rows per page",
+    "total": "total"
+  },
+  "status": {
+    "ACTIVE": "Active",
+    "INACTIVE": "Inactive",
+    "DELETED": "Deleted"
+  },
+  "errors": {
+    "network": "Backend unavailable. Please verify that the API is running.",
+    "forbidden": "You do not have permission to perform this action.",
+    "server": "Unexpected internal server error.",
+    "unexpected": "Unexpected error."
+  },
+  "layout": {
+    "subtitle": "Operations Platform"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "properties": "Properties",
+    "catalogs": "Catalogs",
+    "maintenance": "Maintenance",
+    "scheduledMaintenance": "Scheduled Maintenance",
+    "reservations": "Reservations",
+    "tasks": "Tasks",
+    "purchases": "Purchases",
+    "documents": "Documents",
+    "aiAssistant": "AI Assistant"
+  },
+  "login": {
+    "title": "Welcome to TAMIAS",
+    "subtitle": "Sign in to manage your properties.",
+    "email": "Email",
+    "password": "Password",
+    "passwordPlaceholder": "Your password",
+    "signIn": "Sign in",
+    "signingIn": "Signing in...",
+    "validation": {
+      "email": "Enter a valid email address.",
+      "password": "Password is required."
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "TAMIAS frontend shell is ready. Continue building modules in roadmap order.",
+    "cards": {
+      "properties": {
+        "title": "Properties",
+        "description": "Manage houses, apartments, bungalows and villas."
+      },
+      "maintenance": {
+        "title": "Maintenance",
+        "description": "Track maintenance records, materials, people and evidence."
+      },
+      "reservations": {
+        "title": "Reservations",
+        "description": "Manage guests, reservations and operational tasks."
+      },
+      "documents": {
+        "title": "Documents",
+        "description": "Upload important documents and index them for AI search."
+      },
+      "aiAssistant": {
+        "title": "AI Assistant",
+        "description": "Ask questions about indexed documents with source citations."
+      }
+    }
+  },
+  "properties": {
+    "title": "Properties",
+    "subtitle": "Manage rental houses, apartments, bungalows and villas.",
+    "newProperty": "New property",
+    "loading": "Loading properties...",
+    "confirmDeleteTitle": "Delete property",
+    "confirmDeleteMessage": "Delete property \"{{name}}\"? This action will mark it as deleted.",
+    "filters": {
+      "search": "Search",
+      "searchPlaceholder": "Search by name or address",
+      "status": "Status",
+      "allStatuses": "All statuses"
+    },
+    "table": {
+      "name": "Name",
+      "address": "Address",
+      "status": "Status",
+      "created": "Created",
+      "actions": "Actions"
+    },
+    "empty": {
+      "title": "No properties found",
+      "description": "Create your first property to continue."
+    },
+    "pagination": {
+      "noProperties": "No properties",
+      "pageOf": "Page {{page}} of {{totalPages}}"
+    },
+    "form": {
+      "createTitle": "Create property",
+      "editTitle": "Edit property",
+      "subtitle": "Fill in the main property information.",
+      "name": "Name",
+      "address": "Address",
+      "description": "Description",
+      "descriptionPlaceholder": "Short description of the property",
+      "status": "Status",
+      "save": "Save property"
+    },
+    "validation": {
+      "name": "Name is required and must not exceed 150 characters.",
+      "status": "Status is required."
+    },
+    "messages": {
+      "loadError": "Unable to load properties.",
+      "detailError": "Unable to load property details.",
+      "saveError": "Unable to save property.",
+      "deleteError": "Unable to delete property.",
+      "created": "Property created successfully.",
+      "updated": "Property updated successfully.",
+      "deleted": "Property deleted successfully."
+    }
+  }
+}

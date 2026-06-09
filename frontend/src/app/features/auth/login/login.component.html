@@ -5,8 +5,8 @@
         <div class="d-inline-flex align-items-center justify-content-center rounded-4 bg-primary text-white p-3 mb-3">
           <i class="bi bi-house-heart-fill fs-2"></i>
         </div>
-        <h1 class="h3 mb-1">Welcome to TAMIAS</h1>
-        <p class="text-muted mb-0">Sign in to manage your properties.</p>
+        <h1 class="h3 mb-1">{{ 'login.title' | translate }}</h1>
+        <p class="text-muted mb-0">{{ 'login.subtitle' | translate }}</p>
       </div>
 
       @if (errorMessage()) {
@@ -17,7 +17,7 @@
 
       <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
         <div class="mb-3">
-          <label for="email" class="form-label">Email</label>
+          <label for="email" class="form-label">{{ 'login.email' | translate }}</label>
           <input
             id="email"
             type="email"
@@ -28,13 +28,13 @@
             placeholder="admin@tamias.local">
           @if (isInvalid('email')) {
             <div class="invalid-feedback">
-              Enter a valid email address.
+              {{ 'login.validation.email' | translate }}
             </div>
           }
         </div>
 
         <div class="mb-4">
-          <label for="password" class="form-label">Password</label>
+          <label for="password" class="form-label">{{ 'login.password' | translate }}</label>
           <input
             id="password"
             type="password"
@@ -42,10 +42,10 @@
             [ngClass]="{ 'is-invalid': isInvalid('password') }"
             formControlName="password"
             autocomplete="current-password"
-            placeholder="Your password">
+            [placeholder]="'login.passwordPlaceholder' | translate">
           @if (isInvalid('password')) {
             <div class="invalid-feedback">
-              Password is required.
+              {{ 'login.validation.password' | translate }}
             </div>
           }
         </div>
@@ -53,9 +53,9 @@
         <button type="submit" class="btn btn-primary w-100" [disabled]="loading()">
           @if (loading()) {
             <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
-            Signing in...
+            {{ 'login.signingIn' | translate }}
           } @else {
-            Sign in
+            {{ 'login.signIn' | translate }}
           }
         </button>
       </form>

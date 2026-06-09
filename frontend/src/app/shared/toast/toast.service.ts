@@ -23,19 +23,19 @@ export class ToastService {
     window.setTimeout(() => this.dismiss(toast.id), 4500);
   }
 
-  success(message: string, title = 'Success'): void {
+  success(message: string, title?: string): void {
     this.show(message, 'success', title);
   }
 
-  error(message: string, title = 'Error'): void {
+  error(message: string, title?: string): void {
     this.show(message, 'danger', title);
   }
 
-  warning(message: string, title = 'Warning'): void {
+  warning(message: string, title?: string): void {
     this.show(message, 'warning', title);
   }
 
-  info(message: string, title = 'Info'): void {
+  info(message: string, title?: string): void {
     this.show(message, 'info', title);
   }
 

@@ -1,12 +1,13 @@
 import { NgClass } from '@angular/common';
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Property, PropertyRequest, PROPERTY_STATUSES, PropertyStatus } from '../../models/property.model';
+import { TranslatePipe } from '@ngx-translate/core';
+import { Property, PropertyRequest, PropertyStatus, PROPERTY_STATUSES } from '../../models/property.model';
 
 @Component({
   selector: 'app-property-form',
   standalone: true,
-  imports: [NgClass, ReactiveFormsModule],
+  imports: [NgClass, ReactiveFormsModule, TranslatePipe],
   templateUrl: './property-form.component.html'
 })
 export class PropertyFormComponent implements OnChanges {

@@ -1,9 +1,10 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { TranslatePipe } from '@ngx-translate/core';
 
 interface DashboardCard {
-  title: string;
-  description: string;
+  titleKey: string;
+  descriptionKey: string;
   icon: string;
   route: string;
 }
@@ -11,38 +12,38 @@ interface DashboardCard {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, TranslatePipe],
   templateUrl: './dashboard.component.html'
 })
 export class DashboardComponent {
   readonly cards: DashboardCard[] = [
     {
-      title: 'Properties',
-      description: 'Manage houses, apartments, bungalows and villas.',
+      titleKey: 'dashboard.cards.properties.title',
+      descriptionKey: 'dashboard.cards.properties.description',
       icon: 'bi-houses',
       route: '/properties'
     },
     {
-      title: 'Maintenance',
-      description: 'Track maintenance records, materials, people and evidence.',
+      titleKey: 'dashboard.cards.maintenance.title',
+      descriptionKey: 'dashboard.cards.maintenance.description',
       icon: 'bi-tools',
       route: '/maintenance'
     },
     {
-      title: 'Reservations',
-      description: 'Manage guests, reservations and operational tasks.',
+      titleKey: 'dashboard.cards.reservations.title',
+      descriptionKey: 'dashboard.cards.reservations.description',
       icon: 'bi-calendar2-week',
       route: '/reservations'
     },
     {
-      title: 'Documents',
-      description: 'Upload important documents and index them for AI search.',
+      titleKey: 'dashboard.cards.documents.title',
+      descriptionKey: 'dashboard.cards.documents.description',
       icon: 'bi-file-earmark-text',
       route: '/documents'
     },
     {
-      title: 'AI Assistant',
-      description: 'Ask questions about indexed documents with source citations.',
+      titleKey: 'dashboard.cards.aiAssistant.title',
+      descriptionKey: 'dashboard.cards.aiAssistant.description',
       icon: 'bi-stars',
       route: '/ai-assistant'
     }

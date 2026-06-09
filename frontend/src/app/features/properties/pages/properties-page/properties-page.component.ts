@@ -1,6 +1,8 @@
 import { DatePipe, NgClass } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { TranslatePipe } from '@ngx-translate/core';
+import { LanguageService } from '../../../../core/i18n/language.service';
 import { ApiError } from '../../../../core/models/api-error.model';
 import { PageResponse } from '../../../../core/models/page-response.model';
 import { ConfirmModalComponent } from '../../../../shared/confirm-modal/confirm-modal.component';
@@ -14,11 +16,12 @@ type FormMode = 'create' | 'edit';
 @Component({
   selector: 'app-properties-page',
   standalone: true,
-  imports: [DatePipe, FormsModule, NgClass, PropertyFormComponent, ConfirmModalComponent],
+  imports: [DatePipe, FormsModule, NgClass, TranslatePipe, PropertyFormComponent, ConfirmModalComponent],
   templateUrl: './properties-page.component.html'
 })
 export class PropertiesPageComponent implements OnInit {
   private readonly toastService = inject(ToastService);
+  private readonly languageService = inject(LanguageService);
 
   readonly statuses = PROPERTY_STATUSES;
 
@@ -41,19 +44,29 @@ export class PropertiesPageComponent implements OnInit {
   readonly first = signal(true);
   readonly last = signal(true);
 
-  readonly formTitle = computed(() => this.formMode() === 'create' ? 'Create property' : 'Edit property');
+  readonly formTitleKey = computed(() => this.formMode() === 'create' ? 'properties.form.createTitle' : 'properties.form.editTitle');
 
   readonly pageLabel = computed(() => {
     if (this.totalElements() === 0) {
-      return 'No properties';
+      return this.languageService.instant('properties.pagination.noProperties');
     }
 
-    return `Page ${this.page() + 1} of ${this.totalPages()}`;
+    return this.languageService.instant('properties.pagination.pageOf', {
+      page: this.page() + 1,
+      totalPages: this.totalPages()
+    });
   });
 
   readonly deleteMessage = computed(() => {
     const property = this.propertyToDelete();
-    return property ? `Delete property "${property.name}"? This action will mark it as deleted.` : '';
+
+    if (!property) {
+      return '';
+    }
+
+    return this.languageService.instant('properties.confirmDeleteMessage', {
+      name: property.name
+    });
   });
 
   constructor(private readonly propertyService: PropertyService) {
@@ -79,7 +92,7 @@ export class PropertiesPageComponent implements OnInit {
       },
       error: (error) => {
         this.loading.set(false);
-        this.toastService.error(this.extractErrorMessage(error, 'Unable to load properties.'));
+        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('properties.messages.loadError')));
       }
     });
   }
@@ -138,7 +151,7 @@ export class PropertiesPageComponent implements OnInit {
       },
       error: (error) => {
         this.loading.set(false);
-        this.toastService.error(this.extractErrorMessage(error, 'Unable to load property details.'));
+        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('properties.messages.detailError')));
       }
     });
   }
@@ -165,13 +178,17 @@ export class PropertiesPageComponent implements OnInit {
     saveRequest.subscribe({
       next: () => {
         this.saving.set(false);
-        this.toastService.success(this.formMode() === 'edit' ? 'Property updated successfully.' : 'Property created successfully.');
+        this.toastService.success(
+          this.formMode() === 'edit'
+            ? this.languageService.instant('properties.messages.updated')
+            : this.languageService.instant('properties.messages.created')
+        );
         this.closeForm();
         this.loadProperties();
       },
       error: (error) => {
         this.saving.set(false);
-        this.toastService.error(this.extractErrorMessage(error, 'Unable to save property.'));
+        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('properties.messages.saveError')));
       }
     });
   }
@@ -201,12 +218,12 @@ export class PropertiesPageComponent implements OnInit {
       next: () => {
         this.deletingId.set(null);
         this.propertyToDelete.set(null);
-        this.toastService.success('Property deleted successfully.');
+        this.toastService.success(this.languageService.instant('properties.messages.deleted'));
         this.loadProperties();
       },
       error: (error) => {
         this.deletingId.set(null);
-        this.toastService.error(this.extractErrorMessage(error, 'Unable to delete property.'));
+        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('properties.messages.deleteError')));
       }
     });
   }

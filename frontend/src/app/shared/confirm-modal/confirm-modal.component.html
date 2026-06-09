@@ -3,7 +3,7 @@
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content border-0 shadow-lg">
         <div class="modal-header">
-          <h5 class="modal-title">{{ title }}</h5>
+          <h5 class="modal-title">{{ title | translate }}</h5>
           <button
             type="button"
             class="btn-close"
@@ -21,7 +21,7 @@
             class="btn btn-outline-secondary"
             [disabled]="loading"
             (click)="cancel.emit()">
-            {{ cancelText }}
+            {{ cancelText | translate }}
           </button>
           <button
             type="button"
@@ -32,7 +32,7 @@
             @if (loading) {
               <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
             }
-            {{ confirmText }}
+            {{ confirmText | translate }}
           </button>
         </div>
       </div>
