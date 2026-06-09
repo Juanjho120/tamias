@@ -14,11 +14,10 @@ import com.tamias.property.repository.PropertyRepository;
 import com.tamias.reservation.dto.ReservationGuestRequest;
 import com.tamias.reservation.dto.ReservationRequest;
 import com.tamias.reservation.dto.ReservationResponse;
-import com.tamias.reservation.dto.ReservationSummaryResponse;
-import com.tamias.reservation.entity.Reservation;
-import com.tamias.reservation.entity.ReservationGuest;
 import com.tamias.reservation.enums.ReservationStatus;
 import com.tamias.reservation.mapper.ReservationMapper;
+import com.tamias.reservation.entity.Reservation;
+import com.tamias.reservation.entity.ReservationGuest;
 import com.tamias.reservation.repository.ReservationGuestRepository;
 import com.tamias.reservation.repository.ReservationRepository;
 import com.tamias.security.service.CurrentUserService;
@@ -26,7 +25,9 @@ import com.tamias.user.entity.User;
 import com.tamias.user.repository.UserRepository;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -70,7 +71,7 @@ public class ReservationService {
 
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'READ_ONLY')")
-    public PageResponse<ReservationSummaryResponse> findAll(
+    public PageResponse findAll(
             UUID propertyId,
             ReservationStatus status,
             Pageable pageable
@@ -93,7 +94,7 @@ public class ReservationService {
 
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'READ_ONLY')")
-    public PageResponse<ReservationSummaryResponse> findCalendar(
+    public PageResponse findCalendar(
             LocalDate startDate,
             LocalDate endDate,
             Pageable pageable
@@ -194,7 +195,17 @@ public class ReservationService {
         setOptionalPlatform(entity, request.platformId(), organizationId);
 
         Reservation saved = reservationRepository.save(entity);
+
         reservationGuestRepository.deleteByReservation_Id(saved.getId());
+
+        /*
+         * Important:
+         * deleteByReservation_Id is executed in the same transaction.
+         * Flush before inserting replacement guests so PostgreSQL sees the old
+         * reservation_guest rows deleted before we insert the same guest again.
+         */
+        reservationGuestRepository.flush();
+
         replaceGuests(saved, request.guests(), saved.getOrganization(), currentUser);
 
         return reservationMapper.toResponse(
@@ -269,8 +280,14 @@ public class ReservationService {
             return;
         }
 
+        Set<UUID> guestIdsInRequest = new LinkedHashSet<>();
+
         for (ReservationGuestRequest guestRequest : guestRequests) {
             Guest guest = resolveGuest(guestRequest, organization, currentUser);
+
+            if (!guestIdsInRequest.add(guest.getId())) {
+                throw new BadRequestException("Duplicate guest in reservation request");
+            }
 
             ReservationGuest reservationGuest = new ReservationGuest();
             reservationGuest.setOrganization(organization);
