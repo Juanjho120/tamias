@@ -25,7 +25,7 @@ export const routes: Routes = [
       },
       {
         path: 'properties',
-        loadComponent: () => import('./features/placeholders/properties-page.component').then((m) => m.PropertiesPageComponent),
+        loadComponent: () => import('./features/properties/pages/properties-page/properties-page.component').then((m) => m.PropertiesPageComponent),
         title: 'Properties | TAMIAS'
       },
       {
