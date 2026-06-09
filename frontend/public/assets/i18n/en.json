@@ -18,7 +18,8 @@
     "previous": "Previous",
     "next": "Next",
     "rowsPerPage": "Rows per page",
-    "total": "total"
+    "total": "total",
+    "viewAll": "View all"
   },
   "status": {
     "ACTIVE": "Active",
@@ -61,7 +62,9 @@
   },
   "dashboard": {
     "title": "Dashboard",
-    "subtitle": "TAMIAS frontend shell is ready. Continue building modules in roadmap order.",
+    "subtitle": "Operational snapshot for your properties, reservations, maintenance, tasks, purchases, documents and AI workflow.",
+    "refresh": "Refresh",
+    "loading": "Loading dashboard...",
     "cards": {
       "properties": {
         "title": "Properties",
@@ -83,6 +86,68 @@
         "title": "AI Assistant",
         "description": "Ask questions about indexed documents with source citations."
       }
+    },
+    "metrics": {
+      "properties": {
+        "title": "Active properties",
+        "description": "Properties available in TAMIAS"
+      },
+      "reservations": {
+        "title": "Active reservations",
+        "description": "Current active reservations"
+      },
+      "maintenance": {
+        "title": "Pending maintenance",
+        "description": "Pending and in-progress records"
+      },
+      "scheduledMaintenance": {
+        "title": "Due schedules",
+        "description": "Scheduled maintenance due"
+      },
+      "tasks": {
+        "title": "Open tasks",
+        "description": "Task lists still open"
+      },
+      "purchases": {
+        "title": "Open purchases",
+        "description": "Purchase lists still open"
+      },
+      "documents": {
+        "title": "Document alerts",
+        "description": "Pending or failed processing"
+      },
+      "aiAssistant": {
+        "title": "AI readiness",
+        "description": "Documents pending processing"
+      }
+    },
+    "sections": {
+      "upcomingReservations": "Upcoming reservations",
+      "next45Days": "Next 45 days",
+      "dueMaintenance": "Due scheduled maintenance",
+      "scheduledDue": "Most urgent scheduled items",
+      "openTasks": "Open task lists",
+      "taskProgress": "Completion progress",
+      "purchaseLists": "Open purchase lists",
+      "pendingPurchases": "Pending purchase tracking",
+      "recentMaintenance": "Recent maintenance",
+      "latestRecords": "Latest maintenance records",
+      "documentAlerts": "Document alerts",
+      "processingNeeded": "Pending or failed document processing"
+    },
+    "empty": {
+      "reservations": "No upcoming reservations found.",
+      "scheduledMaintenance": "No due scheduled maintenance found.",
+      "tasks": "No open task lists found.",
+      "purchases": "No open purchase lists found.",
+      "maintenance": "No recent maintenance records found.",
+      "documents": "No pending or failed documents found."
+    },
+    "labels": {
+      "purchasedItems": "items purchased"
+    },
+    "messages": {
+      "loadError": "Unable to load dashboard data."
     }
   },
   "properties": {

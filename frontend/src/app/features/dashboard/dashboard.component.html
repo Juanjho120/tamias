@@ -3,22 +3,283 @@
     <h1 class="h3 mb-1">{{ 'dashboard.title' | translate }}</h1>
     <p class="text-muted mb-0">{{ 'dashboard.subtitle' | translate }}</p>
   </div>
+
+  <button type="button" class="btn btn-outline-primary" [disabled]="loading()" (click)="loadDashboard()">
+    @if (loading()) {
+      <span class="spinner-border spinner-border-sm me-2"></span>
+    } @else {
+      <i class="bi bi-arrow-clockwise me-1"></i>
+    }
+    {{ 'dashboard.refresh' | translate }}
+  </button>
 </div>
 
-<div class="row g-3">
-  @for (card of cards; track card.route) {
-    <div class="col-12 col-md-6 col-xl-4">
-      <a class="card page-card h-100 text-reset" [routerLink]="card.route">
-        <div class="card-body p-4">
-          <div class="d-flex align-items-center gap-3 mb-3">
-            <div class="d-inline-flex align-items-center justify-content-center rounded-3 bg-primary-subtle text-primary p-3">
-              <i class="bi fs-4" [class]="card.icon"></i>
+@if (loading() && !data()) {
+  <div class="p-5 text-center">
+    <div class="spinner-border text-primary" role="status"></div>
+    <div class="text-muted mt-3">{{ 'dashboard.loading' | translate }}</div>
+  </div>
+} @else {
+  <div class="row g-3 mb-4">
+    @for (metric of metrics(); track metric.key) {
+      <div class="col-12 col-md-6 col-xl-3">
+        <a class="dashboard-metric-card text-decoration-none" [routerLink]="metric.route">
+          <div class="d-flex justify-content-between align-items-start gap-3">
+            <div>
+              <div class="small text-muted mb-1">{{ metric.titleKey | translate }}</div>
+              <div class="dashboard-metric-value">{{ metric.value }}</div>
+              <div class="small text-muted">{{ metric.descriptionKey | translate }}</div>
             </div>
-            <h2 class="h5 mb-0">{{ card.titleKey | translate }}</h2>
+            <div class="dashboard-metric-icon">
+              <i class="bi" [ngClass]="metric.icon"></i>
+            </div>
           </div>
-          <p class="text-muted mb-0">{{ card.descriptionKey | translate }}</p>
+        </a>
+      </div>
+    }
+  </div>
+
+  <div class="row g-4">
+    <div class="col-12 col-xl-6">
+      <div class="card page-card h-100">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <div>
+            <h2 class="h5 mb-0">{{ 'dashboard.sections.upcomingReservations' | translate }}</h2>
+            <div class="small text-muted">{{ 'dashboard.sections.next45Days' | translate }}</div>
+          </div>
+          <a routerLink="/reservations" class="btn btn-outline-primary btn-sm">{{ 'common.viewAll' | translate }}</a>
         </div>
-      </a>
+
+        <div class="card-body p-0">
+          @if (!data()?.upcomingReservations?.length) {
+            <div class="dashboard-empty-state">
+              <i class="bi bi-calendar2-week"></i>
+              <div>{{ 'dashboard.empty.reservations' | translate }}</div>
+            </div>
+          } @else {
+            <div class="list-group list-group-flush">
+              @for (reservation of data()?.upcomingReservations || []; track reservation.id) {
+                <div class="list-group-item">
+                  <div class="d-flex justify-content-between align-items-start gap-3">
+                    <div>
+                      <div class="fw-semibold">{{ reservation.reservationCode || reservation.propertyName }}</div>
+                      <div class="small text-muted">{{ reservation.propertyName }}</div>
+                      <div class="small text-muted">{{ reservation.guestNames?.join(', ') || '—' }}</div>
+                    </div>
+                    <div class="text-end">
+                      <div class="small fw-semibold">{{ reservation.checkIn | date:'mediumDate' }}</div>
+                      <div class="small text-muted">{{ reservation.checkOut | date:'mediumDate' }}</div>
+                      <div class="small">{{ reservation.reservationValue | quetzalCurrency }}</div>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
     </div>
-  }
-</div>
+
+    <div class="col-12 col-xl-6">
+      <div class="card page-card h-100">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <div>
+            <h2 class="h5 mb-0">{{ 'dashboard.sections.dueMaintenance' | translate }}</h2>
+            <div class="small text-muted">{{ 'dashboard.sections.scheduledDue' | translate }}</div>
+          </div>
+          <a routerLink="/scheduled-maintenance" class="btn btn-outline-primary btn-sm">{{ 'common.viewAll' | translate }}</a>
+        </div>
+
+        <div class="card-body p-0">
+          @if (!data()?.dueMaintenance?.length) {
+            <div class="dashboard-empty-state">
+              <i class="bi bi-calendar-check"></i>
+              <div>{{ 'dashboard.empty.scheduledMaintenance' | translate }}</div>
+            </div>
+          } @else {
+            <div class="list-group list-group-flush">
+              @for (maintenance of data()?.dueMaintenance || []; track maintenance.id) {
+                <div class="list-group-item">
+                  <div class="d-flex justify-content-between align-items-start gap-3">
+                    <div>
+                      <div class="fw-semibold">{{ maintenance.title }}</div>
+                      <div class="small text-muted">{{ maintenance.propertyName }}</div>
+                      <div class="small text-muted">{{ maintenance.frequency || '—' }}</div>
+                    </div>
+                    <div class="text-end">
+                      <div class="small fw-semibold">{{ maintenance.nextDueDate ? (maintenance.nextDueDate | date:'mediumDate') : '—' }}</div>
+                      <span class="badge" [ngClass]="badgeClass(maintenance.status)">{{ 'scheduledMaintenance.status.' + maintenance.status | translate }}</span>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-xl-6">
+      <div class="card page-card h-100">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <div>
+            <h2 class="h5 mb-0">{{ 'dashboard.sections.openTasks' | translate }}</h2>
+            <div class="small text-muted">{{ 'dashboard.sections.taskProgress' | translate }}</div>
+          </div>
+          <a routerLink="/tasks" class="btn btn-outline-primary btn-sm">{{ 'common.viewAll' | translate }}</a>
+        </div>
+
+        <div class="card-body p-0">
+          @if (!data()?.openTasks?.length) {
+            <div class="dashboard-empty-state">
+              <i class="bi bi-check2-square"></i>
+              <div>{{ 'dashboard.empty.tasks' | translate }}</div>
+            </div>
+          } @else {
+            <div class="list-group list-group-flush">
+              @for (task of data()?.openTasks || []; track task.id) {
+                <div class="list-group-item">
+                  <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+                    <div>
+                      <div class="fw-semibold">{{ task.title }}</div>
+                      <div class="small text-muted">{{ task.propertyName }}</div>
+                    </div>
+                    <div class="text-end">
+                      <div class="small text-muted">{{ task.dueDate ? (task.dueDate | date:'mediumDate') : '—' }}</div>
+                      <span class="badge" [ngClass]="badgeClass(task.status)">{{ 'tasks.status.' + task.status | translate }}</span>
+                    </div>
+                  </div>
+
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="progress flex-grow-1 dashboard-progress">
+                      <div class="progress-bar" [style.width.%]="taskCompletionRatio(task) * 100"></div>
+                    </div>
+                    <span class="small text-muted">{{ task.completedItems }}/{{ task.totalItems }}</span>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-xl-6">
+      <div class="card page-card h-100">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <div>
+            <h2 class="h5 mb-0">{{ 'dashboard.sections.purchaseLists' | translate }}</h2>
+            <div class="small text-muted">{{ 'dashboard.sections.pendingPurchases' | translate }}</div>
+          </div>
+          <a routerLink="/purchases" class="btn btn-outline-primary btn-sm">{{ 'common.viewAll' | translate }}</a>
+        </div>
+
+        <div class="card-body p-0">
+          @if (!data()?.openPurchases?.length) {
+            <div class="dashboard-empty-state">
+              <i class="bi bi-cart-check"></i>
+              <div>{{ 'dashboard.empty.purchases' | translate }}</div>
+            </div>
+          } @else {
+            <div class="list-group list-group-flush">
+              @for (purchase of data()?.openPurchases || []; track purchase.id) {
+                <div class="list-group-item">
+                  <div class="d-flex justify-content-between align-items-start gap-3">
+                    <div>
+                      <div class="fw-semibold">{{ purchase.supplierName || ('purchases.form.noSupplier' | translate) }}</div>
+                      <div class="small text-muted">{{ purchase.propertyName || '—' }}</div>
+                      <div class="small text-muted">{{ purchase.purchasedItems }}/{{ purchase.totalItems }} {{ 'dashboard.labels.purchasedItems' | translate }}</div>
+                    </div>
+                    <div class="text-end">
+                      <div class="small fw-semibold">{{ purchase.purchaseDate | date:'mediumDate' }}</div>
+                      <div class="small">{{ purchase.estimatedTotal | quetzalCurrency }}</div>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-xl-6">
+      <div class="card page-card h-100">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <div>
+            <h2 class="h5 mb-0">{{ 'dashboard.sections.recentMaintenance' | translate }}</h2>
+            <div class="small text-muted">{{ 'dashboard.sections.latestRecords' | translate }}</div>
+          </div>
+          <a routerLink="/maintenance" class="btn btn-outline-primary btn-sm">{{ 'common.viewAll' | translate }}</a>
+        </div>
+
+        <div class="card-body p-0">
+          @if (!data()?.recentMaintenance?.length) {
+            <div class="dashboard-empty-state">
+              <i class="bi bi-tools"></i>
+              <div>{{ 'dashboard.empty.maintenance' | translate }}</div>
+            </div>
+          } @else {
+            <div class="list-group list-group-flush">
+              @for (maintenance of data()?.recentMaintenance || []; track maintenance.id) {
+                <div class="list-group-item">
+                  <div class="d-flex justify-content-between align-items-start gap-3">
+                    <div>
+                      <div class="fw-semibold">{{ maintenance.title }}</div>
+                      <div class="small text-muted">{{ maintenance.propertyName }}</div>
+                    </div>
+                    <div class="text-end">
+                      <span class="badge" [ngClass]="badgeClass(maintenance.status)">{{ 'maintenance.status.' + maintenance.status | translate }}</span>
+                      <div class="small text-muted mt-1">{{ maintenance.createdAt | date:'mediumDate' }}</div>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-xl-6">
+      <div class="card page-card h-100">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <div>
+            <h2 class="h5 mb-0">{{ 'dashboard.sections.documentAlerts' | translate }}</h2>
+            <div class="small text-muted">{{ 'dashboard.sections.processingNeeded' | translate }}</div>
+          </div>
+          <a routerLink="/documents" class="btn btn-outline-primary btn-sm">{{ 'common.viewAll' | translate }}</a>
+        </div>
+
+        <div class="card-body p-0">
+          @if (!data()?.documentAlerts?.length) {
+            <div class="dashboard-empty-state">
+              <i class="bi bi-file-earmark-check"></i>
+              <div>{{ 'dashboard.empty.documents' | translate }}</div>
+            </div>
+          } @else {
+            <div class="list-group list-group-flush">
+              @for (document of data()?.documentAlerts || []; track document.id) {
+                <div class="list-group-item">
+                  <div class="d-flex justify-content-between align-items-start gap-3">
+                    <div>
+                      <div class="fw-semibold">{{ document.title }}</div>
+                      <div class="small text-muted">{{ document.propertyName || '—' }}</div>
+                      <div class="small text-muted">{{ 'documents.type.' + document.documentType | translate }}</div>
+                    </div>
+                    <div class="text-end">
+                      <span class="badge" [ngClass]="badgeClass(document.processingStatus)">
+                        {{ 'documents.processing.' + document.processingStatus | translate }}
+                      </span>
+                      <div class="small text-muted mt-1">{{ document.createdAt | date:'mediumDate' }}</div>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+}

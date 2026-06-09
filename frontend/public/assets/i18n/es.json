@@ -18,7 +18,8 @@
     "previous": "Anterior",
     "next": "Siguiente",
     "rowsPerPage": "Filas por página",
-    "total": "total"
+    "total": "total",
+    "viewAll": "Ver todo"
   },
   "status": {
     "ACTIVE": "Activo",
@@ -61,7 +62,9 @@
   },
   "dashboard": {
     "title": "Dashboard",
-    "subtitle": "La base del frontend de TAMIAS está lista. Continúa construyendo módulos según el roadmap.",
+    "subtitle": "Resumen operativo de propiedades, reservaciones, mantenimiento, tareas, compras, documentos y flujo IA.",
+    "refresh": "Actualizar",
+    "loading": "Cargando dashboard...",
     "cards": {
       "properties": {
         "title": "Propiedades",
@@ -83,6 +86,68 @@
         "title": "Asistente IA",
         "description": "Haz preguntas sobre documentos indexados con citas de fuente."
       }
+    },
+    "metrics": {
+      "properties": {
+        "title": "Propiedades activas",
+        "description": "Propiedades disponibles en TAMIAS"
+      },
+      "reservations": {
+        "title": "Reservaciones activas",
+        "description": "Reservaciones activas actuales"
+      },
+      "maintenance": {
+        "title": "Mantenimientos pendientes",
+        "description": "Registros pendientes y en progreso"
+      },
+      "scheduledMaintenance": {
+        "title": "Programaciones vencidas",
+        "description": "Mantenimientos programados pendientes"
+      },
+      "tasks": {
+        "title": "Tareas abiertas",
+        "description": "Listas de tareas abiertas"
+      },
+      "purchases": {
+        "title": "Compras abiertas",
+        "description": "Listas de compras abiertas"
+      },
+      "documents": {
+        "title": "Alertas de documentos",
+        "description": "Procesamiento pendiente o fallido"
+      },
+      "aiAssistant": {
+        "title": "Preparación IA",
+        "description": "Documentos pendientes de procesar"
+      }
+    },
+    "sections": {
+      "upcomingReservations": "Próximas reservaciones",
+      "next45Days": "Próximos 45 días",
+      "dueMaintenance": "Mantenimiento programado vencido",
+      "scheduledDue": "Elementos programados más urgentes",
+      "openTasks": "Listas de tareas abiertas",
+      "taskProgress": "Progreso de completado",
+      "purchaseLists": "Listas de compras abiertas",
+      "pendingPurchases": "Seguimiento de compras pendientes",
+      "recentMaintenance": "Mantenimiento reciente",
+      "latestRecords": "Últimos registros de mantenimiento",
+      "documentAlerts": "Alertas de documentos",
+      "processingNeeded": "Procesamiento pendiente o fallido"
+    },
+    "empty": {
+      "reservations": "No se encontraron próximas reservaciones.",
+      "scheduledMaintenance": "No se encontró mantenimiento programado vencido.",
+      "tasks": "No se encontraron listas de tareas abiertas.",
+      "purchases": "No se encontraron listas de compras abiertas.",
+      "maintenance": "No se encontraron mantenimientos recientes.",
+      "documents": "No se encontraron documentos pendientes o fallidos."
+    },
+    "labels": {
+      "purchasedItems": "items comprados"
+    },
+    "messages": {
+      "loadError": "No se pudo cargar la información del dashboard."
     }
   },
   "properties": {
