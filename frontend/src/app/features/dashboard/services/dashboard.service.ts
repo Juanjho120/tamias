@@ -15,6 +15,19 @@ import {
   DashboardTaskListSummary
 } from '../models/dashboard.model';
 
+interface DashboardPropertyImage {
+  id: string;
+  parentId: string;
+  originalFilename: string;
+  contentType: string;
+  sizeBytes: number;
+  cover: boolean | null;
+  status: string;
+  createdAt: string;
+  fileUrl: string | null;
+  fileUrlExpiresIn: number | null;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -96,12 +109,48 @@ export class DashboardService {
       sort: 'checkIn,asc'
     }).pipe(
       switchMap((response) => {
-        const requests = response.content.map((reservation) => this.apiService.get<DashboardReservationDetail>(`/reservations/${reservation.id}`));
+        const detailRequests = response.content.map((reservation) =>
+          this.apiService.get<DashboardReservationDetail>(`/reservations/${reservation.id}`)
+        );
 
-        return requests.length ? forkJoin(requests) : new Observable<DashboardReservationDetail[]>((subscriber) => {
-          subscriber.next([]);
-          subscriber.complete();
-        });
+        return detailRequests.length
+          ? forkJoin(detailRequests)
+          : new Observable<DashboardReservationDetail[]>((subscriber) => {
+            subscriber.next([]);
+            subscriber.complete();
+          });
+      }),
+      switchMap((reservations) => {
+        const propertyIds = [...new Set(reservations.map((reservation) => reservation.propertyId))];
+
+        if (propertyIds.length === 0) {
+          return new Observable<DashboardReservationDetail[]>((subscriber) => {
+            subscriber.next(reservations);
+            subscriber.complete();
+          });
+        }
+
+        const imageRequests = propertyIds.map((propertyId) =>
+          this.apiService.get<DashboardPropertyImage[]>(`/properties/${propertyId}/images`).pipe(
+            map((images) => ({
+              propertyId,
+              coverImageUrl: this.findCoverImageUrl(images)
+            }))
+          )
+        );
+
+        return forkJoin(imageRequests).pipe(
+          map((coverImages) => {
+            const coverByPropertyId = new Map(
+              coverImages.map((item) => [item.propertyId, item.coverImageUrl])
+            );
+
+            return reservations.map((reservation) => ({
+              ...reservation,
+              propertyCoverImageUrl: coverByPropertyId.get(reservation.propertyId) ?? null
+            }));
+          })
+        );
       })
     );
   }
@@ -122,5 +171,12 @@ export class DashboardService {
 
   private toDateString(date: Date): string {
     return date.toISOString().slice(0, 10);
+  }
+
+  private findCoverImageUrl(images: DashboardPropertyImage[]): string | null {
+    const activeImages = images.filter((image) => image.status === 'ACTIVE' && !!image.fileUrl);
+    const coverImage = activeImages.find((image) => image.cover);
+
+    return coverImage?.fileUrl ?? activeImages[0]?.fileUrl ?? null;
   }
 }

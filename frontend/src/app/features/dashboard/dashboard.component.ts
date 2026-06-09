@@ -272,19 +272,27 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   calendarSegmentShapeClass(segment: DashboardReservationCalendarSegment): string {
-    if (segment.rangeStartsHere && segment.rangeEndsHere) {
+    if (segment.startsAtCheckIn && segment.endsAtCheckOut) {
       return 'calendar-event-single';
     }
 
-    if (segment.rangeStartsHere) {
+    if (segment.startsAtCheckIn) {
       return 'calendar-event-start';
     }
 
-    if (segment.rangeEndsHere) {
+    if (segment.endsAtCheckOut) {
       return 'calendar-event-end';
     }
 
     return 'calendar-event-middle';
+  }
+
+  segmentMarginLeft(segment: DashboardReservationCalendarSegment): string {
+    return segment.startsAtCheckIn ? '50%' : '0';
+  }
+
+  segmentMarginRight(segment: DashboardReservationCalendarSegment): string {
+    return segment.endsAtCheckOut ? '50%' : '0';
   }
 
   calendarSegmentGridColumn(segment: DashboardReservationCalendarSegment): string {
@@ -303,6 +311,11 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
 
   calendarTooltipHtml(segment: DashboardReservationCalendarSegment): string {
     this.languageService.currentLanguage();
+
+    const coverImageHtml = segment.propertyCoverImageUrl
+      ? `<img class="reservation-calendar-tooltip-cover" src="${this.escapeHtml(segment.propertyCoverImageUrl)}" alt="${this.escapeHtml(segment.propertyName)}">`
+      : `<div class="reservation-calendar-tooltip-cover reservation-calendar-tooltip-cover-placeholder"><span>🏠</span></div>`;
+
     const rows = [
       [this.languageService.instant('dashboard.calendar.tooltip.guestCount'), String(segment.guestCount)],
       [this.languageService.instant('dashboard.calendar.tooltip.code'), segment.reservationCode || '—'],
@@ -320,10 +333,15 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
     `).join('');
 
     return `
-      <div class="reservation-calendar-tooltip-content">
-        <div class="reservation-calendar-tooltip-title">${this.escapeHtml(segment.primaryGuestName)}</div>
+      <div class="reservation-calendar-tooltip-content reservation-calendar-tooltip-content-with-cover">
+        <div class="reservation-calendar-tooltip-header">
+          ${coverImageHtml}
+          <div>
+            <div class="reservation-calendar-tooltip-title">${this.escapeHtml(segment.primaryGuestName)}</div>
+            <div class="reservation-calendar-tooltip-property-top">${this.escapeHtml(segment.propertyName)}</div>
+          </div>
+        </div>
         ${rowsHtml}
-        <div class="reservation-calendar-tooltip-property">${this.escapeHtml(segment.propertyName)}</div>
       </div>
     `;
   }
@@ -386,13 +404,11 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
 
     const overlappingReservations = reservations
       .map((reservation) => {
-        const lastStayDate = this.previousDateString(reservation.checkOut);
         const segmentStart = reservation.checkIn > rowStart ? reservation.checkIn : rowStart;
-        const segmentEnd = lastStayDate < rowEnd ? lastStayDate : rowEnd;
+        const segmentEnd = reservation.checkOut < rowEnd ? reservation.checkOut : rowEnd;
 
         return {
           reservation,
-          lastStayDate,
           segmentStart,
           segmentEnd
         };
@@ -417,7 +433,7 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
 
       laneEndIndexes[lane] = endIndex;
 
-      return this.toCalendarSegment(item.reservation, item.lastStayDate, item.segmentStart, item.segmentEnd, startIndex, endIndex, lane);
+      return this.toCalendarSegment(item.reservation, item.segmentStart, item.segmentEnd, startIndex, endIndex, lane);
     });
   }
 
@@ -433,7 +449,6 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
 
   private toCalendarSegment(
     reservation: DashboardReservationDetail,
-    lastStayDate: string,
     segmentStart: string,
     segmentEnd: string,
     startIndex: number,
@@ -449,6 +464,7 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
       reservationId: reservation.id,
       propertyId: reservation.propertyId,
       propertyName: reservation.propertyName,
+      propertyCoverImageUrl: reservation.propertyCoverImageUrl ?? null,
       platformName: reservation.platformName,
       reservationCode: reservation.reservationCode,
       checkIn: reservation.checkIn,
@@ -459,7 +475,9 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
       invoiceStatus,
       status: reservation.status,
       rangeStartsHere: reservation.checkIn === segmentStart,
-      rangeEndsHere: lastStayDate === segmentEnd,
+      rangeEndsHere: reservation.checkOut === segmentEnd,
+      startsAtCheckIn: reservation.checkIn === segmentStart,
+      endsAtCheckOut: reservation.checkOut === segmentEnd,
       gridColumnStart: startIndex + 1,
       gridColumnEnd: endIndex + 2,
       lane,

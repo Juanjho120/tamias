@@ -54,6 +54,7 @@ export interface DashboardReservationDetail {
   status: string;
   createdAt: string;
   updatedAt: string;
+  propertyCoverImageUrl: string | null;
 }
 
 export interface DashboardMaintenanceRecordSummary {
@@ -158,6 +159,9 @@ export interface DashboardReservationCalendarSegment {
   gridColumnEnd: number;
   lane: number;
   topRem: number;
+  propertyCoverImageUrl: string | null;
+  startsAtCheckIn: boolean;
+  endsAtCheckOut: boolean;
 }
 
 export interface DashboardData {

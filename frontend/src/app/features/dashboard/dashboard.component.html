@@ -98,7 +98,9 @@
                     [attr.data-bs-title]="calendarTooltipHtml(segment)"
                     [ngClass]="[calendarSegmentClass(segment), calendarSegmentShapeClass(segment)]"
                     [style.grid-column]="calendarSegmentGridColumn(segment)"
-                    [style.top.rem]="segment.topRem">
+                    [style.top.rem]="segment.topRem"
+                    [style.margin-left]="segmentMarginLeft(segment)"
+                    [style.margin-right]="segmentMarginRight(segment)">
                     <span class="reservation-calendar-event-label">{{ segment.primaryGuestName }}</span>
                   </div>
                 }
