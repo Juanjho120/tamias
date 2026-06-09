@@ -6,6 +6,7 @@
     "info": "Info",
     "logout": "Logout",
     "cancel": "Cancel",
+    "close": "Close",
     "confirm": "Confirm",
     "confirmAction": "Confirm action",
     "confirmContinue": "Are you sure you want to continue?",
@@ -135,6 +136,38 @@
       "created": "Property created successfully.",
       "updated": "Property updated successfully.",
       "deleted": "Property deleted successfully."
+    },
+    "images": {
+      "button": "Images",
+      "title": "Property images",
+      "loading": "Loading images...",
+      "cover": "Cover",
+      "setCover": "Set cover",
+      "previewUnavailable": "Preview unavailable",
+      "urlExpiresIn": "URL expires in {{seconds}} seconds",
+      "confirmDeleteTitle": "Delete image",
+      "confirmDeleteMessage": "Delete image \"{{filename}}\"?",
+      "upload": {
+        "file": "Image file",
+        "help": "Allowed types: JPG, PNG, WEBP. Maximum size is controlled by backend configuration.",
+        "asCover": "Use as cover image",
+        "button": "Upload image",
+        "uploading": "Uploading..."
+      },
+      "empty": {
+        "title": "No images yet",
+        "description": "Upload property images to make this listing easier to recognize."
+      },
+      "messages": {
+        "loadError": "Unable to load property images.",
+        "fileRequired": "Select an image file first.",
+        "uploaded": "Image uploaded successfully.",
+        "uploadError": "Unable to upload image.",
+        "coverUpdated": "Cover image updated successfully.",
+        "coverError": "Unable to update cover image.",
+        "deleted": "Image deleted successfully.",
+        "deleteError": "Unable to delete image."
+      }
     }
   }
 }

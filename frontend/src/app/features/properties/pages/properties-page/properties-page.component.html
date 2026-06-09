@@ -108,6 +108,13 @@
                   <div class="btn-group">
                     <button
                       type="button"
+                      class="btn btn-outline-secondary btn-sm"
+                      (click)="openImages(property)">
+                      <i class="bi bi-images me-1"></i>
+                      {{ 'properties.images.button' | translate }}
+                    </button>
+                    <button
+                      type="button"
                       class="btn btn-outline-primary btn-sm"
                       (click)="openEditForm(property.id)">
                       <i class="bi bi-pencil-square me-1"></i>
@@ -183,6 +190,12 @@
   </div>
   <div class="modal-backdrop fade show"></div>
 }
+
+<app-property-images-modal
+  [open]="!!propertyForImages()"
+  [property]="propertyForImages()"
+  (close)="closeImages()"
+  (imagesChanged)="loadProperties()" />
 
 <app-confirm-modal
   [open]="!!propertyToDelete()"

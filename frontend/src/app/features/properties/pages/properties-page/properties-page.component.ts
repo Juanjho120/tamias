@@ -9,6 +9,7 @@ import { ConfirmModalComponent } from '../../../../shared/confirm-modal/confirm-
 import { ToastService } from '../../../../shared/toast/toast.service';
 import { Property, PropertyRequest, PropertyStatus, PropertySummary, PROPERTY_STATUSES } from '../../models/property.model';
 import { PropertyFormComponent } from '../../components/property-form/property-form.component';
+import { PropertyImagesModalComponent } from '../../components/property-images-modal/property-images-modal.component';
 import { PropertyService } from '../../services/property.service';
 
 type FormMode = 'create' | 'edit';
@@ -16,7 +17,7 @@ type FormMode = 'create' | 'edit';
 @Component({
   selector: 'app-properties-page',
   standalone: true,
-  imports: [DatePipe, FormsModule, NgClass, TranslatePipe, PropertyFormComponent, ConfirmModalComponent],
+  imports: [DatePipe, FormsModule, NgClass, TranslatePipe, PropertyFormComponent, PropertyImagesModalComponent, ConfirmModalComponent],
   templateUrl: './properties-page.component.html'
 })
 export class PropertiesPageComponent implements OnInit {
@@ -32,6 +33,7 @@ export class PropertiesPageComponent implements OnInit {
   readonly properties = signal<PropertySummary[]>([]);
   readonly selectedProperty = signal<Property | null>(null);
   readonly propertyToDelete = signal<PropertySummary | null>(null);
+  readonly propertyForImages = signal<PropertySummary | null>(null);
   readonly formVisible = signal(false);
   readonly formMode = signal<FormMode>('create');
 
@@ -156,6 +158,14 @@ export class PropertiesPageComponent implements OnInit {
     });
   }
 
+  openImages(property: PropertySummary): void {
+    this.propertyForImages.set(property);
+  }
+
+  closeImages(): void {
+    this.propertyForImages.set(null);
+  }
+
   closeForm(): void {
     if (this.saving()) {
       return;
@@ -236,6 +246,8 @@ export class PropertiesPageComponent implements OnInit {
         return 'text-bg-secondary';
       case 'DELETED':
         return 'text-bg-danger';
+      default:
+        return 'text-bg-secondary';
     }
   }
 

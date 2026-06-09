@@ -6,6 +6,7 @@
     "info": "Información",
     "logout": "Cerrar sesión",
     "cancel": "Cancelar",
+    "close": "Cerrar",
     "confirm": "Confirmar",
     "confirmAction": "Confirmar acción",
     "confirmContinue": "¿Seguro que quieres continuar?",
@@ -135,6 +136,38 @@
       "created": "Propiedad creada correctamente.",
       "updated": "Propiedad actualizada correctamente.",
       "deleted": "Propiedad eliminada correctamente."
+    },
+    "images": {
+      "button": "Imágenes",
+      "title": "Imágenes de propiedad",
+      "loading": "Cargando imágenes...",
+      "cover": "Portada",
+      "setCover": "Marcar portada",
+      "previewUnavailable": "Vista previa no disponible",
+      "urlExpiresIn": "URL expira en {{seconds}} segundos",
+      "confirmDeleteTitle": "Eliminar imagen",
+      "confirmDeleteMessage": "¿Eliminar la imagen \"{{filename}}\"?",
+      "upload": {
+        "file": "Archivo de imagen",
+        "help": "Tipos permitidos: JPG, PNG, WEBP. El tamaño máximo lo controla la configuración del backend.",
+        "asCover": "Usar como imagen de portada",
+        "button": "Subir imagen",
+        "uploading": "Subiendo..."
+      },
+      "empty": {
+        "title": "Aún no hay imágenes",
+        "description": "Sube imágenes de la propiedad para identificarla más fácilmente."
+      },
+      "messages": {
+        "loadError": "No se pudieron cargar las imágenes de la propiedad.",
+        "fileRequired": "Selecciona primero un archivo de imagen.",
+        "uploaded": "Imagen subida correctamente.",
+        "uploadError": "No se pudo subir la imagen.",
+        "coverUpdated": "Imagen de portada actualizada correctamente.",
+        "coverError": "No se pudo actualizar la imagen de portada.",
+        "deleted": "Imagen eliminada correctamente.",
+        "deleteError": "No se pudo eliminar la imagen."
+      }
     }
   }
 }
