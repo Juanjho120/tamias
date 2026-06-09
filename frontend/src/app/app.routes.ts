@@ -55,7 +55,7 @@ export const routes: Routes = [
       },
       {
         path: 'purchases',
-        loadComponent: () => import('./features/placeholders/purchases-page.component').then((m) => m.PurchasesPageComponent),
+        loadComponent: () => import('./features/purchases/pages/purchases-page/purchases-page.component').then((m) => m.PurchasesPageComponent),
         title: 'Purchases | TAMIAS'
       },
       {

@@ -1,0 +1,239 @@
+@if (open) {
+  <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title">
+              {{ (purchaseList ? 'purchases.form.editTitle' : 'purchases.form.createTitle') | translate }}
+            </h5>
+            <div class="small text-muted">{{ 'purchases.form.subtitle' | translate }}</div>
+          </div>
+          <button type="button" class="btn-close" aria-label="Close" [disabled]="loading" (click)="cancel.emit()"></button>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+          <div class="modal-body">
+            <div class="row g-4">
+              <div class="col-12 col-xl-5">
+                <div class="row g-3">
+                  <div class="col-12">
+                    <label for="purchase-property" class="form-label">{{ 'purchases.form.property' | translate }}</label>
+                    <select id="purchase-property" class="form-select" formControlName="propertyId">
+                      <option value="">{{ 'purchases.form.noProperty' | translate }}</option>
+                      @for (property of properties; track property.id) {
+                        <option [value]="property.id">{{ property.name }}</option>
+                      }
+                    </select>
+                  </div>
+
+                  <div class="col-12">
+                    <label for="purchase-city" class="form-label">{{ 'purchases.form.city' | translate }}</label>
+                    <select id="purchase-city" class="form-select" formControlName="cityId">
+                      <option value="">{{ 'purchases.form.noCity' | translate }}</option>
+                      @for (city of cities; track city.id) {
+                        <option [value]="city.id">{{ city.name }}</option>
+                      }
+                    </select>
+                  </div>
+
+                  <div class="col-12">
+                    <label for="purchase-supplier" class="form-label">{{ 'purchases.form.supplier' | translate }}</label>
+                    <select id="purchase-supplier" class="form-select" formControlName="supplierId">
+                      <option value="">{{ 'purchases.form.noSupplier' | translate }}</option>
+                      @for (supplier of suppliers; track supplier.id) {
+                        <option [value]="supplier.id">{{ supplier.name }}</option>
+                      }
+                    </select>
+                  </div>
+
+                  <div class="col-12 col-lg-6">
+                    <label for="purchase-date" class="form-label">{{ 'purchases.form.purchaseDate' | translate }}</label>
+                    <input
+                      id="purchase-date"
+                      type="date"
+                      class="form-control"
+                      [ngClass]="{ 'is-invalid': isInvalid('purchaseDate') }"
+                      formControlName="purchaseDate">
+                    @if (isInvalid('purchaseDate')) {
+                      <div class="invalid-feedback">{{ 'purchases.validation.purchaseDateRequired' | translate }}</div>
+                    }
+                  </div>
+
+                  <div class="col-12 col-lg-6">
+                    <label for="purchase-status" class="form-label">{{ 'purchases.form.status' | translate }}</label>
+                    <select
+                      id="purchase-status"
+                      class="form-select"
+                      [ngClass]="{ 'is-invalid': isInvalid('status') }"
+                      formControlName="status">
+                      @for (status of statuses; track status) {
+                        <option [value]="status">{{ 'purchases.status.' + status | translate }}</option>
+                      }
+                    </select>
+                    @if (isInvalid('status')) {
+                      <div class="invalid-feedback">{{ 'purchases.validation.statusRequired' | translate }}</div>
+                    }
+                  </div>
+
+                  <div class="col-12">
+                    <label for="purchase-notes" class="form-label">{{ 'purchases.form.notes' | translate }}</label>
+                    <textarea id="purchase-notes" class="form-control" rows="4" formControlName="notes"></textarea>
+                  </div>
+
+                  <div class="col-12">
+                    <div class="card border-0 bg-light">
+                      <div class="card-body">
+                        <div class="small text-muted">{{ 'purchases.form.estimatedTotal' | translate }}</div>
+                        <div class="fs-4 fw-bold">{{ estimatedTotal() | quetzalCurrency }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-12 col-xl-7">
+                <div class="card border-0 bg-light h-100">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                      <h6 class="mb-0">{{ 'purchases.items.title' | translate }}</h6>
+                      <span class="badge text-bg-secondary">{{ items().length }}</span>
+                    </div>
+
+                    <div [formGroup]="itemForm" class="row g-2 mb-3">
+                      <div class="col-12 col-lg-6">
+                        <label for="purchase-item-material" class="form-label">{{ 'purchases.items.material' | translate }}</label>
+                        <select
+                          id="purchase-item-material"
+                          class="form-select"
+                          formControlName="materialId"
+                          (ngModelChange)="onMaterialSelected($event)">
+                          <option value="">{{ 'purchases.items.noMaterial' | translate }}</option>
+                          @for (material of materials; track material.id) {
+                            <option [value]="material.id">{{ material.name }}</option>
+                          }
+                        </select>
+                      </div>
+
+                      <div class="col-12 col-lg-6">
+                        <label for="purchase-item-brand" class="form-label">{{ 'purchases.items.brand' | translate }}</label>
+                        <select id="purchase-item-brand" class="form-select" formControlName="brandId">
+                          <option value="">{{ 'purchases.items.noBrand' | translate }}</option>
+                          @for (brand of brands; track brand.id) {
+                            <option [value]="brand.id">{{ brand.name }}</option>
+                          }
+                        </select>
+                      </div>
+
+                      <div class="col-12">
+                        <label for="purchase-item-name" class="form-label">{{ 'purchases.items.itemNameSnapshot' | translate }}</label>
+                        <input
+                          id="purchase-item-name"
+                          type="text"
+                          class="form-control"
+                          maxlength="150"
+                          [ngClass]="{ 'is-invalid': isItemInvalid('itemNameSnapshot') }"
+                          formControlName="itemNameSnapshot">
+                        @if (isItemInvalid('itemNameSnapshot')) {
+                          <div class="invalid-feedback">{{ 'purchases.validation.itemRequired' | translate }}</div>
+                        }
+                      </div>
+
+                      <div class="col-12 col-lg-4">
+                        <label for="purchase-item-quantity" class="form-label">{{ 'purchases.items.quantity' | translate }}</label>
+                        <input id="purchase-item-quantity" type="number" class="form-control" min="0.01" step="0.01" formControlName="quantity">
+                      </div>
+
+                      <div class="col-12 col-lg-4">
+                        <label for="purchase-item-unit" class="form-label">{{ 'purchases.items.unit' | translate }}</label>
+                        <input id="purchase-item-unit" type="text" class="form-control" maxlength="50" formControlName="unit">
+                      </div>
+
+                      <div class="col-12 col-lg-4">
+                        <label for="purchase-item-price" class="form-label">{{ 'purchases.items.estimatedPrice' | translate }}</label>
+                        <input id="purchase-item-price" type="number" class="form-control" min="0" step="0.01" formControlName="estimatedPrice">
+                      </div>
+
+                      <div class="col-12">
+                        <label for="purchase-item-notes" class="form-label">{{ 'purchases.items.notes' | translate }}</label>
+                        <textarea id="purchase-item-notes" class="form-control" rows="2" formControlName="notes"></textarea>
+                      </div>
+
+                      <div class="col-12 d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                        <div class="form-check">
+                          <input id="purchase-item-purchased" type="checkbox" class="form-check-input" formControlName="purchased">
+                          <label for="purchase-item-purchased" class="form-check-label">{{ 'purchases.items.purchased' | translate }}</label>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                          <button type="button" class="btn btn-primary" (click)="addOrUpdateItem()">
+                            <i class="bi bi-plus-lg me-1"></i>
+                            {{ (editingItemIndex() === null ? 'purchases.items.add' : 'purchases.items.update') | translate }}
+                          </button>
+                          @if (editingItemIndex() !== null) {
+                            <button type="button" class="btn btn-outline-secondary" (click)="cancelItemEdit()">
+                              {{ 'common.cancel' | translate }}
+                            </button>
+                          }
+                        </div>
+                      </div>
+                    </div>
+
+                    @if (items().length === 0) {
+                      <div class="text-muted small border rounded-3 p-3 bg-white">
+                        {{ 'purchases.items.empty' | translate }}
+                      </div>
+                    } @else {
+                      <div class="list-group">
+                        @for (item of items(); track $index) {
+                          <div class="list-group-item d-flex justify-content-between align-items-start gap-3">
+                            <div>
+                              <div class="fw-semibold">
+                                @if (item.purchased) {
+                                  <i class="bi bi-check-circle-fill text-success me-1"></i>
+                                }
+                                {{ itemDisplayName(item) }}
+                              </div>
+                              <div class="small text-muted">
+                                {{ brandDisplayName(item) }}
+                                · {{ item.quantity ?? '—' }} {{ item.unit || '' }}
+                                · {{ item.estimatedPrice | quetzalCurrency }}
+                              </div>
+                            </div>
+                            <div class="btn-group">
+                              <button type="button" class="btn btn-outline-primary btn-sm" (click)="editItem($index)">
+                                <i class="bi bi-pencil-square"></i>
+                              </button>
+                              <button type="button" class="btn btn-outline-danger btn-sm" (click)="removeItem($index)">
+                                <i class="bi bi-trash"></i>
+                              </button>
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" [disabled]="loading" (click)="cancel.emit()">
+              {{ 'common.cancel' | translate }}
+            </button>
+            <button type="submit" class="btn btn-primary" [disabled]="loading">
+              @if (loading) {
+                <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+                {{ 'common.saving' | translate }}
+              } @else {
+                {{ 'purchases.form.save' | translate }}
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}

@@ -737,5 +737,113 @@
         "completionError": "Unable to update task item completion."
       }
     }
+  },
+  "purchases": {
+    "title": "Purchases",
+    "subtitle": "Manage purchase lists, suppliers, materials and purchased item tracking.",
+    "newPurchaseList": "New purchase list",
+    "loading": "Loading purchase lists...",
+    "confirmDeleteTitle": "Delete purchase list",
+    "confirmDeleteMessage": "Delete purchase list from \"{{date}}\"? This action will mark it as deleted.",
+    "filters": {
+      "property": "Property",
+      "allProperties": "All properties",
+      "supplier": "Supplier",
+      "allSuppliers": "All suppliers",
+      "city": "City",
+      "allCities": "All cities",
+      "status": "Status",
+      "allStatuses": "All statuses"
+    },
+    "table": {
+      "purchaseDate": "Purchase date",
+      "location": "Location",
+      "supplier": "Supplier",
+      "progress": "Progress",
+      "estimatedTotal": "Estimated total",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "empty": {
+      "title": "No purchase lists found",
+      "description": "Create your first purchase list to continue."
+    },
+    "pagination": {
+      "noItems": "No purchase lists",
+      "pageOf": "Page {{page}} of {{totalPages}}"
+    },
+    "status": {
+      "OPEN": "Open",
+      "PARTIALLY_PURCHASED": "Partially purchased",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled",
+      "DELETED": "Deleted"
+    },
+    "form": {
+      "createTitle": "Create purchase list",
+      "editTitle": "Edit purchase list",
+      "subtitle": "Fill in the purchase list details and items.",
+      "property": "Property",
+      "noProperty": "No property",
+      "city": "City",
+      "noCity": "No city",
+      "supplier": "Supplier",
+      "noSupplier": "No supplier",
+      "purchaseDate": "Purchase date",
+      "status": "Status",
+      "notes": "Notes",
+      "estimatedTotal": "Estimated total",
+      "save": "Save purchase list"
+    },
+    "validation": {
+      "purchaseDateRequired": "Purchase date is required.",
+      "statusRequired": "Status is required.",
+      "itemRequired": "Select a material or enter a manual item name."
+    },
+    "messages": {
+      "loadError": "Unable to load purchase lists.",
+      "referencesError": "Unable to load reference data.",
+      "detailError": "Unable to load purchase list details.",
+      "saveError": "Unable to save purchase list.",
+      "deleteError": "Unable to delete purchase list.",
+      "created": "Purchase list created successfully.",
+      "updated": "Purchase list updated successfully.",
+      "deleted": "Purchase list deleted successfully."
+    },
+    "items": {
+      "button": "Items",
+      "title": "Purchase items",
+      "modalTitle": "Purchase list items",
+      "loading": "Loading purchase items...",
+      "newItem": "New item",
+      "editItem": "Edit item",
+      "material": "Material",
+      "noMaterial": "No material",
+      "brand": "Brand",
+      "noBrand": "No brand",
+      "itemNameSnapshot": "Manual item name",
+      "quantity": "Quantity",
+      "unit": "Unit",
+      "estimatedPrice": "Estimated price",
+      "purchased": "Purchased",
+      "notes": "Notes",
+      "add": "Add item",
+      "update": "Update item",
+      "empty": "No purchase items added yet.",
+      "markPurchased": "Mark purchased",
+      "markPending": "Mark pending",
+      "confirmDeleteTitle": "Delete purchase item",
+      "confirmDeleteMessage": "Delete purchase item \"{{name}}\"?",
+      "messages": {
+        "loadError": "Unable to load purchase items.",
+        "saveError": "Unable to save purchase item.",
+        "deleteError": "Unable to delete purchase item.",
+        "created": "Purchase item created successfully.",
+        "updated": "Purchase item updated successfully.",
+        "deleted": "Purchase item deleted successfully.",
+        "purchasedUpdated": "Purchase item status updated.",
+        "purchasedError": "Unable to update purchase item status."
+      }
+    }
   }
 }

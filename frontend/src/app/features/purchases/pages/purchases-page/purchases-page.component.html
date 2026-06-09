@@ -1,0 +1,229 @@
+<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+  <div>
+    <h1 class="h3 mb-1">{{ 'purchases.title' | translate }}</h1>
+    <p class="text-muted mb-0">{{ 'purchases.subtitle' | translate }}</p>
+  </div>
+
+  <button type="button" class="btn btn-primary" [disabled]="loadingReferences()" (click)="openCreateForm()">
+    <i class="bi bi-plus-lg me-1"></i>
+    {{ 'purchases.newPurchaseList' | translate }}
+  </button>
+</div>
+
+<div class="card page-card mb-4">
+  <div class="card-body p-4">
+    <div class="row g-3 align-items-end">
+      <div class="col-12 col-md-6 col-xl-3">
+        <label for="purchase-property-filter" class="form-label">{{ 'purchases.filters.property' | translate }}</label>
+        <select
+          id="purchase-property-filter"
+          class="form-select"
+          [ngModel]="propertyId()"
+          (ngModelChange)="propertyId.set($event)">
+          <option value="">{{ 'purchases.filters.allProperties' | translate }}</option>
+          @for (property of references().properties; track property.id) {
+            <option [value]="property.id">{{ property.name }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="col-12 col-md-6 col-xl-3">
+        <label for="purchase-supplier-filter" class="form-label">{{ 'purchases.filters.supplier' | translate }}</label>
+        <select
+          id="purchase-supplier-filter"
+          class="form-select"
+          [ngModel]="supplierId()"
+          (ngModelChange)="supplierId.set($event)">
+          <option value="">{{ 'purchases.filters.allSuppliers' | translate }}</option>
+          @for (supplier of references().suppliers; track supplier.id) {
+            <option [value]="supplier.id">{{ supplier.name }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="col-12 col-md-6 col-xl-2">
+        <label for="purchase-city-filter" class="form-label">{{ 'purchases.filters.city' | translate }}</label>
+        <select
+          id="purchase-city-filter"
+          class="form-select"
+          [ngModel]="cityId()"
+          (ngModelChange)="cityId.set($event)">
+          <option value="">{{ 'purchases.filters.allCities' | translate }}</option>
+          @for (city of references().cities; track city.id) {
+            <option [value]="city.id">{{ city.name }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="col-12 col-md-6 col-xl-2">
+        <label for="purchase-status-filter" class="form-label">{{ 'purchases.filters.status' | translate }}</label>
+        <select
+          id="purchase-status-filter"
+          class="form-select"
+          [ngModel]="status()"
+          (ngModelChange)="status.set($event)">
+          <option value="">{{ 'purchases.filters.allStatuses' | translate }}</option>
+          @for (item of statuses; track item) {
+            <option [value]="item">{{ 'purchases.status.' + item | translate }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="col-12 col-xl-2 d-flex gap-2">
+        <button type="button" class="btn btn-primary" (click)="applyFilters()">
+          <i class="bi bi-search me-1"></i>
+          {{ 'common.search' | translate }}
+        </button>
+        <button type="button" class="btn btn-outline-secondary" (click)="clearFilters()">
+          {{ 'common.clear' | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card page-card">
+  <div class="card-body p-0">
+    @if (loading()) {
+      <div class="p-5 text-center">
+        <div class="spinner-border text-primary" role="status"></div>
+        <div class="text-muted mt-3">{{ 'purchases.loading' | translate }}</div>
+      </div>
+    } @else if (purchaseLists().length === 0) {
+      <div class="p-5 text-center">
+        <div class="d-inline-flex align-items-center justify-content-center rounded-4 bg-secondary-subtle text-secondary p-4 mb-3">
+          <i class="bi bi-cart-check fs-1"></i>
+        </div>
+        <h2 class="h5">{{ 'purchases.empty.title' | translate }}</h2>
+        <p class="text-muted mb-3">{{ 'purchases.empty.description' | translate }}</p>
+        <button type="button" class="btn btn-primary" [disabled]="loadingReferences()" (click)="openCreateForm()">
+          {{ 'purchases.newPurchaseList' | translate }}
+        </button>
+      </div>
+    } @else {
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+          <tr>
+            <th>{{ 'purchases.table.purchaseDate' | translate }}</th>
+            <th>{{ 'purchases.table.location' | translate }}</th>
+            <th>{{ 'purchases.table.supplier' | translate }}</th>
+            <th>{{ 'purchases.table.progress' | translate }}</th>
+            <th>{{ 'purchases.table.estimatedTotal' | translate }}</th>
+            <th>{{ 'purchases.table.status' | translate }}</th>
+            <th class="text-end">{{ 'purchases.table.actions' | translate }}</th>
+          </tr>
+          </thead>
+          <tbody>
+            @for (purchaseList of purchaseLists(); track purchaseList.id) {
+              <tr>
+                <td>
+                  <div class="fw-semibold">{{ purchaseList.purchaseDate | date:'mediumDate' }}</div>
+                  <div class="small text-muted">{{ purchaseList.createdAt | date:'mediumDate' }}</div>
+                </td>
+                <td>
+                  <div>{{ purchaseList.propertyName || '—' }}</div>
+                  <div class="small text-muted">{{ purchaseList.cityName || '—' }}</div>
+                </td>
+                <td>{{ purchaseList.supplierName || '—' }}</td>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="progress flex-grow-1" style="height: 0.5rem;">
+                      <div class="progress-bar" [style.width.%]="purchasedRatio(purchaseList) * 100"></div>
+                    </div>
+                    <span class="small text-muted">{{ purchaseList.purchasedItems }}/{{ purchaseList.totalItems }}</span>
+                  </div>
+                </td>
+                <td>{{ purchaseList.estimatedTotal | quetzalCurrency }}</td>
+                <td>
+                  <span class="badge" [ngClass]="statusBadgeClass(purchaseList.status)">
+                    {{ 'purchases.status.' + purchaseList.status | translate }}
+                  </span>
+                </td>
+                <td class="text-end">
+                  <div class="btn-group">
+                    <button type="button" class="btn btn-outline-dark btn-sm" (click)="openItems(purchaseList)">
+                      <i class="bi bi-cart-check me-1"></i>
+                      {{ 'purchases.items.button' | translate }}
+                    </button>
+                    <button type="button" class="btn btn-outline-primary btn-sm" (click)="openEditForm(purchaseList.id)">
+                      <i class="bi bi-pencil-square me-1"></i>
+                      {{ 'common.edit' | translate }}
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-outline-danger btn-sm"
+                      [disabled]="deletingId() === purchaseList.id"
+                      (click)="requestDelete(purchaseList)">
+                      @if (deletingId() === purchaseList.id) {
+                        <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+                      } @else {
+                        <i class="bi bi-trash me-1"></i>
+                      }
+                      {{ 'common.delete' | translate }}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 p-3 border-top">
+        <div class="d-flex align-items-center gap-2">
+          <span class="text-muted small">{{ 'common.rowsPerPage' | translate }}</span>
+          <select class="form-select form-select-sm w-auto" [ngModel]="size()" (ngModelChange)="changePageSize($event)">
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+          </select>
+        </div>
+
+        <div class="d-flex align-items-center gap-3">
+          <span class="text-muted small">{{ pageLabel() }} · {{ totalElements() }} {{ 'common.total' | translate }}</span>
+          <div class="btn-group">
+            <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="first()" (click)="previousPage()">
+              {{ 'common.previous' | translate }}
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="last()" (click)="nextPage()">
+              {{ 'common.next' | translate }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+</div>
+
+<app-purchase-list-form-modal
+  [open]="formVisible()"
+  [purchaseList]="selectedPurchaseList()"
+  [properties]="references().properties"
+  [cities]="references().cities"
+  [suppliers]="references().suppliers"
+  [materials]="references().materials"
+  [brands]="references().brands"
+  [loading]="saving()"
+  (save)="savePurchaseList($event)"
+  (cancel)="closeForm()" />
+
+<app-purchase-items-modal
+  [open]="!!purchaseListForItems()"
+  [purchaseListSummary]="purchaseListForItems()"
+  [materials]="references().materials"
+  [brands]="references().brands"
+  (close)="closeItems()"
+  (itemsChanged)="loadPurchaseLists()" />
+
+<app-confirm-modal
+  [open]="!!purchaseListToDelete()"
+  title="purchases.confirmDeleteTitle"
+  [message]="deleteMessage()"
+  confirmText="common.delete"
+  cancelText="common.cancel"
+  confirmButtonClass="btn-danger"
+  [loading]="!!deletingId()"
+  (confirm)="confirmDelete()"
+  (cancel)="cancelDelete()" />
