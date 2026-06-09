@@ -1,0 +1,237 @@
+<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+  <div>
+    <h1 class="h3 mb-1">{{ 'reservations.title' | translate }}</h1>
+    <p class="text-muted mb-0">{{ 'reservations.subtitle' | translate }}</p>
+  </div>
+
+  <button type="button" class="btn btn-primary" [disabled]="loadingReferences()" (click)="openCreateForm()">
+    <i class="bi bi-plus-lg me-1"></i>
+    {{ 'reservations.newReservation' | translate }}
+  </button>
+</div>
+
+<div class="card page-card mb-4">
+  <div class="card-body p-4">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-end gap-3 mb-3">
+      <div class="btn-group" role="group">
+        <button
+          type="button"
+          class="btn"
+          [class.btn-primary]="viewMode() === 'list'"
+          [class.btn-outline-primary]="viewMode() !== 'list'"
+          (click)="setViewMode('list')">
+          {{ 'reservations.views.list' | translate }}
+        </button>
+        <button
+          type="button"
+          class="btn"
+          [class.btn-primary]="viewMode() === 'calendar'"
+          [class.btn-outline-primary]="viewMode() !== 'calendar'"
+          (click)="setViewMode('calendar')">
+          {{ 'reservations.views.calendar' | translate }}
+        </button>
+      </div>
+    </div>
+
+    <div class="row g-3 align-items-end">
+      @if (viewMode() === 'list') {
+        <div class="col-12 col-md-6 col-lg-4">
+          <label for="reservation-property-filter" class="form-label">{{ 'reservations.filters.property' | translate }}</label>
+          <select
+            id="reservation-property-filter"
+            class="form-select"
+            [ngModel]="propertyId()"
+            (ngModelChange)="propertyId.set($event)">
+            <option value="">{{ 'reservations.filters.allProperties' | translate }}</option>
+            @for (property of references().properties; track property.id) {
+              <option [value]="property.id">{{ property.name }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="col-12 col-md-6 col-lg-4">
+          <label for="reservation-status-filter" class="form-label">{{ 'reservations.filters.status' | translate }}</label>
+          <select
+            id="reservation-status-filter"
+            class="form-select"
+            [ngModel]="status()"
+            (ngModelChange)="status.set($event)">
+            <option value="">{{ 'reservations.filters.allStatuses' | translate }}</option>
+            @for (item of statuses; track item) {
+              <option [value]="item">{{ 'reservations.status.' + item | translate }}</option>
+            }
+          </select>
+        </div>
+      } @else {
+        <div class="col-12 col-md-6 col-lg-4">
+          <label for="reservation-start-date" class="form-label">{{ 'reservations.filters.startDate' | translate }}</label>
+          <input
+            id="reservation-start-date"
+            type="date"
+            class="form-control"
+            [ngModel]="startDate()"
+            (ngModelChange)="startDate.set($event)">
+        </div>
+
+        <div class="col-12 col-md-6 col-lg-4">
+          <label for="reservation-end-date" class="form-label">{{ 'reservations.filters.endDate' | translate }}</label>
+          <input
+            id="reservation-end-date"
+            type="date"
+            class="form-control"
+            [ngModel]="endDate()"
+            (ngModelChange)="endDate.set($event)">
+        </div>
+      }
+
+      <div class="col-12 col-lg-4 d-flex gap-2">
+        <button type="button" class="btn btn-primary" (click)="applyFilters()">
+          <i class="bi bi-search me-1"></i>
+          {{ 'common.search' | translate }}
+        </button>
+        <button type="button" class="btn btn-outline-secondary" (click)="clearFilters()">
+          {{ 'common.clear' | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card page-card">
+  <div class="card-body p-0">
+    @if (loading()) {
+      <div class="p-5 text-center">
+        <div class="spinner-border text-primary" role="status"></div>
+        <div class="text-muted mt-3">{{ 'reservations.loading' | translate }}</div>
+      </div>
+    } @else if (reservations().length === 0) {
+      <div class="p-5 text-center">
+        <div class="d-inline-flex align-items-center justify-content-center rounded-4 bg-secondary-subtle text-secondary p-4 mb-3">
+          <i class="bi bi-calendar-range fs-1"></i>
+        </div>
+        <h2 class="h5">{{ 'reservations.empty.title' | translate }}</h2>
+        <p class="text-muted mb-3">{{ 'reservations.empty.description' | translate }}</p>
+        <button type="button" class="btn btn-primary" [disabled]="loadingReferences()" (click)="openCreateForm()">
+          {{ 'reservations.newReservation' | translate }}
+        </button>
+      </div>
+    } @else {
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+          <tr>
+            <th>{{ 'reservations.table.code' | translate }}</th>
+            <th>{{ 'reservations.table.property' | translate }}</th>
+            <th>{{ 'reservations.table.platform' | translate }}</th>
+            <th>{{ 'reservations.table.dates' | translate }}</th>
+            <th>{{ 'reservations.table.guests' | translate }}</th>
+            <th>{{ 'reservations.table.value' | translate }}</th>
+            <th>{{ 'reservations.table.status' | translate }}</th>
+            <th class="text-end">{{ 'reservations.table.actions' | translate }}</th>
+          </tr>
+          </thead>
+          <tbody>
+            @for (reservation of reservations(); track reservation.id) {
+              <tr>
+                <td>
+                  <div class="fw-semibold">{{ reservation.reservationCode || '—' }}</div>
+                  <div class="small text-muted">{{ reservation.createdAt | date:'mediumDate' }}</div>
+                </td>
+                <td>{{ reservation.propertyName }}</td>
+                <td>{{ reservation.platformName || '—' }}</td>
+                <td>
+                  <div>{{ reservation.checkIn | date:'mediumDate' }}</div>
+                  <div class="small text-muted">{{ reservation.checkOut | date:'mediumDate' }}</div>
+                </td>
+                <td>{{ guestNamesLabel(reservation) }}</td>
+                <td>{{ reservation.reservationValue | quetzalCurrency }}</td>
+                <td>
+                  <span class="badge" [ngClass]="statusBadgeClass(reservation.status)">
+                    {{ 'reservations.status.' + reservation.status | translate }}
+                  </span>
+                </td>
+                <td class="text-end">
+                  <div class="btn-group">
+                    <button type="button" class="btn btn-outline-primary btn-sm" (click)="openEditForm(reservation.id)">
+                      <i class="bi bi-pencil-square me-1"></i>
+                      {{ 'common.edit' | translate }}
+                    </button>
+                    @if (canCancel(reservation)) {
+                      <button type="button" class="btn btn-outline-warning btn-sm" [disabled]="cancelling()" (click)="requestCancel(reservation)">
+                        <i class="bi bi-x-circle me-1"></i>
+                        {{ 'reservations.cancel.short' | translate }}
+                      </button>
+                    }
+                    <button
+                      type="button"
+                      class="btn btn-outline-danger btn-sm"
+                      [disabled]="deletingId() === reservation.id"
+                      (click)="requestDelete(reservation)">
+                      @if (deletingId() === reservation.id) {
+                        <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+                      } @else {
+                        <i class="bi bi-trash me-1"></i>
+                      }
+                      {{ 'common.delete' | translate }}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 p-3 border-top">
+        <div class="d-flex align-items-center gap-2">
+          <span class="text-muted small">{{ 'common.rowsPerPage' | translate }}</span>
+          <select class="form-select form-select-sm w-auto" [ngModel]="size()" (ngModelChange)="changePageSize($event)">
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+          </select>
+        </div>
+
+        <div class="d-flex align-items-center gap-3">
+          <span class="text-muted small">{{ pageLabel() }} · {{ totalElements() }} {{ 'common.total' | translate }}</span>
+          <div class="btn-group">
+            <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="first()" (click)="previousPage()">
+              {{ 'common.previous' | translate }}
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="last()" (click)="nextPage()">
+              {{ 'common.next' | translate }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+</div>
+
+<app-reservation-form-modal
+  [open]="formVisible()"
+  [reservation]="selectedReservation()"
+  [properties]="references().properties"
+  [platforms]="references().platforms"
+  [loading]="saving()"
+  (save)="saveReservation($event)"
+  (cancel)="closeForm()" />
+
+<app-cancel-reservation-modal
+  [open]="!!reservationToCancel()"
+  [reservationTitle]="cancelReservationTitle()"
+  [loading]="cancelling()"
+  (confirm)="confirmCancel($event)"
+  (cancel)="closeCancel()" />
+
+<app-confirm-modal
+  [open]="!!reservationToDelete()"
+  title="reservations.confirmDeleteTitle"
+  [message]="deleteMessage()"
+  confirmText="common.delete"
+  cancelText="common.cancel"
+  confirmButtonClass="btn-danger"
+  [loading]="!!deletingId()"
+  (confirm)="confirmDelete()"
+  (cancel)="cancelDelete()" />

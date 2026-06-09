@@ -535,5 +535,105 @@
       "reason": "Reason",
       "changedBy": "Changed by"
     }
+  },
+  "reservations": {
+    "title": "Reservations",
+    "subtitle": "Manage reservations, guests, calendar ranges and cancellation workflow.",
+    "newReservation": "New reservation",
+    "loading": "Loading reservations...",
+    "confirmDeleteTitle": "Delete reservation",
+    "confirmDeleteMessage": "Delete reservation \"{{code}}\"? This action will mark it as deleted.",
+    "views": {
+      "list": "List",
+      "calendar": "Calendar range"
+    },
+    "filters": {
+      "property": "Property",
+      "allProperties": "All properties",
+      "status": "Status",
+      "allStatuses": "All statuses",
+      "startDate": "Start date",
+      "endDate": "End date"
+    },
+    "table": {
+      "code": "Code",
+      "property": "Property",
+      "platform": "Platform",
+      "dates": "Dates",
+      "guests": "Guests",
+      "value": "Value",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "empty": {
+      "title": "No reservations found",
+      "description": "Create your first reservation to continue."
+    },
+    "pagination": {
+      "noItems": "No reservations",
+      "pageOf": "Page {{page}} of {{totalPages}}"
+    },
+    "status": {
+      "ACTIVE": "Active",
+      "CANCELLED": "Cancelled",
+      "DELETED": "Deleted"
+    },
+    "form": {
+      "createTitle": "Create reservation",
+      "editTitle": "Edit reservation",
+      "subtitle": "Fill in the reservation details and guests.",
+      "property": "Property",
+      "selectProperty": "Select a property",
+      "platform": "Platform",
+      "noPlatform": "No platform",
+      "reservationCode": "Reservation code",
+      "status": "Status",
+      "checkIn": "Check-in",
+      "checkOut": "Check-out",
+      "reservationValue": "Reservation value",
+      "suppliesDelivered": "Supplies delivered",
+      "invoiceNumber": "Invoice number",
+      "invoiceSeries": "Invoice series",
+      "observations": "Observations",
+      "save": "Save reservation"
+    },
+    "guests": {
+      "title": "Guests",
+      "primaryGuest": "Primary guest",
+      "fullName": "Full name",
+      "email": "Email",
+      "phone": "Phone",
+      "primary": "Primary guest",
+      "primaryBadge": "Primary",
+      "add": "Add guest",
+      "update": "Update guest",
+      "empty": "No guests added yet."
+    },
+    "cancel": {
+      "short": "Cancel",
+      "title": "Cancel reservation",
+      "reason": "Cancellation reason",
+      "confirm": "Cancel reservation"
+    },
+    "validation": {
+      "propertyRequired": "Property is required.",
+      "statusRequired": "Status is required.",
+      "checkInRequired": "Check-in date is required.",
+      "checkOutRequired": "Check-out date is required.",
+      "guestNameRequired": "Guest name is required.",
+      "emailInvalid": "Email must be valid."
+    },
+    "messages": {
+      "loadError": "Unable to load reservations.",
+      "referencesError": "Unable to load reference data.",
+      "detailError": "Unable to load reservation details.",
+      "saveError": "Unable to save reservation.",
+      "deleteError": "Unable to delete reservation.",
+      "cancelError": "Unable to cancel reservation.",
+      "created": "Reservation created successfully.",
+      "updated": "Reservation updated successfully.",
+      "deleted": "Reservation deleted successfully.",
+      "cancelled": "Reservation cancelled successfully."
+    }
   }
 }

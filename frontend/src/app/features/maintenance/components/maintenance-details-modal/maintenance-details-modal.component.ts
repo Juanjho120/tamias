@@ -1,4 +1,3 @@
-import { DecimalPipe } from '@angular/common';
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, computed, inject, signal } from '@angular/core';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -23,7 +22,7 @@ interface DeleteTarget {
 @Component({
   selector: 'app-maintenance-details-modal',
   standalone: true,
-  imports: [DecimalPipe, FormsModule, ReactiveFormsModule, TranslatePipe, ConfirmModalComponent],
+  imports: [FormsModule, ReactiveFormsModule, TranslatePipe, ConfirmModalComponent],
   templateUrl: './maintenance-details-modal.component.html'
 })
 export class MaintenanceDetailsModalComponent implements OnChanges {

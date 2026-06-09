@@ -1,0 +1,253 @@
+@if (open) {
+  <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title">
+              {{ (reservation ? 'reservations.form.editTitle' : 'reservations.form.createTitle') | translate }}
+            </h5>
+            <div class="small text-muted">{{ 'reservations.form.subtitle' | translate }}</div>
+          </div>
+          <button type="button" class="btn-close" aria-label="Close" [disabled]="loading" (click)="cancel.emit()"></button>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+          <div class="modal-body">
+            <div class="row g-4">
+              <div class="col-12 col-xl-7">
+                <div class="row g-3">
+                  <div class="col-12 col-lg-6">
+                    <label for="reservation-property" class="form-label">{{ 'reservations.form.property' | translate }}</label>
+                    <select
+                      id="reservation-property"
+                      class="form-select"
+                      [ngClass]="{ 'is-invalid': isInvalid('propertyId') }"
+                      formControlName="propertyId">
+                      <option value="">{{ 'reservations.form.selectProperty' | translate }}</option>
+                      @for (property of properties; track property.id) {
+                        <option [value]="property.id">{{ property.name }}</option>
+                      }
+                    </select>
+                    @if (isInvalid('propertyId')) {
+                      <div class="invalid-feedback">{{ 'reservations.validation.propertyRequired' | translate }}</div>
+                    }
+                  </div>
+
+                  <div class="col-12 col-lg-6">
+                    <label for="reservation-platform" class="form-label">{{ 'reservations.form.platform' | translate }}</label>
+                    <select id="reservation-platform" class="form-select" formControlName="platformId">
+                      <option value="">{{ 'reservations.form.noPlatform' | translate }}</option>
+                      @for (platform of platforms; track platform.id) {
+                        <option [value]="platform.id">{{ platform.name }}</option>
+                      }
+                    </select>
+                  </div>
+
+                  <div class="col-12 col-lg-6">
+                    <label for="reservation-code" class="form-label">{{ 'reservations.form.reservationCode' | translate }}</label>
+                    <input id="reservation-code" type="text" class="form-control" maxlength="150" formControlName="reservationCode">
+                  </div>
+
+                  <div class="col-12 col-lg-6">
+                    <label for="reservation-status" class="form-label">{{ 'reservations.form.status' | translate }}</label>
+                    <select
+                      id="reservation-status"
+                      class="form-select"
+                      [ngClass]="{ 'is-invalid': isInvalid('status') }"
+                      formControlName="status">
+                      @for (status of statuses; track status) {
+                        <option [value]="status">{{ 'reservations.status.' + status | translate }}</option>
+                      }
+                    </select>
+                    @if (isInvalid('status')) {
+                      <div class="invalid-feedback">{{ 'reservations.validation.statusRequired' | translate }}</div>
+                    }
+                  </div>
+
+                  <div class="col-12 col-lg-6">
+                    <label for="reservation-check-in" class="form-label">{{ 'reservations.form.checkIn' | translate }}</label>
+                    <input
+                      id="reservation-check-in"
+                      type="date"
+                      class="form-control"
+                      [ngClass]="{ 'is-invalid': isInvalid('checkIn') }"
+                      formControlName="checkIn">
+                    @if (isInvalid('checkIn')) {
+                      <div class="invalid-feedback">{{ 'reservations.validation.checkInRequired' | translate }}</div>
+                    }
+                  </div>
+
+                  <div class="col-12 col-lg-6">
+                    <label for="reservation-check-out" class="form-label">{{ 'reservations.form.checkOut' | translate }}</label>
+                    <input
+                      id="reservation-check-out"
+                      type="date"
+                      class="form-control"
+                      [ngClass]="{ 'is-invalid': isInvalid('checkOut') }"
+                      formControlName="checkOut">
+                    @if (isInvalid('checkOut')) {
+                      <div class="invalid-feedback">{{ 'reservations.validation.checkOutRequired' | translate }}</div>
+                    }
+                  </div>
+
+                  <div class="col-12 col-lg-6">
+                    <label for="reservation-value" class="form-label">{{ 'reservations.form.reservationValue' | translate }}</label>
+                    <input id="reservation-value" type="number" class="form-control" min="0" step="0.01" formControlName="reservationValue">
+                  </div>
+
+                  <div class="col-12 col-lg-6">
+                    <div class="form-check mt-lg-4 pt-lg-3">
+                      <input id="reservation-supplies" type="checkbox" class="form-check-input" formControlName="suppliesDelivered">
+                      <label for="reservation-supplies" class="form-check-label">
+                        {{ 'reservations.form.suppliesDelivered' | translate }}
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="col-12 col-lg-6">
+                    <label for="reservation-invoice-number" class="form-label">{{ 'reservations.form.invoiceNumber' | translate }}</label>
+                    <input id="reservation-invoice-number" type="text" class="form-control" maxlength="100" formControlName="invoiceNumber">
+                  </div>
+
+                  <div class="col-12 col-lg-6">
+                    <label for="reservation-invoice-series" class="form-label">{{ 'reservations.form.invoiceSeries' | translate }}</label>
+                    <input id="reservation-invoice-series" type="text" class="form-control" maxlength="100" formControlName="invoiceSeries">
+                  </div>
+
+                  <div class="col-12">
+                    <label for="reservation-observations" class="form-label">{{ 'reservations.form.observations' | translate }}</label>
+                    <textarea id="reservation-observations" class="form-control" rows="3" formControlName="observations"></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-12 col-xl-5">
+                <div class="card border-0 bg-light h-100">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                      <div>
+                        <h6 class="mb-1">{{ 'reservations.guests.title' | translate }}</h6>
+                        <div class="small text-muted">
+                          {{ 'reservations.guests.primaryGuest' | translate }}: {{ primaryGuestName() }}
+                        </div>
+                      </div>
+                      <span class="badge text-bg-secondary">{{ guests().length }}</span>
+                    </div>
+
+                    <div [formGroup]="guestForm" class="row g-2 mb-3">
+                      <div class="col-12">
+                        <label for="reservation-guest-name" class="form-label">{{ 'reservations.guests.fullName' | translate }}</label>
+                        <input
+                          id="reservation-guest-name"
+                          type="text"
+                          class="form-control"
+                          maxlength="150"
+                          [ngClass]="{ 'is-invalid': isGuestInvalid('fullName') }"
+                          formControlName="fullName">
+                        @if (isGuestInvalid('fullName')) {
+                          <div class="invalid-feedback">{{ 'reservations.validation.guestNameRequired' | translate }}</div>
+                        }
+                      </div>
+
+                      <div class="col-12 col-lg-6">
+                        <label for="reservation-guest-email" class="form-label">{{ 'reservations.guests.email' | translate }}</label>
+                        <input
+                          id="reservation-guest-email"
+                          type="email"
+                          class="form-control"
+                          [ngClass]="{ 'is-invalid': isGuestInvalid('email') }"
+                          formControlName="email">
+                        @if (isGuestInvalid('email')) {
+                          <div class="invalid-feedback">{{ 'reservations.validation.emailInvalid' | translate }}</div>
+                        }
+                      </div>
+
+                      <div class="col-12 col-lg-6">
+                        <label for="reservation-guest-phone" class="form-label">{{ 'reservations.guests.phone' | translate }}</label>
+                        <input id="reservation-guest-phone" type="text" class="form-control" maxlength="50" formControlName="phone">
+                      </div>
+
+                      <div class="col-12">
+                        <div class="form-check">
+                          <input id="reservation-guest-primary" type="checkbox" class="form-check-input" formControlName="primary">
+                          <label for="reservation-guest-primary" class="form-check-label">
+                            {{ 'reservations.guests.primary' | translate }}
+                          </label>
+                        </div>
+                      </div>
+
+                      <div class="col-12 d-flex gap-2">
+                        <button type="button" class="btn btn-primary" (click)="addOrUpdateGuest()">
+                          <i class="bi bi-plus-lg me-1"></i>
+                          {{ (editingGuestIndex() === null ? 'reservations.guests.add' : 'reservations.guests.update') | translate }}
+                        </button>
+                        @if (editingGuestIndex() !== null) {
+                          <button type="button" class="btn btn-outline-secondary" (click)="cancelGuestEdit()">
+                            {{ 'common.cancel' | translate }}
+                          </button>
+                        }
+                      </div>
+                    </div>
+
+                    @if (guests().length === 0) {
+                      <div class="text-muted small border rounded-3 p-3 bg-white">
+                        {{ 'reservations.guests.empty' | translate }}
+                      </div>
+                    } @else {
+                      <div class="list-group">
+                        @for (guest of guests(); track $index) {
+                          <div class="list-group-item d-flex justify-content-between align-items-start gap-3">
+                            <div>
+                              <div class="fw-semibold">
+                                {{ guest.fullName }}
+                                @if (guest.primary) {
+                                  <span class="badge text-bg-primary ms-1">{{ 'reservations.guests.primaryBadge' | translate }}</span>
+                                }
+                              </div>
+                              <div class="small text-muted">
+                                {{ guest.email || '—' }} · {{ guest.phone || '—' }}
+                              </div>
+                            </div>
+                            <div class="btn-group">
+                              @if (!guest.primary) {
+                                <button type="button" class="btn btn-outline-secondary btn-sm" (click)="setPrimaryGuest($index)">
+                                  <i class="bi bi-star"></i>
+                                </button>
+                              }
+                              <button type="button" class="btn btn-outline-primary btn-sm" (click)="editGuest($index)">
+                                <i class="bi bi-pencil-square"></i>
+                              </button>
+                              <button type="button" class="btn btn-outline-danger btn-sm" (click)="removeGuest($index)">
+                                <i class="bi bi-trash"></i>
+                              </button>
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" [disabled]="loading" (click)="cancel.emit()">
+              {{ 'common.cancel' | translate }}
+            </button>
+            <button type="submit" class="btn btn-primary" [disabled]="loading">
+              @if (loading) {
+                <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+                {{ 'common.saving' | translate }}
+              } @else {
+                {{ 'reservations.form.save' | translate }}
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}

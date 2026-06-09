@@ -45,7 +45,7 @@ export const routes: Routes = [
       },
       {
         path: 'reservations',
-        loadComponent: () => import('./features/placeholders/reservations-page.component').then((m) => m.ReservationsPageComponent),
+        loadComponent: () => import('./features/reservations/pages/reservations-page/reservations-page.component').then((m) => m.ReservationsPageComponent),
         title: 'Reservations | TAMIAS'
       },
       {
