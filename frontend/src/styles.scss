@@ -636,3 +636,44 @@ a {
   background: #6c757d;
   color: #fff;
 }
+
+.sidebar-brand {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.sidebar-brand-logo {
+  display: block;
+  object-fit: contain;
+}
+
+.sidebar-brand-logo-large {
+  width: 100%;
+  max-width: 220px;
+  height: auto;
+  border-radius: 1rem;
+  background: var(--bs-white);
+  box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.16);
+}
+
+.mobile-brand {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+}
+
+.mobile-brand-logo,
+.offcanvas-brand-logo {
+  width: 2.5rem;
+  height: 2.5rem;
+  object-fit: contain;
+  border-radius: 0.75rem;
+  background: var(--bs-white);
+  box-shadow: 0 0.35rem 0.85rem rgba(15, 23, 42, 0.12);
+}
+
+.offcanvas-brand-logo {
+  width: 2.25rem;
+  height: 2.25rem;
+}
