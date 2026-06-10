@@ -50,7 +50,7 @@
     "aiAssistant": "AI Assistant"
   },
   "login": {
-    "title": "Welcome to TAMIAS",
+    "title": "Welcome",
     "subtitle": "Sign in to manage your properties.",
     "email": "Email",
     "password": "Password",
