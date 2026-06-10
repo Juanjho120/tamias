@@ -1197,5 +1197,76 @@
       "renameError": "Unable to rename chat session.",
       "renamed": "Chat session renamed successfully."
     }
+  },
+  "users": {
+    "title": "Users",
+    "subtitle": "Manage users, roles and access inside your organization.",
+    "newUser": "New user",
+    "loading": "Loading users...",
+    "currentUser": "Current user",
+    "fields": {
+      "firstName": "First name",
+      "lastName": "Last name",
+      "email": "Email",
+      "password": "Temporary password",
+      "role": "Role",
+      "status": "Status"
+    },
+    "table": {
+      "name": "Name",
+      "email": "Email",
+      "role": "Role",
+      "status": "Status",
+      "created": "Created",
+      "actions": "Actions",
+      "you": "You"
+    },
+    "actions": {
+      "activate": "Activate",
+      "deactivate": "Deactivate"
+    },
+    "form": {
+      "createTitle": "Create user",
+      "editTitle": "Edit user",
+      "subtitle": "Assign a role and control user access.",
+      "passwordHelp": "The user can use this password for the first login."
+    },
+    "roles": {
+      "title": "Available roles"
+    },
+    "permissions": {
+      "title": "Roles and permissions",
+      "description": "Permissions are currently role-based and enforced by the backend. Custom permission management can be added later if needed."
+    },
+    "empty": {
+      "title": "No users found",
+      "description": "Create your first user for this organization."
+    },
+    "pagination": {
+      "noUsers": "No users",
+      "pageOf": "Page {{page}} of {{totalPages}}"
+    },
+    "validation": {
+      "firstNameRequired": "First name is required.",
+      "lastNameRequired": "Last name is required.",
+      "emailRequired": "Enter a valid email address.",
+      "passwordRequired": "Password must be between 8 and 100 characters.",
+      "roleRequired": "Role is required.",
+      "statusRequired": "Status is required."
+    },
+    "messages": {
+      "loadError": "Could not load users.",
+      "detailError": "Could not load user details.",
+      "saveError": "Could not save user.",
+      "deleteError": "Could not delete user.",
+      "statusError": "Could not update user status.",
+      "created": "User created successfully.",
+      "updated": "User updated successfully.",
+      "deleted": "User deleted successfully.",
+      "activated": "User activated successfully.",
+      "deactivated": "User deactivated successfully."
+    },
+    "confirmDeleteTitle": "Delete user",
+    "confirmDeleteMessage": "Are you sure you want to delete {{name}}?"
   }
 }

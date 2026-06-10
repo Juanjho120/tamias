@@ -8,7 +8,7 @@
     </div>
 
     <nav class="nav nav-pills flex-column gap-1">
-      @for (item of menuItems; track item.route) {
+      @for (item of menuItems(); track item.route) {
         <a
           class="nav-link d-flex align-items-center gap-2"
           [routerLink]="item.route"
@@ -83,7 +83,7 @@
 
   <div class="offcanvas-body">
     <nav class="nav nav-pills flex-column gap-1">
-      @for (item of menuItems; track item.route) {
+      @for (item of menuItems(); track item.route) {
         <a
           class="nav-link d-flex align-items-center gap-2 text-white"
           [routerLink]="item.route"

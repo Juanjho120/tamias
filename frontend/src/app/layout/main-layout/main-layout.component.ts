@@ -33,18 +33,28 @@ export class MainLayoutComponent {
     return `${user.firstName} ${user.lastName}`;
   });
 
-  readonly menuItems: MenuItem[] = [
-    { labelKey: 'navigation.dashboard', icon: 'bi-speedometer2', route: '/dashboard' },
-    { labelKey: 'navigation.properties', icon: 'bi-houses', route: '/properties' },
-    { labelKey: 'navigation.catalogs', icon: 'bi-tags', route: '/catalogs' },
-    { labelKey: 'navigation.maintenance', icon: 'bi-tools', route: '/maintenance' },
-    { labelKey: 'navigation.scheduledMaintenance', icon: 'bi-calendar-check', route: '/scheduled-maintenance' },
-    { labelKey: 'navigation.reservations', icon: 'bi-calendar2-week', route: '/reservations' },
-    { labelKey: 'navigation.tasks', icon: 'bi-check2-square', route: '/tasks' },
-    { labelKey: 'navigation.purchases', icon: 'bi-cart-check', route: '/purchases' },
-    { labelKey: 'navigation.documents', icon: 'bi-file-earmark-text', route: '/documents' },
-    { labelKey: 'navigation.aiAssistant', icon: 'bi-stars', route: '/ai-assistant' }
-  ];
+  readonly isAdministrator = computed(() => this.user()?.role === 'ADMINISTRATOR');
+
+  readonly menuItems = computed<MenuItem[]>(() => {
+    const items: MenuItem[] = [
+      { labelKey: 'navigation.dashboard', icon: 'bi-speedometer2', route: '/dashboard' },
+      { labelKey: 'navigation.properties', icon: 'bi-houses', route: '/properties' },
+      { labelKey: 'navigation.catalogs', icon: 'bi-tags', route: '/catalogs' },
+      { labelKey: 'navigation.maintenance', icon: 'bi-tools', route: '/maintenance' },
+      { labelKey: 'navigation.scheduledMaintenance', icon: 'bi-calendar-check', route: '/scheduled-maintenance' },
+      { labelKey: 'navigation.reservations', icon: 'bi-calendar2-week', route: '/reservations' },
+      { labelKey: 'navigation.tasks', icon: 'bi-check2-square', route: '/tasks' },
+      { labelKey: 'navigation.purchases', icon: 'bi-cart-check', route: '/purchases' },
+      { labelKey: 'navigation.documents', icon: 'bi-file-earmark-text', route: '/documents' },
+      { labelKey: 'navigation.aiAssistant', icon: 'bi-stars', route: '/ai-assistant' }
+    ];
+
+    if (this.isAdministrator()) {
+      items.push({ labelKey: 'navigation.users', icon: 'bi-people', route: '/users' });
+    }
+
+    return items;
+  });
 
   logout(): void {
     this.authService.logout();

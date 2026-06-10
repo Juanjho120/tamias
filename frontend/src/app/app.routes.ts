@@ -67,6 +67,11 @@ export const routes: Routes = [
         path: 'ai-assistant',
         loadComponent: () => import('./features/ai-assistant/pages/ai-assistant-page/ai-assistant-page.component').then((m) => m.AiAssistantPageComponent),
         title: 'AI Assistant | TAMIAS'
+      },
+      {
+        path: 'users',
+        loadComponent: () => import('./features/users/pages/users-page/users-page.component').then((m) => m.UsersPageComponent),
+        title: 'Users | TAMIAS'
       }
     ]
   },

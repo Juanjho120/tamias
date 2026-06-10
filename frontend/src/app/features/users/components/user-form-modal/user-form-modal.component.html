@@ -1,0 +1,139 @@
+@if (open) {
+  <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title">
+              {{ (mode === 'create' ? 'users.form.createTitle' : 'users.form.editTitle') | translate }}
+            </h5>
+            <div class="small text-muted">{{ 'users.form.subtitle' | translate }}</div>
+          </div>
+          <button
+            type="button"
+            class="btn-close"
+            aria-label="Close"
+            [disabled]="loading"
+            (click)="cancel.emit()">
+          </button>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-12 col-md-6">
+                <label for="user-first-name" class="form-label">{{ 'users.fields.firstName' | translate }}</label>
+                <input
+                  id="user-first-name"
+                  type="text"
+                  class="form-control"
+                  [ngClass]="{ 'is-invalid': isInvalid('firstName') }"
+                  formControlName="firstName">
+                @if (isInvalid('firstName')) {
+                  <div class="invalid-feedback">{{ 'users.validation.firstNameRequired' | translate }}</div>
+                }
+              </div>
+
+              <div class="col-12 col-md-6">
+                <label for="user-last-name" class="form-label">{{ 'users.fields.lastName' | translate }}</label>
+                <input
+                  id="user-last-name"
+                  type="text"
+                  class="form-control"
+                  [ngClass]="{ 'is-invalid': isInvalid('lastName') }"
+                  formControlName="lastName">
+                @if (isInvalid('lastName')) {
+                  <div class="invalid-feedback">{{ 'users.validation.lastNameRequired' | translate }}</div>
+                }
+              </div>
+
+              <div class="col-12">
+                <label for="user-email" class="form-label">{{ 'users.fields.email' | translate }}</label>
+                <input
+                  id="user-email"
+                  type="email"
+                  class="form-control"
+                  [ngClass]="{ 'is-invalid': isInvalid('email') }"
+                  formControlName="email">
+                @if (isInvalid('email')) {
+                  <div class="invalid-feedback">{{ 'users.validation.emailRequired' | translate }}</div>
+                }
+              </div>
+
+              @if (mode === 'create') {
+                <div class="col-12">
+                  <label for="user-password" class="form-label">{{ 'users.fields.password' | translate }}</label>
+                  <input
+                    id="user-password"
+                    type="password"
+                    class="form-control"
+                    [ngClass]="{ 'is-invalid': isInvalid('password') }"
+                    formControlName="password"
+                    autocomplete="new-password">
+                  @if (isInvalid('password')) {
+                    <div class="invalid-feedback">{{ 'users.validation.passwordRequired' | translate }}</div>
+                  }
+                  <div class="form-text">{{ 'users.form.passwordHelp' | translate }}</div>
+                </div>
+              }
+
+              <div class="col-12 col-md-6">
+                <label for="user-role" class="form-label">{{ 'users.fields.role' | translate }}</label>
+                <select
+                  id="user-role"
+                  class="form-select"
+                  [ngClass]="{ 'is-invalid': isInvalid('role') }"
+                  formControlName="role">
+                  @for (role of roles; track role) {
+                    <option [value]="role">{{ 'roles.' + role + '.label' | translate }}</option>
+                  }
+                </select>
+                @if (isInvalid('role')) {
+                  <div class="invalid-feedback">{{ 'users.validation.roleRequired' | translate }}</div>
+                }
+              </div>
+
+              @if (mode === 'edit') {
+                <div class="col-12 col-md-6">
+                  <label for="user-status" class="form-label">{{ 'users.fields.status' | translate }}</label>
+                  <select
+                    id="user-status"
+                    class="form-select"
+                    [ngClass]="{ 'is-invalid': isInvalid('status') }"
+                    formControlName="status">
+                    @for (status of statuses; track status) {
+                      <option [value]="status">{{ 'status.' + status | translate }}</option>
+                    }
+                  </select>
+                  @if (isInvalid('status')) {
+                    <div class="invalid-feedback">{{ 'users.validation.statusRequired' | translate }}</div>
+                  }
+                </div>
+              }
+
+              <div class="col-12">
+                <div class="alert alert-info mb-0">
+                  <div class="fw-semibold mb-1">{{ 'users.permissions.title' | translate }}</div>
+                  <div class="small">{{ 'roles.' + form.controls.role.value + '.description' | translate }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" [disabled]="loading" (click)="cancel.emit()">
+              {{ 'common.cancel' | translate }}
+            </button>
+            <button type="submit" class="btn btn-primary" [disabled]="loading">
+              @if (loading) {
+                <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+              }
+              {{ 'common.saving' | translate }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}
