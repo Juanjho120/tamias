@@ -4,6 +4,7 @@ import com.tamias.catalog.maintenancecategory.repository.MaintenanceCategoryRepo
 import com.tamias.catalog.maintenanceperson.repository.MaintenancePersonRepository;
 import com.tamias.catalog.maintenancetype.repository.MaintenanceTypeRepository;
 import com.tamias.common.dto.PageResponse;
+import com.tamias.common.exception.BadRequestException;
 import com.tamias.common.exception.NotFoundException;
 import com.tamias.maintenance.dto.MaintenanceRecordRequest;
 import com.tamias.maintenance.dto.MaintenanceRecordResponse;
@@ -26,7 +27,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class MaintenanceRecordService {
-
     private final MaintenanceRecordRepository maintenanceRecordRepository;
     private final OrganizationRepository organizationRepository;
     private final PropertyRepository propertyRepository;
@@ -38,15 +38,15 @@ public class MaintenanceRecordService {
     private final MaintenanceRecordMapper maintenanceRecordMapper;
 
     public MaintenanceRecordService(
-            MaintenanceRecordRepository maintenanceRecordRepository,
-            OrganizationRepository organizationRepository,
-            PropertyRepository propertyRepository,
-            MaintenanceCategoryRepository maintenanceCategoryRepository,
-            MaintenanceTypeRepository maintenanceTypeRepository,
-            MaintenancePersonRepository maintenancePersonRepository,
-            UserRepository userRepository,
-            CurrentUserService currentUserService,
-            MaintenanceRecordMapper maintenanceRecordMapper
+        MaintenanceRecordRepository maintenanceRecordRepository,
+        OrganizationRepository organizationRepository,
+        PropertyRepository propertyRepository,
+        MaintenanceCategoryRepository maintenanceCategoryRepository,
+        MaintenanceTypeRepository maintenanceTypeRepository,
+        MaintenancePersonRepository maintenancePersonRepository,
+        UserRepository userRepository,
+        CurrentUserService currentUserService,
+        MaintenanceRecordMapper maintenanceRecordMapper
     ) {
         this.maintenanceRecordRepository = maintenanceRecordRepository;
         this.organizationRepository = organizationRepository;
@@ -62,37 +62,36 @@ public class MaintenanceRecordService {
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF', 'READ_ONLY')")
     public PageResponse<MaintenanceRecordSummaryResponse> findAll(
-            UUID propertyId,
-            MaintenanceStatus status,
-            Pageable pageable
+        UUID propertyId,
+        MaintenanceStatus status,
+        Pageable pageable
     ) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-
         Page<MaintenanceRecord> page;
 
         if (propertyId == null && status == null) {
             page = maintenanceRecordRepository.findByOrganization_IdAndDeletedAtIsNull(
-                    organizationId,
-                    pageable
+                organizationId,
+                pageable
             );
         } else if (propertyId != null && status == null) {
             page = maintenanceRecordRepository.findByOrganization_IdAndProperty_IdAndDeletedAtIsNull(
-                    organizationId,
-                    propertyId,
-                    pageable
+                organizationId,
+                propertyId,
+                pageable
             );
         } else if (propertyId == null) {
             page = maintenanceRecordRepository.findByOrganization_IdAndStatusAndDeletedAtIsNull(
-                    organizationId,
-                    status,
-                    pageable
+                organizationId,
+                status,
+                pageable
             );
         } else {
             page = maintenanceRecordRepository.findByOrganization_IdAndProperty_IdAndStatusAndDeletedAtIsNull(
-                    organizationId,
-                    propertyId,
-                    status,
-                    pageable
+                organizationId,
+                propertyId,
+                status,
+                pageable
             );
         }
 
@@ -108,17 +107,19 @@ public class MaintenanceRecordService {
     @Transactional
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF')")
     public MaintenanceRecordResponse create(MaintenanceRecordRequest request) {
+        validateWritableStatus(request.status());
+
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
         var organization = organizationRepository.findByIdAndDeletedAtIsNull(organizationId)
-                .orElseThrow(() -> new NotFoundException("Organization not found"));
+            .orElseThrow(() -> new NotFoundException("Organization not found"));
 
         var property = propertyRepository
-                .findByIdAndOrganization_IdAndDeletedAtIsNull(request.propertyId(), organizationId)
-                .orElseThrow(() -> new NotFoundException("Property not found"));
+            .findByIdAndOrganization_IdAndDeletedAtIsNull(request.propertyId(), organizationId)
+            .orElseThrow(() -> new NotFoundException("Property not found"));
 
         var currentUser = userRepository.findByIdAndDeletedAtIsNull(currentUserService.getCurrentUserId())
-                .orElseThrow(() -> new NotFoundException("User not found"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
 
         MaintenanceRecord entity = new MaintenanceRecord();
         entity.setOrganization(organization);
@@ -135,16 +136,17 @@ public class MaintenanceRecordService {
     @Transactional
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF')")
     public MaintenanceRecordResponse update(UUID id, MaintenanceRecordRequest request) {
-        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        validateWritableStatus(request.status());
 
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
         MaintenanceRecord entity = findEntityInCurrentOrganization(id);
 
         var property = propertyRepository
-                .findByIdAndOrganization_IdAndDeletedAtIsNull(request.propertyId(), organizationId)
-                .orElseThrow(() -> new NotFoundException("Property not found"));
+            .findByIdAndOrganization_IdAndDeletedAtIsNull(request.propertyId(), organizationId)
+            .orElseThrow(() -> new NotFoundException("Property not found"));
 
         var currentUser = userRepository.findByIdAndDeletedAtIsNull(currentUserService.getCurrentUserId())
-                .orElseThrow(() -> new NotFoundException("User not found"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
 
         entity.setProperty(property);
         entity.setUpdatedBy(currentUser);
@@ -161,7 +163,7 @@ public class MaintenanceRecordService {
         MaintenanceRecord entity = findEntityInCurrentOrganization(id);
 
         var currentUser = userRepository.findByIdAndDeletedAtIsNull(currentUserService.getCurrentUserId())
-                .orElseThrow(() -> new NotFoundException("User not found"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
 
         entity.setStatus(MaintenanceStatus.DELETED);
         entity.setDeletedAt(OffsetDateTime.now());
@@ -174,21 +176,22 @@ public class MaintenanceRecordService {
     private MaintenanceRecord findEntityInCurrentOrganization(UUID id) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
-        return maintenanceRecordRepository.findByIdAndOrganization_IdAndDeletedAtIsNull(id, organizationId)
-                .orElseThrow(() -> new NotFoundException("Maintenance record not found"));
+        return maintenanceRecordRepository
+            .findByIdAndOrganization_IdAndDeletedAtIsNull(id, organizationId)
+            .orElseThrow(() -> new NotFoundException("Maintenance record not found"));
     }
 
     private void setOptionalRelations(
-            MaintenanceRecord entity,
-            MaintenanceRecordRequest request,
-            UUID organizationId
+        MaintenanceRecord entity,
+        MaintenanceRecordRequest request,
+        UUID organizationId
     ) {
         if (request.maintenanceCategoryId() == null) {
             entity.setMaintenanceCategory(null);
         } else {
             var maintenanceCategory = maintenanceCategoryRepository
-                    .findByIdAndOrganization_IdAndDeletedAtIsNull(request.maintenanceCategoryId(), organizationId)
-                    .orElseThrow(() -> new NotFoundException("Maintenance category not found"));
+                .findByIdAndOrganization_IdAndDeletedAtIsNull(request.maintenanceCategoryId(), organizationId)
+                .orElseThrow(() -> new NotFoundException("Maintenance category not found"));
 
             entity.setMaintenanceCategory(maintenanceCategory);
         }
@@ -197,8 +200,8 @@ public class MaintenanceRecordService {
             entity.setMaintenanceType(null);
         } else {
             var maintenanceType = maintenanceTypeRepository
-                    .findByIdAndOrganization_IdAndDeletedAtIsNull(request.maintenanceTypeId(), organizationId)
-                    .orElseThrow(() -> new NotFoundException("Maintenance type not found"));
+                .findByIdAndOrganization_IdAndDeletedAtIsNull(request.maintenanceTypeId(), organizationId)
+                .orElseThrow(() -> new NotFoundException("Maintenance type not found"));
 
             entity.setMaintenanceType(maintenanceType);
         }
@@ -207,10 +210,16 @@ public class MaintenanceRecordService {
             entity.setMaintenancePerson(null);
         } else {
             var maintenancePerson = maintenancePersonRepository
-                    .findByIdAndOrganization_IdAndDeletedAtIsNull(request.maintenancePersonId(), organizationId)
-                    .orElseThrow(() -> new NotFoundException("Maintenance person not found"));
+                .findByIdAndOrganization_IdAndDeletedAtIsNull(request.maintenancePersonId(), organizationId)
+                .orElseThrow(() -> new NotFoundException("Maintenance person not found"));
 
             entity.setMaintenancePerson(maintenancePerson);
+        }
+    }
+
+    private void validateWritableStatus(MaintenanceStatus status) {
+        if (status == MaintenanceStatus.DELETED) {
+            throw new BadRequestException("Use the delete endpoint to delete a maintenance record");
         }
     }
 }

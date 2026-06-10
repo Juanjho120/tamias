@@ -37,7 +37,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ScheduledMaintenanceService {
-
     private final ScheduledMaintenanceRepository scheduledMaintenanceRepository;
     private final MaintenanceRecordRepository maintenanceRecordRepository;
     private final OrganizationRepository organizationRepository;
@@ -51,17 +50,17 @@ public class ScheduledMaintenanceService {
     private final ScheduledMaintenanceHistoryService historyService;
 
     public ScheduledMaintenanceService(
-            ScheduledMaintenanceRepository scheduledMaintenanceRepository,
-            MaintenanceRecordRepository maintenanceRecordRepository,
-            OrganizationRepository organizationRepository,
-            PropertyRepository propertyRepository,
-            MaintenanceCategoryRepository maintenanceCategoryRepository,
-            MaintenanceTypeRepository maintenanceTypeRepository,
-            MaintenancePersonRepository maintenancePersonRepository,
-            UserRepository userRepository,
-            CurrentUserService currentUserService,
-            ScheduledMaintenanceMapper scheduledMaintenanceMapper,
-            ScheduledMaintenanceHistoryService historyService
+        ScheduledMaintenanceRepository scheduledMaintenanceRepository,
+        MaintenanceRecordRepository maintenanceRecordRepository,
+        OrganizationRepository organizationRepository,
+        PropertyRepository propertyRepository,
+        MaintenanceCategoryRepository maintenanceCategoryRepository,
+        MaintenanceTypeRepository maintenanceTypeRepository,
+        MaintenancePersonRepository maintenancePersonRepository,
+        UserRepository userRepository,
+        CurrentUserService currentUserService,
+        ScheduledMaintenanceMapper scheduledMaintenanceMapper,
+        ScheduledMaintenanceHistoryService historyService
     ) {
         this.scheduledMaintenanceRepository = scheduledMaintenanceRepository;
         this.maintenanceRecordRepository = maintenanceRecordRepository;
@@ -79,37 +78,36 @@ public class ScheduledMaintenanceService {
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF', 'READ_ONLY')")
     public PageResponse<ScheduledMaintenanceSummaryResponse> findAll(
-            UUID propertyId,
-            ScheduledMaintenanceStatus status,
-            Pageable pageable
+        UUID propertyId,
+        ScheduledMaintenanceStatus status,
+        Pageable pageable
     ) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-
         Page<ScheduledMaintenance> page;
 
         if (propertyId == null && status == null) {
             page = scheduledMaintenanceRepository.findByOrganization_IdAndDeletedAtIsNull(
-                    organizationId,
-                    pageable
+                organizationId,
+                pageable
             );
         } else if (propertyId != null && status == null) {
             page = scheduledMaintenanceRepository.findByOrganization_IdAndProperty_IdAndDeletedAtIsNull(
-                    organizationId,
-                    propertyId,
-                    pageable
+                organizationId,
+                propertyId,
+                pageable
             );
         } else if (propertyId == null) {
             page = scheduledMaintenanceRepository.findByOrganization_IdAndStatusAndDeletedAtIsNull(
-                    organizationId,
-                    status,
-                    pageable
+                organizationId,
+                status,
+                pageable
             );
         } else {
             page = scheduledMaintenanceRepository.findByOrganization_IdAndProperty_IdAndStatusAndDeletedAtIsNull(
-                    organizationId,
-                    propertyId,
-                    status,
-                    pageable
+                organizationId,
+                propertyId,
+                status,
+                pageable
             );
         }
 
@@ -123,13 +121,13 @@ public class ScheduledMaintenanceService {
         LocalDate effectiveDueDate = dueDate != null ? dueDate : LocalDate.now();
 
         var page = scheduledMaintenanceRepository
-                .findByOrganization_IdAndNextDueDateLessThanEqualAndStatusAndDeletedAtIsNull(
-                        organizationId,
-                        effectiveDueDate,
-                        ScheduledMaintenanceStatus.ACTIVE,
-                        pageable
-                )
-                .map(scheduledMaintenanceMapper::toSummaryResponse);
+            .findByOrganization_IdAndNextDueDateLessThanEqualAndStatusAndDeletedAtIsNull(
+                organizationId,
+                effectiveDueDate,
+                ScheduledMaintenanceStatus.ACTIVE,
+                pageable
+            )
+            .map(scheduledMaintenanceMapper::toSummaryResponse);
 
         return PageResponse.from(page);
     }
@@ -150,16 +148,17 @@ public class ScheduledMaintenanceService {
     @Transactional
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
     public ScheduledMaintenanceResponse create(ScheduledMaintenanceRequest request) {
+        validateWritableStatus(request.status());
         validateDates(request);
 
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
         var organization = organizationRepository.findByIdAndDeletedAtIsNull(organizationId)
-                .orElseThrow(() -> new NotFoundException("Organization not found"));
+            .orElseThrow(() -> new NotFoundException("Organization not found"));
 
         var property = propertyRepository
-                .findByIdAndOrganization_IdAndDeletedAtIsNull(request.propertyId(), organizationId)
-                .orElseThrow(() -> new NotFoundException("Property not found"));
+            .findByIdAndOrganization_IdAndDeletedAtIsNull(request.propertyId(), organizationId)
+            .orElseThrow(() -> new NotFoundException("Property not found"));
 
         User currentUser = getCurrentUser();
 
@@ -175,13 +174,13 @@ public class ScheduledMaintenanceService {
         ScheduledMaintenance saved = scheduledMaintenanceRepository.save(entity);
 
         historyService.recordChange(
-                saved,
-                null,
-                saved.getStatus(),
-                null,
-                saved.getNextDueDate(),
-                "Scheduled maintenance created",
-                currentUser
+            saved,
+            null,
+            saved.getStatus(),
+            null,
+            saved.getNextDueDate(),
+            "Scheduled maintenance created",
+            currentUser
         );
 
         return scheduledMaintenanceMapper.toResponse(saved);
@@ -190,6 +189,7 @@ public class ScheduledMaintenanceService {
     @Transactional
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
     public ScheduledMaintenanceResponse update(UUID id, ScheduledMaintenanceRequest request) {
+        validateWritableStatus(request.status());
         validateDates(request);
 
         UUID organizationId = currentUserService.getCurrentOrganizationId();
@@ -199,8 +199,8 @@ public class ScheduledMaintenanceService {
         LocalDate previousNextDueDate = entity.getNextDueDate();
 
         var property = propertyRepository
-                .findByIdAndOrganization_IdAndDeletedAtIsNull(request.propertyId(), organizationId)
-                .orElseThrow(() -> new NotFoundException("Property not found"));
+            .findByIdAndOrganization_IdAndDeletedAtIsNull(request.propertyId(), organizationId)
+            .orElseThrow(() -> new NotFoundException("Property not found"));
 
         User currentUser = getCurrentUser();
 
@@ -213,13 +213,13 @@ public class ScheduledMaintenanceService {
         ScheduledMaintenance saved = scheduledMaintenanceRepository.save(entity);
 
         recordIfChanged(
-                saved,
-                previousStatus,
-                saved.getStatus(),
-                previousNextDueDate,
-                saved.getNextDueDate(),
-                "Scheduled maintenance updated",
-                currentUser
+            saved,
+            previousStatus,
+            saved.getStatus(),
+            previousNextDueDate,
+            saved.getNextDueDate(),
+            "Scheduled maintenance updated",
+            currentUser
         );
 
         return scheduledMaintenanceMapper.toResponse(saved);
@@ -231,8 +231,8 @@ public class ScheduledMaintenanceService {
         ScheduledMaintenance entity = findEntityInCurrentOrganization(id);
 
         if (entity.getStatus() == ScheduledMaintenanceStatus.COMPLETED
-                || entity.getStatus() == ScheduledMaintenanceStatus.CANCELLED
-                || entity.getStatus() == ScheduledMaintenanceStatus.DELETED) {
+            || entity.getStatus() == ScheduledMaintenanceStatus.CANCELLED
+            || entity.getStatus() == ScheduledMaintenanceStatus.DELETED) {
             throw new BadRequestException("Only active or paused scheduled maintenance can be rescheduled");
         }
 
@@ -245,7 +245,6 @@ public class ScheduledMaintenanceService {
         }
 
         User currentUser = getCurrentUser();
-
         ScheduledMaintenanceStatus previousStatus = entity.getStatus();
         LocalDate previousNextDueDate = entity.getNextDueDate();
 
@@ -256,13 +255,13 @@ public class ScheduledMaintenanceService {
         ScheduledMaintenance saved = scheduledMaintenanceRepository.save(entity);
 
         historyService.recordChange(
-                saved,
-                previousStatus,
-                saved.getStatus(),
-                previousNextDueDate,
-                saved.getNextDueDate(),
-                request.reason(),
-                currentUser
+            saved,
+            previousStatus,
+            saved.getStatus(),
+            previousNextDueDate,
+            saved.getNextDueDate(),
+            request.reason(),
+            currentUser
         );
 
         return scheduledMaintenanceMapper.toResponse(saved);
@@ -318,9 +317,9 @@ public class ScheduledMaintenanceService {
 
         schedule.setLastGeneratedAt(OffsetDateTime.now());
         schedule.setNextDueDate(calculateNextDueDate(
-                schedule.getNextDueDate(),
-                schedule.getFrequency(),
-                schedule.getIntervalValue()
+            schedule.getNextDueDate(),
+            schedule.getFrequency(),
+            schedule.getIntervalValue()
         ));
         schedule.setUpdatedBy(currentUser);
 
@@ -331,13 +330,13 @@ public class ScheduledMaintenanceService {
         ScheduledMaintenance saved = scheduledMaintenanceRepository.save(schedule);
 
         historyService.recordChange(
-                saved,
-                previousStatus,
-                saved.getStatus(),
-                previousNextDueDate,
-                saved.getNextDueDate(),
-                "Maintenance record generated from schedule",
-                currentUser
+            saved,
+            previousStatus,
+            saved.getStatus(),
+            previousNextDueDate,
+            saved.getNextDueDate(),
+            "Maintenance record generated from schedule",
+            currentUser
         );
 
         return scheduledMaintenanceMapper.toResponse(saved);
@@ -360,20 +359,20 @@ public class ScheduledMaintenanceService {
         ScheduledMaintenance saved = scheduledMaintenanceRepository.save(entity);
 
         historyService.recordChange(
-                saved,
-                previousStatus,
-                ScheduledMaintenanceStatus.DELETED,
-                previousNextDueDate,
-                saved.getNextDueDate(),
-                "Scheduled maintenance deleted",
-                currentUser
+            saved,
+            previousStatus,
+            ScheduledMaintenanceStatus.DELETED,
+            previousNextDueDate,
+            saved.getNextDueDate(),
+            "Scheduled maintenance deleted",
+            currentUser
         );
     }
 
     private ScheduledMaintenanceResponse changeStatus(
-            UUID id,
-            ScheduledMaintenanceStatus newStatus,
-            String reason
+        UUID id,
+        ScheduledMaintenanceStatus newStatus,
+        String reason
     ) {
         ScheduledMaintenance entity = findEntityInCurrentOrganization(id);
 
@@ -385,13 +384,11 @@ public class ScheduledMaintenanceService {
             throw new BadRequestException("Completed scheduled maintenance cannot change status");
         }
 
-        if (entity.getStatus() == ScheduledMaintenanceStatus.CANCELLED
-                && newStatus != ScheduledMaintenanceStatus.ACTIVE) {
+        if (entity.getStatus() == ScheduledMaintenanceStatus.CANCELLED && newStatus != ScheduledMaintenanceStatus.ACTIVE) {
             throw new BadRequestException("Cancelled scheduled maintenance can only be resumed to active");
         }
 
         User currentUser = getCurrentUser();
-
         ScheduledMaintenanceStatus previousStatus = entity.getStatus();
         LocalDate previousNextDueDate = entity.getNextDueDate();
 
@@ -401,44 +398,44 @@ public class ScheduledMaintenanceService {
         ScheduledMaintenance saved = scheduledMaintenanceRepository.save(entity);
 
         recordIfChanged(
-                saved,
-                previousStatus,
-                saved.getStatus(),
-                previousNextDueDate,
-                saved.getNextDueDate(),
-                reason,
-                currentUser
+            saved,
+            previousStatus,
+            saved.getStatus(),
+            previousNextDueDate,
+            saved.getNextDueDate(),
+            reason,
+            currentUser
         );
 
         return scheduledMaintenanceMapper.toResponse(saved);
     }
 
     private void recordIfChanged(
-            ScheduledMaintenance scheduledMaintenance,
-            ScheduledMaintenanceStatus previousStatus,
-            ScheduledMaintenanceStatus newStatus,
-            LocalDate previousNextDueDate,
-            LocalDate newNextDueDate,
-            String reason,
-            User currentUser
+        ScheduledMaintenance scheduledMaintenance,
+        ScheduledMaintenanceStatus previousStatus,
+        ScheduledMaintenanceStatus newStatus,
+        LocalDate previousNextDueDate,
+        LocalDate newNextDueDate,
+        String reason,
+        User currentUser
     ) {
         boolean statusChanged = previousStatus != newStatus;
         boolean dateChanged = previousNextDueDate == null
-                ? newNextDueDate != null
-                : !previousNextDueDate.equals(newNextDueDate);
+            ? newNextDueDate != null
+            : !previousNextDueDate.equals(newNextDueDate);
 
         if (!statusChanged && !dateChanged) {
             return;
         }
 
         historyService.recordChange(
-                scheduledMaintenance,
-                previousStatus,
-                newStatus,
-                previousNextDueDate,
-                newNextDueDate,
-                reason,
-                currentUser
+            scheduledMaintenance,
+            previousStatus,
+            newStatus,
+            previousNextDueDate,
+            newNextDueDate,
+            reason,
+            currentUser
         );
     }
 
@@ -446,21 +443,21 @@ public class ScheduledMaintenanceService {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
         return scheduledMaintenanceRepository
-                .findByIdAndOrganization_IdAndDeletedAtIsNull(id, organizationId)
-                .orElseThrow(() -> new NotFoundException("Scheduled maintenance not found"));
+            .findByIdAndOrganization_IdAndDeletedAtIsNull(id, organizationId)
+            .orElseThrow(() -> new NotFoundException("Scheduled maintenance not found"));
     }
 
     private void setOptionalRelations(
-            ScheduledMaintenance entity,
-            ScheduledMaintenanceRequest request,
-            UUID organizationId
+        ScheduledMaintenance entity,
+        ScheduledMaintenanceRequest request,
+        UUID organizationId
     ) {
         if (request.maintenanceCategoryId() == null) {
             entity.setMaintenanceCategory(null);
         } else {
             var category = maintenanceCategoryRepository
-                    .findByIdAndOrganization_IdAndDeletedAtIsNull(request.maintenanceCategoryId(), organizationId)
-                    .orElseThrow(() -> new NotFoundException("Maintenance category not found"));
+                .findByIdAndOrganization_IdAndDeletedAtIsNull(request.maintenanceCategoryId(), organizationId)
+                .orElseThrow(() -> new NotFoundException("Maintenance category not found"));
 
             entity.setMaintenanceCategory(category);
         }
@@ -469,8 +466,8 @@ public class ScheduledMaintenanceService {
             entity.setMaintenanceType(null);
         } else {
             var type = maintenanceTypeRepository
-                    .findByIdAndOrganization_IdAndDeletedAtIsNull(request.maintenanceTypeId(), organizationId)
-                    .orElseThrow(() -> new NotFoundException("Maintenance type not found"));
+                .findByIdAndOrganization_IdAndDeletedAtIsNull(request.maintenanceTypeId(), organizationId)
+                .orElseThrow(() -> new NotFoundException("Maintenance type not found"));
 
             entity.setMaintenanceType(type);
         }
@@ -479,8 +476,8 @@ public class ScheduledMaintenanceService {
             entity.setMaintenancePerson(null);
         } else {
             var person = maintenancePersonRepository
-                    .findByIdAndOrganization_IdAndDeletedAtIsNull(request.maintenancePersonId(), organizationId)
-                    .orElseThrow(() -> new NotFoundException("Maintenance person not found"));
+                .findByIdAndOrganization_IdAndDeletedAtIsNull(request.maintenancePersonId(), organizationId)
+                .orElseThrow(() -> new NotFoundException("Maintenance person not found"));
 
             entity.setMaintenancePerson(person);
         }
@@ -496,10 +493,16 @@ public class ScheduledMaintenanceService {
         }
     }
 
+    private void validateWritableStatus(ScheduledMaintenanceStatus status) {
+        if (status == ScheduledMaintenanceStatus.DELETED) {
+            throw new BadRequestException("Use the delete endpoint to delete scheduled maintenance");
+        }
+    }
+
     private LocalDate calculateNextDueDate(
-            LocalDate currentDueDate,
-            ScheduledMaintenanceFrequency frequency,
-            Integer intervalValue
+        LocalDate currentDueDate,
+        ScheduledMaintenanceFrequency frequency,
+        Integer intervalValue
     ) {
         int interval = intervalValue != null ? intervalValue : 1;
 
@@ -513,6 +516,6 @@ public class ScheduledMaintenanceService {
 
     private User getCurrentUser() {
         return userRepository.findByIdAndDeletedAtIsNull(currentUserService.getCurrentUserId())
-                .orElseThrow(() -> new NotFoundException("User not found"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
     }
 }

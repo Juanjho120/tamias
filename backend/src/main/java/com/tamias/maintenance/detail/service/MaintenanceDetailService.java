@@ -1,5 +1,6 @@
 package com.tamias.maintenance.detail.service;
 
+import com.tamias.catalog.enums.CatalogStatus;
 import com.tamias.catalog.inventoryitem.entity.InventoryItem;
 import com.tamias.catalog.inventoryitem.repository.InventoryItemRepository;
 import com.tamias.catalog.maintenanceperson.entity.MaintenancePerson;
@@ -28,7 +29,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class MaintenanceDetailService {
-
     private final MaintenanceRecordRepository maintenanceRecordRepository;
     private final MaintenancePersonRepository maintenancePersonRepository;
     private final MaintenanceRecordPersonRepository maintenanceRecordPersonRepository;
@@ -38,13 +38,13 @@ public class MaintenanceDetailService {
     private final MaintenanceDetailMapper maintenanceDetailMapper;
 
     public MaintenanceDetailService(
-            MaintenanceRecordRepository maintenanceRecordRepository,
-            MaintenancePersonRepository maintenancePersonRepository,
-            MaintenanceRecordPersonRepository maintenanceRecordPersonRepository,
-            InventoryItemRepository inventoryItemRepository,
-            MaintenanceRecordItemRepository maintenanceRecordItemRepository,
-            CurrentUserService currentUserService,
-            MaintenanceDetailMapper maintenanceDetailMapper
+        MaintenanceRecordRepository maintenanceRecordRepository,
+        MaintenancePersonRepository maintenancePersonRepository,
+        MaintenanceRecordPersonRepository maintenanceRecordPersonRepository,
+        InventoryItemRepository inventoryItemRepository,
+        MaintenanceRecordItemRepository maintenanceRecordItemRepository,
+        CurrentUserService currentUserService,
+        MaintenanceDetailMapper maintenanceDetailMapper
     ) {
         this.maintenanceRecordRepository = maintenanceRecordRepository;
         this.maintenancePersonRepository = maintenancePersonRepository;
@@ -59,13 +59,14 @@ public class MaintenanceDetailService {
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF', 'READ_ONLY')")
     public List<MaintenanceRecordPersonResponse> findPeople(UUID maintenanceRecordId) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
+
         validateMaintenanceRecord(maintenanceRecordId, organizationId);
 
         return maintenanceRecordPersonRepository
-                .findByMaintenanceRecord_IdAndOrganization_Id(maintenanceRecordId, organizationId)
-                .stream()
-                .map(maintenanceDetailMapper::toPersonResponse)
-                .toList();
+            .findByMaintenanceRecord_IdAndOrganization_Id(maintenanceRecordId, organizationId)
+            .stream()
+            .map(maintenanceDetailMapper::toPersonResponse)
+            .toList();
     }
 
     @Transactional
@@ -74,14 +75,15 @@ public class MaintenanceDetailService {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
         MaintenanceRecord maintenanceRecord = validateMaintenanceRecord(maintenanceRecordId, organizationId);
+
         MaintenancePerson maintenancePerson = maintenancePersonRepository
-                .findByIdAndOrganization_IdAndDeletedAtIsNull(request.maintenancePersonId(), organizationId)
-                .orElseThrow(() -> new NotFoundException("Maintenance person not found"));
+            .findByIdAndOrganization_IdAndDeletedAtIsNull(request.maintenancePersonId(), organizationId)
+            .orElseThrow(() -> new NotFoundException("Maintenance person not found"));
 
         if (maintenanceRecordPersonRepository.existsByMaintenanceRecord_IdAndMaintenancePerson_IdAndOrganization_Id(
-                maintenanceRecordId,
-                request.maintenancePersonId(),
-                organizationId
+            maintenanceRecordId,
+            request.maintenancePersonId(),
+            organizationId
         )) {
             throw new ConflictException("Maintenance person is already assigned to this maintenance record");
         }
@@ -99,9 +101,11 @@ public class MaintenanceDetailService {
     public void removePerson(UUID maintenanceRecordId, UUID personAssignmentId) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
+        validateMaintenanceRecord(maintenanceRecordId, organizationId);
+
         MaintenanceRecordPerson entity = maintenanceRecordPersonRepository
-                .findByIdAndMaintenanceRecord_IdAndOrganization_Id(personAssignmentId, maintenanceRecordId, organizationId)
-                .orElseThrow(() -> new NotFoundException("Maintenance record person assignment not found"));
+            .findByIdAndMaintenanceRecord_IdAndOrganization_Id(personAssignmentId, maintenanceRecordId, organizationId)
+            .orElseThrow(() -> new NotFoundException("Maintenance record person assignment not found"));
 
         maintenanceRecordPersonRepository.delete(entity);
     }
@@ -110,13 +114,14 @@ public class MaintenanceDetailService {
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF', 'READ_ONLY')")
     public List<MaintenanceRecordItemResponse> findItems(UUID maintenanceRecordId) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
+
         validateMaintenanceRecord(maintenanceRecordId, organizationId);
 
         return maintenanceRecordItemRepository
-                .findByMaintenanceRecord_IdAndOrganization_IdOrderByIdAsc(maintenanceRecordId, organizationId)
-                .stream()
-                .map(maintenanceDetailMapper::toRecordItemResponse)
-                .toList();
+            .findByMaintenanceRecord_IdAndOrganization_IdOrderByIdAsc(maintenanceRecordId, organizationId)
+            .stream()
+            .map(maintenanceDetailMapper::toRecordItemResponse)
+            .toList();
     }
 
     @Transactional
@@ -141,15 +146,17 @@ public class MaintenanceDetailService {
     @Transactional
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF')")
     public MaintenanceRecordItemResponse updateItem(
-            UUID maintenanceRecordId,
-            UUID itemId,
-            MaintenanceRecordItemUpdateRequest request
+        UUID maintenanceRecordId,
+        UUID itemId,
+        MaintenanceRecordItemUpdateRequest request
     ) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
+        validateMaintenanceRecord(maintenanceRecordId, organizationId);
+
         MaintenanceRecordItem entity = maintenanceRecordItemRepository
-                .findByIdAndMaintenanceRecord_IdAndOrganization_Id(itemId, maintenanceRecordId, organizationId)
-                .orElseThrow(() -> new NotFoundException("Maintenance record item not found"));
+            .findByIdAndMaintenanceRecord_IdAndOrganization_Id(itemId, maintenanceRecordId, organizationId)
+            .orElseThrow(() -> new NotFoundException("Maintenance record item not found"));
 
         InventoryItem inventoryItem = resolveInventoryItem(request.requestedInventoryItemId(), organizationId);
         String itemNameSnapshot = resolveItemNameSnapshot(request.requestedItemNameSnapshot(), inventoryItem);
@@ -165,17 +172,19 @@ public class MaintenanceDetailService {
     public void removeItem(UUID maintenanceRecordId, UUID itemId) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
+        validateMaintenanceRecord(maintenanceRecordId, organizationId);
+
         MaintenanceRecordItem entity = maintenanceRecordItemRepository
-                .findByIdAndMaintenanceRecord_IdAndOrganization_Id(itemId, maintenanceRecordId, organizationId)
-                .orElseThrow(() -> new NotFoundException("Maintenance record item not found"));
+            .findByIdAndMaintenanceRecord_IdAndOrganization_Id(itemId, maintenanceRecordId, organizationId)
+            .orElseThrow(() -> new NotFoundException("Maintenance record item not found"));
 
         maintenanceRecordItemRepository.delete(entity);
     }
 
     private MaintenanceRecord validateMaintenanceRecord(UUID maintenanceRecordId, UUID organizationId) {
         return maintenanceRecordRepository
-                .findByIdAndOrganization_IdAndDeletedAtIsNull(maintenanceRecordId, organizationId)
-                .orElseThrow(() -> new NotFoundException("Maintenance record not found"));
+            .findByIdAndOrganization_IdAndDeletedAtIsNull(maintenanceRecordId, organizationId)
+            .orElseThrow(() -> new NotFoundException("Maintenance record not found"));
     }
 
     private InventoryItem resolveInventoryItem(UUID inventoryItemId, UUID organizationId) {
@@ -183,9 +192,15 @@ public class MaintenanceDetailService {
             return null;
         }
 
-        return inventoryItemRepository
-                .findByIdAndOrganization_IdAndDeletedAtIsNull(inventoryItemId, organizationId)
-                .orElseThrow(() -> new NotFoundException("Inventory item not found"));
+        InventoryItem inventoryItem = inventoryItemRepository
+            .findByIdAndOrganization_IdAndDeletedAtIsNull(inventoryItemId, organizationId)
+            .orElseThrow(() -> new NotFoundException("Inventory item not found"));
+
+        if (inventoryItem.getStatus() != CatalogStatus.ACTIVE || !Boolean.TRUE.equals(inventoryItem.getAvailableForMaintenance())) {
+            throw new BadRequestException("Inventory item is not available for maintenance");
+        }
+
+        return inventoryItem;
     }
 
     private String resolveItemNameSnapshot(String requestedName, InventoryItem inventoryItem) {
