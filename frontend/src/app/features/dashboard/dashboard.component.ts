@@ -288,11 +288,27 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   segmentMarginLeft(segment: DashboardReservationCalendarSegment): string {
-    return segment.startsAtCheckIn ? '50%' : '0';
+    if (!segment.startsAtCheckIn) {
+      return '0';
+    }
+
+    if (segment.startsAtCheckIn && segment.endsAtCheckOut && this.calendarSegmentColumnSpan(segment) === 1) {
+      return '25%';
+    }
+
+    return `calc(100% / ${this.calendarSegmentColumnSpan(segment)} / 2)`;
   }
 
   segmentMarginRight(segment: DashboardReservationCalendarSegment): string {
-    return segment.endsAtCheckOut ? '50%' : '0';
+    if (!segment.endsAtCheckOut) {
+      return '0';
+    }
+
+    if (segment.startsAtCheckIn && segment.endsAtCheckOut && this.calendarSegmentColumnSpan(segment) === 1) {
+      return '25%';
+    }
+
+    return `calc(100% / ${this.calendarSegmentColumnSpan(segment)} / 2)`;
   }
 
   calendarSegmentGridColumn(segment: DashboardReservationCalendarSegment): string {
@@ -609,6 +625,10 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
   private extractErrorMessage(error: unknown, fallback: string): string {
     const maybeHttpError = error as { error?: ApiError };
     return maybeHttpError.error?.message ?? fallback;
+  }
+
+  private calendarSegmentColumnSpan(segment: DashboardReservationCalendarSegment): number {
+    return Math.max(1, segment.gridColumnEnd - segment.gridColumnStart);
   }
 
   private calendarLocale(): string {
