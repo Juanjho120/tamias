@@ -27,6 +27,7 @@ import com.tamias.purchase.repository.PurchaseListRepository;
 import com.tamias.security.service.CurrentUserService;
 import com.tamias.user.repository.UserRepository;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -184,6 +185,10 @@ public class PurchaseListService {
         setOptionalRelations(purchaseList, request, organizationId);
 
         PurchaseList saved = purchaseListRepository.save(purchaseList);
+
+        if (request.items() != null) {
+            replaceItems(saved, request.items(), organizationId);
+        }
 
         return findById(saved.getId());
     }
@@ -354,5 +359,18 @@ public class PurchaseListService {
         }
 
         throw new BadRequestException("Item name is required when inventory item is not provided");
+    }
+
+    private void replaceItems(PurchaseList purchaseList, List<PurchaseItemRequest> itemRequests, UUID organizationId) {
+        List<PurchaseItem> currentItems = purchaseItemRepository.findByPurchaseList_IdOrderByCreatedAtAsc(
+                purchaseList.getId()
+        );
+
+        purchaseItemRepository.deleteAll(currentItems);
+        purchaseItemRepository.flush();
+
+        for (PurchaseItemRequest itemRequest : itemRequests) {
+            createItemEntity(purchaseList, itemRequest, organizationId);
+        }
     }
 }
