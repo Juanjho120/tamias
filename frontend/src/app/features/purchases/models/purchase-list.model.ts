@@ -22,8 +22,6 @@ export interface PurchaseItem {
   id: string;
   inventoryItemId: string | null;
   inventoryItemName: string | null;
-  materialId?: string | null;
-  materialName?: string | null;
   brandId: string | null;
   brandName: string | null;
   itemNameSnapshot: string | null;

@@ -13,7 +13,7 @@
             type="button"
             class="btn-close"
             aria-label="Close"
-            [disabled]="loading() || addingPerson() || savingMaterial() || deleting()"
+            [disabled]="loading() || addingPerson() || savingItem() || deleting()"
             (click)="requestClose()">
           </button>
         </div>
@@ -96,30 +96,30 @@
                   <div class="card-body">
                     <h6 class="mb-3">{{ 'maintenance.details.materials.title' | translate }}</h6>
 
-                    <form [formGroup]="materialForm" class="mb-3" (ngSubmit)="saveMaterial()">
+                    <form [formGroup]="itemForm" class="mb-3" (ngSubmit)="saveItem()">
                       <div class="row g-2">
                         <div class="col-12 col-lg-6">
-                          <label for="maintenance-detail-material" class="form-label">
+                          <label for="maintenance-detail-item" class="form-label">
                             {{ 'maintenance.details.materials.material' | translate }}
                           </label>
                           <select
-                            id="maintenance-detail-material"
+                            id="maintenance-detail-item"
                             class="form-select"
                             formControlName="inventoryItemId"
-                            (ngModelChange)="onMaterialSelected($event)">
+                            (ngModelChange)="onInventoryItemSelected($event)">
                             <option value="">{{ 'maintenance.details.materials.noCatalogItem' | translate }}</option>
-                            @for (material of (inventoryItemOptions.length ? inventoryItemOptions : materialOptions); track material.id) {
-                              <option [value]="material.id">{{ material.name }}</option>
+                            @for (item of inventoryItemOptions; track item.id) {
+                              <option [value]="item.id">{{ item.name }}</option>
                             }
                           </select>
                         </div>
 
                         <div class="col-12 col-lg-6">
-                          <label for="maintenance-detail-material-name" class="form-label">
+                          <label for="maintenance-detail-item-name" class="form-label">
                             {{ 'maintenance.details.materials.manualItemName' | translate }}
                           </label>
                           <input
-                            id="maintenance-detail-material-name"
+                            id="maintenance-detail-item-name"
                             type="text"
                             class="form-control"
                             maxlength="150"
@@ -127,11 +127,11 @@
                         </div>
 
                         <div class="col-12 col-lg-4">
-                          <label for="maintenance-detail-material-quantity" class="form-label">
+                          <label for="maintenance-detail-item-quantity" class="form-label">
                             {{ 'maintenance.details.materials.quantity' | translate }}
                           </label>
                           <input
-                            id="maintenance-detail-material-quantity"
+                            id="maintenance-detail-item-quantity"
                             type="number"
                             class="form-control"
                             min="0.01"
@@ -140,11 +140,11 @@
                         </div>
 
                         <div class="col-12 col-lg-4">
-                          <label for="maintenance-detail-material-unit" class="form-label">
+                          <label for="maintenance-detail-item-unit" class="form-label">
                             {{ 'maintenance.details.materials.unit' | translate }}
                           </label>
                           <input
-                            id="maintenance-detail-material-unit"
+                            id="maintenance-detail-item-unit"
                             type="text"
                             class="form-control"
                             maxlength="50"
@@ -152,28 +152,28 @@
                         </div>
 
                         <div class="col-12 col-lg-4 d-flex align-items-end gap-2">
-                          <button type="submit" class="btn btn-primary flex-fill" [disabled]="savingMaterial()">
-                            @if (savingMaterial()) {
+                          <button type="submit" class="btn btn-primary flex-fill" [disabled]="savingItem()">
+                            @if (savingItem()) {
                               <span class="spinner-border spinner-border-sm me-1"></span>
                             } @else {
                               <i class="bi bi-check-lg me-1"></i>
                             }
-                            {{ (editingMaterial() ? 'maintenance.details.materials.update' : 'maintenance.details.materials.add') | translate }}
+                            {{ (editingItem() ? 'maintenance.details.materials.update' : 'maintenance.details.materials.add') | translate }}
                           </button>
 
-                          @if (editingMaterial()) {
-                            <button type="button" class="btn btn-outline-secondary" [disabled]="savingMaterial()" (click)="cancelEditMaterial()">
+                          @if (editingItem()) {
+                            <button type="button" class="btn btn-outline-secondary" [disabled]="savingItem()" (click)="cancelEditItem()">
                               {{ 'common.cancel' | translate }}
                             </button>
                           }
                         </div>
 
                         <div class="col-12">
-                          <label for="maintenance-detail-material-notes" class="form-label">
+                          <label for="maintenance-detail-item-notes" class="form-label">
                             {{ 'maintenance.details.materials.notes' | translate }}
                           </label>
                           <textarea
-                            id="maintenance-detail-material-notes"
+                            id="maintenance-detail-item-notes"
                             class="form-control"
                             rows="2"
                             formControlName="notes">
@@ -182,7 +182,7 @@
                       </div>
                     </form>
 
-                    @if (materials().length === 0) {
+                    @if (items().length === 0) {
                       <div class="text-muted small border rounded-3 p-3 bg-white">
                         {{ 'maintenance.details.materials.empty' | translate }}
                       </div>
@@ -199,18 +199,18 @@
                           </tr>
                           </thead>
                           <tbody>
-                            @for (material of materials(); track trackById($index, material)) {
+                            @for (item of items(); track trackById($index, item)) {
                               <tr>
-                                <td class="fw-semibold">{{ materialDisplayName(material) }}</td>
-                                <td>{{ material.quantity ?? '—' }}</td>
-                                <td>{{ material.unit || '—' }}</td>
-                                <td>{{ material.notes || '—' }}</td>
+                                <td class="fw-semibold">{{ itemDisplayName(item) }}</td>
+                                <td>{{ item.quantity ?? '—' }}</td>
+                                <td>{{ item.unit || '—' }}</td>
+                                <td>{{ item.notes || '—' }}</td>
                                 <td class="text-end">
                                   <div class="btn-group">
-                                    <button type="button" class="btn btn-outline-primary btn-sm" [disabled]="savingMaterial() || deleting()" (click)="editMaterial(material)">
+                                    <button type="button" class="btn btn-outline-primary btn-sm" [disabled]="savingItem() || deleting()" (click)="editItem(item)">
                                       <i class="bi bi-pencil-square"></i>
                                     </button>
-                                    <button type="button" class="btn btn-outline-danger btn-sm" [disabled]="savingMaterial() || deleting()" (click)="requestRemoveMaterial(material)">
+                                    <button type="button" class="btn btn-outline-danger btn-sm" [disabled]="savingItem() || deleting()" (click)="requestRemoveItem(item)">
                                       <i class="bi bi-trash"></i>
                                     </button>
                                   </div>
@@ -232,7 +232,7 @@
           <button
             type="button"
             class="btn btn-outline-secondary"
-            [disabled]="loading() || addingPerson() || savingMaterial() || deleting()"
+            [disabled]="loading() || addingPerson() || savingItem() || deleting()"
             (click)="requestClose()">
             {{ 'common.close' | translate }}
           </button>

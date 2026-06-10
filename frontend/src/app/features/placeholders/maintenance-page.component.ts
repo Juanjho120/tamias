@@ -12,7 +12,7 @@ import { Component } from '@angular/core';
           </div>
           <div>
             <h1 class="h4 mb-1">Maintenance</h1>
-            <p class="text-muted mb-0">Maintenance records, people, materials and evidence will be implemented here.</p>
+            <p class="text-muted mb-0">Maintenance records, people, items and evidence will be implemented here.</p>
           </div>
         </div>
         <div class="alert alert-info mb-0">

@@ -47,24 +47,4 @@ export class MaintenanceDetailService {
   removeItem(maintenanceRecordId: string, itemId: string): Observable<void> {
     return this.apiService.delete<void>(`/maintenance-records/${maintenanceRecordId}/items/${itemId}`);
   }
-
-  findMaterials(maintenanceRecordId: string): Observable<MaintenanceRecordItem[]> {
-    return this.findItems(maintenanceRecordId);
-  }
-
-  addMaterial(maintenanceRecordId: string, request: MaintenanceRecordItemRequest): Observable<MaintenanceRecordItem> {
-    return this.addItem(maintenanceRecordId, request);
-  }
-
-  updateMaterial(
-    maintenanceRecordId: string,
-    materialUsedId: string,
-    request: MaintenanceRecordItemUpdateRequest
-  ): Observable<MaintenanceRecordItem> {
-    return this.updateItem(maintenanceRecordId, materialUsedId, request);
-  }
-
-  removeMaterial(maintenanceRecordId: string, materialUsedId: string): Observable<void> {
-    return this.removeItem(maintenanceRecordId, materialUsedId);
-  }
 }

@@ -17,7 +17,6 @@ export interface MaintenanceInventoryItemOption {
   barcode?: string | null;
 }
 
-export type MaintenanceMaterialOption = MaintenanceInventoryItemOption;
 
 export interface PropertyOption {
   id: string;

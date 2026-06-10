@@ -65,8 +65,7 @@ export class MaintenancePageComponent implements OnInit {
     categories: [],
     types: [],
     people: [],
-    inventoryItems: [],
-    materials: []
+    inventoryItems: []
   });
 
   readonly formVisible = signal(false);

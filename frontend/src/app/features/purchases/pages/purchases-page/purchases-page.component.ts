@@ -60,7 +60,6 @@ export class PurchasesPageComponent implements OnInit {
     cities: [],
     suppliers: [],
     inventoryItems: [],
-    materials: [],
     brands: []
   });
 

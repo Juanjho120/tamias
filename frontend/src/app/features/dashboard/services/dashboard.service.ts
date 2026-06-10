@@ -41,12 +41,12 @@ interface DashboardMaintenanceRecordPerson {
   notes: string | null;
 }
 
-interface DashboardMaintenanceMaterialUsed {
+interface DashboardMaintenanceRecordItem {
   id: string;
   maintenanceRecordId: string;
-  materialId: string | null;
-  materialName: string | null;
-  materialNameSnapshot: string | null;
+  inventoryItemId: string | null;
+  inventoryItemName: string | null;
+  itemNameSnapshot: string | null;
   quantity: number | null;
   unit: string | null;
   notes: string | null;
@@ -142,11 +142,11 @@ export class DashboardService {
           forkJoin({
             detail: this.apiService.get<DashboardMaintenanceRecordCalendarItem>(`/maintenance-records/${record.id}`),
             people: this.apiService.get<DashboardMaintenanceRecordPerson[]>(`/maintenance-records/${record.id}/people`),
-            materials: this.apiService.get<DashboardMaintenanceMaterialUsed[]>(`/maintenance-records/${record.id}/materials`)
+            items: this.apiService.get<DashboardMaintenanceRecordItem[]>(`/maintenance-records/${record.id}/items`)
           }).pipe(
-            map(({ detail, people, materials }) => ({
+            map(({ detail, people, items }) => ({
               ...detail,
-              materialsTotal: materials.length,
+              materialsTotal: items.length,
               peopleTotal: people.length
             }))
           )

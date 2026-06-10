@@ -16,7 +16,6 @@ export interface MaintenanceReferenceData {
   types: MaintenanceReferenceOption[];
   people: MaintenancePersonOption[];
   inventoryItems: MaintenanceInventoryItemOption[];
-  materials: MaintenanceInventoryItemOption[];
 }
 
 @Injectable({
@@ -59,11 +58,6 @@ export class MaintenanceReferenceDataService {
         size: 200,
         sort: 'name,asc'
       }).pipe(map((response) => response.content))
-    }).pipe(
-      map((data) => ({
-        ...data,
-        materials: data.inventoryItems
-      }))
-    );
+    });
   }
 }

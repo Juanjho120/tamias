@@ -16,7 +16,6 @@ export interface PurchaseReferenceData {
   cities: PurchaseCityOption[];
   suppliers: PurchaseSupplierOption[];
   inventoryItems: PurchaseInventoryItemOption[];
-  materials: PurchaseInventoryItemOption[];
   brands: PurchaseBrandOption[];
 }
 
@@ -60,11 +59,6 @@ export class PurchaseReferenceDataService {
         size: 200,
         sort: 'name,asc'
       }).pipe(map((response) => response.content))
-    }).pipe(
-      map((data) => ({
-        ...data,
-        materials: data.inventoryItems
-      }))
-    );
+    });
   }
 }

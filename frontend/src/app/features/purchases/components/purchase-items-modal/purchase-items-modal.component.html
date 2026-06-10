@@ -34,8 +34,8 @@
                           formControlName="inventoryItemId"
                           (ngModelChange)="onInventoryItemSelected($event)">
                           <option value="">{{ 'purchases.items.noInventoryItem' | translate }}</option>
-                          @for (material of (inventoryItems.length ? inventoryItems : materials); track material.id) {
-                            <option [value]="material.id">{{ material.name }}</option>
+                          @for (inventoryItem of inventoryItems; track inventoryItem.id) {
+                            <option [value]="inventoryItem.id">{{ inventoryItem.name }}</option>
                           }
                         </select>
                       </div>

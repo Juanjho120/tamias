@@ -26,7 +26,6 @@ export interface PurchaseInventoryItemOption {
   barcode?: string | null;
 }
 
-export type PurchaseMaterialOption = PurchaseInventoryItemOption;
 
 export interface PurchaseBrandOption {
   id: string;

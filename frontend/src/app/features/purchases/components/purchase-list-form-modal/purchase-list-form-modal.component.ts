@@ -33,7 +33,6 @@ export class PurchaseListFormModalComponent implements OnChanges {
   @Input() cities: PurchaseCityOption[] = [];
   @Input() suppliers: PurchaseSupplierOption[] = [];
   @Input() inventoryItems: PurchaseInventoryItemOption[] = [];
-  @Input() materials: PurchaseInventoryItemOption[] = [];
   @Input() brands: PurchaseBrandOption[] = [];
   @Input() loading = false;
 
@@ -171,21 +170,20 @@ export class PurchaseListFormModalComponent implements OnChanges {
   }
 
   onInventoryItemSelected(inventoryItemId: string): void {
-    const inventoryItems = this.inventoryItems.length ? this.inventoryItems : this.materials;
-    const material = inventoryItems.find((item) => item.id === inventoryItemId);
+    const inventoryItem = this.inventoryItems.find((item) => item.id === inventoryItemId);
 
-    if (material?.unit && !this.itemForm.controls.unit.value) {
-      this.itemForm.controls.unit.setValue(material.unit);
+    if (inventoryItem?.unit && !this.itemForm.controls.unit.value) {
+      this.itemForm.controls.unit.setValue(inventoryItem.unit);
     }
 
-    if (material?.name && !this.itemForm.controls.itemNameSnapshot.value) {
-      this.itemForm.controls.itemNameSnapshot.setValue(material.name);
+    if (inventoryItem?.name && !this.itemForm.controls.itemNameSnapshot.value) {
+      this.itemForm.controls.itemNameSnapshot.setValue(inventoryItem.name);
     }
   }
 
   itemDisplayName(item: PurchaseItemRequest): string {
-    const material = item.inventoryItemId ? (this.inventoryItems.length ? this.inventoryItems : this.materials).find((candidate) => candidate.id === item.inventoryItemId) : null;
-    return material?.name ?? item.itemNameSnapshot ?? '—';
+    const inventoryItem = item.inventoryItemId ? this.inventoryItems.find((candidate) => candidate.id === item.inventoryItemId) : null;
+    return inventoryItem?.name ?? item.itemNameSnapshot ?? '—';
   }
 
   brandDisplayName(item: PurchaseItemRequest): string {
@@ -228,7 +226,7 @@ export class PurchaseListFormModalComponent implements OnChanges {
     });
 
     this.items.set((this.purchaseList.items ?? []).map((item) => ({
-      inventoryItemId: item.inventoryItemId ?? item.materialId ?? null,
+      inventoryItemId: item.inventoryItemId ?? null,
       brandId: item.brandId,
       itemNameSnapshot: item.itemNameSnapshot,
       quantity: item.quantity,

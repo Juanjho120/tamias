@@ -17,10 +17,7 @@ export interface MaintenanceRecordItem {
   maintenanceRecordId: string;
   inventoryItemId: string | null;
   inventoryItemName: string | null;
-  materialId?: string | null;
-  materialName?: string | null;
   itemNameSnapshot: string | null;
-  materialNameSnapshot?: string | null;
   quantity: number | null;
   unit: string | null;
   notes: string | null;
@@ -36,6 +33,3 @@ export interface MaintenanceRecordItemRequest {
 
 export type MaintenanceRecordItemUpdateRequest = MaintenanceRecordItemRequest;
 
-export type MaintenanceMaterialUsed = MaintenanceRecordItem;
-export type MaintenanceMaterialUsedRequest = MaintenanceRecordItemRequest;
-export type MaintenanceMaterialUsedUpdateRequest = MaintenanceRecordItemUpdateRequest;

@@ -25,7 +25,6 @@ export class PurchaseItemsModalComponent implements OnChanges {
   @Input() open = false;
   @Input() purchaseListSummary: PurchaseListSummary | null = null;
   @Input() inventoryItems: PurchaseInventoryItemOption[] = [];
-  @Input() materials: PurchaseInventoryItemOption[] = [];
   @Input() brands: PurchaseBrandOption[] = [];
 
   @Output() close = new EventEmitter<void>();
@@ -146,7 +145,7 @@ export class PurchaseItemsModalComponent implements OnChanges {
   editItem(item: PurchaseItem): void {
     this.editingItem.set(item);
     this.itemForm.reset({
-      inventoryItemId: item.inventoryItemId ?? item.materialId ?? '',
+      inventoryItemId: item.inventoryItemId ?? '',
       brandId: item.brandId ?? '',
       itemNameSnapshot: item.itemNameSnapshot ?? '',
       quantity: item.quantity !== null && item.quantity !== undefined ? String(item.quantity) : '',
@@ -230,20 +229,19 @@ export class PurchaseItemsModalComponent implements OnChanges {
   }
 
   onInventoryItemSelected(inventoryItemId: string): void {
-    const inventoryItems = this.inventoryItems.length ? this.inventoryItems : this.materials;
-    const material = inventoryItems.find((item) => item.id === inventoryItemId);
+    const inventoryItem = this.inventoryItems.find((item) => item.id === inventoryItemId);
 
-    if (material?.unit && !this.itemForm.controls.unit.value) {
-      this.itemForm.controls.unit.setValue(material.unit);
+    if (inventoryItem?.unit && !this.itemForm.controls.unit.value) {
+      this.itemForm.controls.unit.setValue(inventoryItem.unit);
     }
 
-    if (material?.name && !this.itemForm.controls.itemNameSnapshot.value) {
-      this.itemForm.controls.itemNameSnapshot.setValue(material.name);
+    if (inventoryItem?.name && !this.itemForm.controls.itemNameSnapshot.value) {
+      this.itemForm.controls.itemNameSnapshot.setValue(inventoryItem.name);
     }
   }
 
   itemDisplayName(item: PurchaseItem): string {
-    return item.inventoryItemName ?? item.materialName ?? item.itemNameSnapshot ?? '—';
+    return item.inventoryItemName ?? item.itemNameSnapshot ?? '—';
   }
 
   trackById(index: number, item: { id: string }): string {
