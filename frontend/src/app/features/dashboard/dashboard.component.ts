@@ -1,4 +1,4 @@
-import { DatePipe, NgClass } from '@angular/common';
+import { DatePipe, NgClass, formatDate } from '@angular/common';
 import {
   AfterViewChecked,
   Component,
@@ -46,7 +46,6 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
   private readonly dashboardService = inject(DashboardService);
   private readonly toastService = inject(ToastService);
   private readonly languageService = inject(LanguageService);
-  private readonly datePipe = inject(DatePipe);
 
   private readonly tooltipInstances = new Map<HTMLElement, Tooltip>();
   private needsTooltipRefresh = false;
@@ -1104,6 +1103,6 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
       return '—';
     }
 
-    return this.datePipe.transform(value, 'dd/MM/yyyy HH:mm:ss') ?? value;
+    return formatDate(value, 'dd/MM/yyyy HH:mm:ss', this.calendarLocale());
   }
 }
