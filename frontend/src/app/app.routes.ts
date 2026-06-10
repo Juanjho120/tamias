@@ -7,12 +7,12 @@ export const routes: Routes = [
   {
     path: 'login',
     canActivate: [guestGuard],
-    canActivateChild: [passwordChangeGuard],
     loadComponent: () => import('./features/auth/login/login.component').then((m) => m.LoginComponent)
   },
   {
     path: '',
     canActivate: [authGuard],
+    canActivateChild: [passwordChangeGuard],
     loadComponent: () => import('./layout/main-layout/main-layout.component').then((m) => m.MainLayoutComponent),
     children: [
       {

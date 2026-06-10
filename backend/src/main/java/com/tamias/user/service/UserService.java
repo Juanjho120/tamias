@@ -91,9 +91,9 @@ public class UserService {
             .orElseThrow(() -> new BadRequestException("Invalid role"));
 
         User user = new User();
-        user.setFirstName(request.firstName());
-        user.setLastName(request.lastName());
-        user.setEmail(request.email());
+        user.setFirstName(request.firstName().trim());
+        user.setLastName(request.lastName().trim());
+        user.setEmail(request.email().trim());
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setPasswordChangeRequired(true);
         user.setStatus(UserStatus.ACTIVE);
@@ -116,16 +116,28 @@ public class UserService {
         UserOrganization userOrganization = findUserOrganizationInCurrentOrganization(id);
         User user = userOrganization.getUser();
 
-        if (!user.getEmail().equalsIgnoreCase(request.email()) && userRepository.existsByEmailIgnoreCase(request.email())) {
+        if (request.status() == UserStatus.DELETED) {
+            throw new BadRequestException("Use the delete endpoint to delete a user");
+        }
+
+        if (currentUserService.getCurrentUserId().equals(id)) {
+            if (request.status() != user.getStatus() || request.role() != userOrganization.getRole().getCode()) {
+                throw new BadRequestException("You cannot change your own role or status");
+            }
+        }
+
+        String normalizedEmail = request.email().trim();
+
+        if (!user.getEmail().equalsIgnoreCase(normalizedEmail) && userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
             throw new ConflictException("Email is already registered");
         }
 
         var role = roleRepository.findByCode(request.role())
             .orElseThrow(() -> new BadRequestException("Invalid role"));
 
-        user.setFirstName(request.firstName());
-        user.setLastName(request.lastName());
-        user.setEmail(request.email());
+        user.setFirstName(request.firstName().trim());
+        user.setLastName(request.lastName().trim());
+        user.setEmail(normalizedEmail);
         user.setStatus(request.status());
         userOrganization.setRole(role);
 

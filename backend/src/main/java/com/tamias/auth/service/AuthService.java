@@ -4,9 +4,11 @@ import com.tamias.auth.dto.AuthOrganizationResponse;
 import com.tamias.auth.dto.AuthUserResponse;
 import com.tamias.auth.dto.LoginRequest;
 import com.tamias.auth.dto.LoginResponse;
+import com.tamias.common.exception.NotFoundException;
 import com.tamias.security.jwt.JwtTokenProvider;
 import com.tamias.security.model.AuthenticatedUser;
 import com.tamias.user.entity.User;
+import com.tamias.user.entity.UserOrganization;
 import com.tamias.user.enums.UserOrganizationStatus;
 import com.tamias.user.enums.UserStatus;
 import com.tamias.user.repository.UserOrganizationRepository;
@@ -44,11 +46,11 @@ public class AuthService {
 
         User user = userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(request.email())
             .filter(foundUser -> foundUser.getStatus() == UserStatus.ACTIVE)
-            .orElseThrow();
+            .orElseThrow(() -> new NotFoundException("Invalid credentials"));
 
-        var userOrganization = userOrganizationRepository
+        UserOrganization userOrganization = userOrganizationRepository
             .findFirstByUserIdAndStatus(user.getId(), UserOrganizationStatus.ACTIVE)
-            .orElseThrow();
+            .orElseThrow(() -> new NotFoundException("User has no active organization"));
 
         var authenticatedUser = new AuthenticatedUser(
             user.getId(),
@@ -70,11 +72,13 @@ public class AuthService {
 
     @Transactional(readOnly = true)
     public LoginResponse getCurrentUserResponse(UUID userId) {
-        User user = userRepository.findById(userId).orElseThrow();
+        User user = userRepository.findByIdAndDeletedAtIsNull(userId)
+            .filter(foundUser -> foundUser.getStatus() == UserStatus.ACTIVE)
+            .orElseThrow(() -> new NotFoundException("User not found"));
 
-        var userOrganization = userOrganizationRepository
+        UserOrganization userOrganization = userOrganizationRepository
             .findFirstByUserIdAndStatus(user.getId(), UserOrganizationStatus.ACTIVE)
-            .orElseThrow();
+            .orElseThrow(() -> new NotFoundException("User has no active organization"));
 
         return new LoginResponse(
             null,
@@ -84,7 +88,7 @@ public class AuthService {
         );
     }
 
-    private AuthUserResponse toAuthUserResponse(User user, com.tamias.user.entity.UserOrganization userOrganization) {
+    private AuthUserResponse toAuthUserResponse(User user, UserOrganization userOrganization) {
         return new AuthUserResponse(
             user.getId(),
             user.getFirstName(),
