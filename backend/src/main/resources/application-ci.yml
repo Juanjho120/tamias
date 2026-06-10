@@ -1,0 +1,78 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/tamias
+    username: tamias
+    password: tamias
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc:
+          time_zone: UTC
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      chat:
+        options:
+          model: gpt-4o-mini
+          temperature: 0.2
+      embedding:
+        options:
+          model: text-embedding-3-small
+    vectorstore:
+      chroma:
+        client:
+          host: http://localhost
+          port: 8000
+        collection-name: tamias_ci
+        initialize-schema: true
+
+  servlet:
+    multipart:
+      max-file-size: 8MB
+      max-request-size: 8MB
+
+logging:
+  level:
+    org.hibernate.SQL: warn
+    org.hibernate.orm.jdbc.bind: warn
+    org.springframework.security: warn
+
+security:
+  jwt:
+    secret: ci-development-secret-change-me-before-production-123456789
+    expiration-minutes: 60
+
+tamias:
+  cors:
+    allowed-origins: http://localhost:4200
+
+  storage:
+    provider: local
+    s3:
+      bucket: ${AWS_S3_BUCKET}
+      region: ${AWS_REGION}
+      presigned-url-expiration-seconds: 300
+
+  ai:
+    default-top-k: 10
+    default-similarity-threshold: 0.30
+    vector-store:
+      chroma-base-url: http://localhost:8000
+      collection-name: tamias_ci
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
