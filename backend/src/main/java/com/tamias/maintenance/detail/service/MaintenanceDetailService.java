@@ -1,21 +1,21 @@
 package com.tamias.maintenance.detail.service;
 
+import com.tamias.catalog.inventoryitem.entity.InventoryItem;
+import com.tamias.catalog.inventoryitem.repository.InventoryItemRepository;
 import com.tamias.catalog.maintenanceperson.entity.MaintenancePerson;
 import com.tamias.catalog.maintenanceperson.repository.MaintenancePersonRepository;
-import com.tamias.catalog.material.entity.Material;
-import com.tamias.catalog.material.repository.MaterialRepository;
 import com.tamias.common.exception.BadRequestException;
 import com.tamias.common.exception.ConflictException;
 import com.tamias.common.exception.NotFoundException;
-import com.tamias.maintenance.detail.dto.MaintenanceMaterialUsedRequest;
-import com.tamias.maintenance.detail.dto.MaintenanceMaterialUsedResponse;
-import com.tamias.maintenance.detail.dto.MaintenanceMaterialUsedUpdateRequest;
+import com.tamias.maintenance.detail.dto.MaintenanceRecordItemRequest;
+import com.tamias.maintenance.detail.dto.MaintenanceRecordItemResponse;
+import com.tamias.maintenance.detail.dto.MaintenanceRecordItemUpdateRequest;
 import com.tamias.maintenance.detail.dto.MaintenanceRecordPersonRequest;
 import com.tamias.maintenance.detail.dto.MaintenanceRecordPersonResponse;
-import com.tamias.maintenance.detail.entity.MaintenanceMaterialUsed;
+import com.tamias.maintenance.detail.entity.MaintenanceRecordItem;
 import com.tamias.maintenance.detail.entity.MaintenanceRecordPerson;
 import com.tamias.maintenance.detail.mapper.MaintenanceDetailMapper;
-import com.tamias.maintenance.detail.repository.MaintenanceMaterialUsedRepository;
+import com.tamias.maintenance.detail.repository.MaintenanceRecordItemRepository;
 import com.tamias.maintenance.detail.repository.MaintenanceRecordPersonRepository;
 import com.tamias.maintenance.entity.MaintenanceRecord;
 import com.tamias.maintenance.repository.MaintenanceRecordRepository;
@@ -32,8 +32,8 @@ public class MaintenanceDetailService {
     private final MaintenanceRecordRepository maintenanceRecordRepository;
     private final MaintenancePersonRepository maintenancePersonRepository;
     private final MaintenanceRecordPersonRepository maintenanceRecordPersonRepository;
-    private final MaterialRepository materialRepository;
-    private final MaintenanceMaterialUsedRepository maintenanceMaterialUsedRepository;
+    private final InventoryItemRepository inventoryItemRepository;
+    private final MaintenanceRecordItemRepository maintenanceRecordItemRepository;
     private final CurrentUserService currentUserService;
     private final MaintenanceDetailMapper maintenanceDetailMapper;
 
@@ -41,16 +41,16 @@ public class MaintenanceDetailService {
             MaintenanceRecordRepository maintenanceRecordRepository,
             MaintenancePersonRepository maintenancePersonRepository,
             MaintenanceRecordPersonRepository maintenanceRecordPersonRepository,
-            MaterialRepository materialRepository,
-            MaintenanceMaterialUsedRepository maintenanceMaterialUsedRepository,
+            InventoryItemRepository inventoryItemRepository,
+            MaintenanceRecordItemRepository maintenanceRecordItemRepository,
             CurrentUserService currentUserService,
             MaintenanceDetailMapper maintenanceDetailMapper
     ) {
         this.maintenanceRecordRepository = maintenanceRecordRepository;
         this.maintenancePersonRepository = maintenancePersonRepository;
         this.maintenanceRecordPersonRepository = maintenanceRecordPersonRepository;
-        this.materialRepository = materialRepository;
-        this.maintenanceMaterialUsedRepository = maintenanceMaterialUsedRepository;
+        this.inventoryItemRepository = inventoryItemRepository;
+        this.maintenanceRecordItemRepository = maintenanceRecordItemRepository;
         this.currentUserService = currentUserService;
         this.maintenanceDetailMapper = maintenanceDetailMapper;
     }
@@ -70,10 +70,7 @@ public class MaintenanceDetailService {
 
     @Transactional
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF')")
-    public MaintenanceRecordPersonResponse addPerson(
-            UUID maintenanceRecordId,
-            MaintenanceRecordPersonRequest request
-    ) {
+    public MaintenanceRecordPersonResponse addPerson(UUID maintenanceRecordId, MaintenanceRecordPersonRequest request) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
         MaintenanceRecord maintenanceRecord = validateMaintenanceRecord(maintenanceRecordId, organizationId);
@@ -103,11 +100,7 @@ public class MaintenanceDetailService {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
         MaintenanceRecordPerson entity = maintenanceRecordPersonRepository
-                .findByIdAndMaintenanceRecord_IdAndOrganization_Id(
-                        personAssignmentId,
-                        maintenanceRecordId,
-                        organizationId
-                )
+                .findByIdAndMaintenanceRecord_IdAndOrganization_Id(personAssignmentId, maintenanceRecordId, organizationId)
                 .orElseThrow(() -> new NotFoundException("Maintenance record person assignment not found"));
 
         maintenanceRecordPersonRepository.delete(entity);
@@ -115,79 +108,68 @@ public class MaintenanceDetailService {
 
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF', 'READ_ONLY')")
-    public List<MaintenanceMaterialUsedResponse> findMaterials(UUID maintenanceRecordId) {
+    public List<MaintenanceRecordItemResponse> findItems(UUID maintenanceRecordId) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         validateMaintenanceRecord(maintenanceRecordId, organizationId);
 
-        return maintenanceMaterialUsedRepository
+        return maintenanceRecordItemRepository
                 .findByMaintenanceRecord_IdAndOrganization_IdOrderByIdAsc(maintenanceRecordId, organizationId)
                 .stream()
-                .map(maintenanceDetailMapper::toMaterialUsedResponse)
+                .map(maintenanceDetailMapper::toRecordItemResponse)
                 .toList();
     }
 
     @Transactional
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF')")
-    public MaintenanceMaterialUsedResponse addMaterial(
-            UUID maintenanceRecordId,
-            MaintenanceMaterialUsedRequest request
-    ) {
+    public MaintenanceRecordItemResponse addItem(UUID maintenanceRecordId, MaintenanceRecordItemRequest request) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
         MaintenanceRecord maintenanceRecord = validateMaintenanceRecord(maintenanceRecordId, organizationId);
-        Material material = resolveMaterial(request.materialId(), organizationId);
-        String materialNameSnapshot = resolveMaterialNameSnapshot(request.materialNameSnapshot(), material);
-        String unit = resolveUnit(request.unit(), material);
+        InventoryItem inventoryItem = resolveInventoryItem(request.requestedInventoryItemId(), organizationId);
+        String itemNameSnapshot = resolveItemNameSnapshot(request.requestedItemNameSnapshot(), inventoryItem);
+        String unit = resolveUnit(request.unit(), inventoryItem);
 
-        MaintenanceMaterialUsed entity = new MaintenanceMaterialUsed();
+        MaintenanceRecordItem entity = new MaintenanceRecordItem();
         entity.setOrganization(maintenanceRecord.getOrganization());
         entity.setMaintenanceRecord(maintenanceRecord);
 
-        maintenanceDetailMapper.updateMaterialUsed(entity, request, material, materialNameSnapshot, unit);
+        maintenanceDetailMapper.updateRecordItem(entity, request, inventoryItem, itemNameSnapshot, unit);
 
-        return maintenanceDetailMapper.toMaterialUsedResponse(maintenanceMaterialUsedRepository.save(entity));
+        return maintenanceDetailMapper.toRecordItemResponse(maintenanceRecordItemRepository.save(entity));
     }
 
     @Transactional
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF')")
-    public MaintenanceMaterialUsedResponse updateMaterial(
+    public MaintenanceRecordItemResponse updateItem(
             UUID maintenanceRecordId,
-            UUID materialUsedId,
-            MaintenanceMaterialUsedUpdateRequest request
+            UUID itemId,
+            MaintenanceRecordItemUpdateRequest request
     ) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
-        MaintenanceMaterialUsed entity = maintenanceMaterialUsedRepository
-                .findByIdAndMaintenanceRecord_IdAndOrganization_Id(
-                        materialUsedId,
-                        maintenanceRecordId,
-                        organizationId
-                )
-                .orElseThrow(() -> new NotFoundException("Maintenance material used not found"));
+        MaintenanceRecordItem entity = maintenanceRecordItemRepository
+                .findByIdAndMaintenanceRecord_IdAndOrganization_Id(itemId, maintenanceRecordId, organizationId)
+                .orElseThrow(() -> new NotFoundException("Maintenance record item not found"));
 
-        Material material = resolveMaterial(request.materialId(), organizationId);
-        String materialNameSnapshot = resolveMaterialNameSnapshot(request.materialNameSnapshot(), material);
-        String unit = resolveUnit(request.unit(), material);
+        InventoryItem inventoryItem = resolveInventoryItem(request.requestedInventoryItemId(), organizationId);
+        String itemNameSnapshot = resolveItemNameSnapshot(request.requestedItemNameSnapshot(), inventoryItem);
+        String unit = resolveUnit(request.unit(), inventoryItem);
 
-        maintenanceDetailMapper.updateMaterialUsed(entity, request, material, materialNameSnapshot, unit);
+        maintenanceDetailMapper.updateRecordItem(entity, request, inventoryItem, itemNameSnapshot, unit);
 
-        return maintenanceDetailMapper.toMaterialUsedResponse(maintenanceMaterialUsedRepository.save(entity));
+        return maintenanceDetailMapper.toRecordItemResponse(maintenanceRecordItemRepository.save(entity));
     }
 
     @Transactional
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF')")
-    public void removeMaterial(UUID maintenanceRecordId, UUID materialUsedId) {
+    public void removeItem(UUID maintenanceRecordId, UUID itemId) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
-        MaintenanceMaterialUsed entity = maintenanceMaterialUsedRepository
-                .findByIdAndMaintenanceRecord_IdAndOrganization_Id(
-                        materialUsedId,
-                        maintenanceRecordId,
-                        organizationId
-                )
-                .orElseThrow(() -> new NotFoundException("Maintenance material used not found"));
+        MaintenanceRecordItem entity = maintenanceRecordItemRepository
+                .findByIdAndMaintenanceRecord_IdAndOrganization_Id(itemId, maintenanceRecordId, organizationId)
+                .orElseThrow(() -> new NotFoundException("Maintenance record item not found"));
 
-        maintenanceMaterialUsedRepository.delete(entity);
+        maintenanceRecordItemRepository.delete(entity);
     }
 
     private MaintenanceRecord validateMaintenanceRecord(UUID maintenanceRecordId, UUID organizationId) {
@@ -196,35 +178,35 @@ public class MaintenanceDetailService {
                 .orElseThrow(() -> new NotFoundException("Maintenance record not found"));
     }
 
-    private Material resolveMaterial(UUID materialId, UUID organizationId) {
-        if (materialId == null) {
+    private InventoryItem resolveInventoryItem(UUID inventoryItemId, UUID organizationId) {
+        if (inventoryItemId == null) {
             return null;
         }
 
-        return materialRepository
-                .findByIdAndOrganization_IdAndDeletedAtIsNull(materialId, organizationId)
-                .orElseThrow(() -> new NotFoundException("Material not found"));
+        return inventoryItemRepository
+                .findByIdAndOrganization_IdAndDeletedAtIsNull(inventoryItemId, organizationId)
+                .orElseThrow(() -> new NotFoundException("Inventory item not found"));
     }
 
-    private String resolveMaterialNameSnapshot(String requestedName, Material material) {
+    private String resolveItemNameSnapshot(String requestedName, InventoryItem inventoryItem) {
         if (requestedName != null && !requestedName.isBlank()) {
             return requestedName.trim();
         }
 
-        if (material != null) {
-            return material.getName();
+        if (inventoryItem != null) {
+            return inventoryItem.getName();
         }
 
-        throw new BadRequestException("Material name is required when materialId is not provided");
+        throw new BadRequestException("Item name is required when inventoryItemId is not provided");
     }
 
-    private String resolveUnit(String requestedUnit, Material material) {
+    private String resolveUnit(String requestedUnit, InventoryItem inventoryItem) {
         if (requestedUnit != null && !requestedUnit.isBlank()) {
             return requestedUnit.trim();
         }
 
-        if (material != null) {
-            return material.getUnit();
+        if (inventoryItem != null) {
+            return inventoryItem.getUnit();
         }
 
         return null;

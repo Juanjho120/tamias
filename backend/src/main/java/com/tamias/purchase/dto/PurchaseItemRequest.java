@@ -6,6 +6,8 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 public record PurchaseItemRequest(
+        UUID inventoryItemId,
+
         UUID materialId,
 
         UUID brandId,
@@ -26,4 +28,7 @@ public record PurchaseItemRequest(
 
         String notes
 ) {
+    public UUID requestedInventoryItemId() {
+        return inventoryItemId != null ? inventoryItemId : materialId;
+    }
 }

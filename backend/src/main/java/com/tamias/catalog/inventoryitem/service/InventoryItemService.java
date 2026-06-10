@@ -1,11 +1,12 @@
-package com.tamias.catalog.material.service;
+package com.tamias.catalog.inventoryitem.service;
 
-import com.tamias.catalog.dto.MaterialRequest;
-import com.tamias.catalog.dto.MaterialResponse;
+import com.tamias.catalog.dto.InventoryItemRequest;
+import com.tamias.catalog.dto.InventoryItemResponse;
 import com.tamias.catalog.enums.CatalogStatus;
+import com.tamias.catalog.enums.InventoryItemType;
+import com.tamias.catalog.inventoryitem.entity.InventoryItem;
+import com.tamias.catalog.inventoryitem.repository.InventoryItemRepository;
 import com.tamias.catalog.mapper.CatalogMapper;
-import com.tamias.catalog.material.entity.Material;
-import com.tamias.catalog.material.repository.MaterialRepository;
 import com.tamias.common.dto.PageResponse;
 import com.tamias.common.exception.ConflictException;
 import com.tamias.common.exception.NotFoundException;
@@ -21,15 +22,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
-public class MaterialService {
+public class InventoryItemService {
 
-    private final MaterialRepository repository;
+    private final InventoryItemRepository repository;
     private final OrganizationRepository organizationRepository;
     private final CurrentUserService currentUserService;
     private final CatalogMapper catalogMapper;
 
-    public MaterialService(
-            MaterialRepository repository,
+    public InventoryItemService(
+            InventoryItemRepository repository,
             OrganizationRepository organizationRepository,
             CurrentUserService currentUserService,
             CatalogMapper catalogMapper
@@ -41,66 +42,84 @@ public class MaterialService {
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<MaterialResponse> findAll(CatalogStatus status, Pageable pageable) {
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF', 'READ_ONLY')")
+    public PageResponse<InventoryItemResponse> findAll(
+            CatalogStatus status,
+            InventoryItemType itemType,
+            Boolean availableForMaintenance,
+            Boolean availableForReservations,
+            Boolean availableForPurchases,
+            String search,
+            Pageable pageable
+    ) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
+        String normalizedSearch = search == null || search.isBlank() ? null : search.trim();
 
-        Page<Material> page = status == null
-                ? repository.findByOrganization_IdAndDeletedAtIsNull(organizationId, pageable)
-                : repository.findByOrganization_IdAndStatusAndDeletedAtIsNull(organizationId, status, pageable);
+        Page<InventoryItem> page = repository.search(
+                organizationId,
+                status,
+                itemType,
+                availableForMaintenance,
+                availableForReservations,
+                availableForPurchases,
+                normalizedSearch,
+                pageable
+        );
 
-        return PageResponse.from(page.map(catalogMapper::toMaterialResponse));
+        return PageResponse.from(page.map(catalogMapper::toInventoryItemResponse));
     }
 
     @Transactional(readOnly = true)
-    public MaterialResponse findById(UUID id) {
-        return catalogMapper.toMaterialResponse(findEntity(id));
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF', 'READ_ONLY')")
+    public InventoryItemResponse findById(UUID id) {
+        return catalogMapper.toInventoryItemResponse(findEntity(id));
     }
 
     @Transactional
-    public MaterialResponse create(MaterialRequest request) {
+    public InventoryItemResponse create(InventoryItemRequest request) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
         if (repository.existsByOrganization_IdAndNameIgnoreCaseAndDeletedAtIsNull(organizationId, request.name())) {
-            throw new ConflictException("material name already exists");
+            throw new ConflictException("inventory item name already exists");
         }
 
         var organization = organizationRepository.findByIdAndDeletedAtIsNull(organizationId)
                 .orElseThrow(() -> new NotFoundException("Organization not found"));
 
-        Material entity = new Material();
+        InventoryItem entity = new InventoryItem();
         entity.setOrganization(organization);
-        catalogMapper.updateMaterial(entity, request);
+        catalogMapper.updateInventoryItem(entity, request);
 
-        return catalogMapper.toMaterialResponse(repository.save(entity));
+        return catalogMapper.toInventoryItemResponse(repository.save(entity));
     }
 
     @Transactional
-    public MaterialResponse update(UUID id, MaterialRequest request) {
+    public InventoryItemResponse update(UUID id, InventoryItemRequest request) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-        Material entity = findEntity(id);
+        InventoryItem entity = findEntity(id);
 
         if (!entity.getName().equalsIgnoreCase(request.name())
                 && repository.existsByOrganization_IdAndNameIgnoreCaseAndDeletedAtIsNull(organizationId, request.name())) {
-            throw new ConflictException("material name already exists");
+            throw new ConflictException("inventory item name already exists");
         }
 
-        catalogMapper.updateMaterial(entity, request);
+        catalogMapper.updateInventoryItem(entity, request);
 
-        return catalogMapper.toMaterialResponse(repository.save(entity));
+        return catalogMapper.toInventoryItemResponse(repository.save(entity));
     }
 
     @Transactional
     public void delete(UUID id) {
-        Material entity = findEntity(id);
+        InventoryItem entity = findEntity(id);
         entity.setStatus(CatalogStatus.DELETED);
         entity.setDeletedAt(OffsetDateTime.now());
         repository.save(entity);
     }
 
-    private Material findEntity(UUID id) {
+    public InventoryItem findEntity(UUID id) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
         return repository.findByIdAndOrganization_IdAndDeletedAtIsNull(id, organizationId)
-                .orElseThrow(() -> new NotFoundException("material not found"));
+                .orElseThrow(() -> new NotFoundException("inventory item not found"));
     }
 }

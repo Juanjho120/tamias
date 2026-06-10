@@ -1,11 +1,11 @@
 package com.tamias.maintenance.detail.mapper;
 
-import com.tamias.catalog.material.entity.Material;
-import com.tamias.maintenance.detail.dto.MaintenanceMaterialUsedRequest;
-import com.tamias.maintenance.detail.dto.MaintenanceMaterialUsedResponse;
-import com.tamias.maintenance.detail.dto.MaintenanceMaterialUsedUpdateRequest;
+import com.tamias.catalog.inventoryitem.entity.InventoryItem;
+import com.tamias.maintenance.detail.dto.MaintenanceRecordItemRequest;
+import com.tamias.maintenance.detail.dto.MaintenanceRecordItemResponse;
+import com.tamias.maintenance.detail.dto.MaintenanceRecordItemUpdateRequest;
 import com.tamias.maintenance.detail.dto.MaintenanceRecordPersonResponse;
-import com.tamias.maintenance.detail.entity.MaintenanceMaterialUsed;
+import com.tamias.maintenance.detail.entity.MaintenanceRecordItem;
 import com.tamias.maintenance.detail.entity.MaintenanceRecordPerson;
 import org.springframework.stereotype.Component;
 
@@ -26,43 +26,46 @@ public class MaintenanceDetailMapper {
         );
     }
 
-    public void updateMaterialUsed(
-            MaintenanceMaterialUsed entity,
-            MaintenanceMaterialUsedRequest request,
-            Material material,
-            String materialNameSnapshot,
+    public void updateRecordItem(
+            MaintenanceRecordItem entity,
+            MaintenanceRecordItemRequest request,
+            InventoryItem inventoryItem,
+            String itemNameSnapshot,
             String unit
     ) {
-        entity.setMaterial(material);
-        entity.setMaterialNameSnapshot(materialNameSnapshot);
+        entity.setInventoryItem(inventoryItem);
+        entity.setItemNameSnapshot(itemNameSnapshot);
         entity.setQuantity(request.quantity());
         entity.setUnit(unit);
         entity.setNotes(request.notes());
     }
 
-    public void updateMaterialUsed(
-            MaintenanceMaterialUsed entity,
-            MaintenanceMaterialUsedUpdateRequest request,
-            Material material,
-            String materialNameSnapshot,
+    public void updateRecordItem(
+            MaintenanceRecordItem entity,
+            MaintenanceRecordItemUpdateRequest request,
+            InventoryItem inventoryItem,
+            String itemNameSnapshot,
             String unit
     ) {
-        entity.setMaterial(material);
-        entity.setMaterialNameSnapshot(materialNameSnapshot);
+        entity.setInventoryItem(inventoryItem);
+        entity.setItemNameSnapshot(itemNameSnapshot);
         entity.setQuantity(request.quantity());
         entity.setUnit(unit);
         entity.setNotes(request.notes());
     }
 
-    public MaintenanceMaterialUsedResponse toMaterialUsedResponse(MaintenanceMaterialUsed entity) {
-        var material = entity.getMaterial();
+    public MaintenanceRecordItemResponse toRecordItemResponse(MaintenanceRecordItem entity) {
+        var inventoryItem = entity.getInventoryItem();
 
-        return new MaintenanceMaterialUsedResponse(
+        return new MaintenanceRecordItemResponse(
                 entity.getId(),
                 entity.getMaintenanceRecord().getId(),
-                material != null ? material.getId() : null,
-                material != null ? material.getName() : null,
-                entity.getMaterialNameSnapshot(),
+                inventoryItem != null ? inventoryItem.getId() : null,
+                inventoryItem != null ? inventoryItem.getName() : null,
+                inventoryItem != null ? inventoryItem.getId() : null,
+                inventoryItem != null ? inventoryItem.getName() : null,
+                entity.getItemNameSnapshot(),
+                entity.getItemNameSnapshot(),
                 entity.getQuantity(),
                 entity.getUnit(),
                 entity.getNotes()

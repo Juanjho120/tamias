@@ -3,8 +3,8 @@ package com.tamias.purchase.service;
 import com.tamias.catalog.brand.entity.Brand;
 import com.tamias.catalog.brand.repository.BrandRepository;
 import com.tamias.catalog.city.repository.CityRepository;
-import com.tamias.catalog.material.entity.Material;
-import com.tamias.catalog.material.repository.MaterialRepository;
+import com.tamias.catalog.inventoryitem.entity.InventoryItem;
+import com.tamias.catalog.inventoryitem.repository.InventoryItemRepository;
 import com.tamias.catalog.supplier.repository.SupplierRepository;
 import com.tamias.common.dto.PageResponse;
 import com.tamias.common.exception.BadRequestException;
@@ -43,7 +43,7 @@ public class PurchaseListService {
     private final PropertyRepository propertyRepository;
     private final CityRepository cityRepository;
     private final SupplierRepository supplierRepository;
-    private final MaterialRepository materialRepository;
+    private final InventoryItemRepository inventoryItemRepository;
     private final BrandRepository brandRepository;
     private final UserRepository userRepository;
     private final CurrentUserService currentUserService;
@@ -56,7 +56,7 @@ public class PurchaseListService {
             PropertyRepository propertyRepository,
             CityRepository cityRepository,
             SupplierRepository supplierRepository,
-            MaterialRepository materialRepository,
+            InventoryItemRepository inventoryItemRepository,
             BrandRepository brandRepository,
             UserRepository userRepository,
             CurrentUserService currentUserService,
@@ -68,7 +68,7 @@ public class PurchaseListService {
         this.propertyRepository = propertyRepository;
         this.cityRepository = cityRepository;
         this.supplierRepository = supplierRepository;
-        this.materialRepository = materialRepository;
+        this.inventoryItemRepository = inventoryItemRepository;
         this.brandRepository = brandRepository;
         this.userRepository = userRepository;
         this.currentUserService = currentUserService;
@@ -223,11 +223,11 @@ public class PurchaseListService {
                 .findByIdAndPurchaseList_IdAndOrganization_Id(itemId, purchaseListId, organizationId)
                 .orElseThrow(() -> new NotFoundException("Purchase item not found"));
 
-        Material material = resolveMaterial(request.materialId(), organizationId);
+        InventoryItem inventoryItem = resolveInventoryItem(request.requestedInventoryItemId(), organizationId);
         Brand brand = resolveBrand(request.brandId(), organizationId);
-        String itemNameSnapshot = resolveItemName(request.itemNameSnapshot(), material);
+        String itemNameSnapshot = resolveItemName(request.itemNameSnapshot(), inventoryItem);
 
-        purchaseMapper.updatePurchaseItem(item, request, material, brand, itemNameSnapshot);
+        purchaseMapper.updatePurchaseItem(item, request, inventoryItem, brand, itemNameSnapshot);
 
         return purchaseMapper.toItemResponse(purchaseItemRepository.save(item));
     }
@@ -279,15 +279,15 @@ public class PurchaseListService {
     }
 
     private PurchaseItem createItemEntity(PurchaseList purchaseList, PurchaseItemRequest request, UUID organizationId) {
-        Material material = resolveMaterial(request.materialId(), organizationId);
+        InventoryItem inventoryItem = resolveInventoryItem(request.requestedInventoryItemId(), organizationId);
         Brand brand = resolveBrand(request.brandId(), organizationId);
-        String itemNameSnapshot = resolveItemName(request.itemNameSnapshot(), material);
+        String itemNameSnapshot = resolveItemName(request.itemNameSnapshot(), inventoryItem);
 
         PurchaseItem item = new PurchaseItem();
         item.setOrganization(purchaseList.getOrganization());
         item.setPurchaseList(purchaseList);
 
-        purchaseMapper.updatePurchaseItem(item, request, material, brand, itemNameSnapshot);
+        purchaseMapper.updatePurchaseItem(item, request, inventoryItem, brand, itemNameSnapshot);
 
         return purchaseItemRepository.save(item);
     }
@@ -324,14 +324,14 @@ public class PurchaseListService {
         }
     }
 
-    private Material resolveMaterial(UUID materialId, UUID organizationId) {
-        if (materialId == null) {
+    private InventoryItem resolveInventoryItem(UUID inventoryItemId, UUID organizationId) {
+        if (inventoryItemId == null) {
             return null;
         }
 
-        return materialRepository
-                .findByIdAndOrganization_IdAndDeletedAtIsNull(materialId, organizationId)
-                .orElseThrow(() -> new NotFoundException("Material not found"));
+        return inventoryItemRepository
+                .findByIdAndOrganization_IdAndDeletedAtIsNull(inventoryItemId, organizationId)
+                .orElseThrow(() -> new NotFoundException("Inventory item not found"));
     }
 
     private Brand resolveBrand(UUID brandId, UUID organizationId) {
@@ -344,15 +344,15 @@ public class PurchaseListService {
                 .orElseThrow(() -> new NotFoundException("Brand not found"));
     }
 
-    private String resolveItemName(String requestedName, Material material) {
+    private String resolveItemName(String requestedName, InventoryItem inventoryItem) {
         if (requestedName != null && !requestedName.isBlank()) {
             return requestedName.trim();
         }
 
-        if (material != null) {
-            return material.getName();
+        if (inventoryItem != null) {
+            return inventoryItem.getName();
         }
 
-        throw new BadRequestException("Item name is required when material is not provided");
+        throw new BadRequestException("Item name is required when inventory item is not provided");
     }
 }

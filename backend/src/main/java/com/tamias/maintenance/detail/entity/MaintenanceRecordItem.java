@@ -1,6 +1,6 @@
 package com.tamias.maintenance.detail.entity;
 
-import com.tamias.catalog.material.entity.Material;
+import com.tamias.catalog.inventoryitem.entity.InventoryItem;
 import com.tamias.common.entity.BaseEntity;
 import com.tamias.maintenance.entity.MaintenanceRecord;
 import com.tamias.organization.entity.Organization;
@@ -17,8 +17,8 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
-@Table(name = "maintenance_materials_used")
-public class MaintenanceMaterialUsed extends BaseEntity {
+@Table(name = "maintenance_record_items")
+public class MaintenanceRecordItem extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "organization_id", nullable = false)
@@ -29,11 +29,11 @@ public class MaintenanceMaterialUsed extends BaseEntity {
     private MaintenanceRecord maintenanceRecord;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "material_id")
-    private Material material;
+    @JoinColumn(name = "inventory_item_id")
+    private InventoryItem inventoryItem;
 
-    @Column(name = "material_name_snapshot", nullable = false, length = 150)
-    private String materialNameSnapshot;
+    @Column(name = "item_name_snapshot", nullable = false, length = 150)
+    private String itemNameSnapshot;
 
     @Column(precision = 12, scale = 2)
     private BigDecimal quantity;

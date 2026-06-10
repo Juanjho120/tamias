@@ -6,6 +6,8 @@ import java.util.UUID;
 
 public record PurchaseItemResponse(
         UUID id,
+        UUID inventoryItemId,
+        String inventoryItemName,
         UUID materialId,
         String materialName,
         UUID brandId,

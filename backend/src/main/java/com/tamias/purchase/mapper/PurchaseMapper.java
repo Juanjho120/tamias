@@ -1,7 +1,7 @@
 package com.tamias.purchase.mapper;
 
 import com.tamias.catalog.brand.entity.Brand;
-import com.tamias.catalog.material.entity.Material;
+import com.tamias.catalog.inventoryitem.entity.InventoryItem;
 import com.tamias.purchase.dto.PurchaseItemRequest;
 import com.tamias.purchase.dto.PurchaseItemResponse;
 import com.tamias.purchase.dto.PurchaseItemUpdateRequest;
@@ -26,11 +26,11 @@ public class PurchaseMapper {
     public void updatePurchaseItem(
             PurchaseItem entity,
             PurchaseItemRequest request,
-            Material material,
+            InventoryItem inventoryItem,
             Brand brand,
             String itemNameSnapshot
     ) {
-        entity.setMaterial(material);
+        entity.setInventoryItem(inventoryItem);
         entity.setBrand(brand);
         entity.setItemNameSnapshot(itemNameSnapshot);
         entity.setQuantity(request.quantity() != null ? request.quantity() : BigDecimal.ONE);
@@ -43,11 +43,11 @@ public class PurchaseMapper {
     public void updatePurchaseItem(
             PurchaseItem entity,
             PurchaseItemUpdateRequest request,
-            Material material,
+            InventoryItem inventoryItem,
             Brand brand,
             String itemNameSnapshot
     ) {
-        entity.setMaterial(material);
+        entity.setInventoryItem(inventoryItem);
         entity.setBrand(brand);
         entity.setItemNameSnapshot(itemNameSnapshot);
         entity.setQuantity(request.quantity() != null ? request.quantity() : BigDecimal.ONE);
@@ -112,13 +112,15 @@ public class PurchaseMapper {
     }
 
     public PurchaseItemResponse toItemResponse(PurchaseItem entity) {
-        var material = entity.getMaterial();
+        var inventoryItem = entity.getInventoryItem();
         var brand = entity.getBrand();
 
         return new PurchaseItemResponse(
                 entity.getId(),
-                material != null ? material.getId() : null,
-                material != null ? material.getName() : null,
+                inventoryItem != null ? inventoryItem.getId() : null,
+                inventoryItem != null ? inventoryItem.getName() : null,
+                inventoryItem != null ? inventoryItem.getId() : null,
+                inventoryItem != null ? inventoryItem.getName() : null,
                 brand != null ? brand.getId() : null,
                 brand != null ? brand.getName() : null,
                 entity.getItemNameSnapshot(),

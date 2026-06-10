@@ -1,8 +1,8 @@
 package com.tamias.maintenance.detail.controller;
 
-import com.tamias.maintenance.detail.dto.MaintenanceMaterialUsedRequest;
-import com.tamias.maintenance.detail.dto.MaintenanceMaterialUsedResponse;
-import com.tamias.maintenance.detail.dto.MaintenanceMaterialUsedUpdateRequest;
+import com.tamias.maintenance.detail.dto.MaintenanceRecordItemRequest;
+import com.tamias.maintenance.detail.dto.MaintenanceRecordItemResponse;
+import com.tamias.maintenance.detail.dto.MaintenanceRecordItemUpdateRequest;
 import com.tamias.maintenance.detail.dto.MaintenanceRecordPersonRequest;
 import com.tamias.maintenance.detail.dto.MaintenanceRecordPersonResponse;
 import com.tamias.maintenance.detail.service.MaintenanceDetailService;
@@ -45,35 +45,35 @@ public class MaintenanceDetailController {
         maintenanceDetailService.removePerson(maintenanceRecordId, personAssignmentId);
     }
 
-    @GetMapping("/materials")
-    public List<MaintenanceMaterialUsedResponse> findMaterials(@PathVariable UUID maintenanceRecordId) {
-        return maintenanceDetailService.findMaterials(maintenanceRecordId);
+    @GetMapping({"/items", "/materials"})
+    public List<MaintenanceRecordItemResponse> findItems(@PathVariable UUID maintenanceRecordId) {
+        return maintenanceDetailService.findItems(maintenanceRecordId);
     }
 
-    @PostMapping("/materials")
+    @PostMapping({"/items", "/materials"})
     @ResponseStatus(HttpStatus.CREATED)
-    public MaintenanceMaterialUsedResponse addMaterial(
+    public MaintenanceRecordItemResponse addItem(
             @PathVariable UUID maintenanceRecordId,
-            @Valid @RequestBody MaintenanceMaterialUsedRequest request
+            @Valid @RequestBody MaintenanceRecordItemRequest request
     ) {
-        return maintenanceDetailService.addMaterial(maintenanceRecordId, request);
+        return maintenanceDetailService.addItem(maintenanceRecordId, request);
     }
 
-    @PutMapping("/materials/{materialUsedId}")
-    public MaintenanceMaterialUsedResponse updateMaterial(
+    @PutMapping({"/items/{itemId}", "/materials/{itemId}"})
+    public MaintenanceRecordItemResponse updateItem(
             @PathVariable UUID maintenanceRecordId,
-            @PathVariable UUID materialUsedId,
-            @Valid @RequestBody MaintenanceMaterialUsedUpdateRequest request
+            @PathVariable UUID itemId,
+            @Valid @RequestBody MaintenanceRecordItemUpdateRequest request
     ) {
-        return maintenanceDetailService.updateMaterial(maintenanceRecordId, materialUsedId, request);
+        return maintenanceDetailService.updateItem(maintenanceRecordId, itemId, request);
     }
 
-    @DeleteMapping("/materials/{materialUsedId}")
+    @DeleteMapping({"/items/{itemId}", "/materials/{itemId}"})
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void removeMaterial(
+    public void removeItem(
             @PathVariable UUID maintenanceRecordId,
-            @PathVariable UUID materialUsedId
+            @PathVariable UUID itemId
     ) {
-        maintenanceDetailService.removeMaterial(maintenanceRecordId, materialUsedId);
+        maintenanceDetailService.removeItem(maintenanceRecordId, itemId);
     }
 }

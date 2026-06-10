@@ -344,3 +344,26 @@ Para portfolio y desarrollo inicial, un monorepo facilita documentación, revisi
 ### Consecuencia
 
 Backend, frontend, documentación y configuración DevOps vivirán en el mismo repositorio.
+
+# Decision: Inventory Items as shared operational catalog
+
+TAMIAS will replace the narrow `materials` concept with `inventory_items`.
+
+Inventory items are the shared catalog for materials, supplies, amenities, cleaning supplies, tools and other purchasable or usable operational items.
+
+Domain usage is represented through association tables and references:
+
+```text
+maintenance_record_items.inventory_item_id
+purchase_items.inventory_item_id
+future reservation_supplies.inventory_item_id
+```
+
+The UI should use:
+
+```text
+Spanish: Insumos y materiales
+English: Inventory Items
+```
+
+The old `materials` API can remain temporarily as a compatibility alias during frontend migration, but `/api/v1/inventory-items` is the preferred API.

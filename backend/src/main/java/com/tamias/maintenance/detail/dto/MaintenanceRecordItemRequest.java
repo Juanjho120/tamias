@@ -5,8 +5,13 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-public record MaintenanceMaterialUsedRequest(
+public record MaintenanceRecordItemRequest(
+        UUID inventoryItemId,
+
         UUID materialId,
+
+        @Size(max = 150, message = "Item name must not exceed 150 characters")
+        String itemNameSnapshot,
 
         @Size(max = 150, message = "Material name must not exceed 150 characters")
         String materialNameSnapshot,
@@ -19,4 +24,13 @@ public record MaintenanceMaterialUsedRequest(
 
         String notes
 ) {
+    public UUID requestedInventoryItemId() {
+        return inventoryItemId != null ? inventoryItemId : materialId;
+    }
+
+    public String requestedItemNameSnapshot() {
+        return itemNameSnapshot != null && !itemNameSnapshot.isBlank()
+                ? itemNameSnapshot
+                : materialNameSnapshot;
+    }
 }

@@ -340,3 +340,27 @@ Posibles mejoras:
 - Agentes especializados.
 - Auditoría avanzada.
 - Multi-organization switching.
+
+## Inventory Items Refactor Roadmap
+
+### Block 1 — Documentation + Backend InventoryItem refactor
+
+- Create inventory item documentation.
+- Rename database table `materials` to `inventory_items`.
+- Rename maintenance item table to `maintenance_record_items`.
+- Rename `purchase_items.material_id` to `purchase_items.inventory_item_id`.
+- Add `InventoryItem` backend catalog.
+- Keep temporary compatibility routes for old frontend calls.
+
+### Block 2 — Frontend Inventory Items refactor
+
+- Rename Materials UI to Inventory Items / Insumos y materiales.
+- Move frontend API calls from `/catalogs/materials` to `/inventory-items`.
+- Update purchase item forms to use `inventoryItemId`.
+- Update maintenance detail forms to use inventory items.
+
+### Block 3 — Reservation Supplies
+
+- Add `reservation_supplies` backend table and API.
+- Add reservation detail UI section: Insumos entregados.
+- Use only inventory items with `availableForReservations = true`.

@@ -1,7 +1,7 @@
 package com.tamias.purchase.entity;
 
 import com.tamias.catalog.brand.entity.Brand;
-import com.tamias.catalog.material.entity.Material;
+import com.tamias.catalog.inventoryitem.entity.InventoryItem;
 import com.tamias.common.entity.AuditableEntity;
 import com.tamias.organization.entity.Organization;
 import jakarta.persistence.Column;
@@ -29,8 +29,8 @@ public class PurchaseItem extends AuditableEntity {
     private PurchaseList purchaseList;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "material_id")
-    private Material material;
+    @JoinColumn(name = "inventory_item_id")
+    private InventoryItem inventoryItem;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "brand_id")
