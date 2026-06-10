@@ -7,6 +7,7 @@ import com.tamias.catalog.mapper.CatalogMapper;
 import com.tamias.catalog.supplier.entity.Supplier;
 import com.tamias.catalog.supplier.repository.SupplierRepository;
 import com.tamias.common.dto.PageResponse;
+import com.tamias.common.exception.BadRequestException;
 import com.tamias.common.exception.ConflictException;
 import com.tamias.common.exception.NotFoundException;
 import com.tamias.organization.repository.OrganizationRepository;
@@ -20,19 +21,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
 public class SupplierService {
-
     private final SupplierRepository repository;
     private final OrganizationRepository organizationRepository;
     private final CurrentUserService currentUserService;
     private final CatalogMapper catalogMapper;
 
     public SupplierService(
-            SupplierRepository repository,
-            OrganizationRepository organizationRepository,
-            CurrentUserService currentUserService,
-            CatalogMapper catalogMapper
+        SupplierRepository repository,
+        OrganizationRepository organizationRepository,
+        CurrentUserService currentUserService,
+        CatalogMapper catalogMapper
     ) {
         this.repository = repository;
         this.organizationRepository = organizationRepository;
@@ -41,59 +40,75 @@ public class SupplierService {
     }
 
     @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF', 'READ_ONLY')")
     public PageResponse<SupplierResponse> findAll(CatalogStatus status, Pageable pageable) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
         Page<Supplier> page = status == null
-                ? repository.findByOrganization_IdAndDeletedAtIsNull(organizationId, pageable)
-                : repository.findByOrganization_IdAndStatusAndDeletedAtIsNull(organizationId, status, pageable);
+            ? repository.findByOrganization_IdAndDeletedAtIsNull(organizationId, pageable)
+            : repository.findByOrganization_IdAndStatusAndDeletedAtIsNull(organizationId, status, pageable);
 
         return PageResponse.from(page.map(catalogMapper::toSupplierResponse));
     }
 
     @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF', 'READ_ONLY')")
     public SupplierResponse findById(UUID id) {
         return catalogMapper.toSupplierResponse(findEntity(id));
     }
 
     @Transactional
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
     public SupplierResponse create(SupplierRequest request) {
-        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        validateWritableStatus(request.status());
 
-        if (repository.existsByOrganization_IdAndNameIgnoreCaseAndDeletedAtIsNull(organizationId, request.name())) {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        String normalizedName = request.name().trim();
+
+        if (repository.existsByOrganization_IdAndNameIgnoreCaseAndDeletedAtIsNull(organizationId, normalizedName)) {
             throw new ConflictException("supplier name already exists");
         }
 
         var organization = organizationRepository.findByIdAndDeletedAtIsNull(organizationId)
-                .orElseThrow(() -> new NotFoundException("Organization not found"));
+            .orElseThrow(() -> new NotFoundException("Organization not found"));
 
         Supplier entity = new Supplier();
         entity.setOrganization(organization);
+
         catalogMapper.updateSupplier(entity, request);
+        entity.setName(normalizedName);
 
         return catalogMapper.toSupplierResponse(repository.save(entity));
     }
 
     @Transactional
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
     public SupplierResponse update(UUID id, SupplierRequest request) {
+        validateWritableStatus(request.status());
+
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         Supplier entity = findEntity(id);
+        String normalizedName = request.name().trim();
 
-        if (!entity.getName().equalsIgnoreCase(request.name())
-                && repository.existsByOrganization_IdAndNameIgnoreCaseAndDeletedAtIsNull(organizationId, request.name())) {
+        if (!entity.getName().equalsIgnoreCase(normalizedName)
+            && repository.existsByOrganization_IdAndNameIgnoreCaseAndDeletedAtIsNull(organizationId, normalizedName)) {
             throw new ConflictException("supplier name already exists");
         }
 
         catalogMapper.updateSupplier(entity, request);
+        entity.setName(normalizedName);
 
         return catalogMapper.toSupplierResponse(repository.save(entity));
     }
 
     @Transactional
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
     public void delete(UUID id) {
         Supplier entity = findEntity(id);
+
         entity.setStatus(CatalogStatus.DELETED);
         entity.setDeletedAt(OffsetDateTime.now());
+
         repository.save(entity);
     }
 
@@ -101,6 +116,12 @@ public class SupplierService {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
         return repository.findByIdAndOrganization_IdAndDeletedAtIsNull(id, organizationId)
-                .orElseThrow(() -> new NotFoundException("supplier not found"));
+            .orElseThrow(() -> new NotFoundException("supplier not found"));
+    }
+
+    private void validateWritableStatus(CatalogStatus status) {
+        if (status == CatalogStatus.DELETED) {
+            throw new BadRequestException("Use the delete endpoint to delete supplier");
+        }
     }
 }

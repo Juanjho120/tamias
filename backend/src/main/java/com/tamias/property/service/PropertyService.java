@@ -1,6 +1,7 @@
 package com.tamias.property.service;
 
 import com.tamias.common.dto.PageResponse;
+import com.tamias.common.exception.BadRequestException;
 import com.tamias.common.exception.ConflictException;
 import com.tamias.common.exception.NotFoundException;
 import com.tamias.organization.repository.OrganizationRepository;
@@ -23,7 +24,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class PropertyService {
-
     private final PropertyRepository propertyRepository;
     private final OrganizationRepository organizationRepository;
     private final UserRepository userRepository;
@@ -31,11 +31,11 @@ public class PropertyService {
     private final CurrentUserService currentUserService;
 
     public PropertyService(
-            PropertyRepository propertyRepository,
-            OrganizationRepository organizationRepository,
-            UserRepository userRepository,
-            PropertyMapper propertyMapper,
-            CurrentUserService currentUserService
+        PropertyRepository propertyRepository,
+        OrganizationRepository organizationRepository,
+        UserRepository userRepository,
+        PropertyMapper propertyMapper,
+        CurrentUserService currentUserService
     ) {
         this.propertyRepository = propertyRepository;
         this.organizationRepository = organizationRepository;
@@ -47,9 +47,9 @@ public class PropertyService {
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF', 'READ_ONLY')")
     public PageResponse<PropertySummaryResponse> findAll(
-            PropertyStatus status,
-            String search,
-            Pageable pageable
+        PropertyStatus status,
+        String search,
+        Pageable pageable
     ) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         String normalizedSearch = normalizeSearch(search);
@@ -58,27 +58,27 @@ public class PropertyService {
 
         if (status == null && normalizedSearch == null) {
             page = propertyRepository.findByOrganization_IdAndDeletedAtIsNull(
-                    organizationId,
-                    pageable
+                organizationId,
+                pageable
             );
         } else if (status != null && normalizedSearch == null) {
             page = propertyRepository.findByOrganization_IdAndStatusAndDeletedAtIsNull(
-                    organizationId,
-                    status,
-                    pageable
+                organizationId,
+                status,
+                pageable
             );
         } else if (status == null) {
             page = propertyRepository.searchByText(
-                    organizationId,
-                    normalizedSearch,
-                    pageable
+                organizationId,
+                normalizedSearch,
+                pageable
             );
         } else {
             page = propertyRepository.searchByStatusAndText(
-                    organizationId,
-                    status,
-                    normalizedSearch,
-                    pageable
+                organizationId,
+                status,
+                normalizedSearch,
+                pageable
             );
         }
 
@@ -95,22 +95,26 @@ public class PropertyService {
     @Transactional
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
     public PropertyResponse create(PropertyRequest request) {
+        validateWritableStatus(request.status());
+
         UUID organizationId = currentUserService.getCurrentOrganizationId();
+        String normalizedName = request.name().trim();
 
         if (propertyRepository.existsByOrganization_IdAndNameIgnoreCaseAndDeletedAtIsNull(
-                organizationId,
-                request.name()
+            organizationId,
+            normalizedName
         )) {
             throw new ConflictException("Property name already exists");
         }
 
         var organization = organizationRepository.findByIdAndDeletedAtIsNull(organizationId)
-                .orElseThrow(() -> new NotFoundException("Organization not found"));
+            .orElseThrow(() -> new NotFoundException("Organization not found"));
 
         var currentUser = userRepository.findByIdAndDeletedAtIsNull(currentUserService.getCurrentUserId())
-                .orElseThrow(() -> new NotFoundException("User not found"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
 
         Property property = propertyMapper.toEntity(request);
+        property.setName(normalizedName);
         property.setOrganization(organization);
         property.setCreatedBy(currentUser);
         property.setUpdatedBy(currentUser);
@@ -121,22 +125,25 @@ public class PropertyService {
     @Transactional
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
     public PropertyResponse update(UUID id, PropertyRequest request) {
+        validateWritableStatus(request.status());
+
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-
         Property property = findPropertyInCurrentOrganization(id);
+        String normalizedName = request.name().trim();
 
-        if (!property.getName().equalsIgnoreCase(request.name())
-                && propertyRepository.existsByOrganization_IdAndNameIgnoreCaseAndDeletedAtIsNull(
+        if (!property.getName().equalsIgnoreCase(normalizedName)
+            && propertyRepository.existsByOrganization_IdAndNameIgnoreCaseAndDeletedAtIsNull(
                 organizationId,
-                request.name()
-        )) {
+                normalizedName
+            )) {
             throw new ConflictException("Property name already exists");
         }
 
         var currentUser = userRepository.findByIdAndDeletedAtIsNull(currentUserService.getCurrentUserId())
-                .orElseThrow(() -> new NotFoundException("User not found"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
 
         propertyMapper.updateEntity(property, request);
+        property.setName(normalizedName);
         property.setUpdatedBy(currentUser);
 
         return propertyMapper.toResponse(propertyRepository.save(property));
@@ -148,7 +155,7 @@ public class PropertyService {
         Property property = findPropertyInCurrentOrganization(id);
 
         var currentUser = userRepository.findByIdAndDeletedAtIsNull(currentUserService.getCurrentUserId())
-                .orElseThrow(() -> new NotFoundException("User not found"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
 
         property.setStatus(PropertyStatus.DELETED);
         property.setDeletedAt(OffsetDateTime.now());
@@ -162,8 +169,14 @@ public class PropertyService {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
         return propertyRepository
-                .findByIdAndOrganization_IdAndDeletedAtIsNull(id, organizationId)
-                .orElseThrow(() -> new NotFoundException("Property not found"));
+            .findByIdAndOrganization_IdAndDeletedAtIsNull(id, organizationId)
+            .orElseThrow(() -> new NotFoundException("Property not found"));
+    }
+
+    private void validateWritableStatus(PropertyStatus status) {
+        if (status == PropertyStatus.DELETED) {
+            throw new BadRequestException("Use the delete endpoint to delete a property");
+        }
     }
 
     private String normalizeSearch(String search) {

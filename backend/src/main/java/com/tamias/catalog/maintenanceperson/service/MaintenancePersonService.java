@@ -7,6 +7,7 @@ import com.tamias.catalog.maintenanceperson.entity.MaintenancePerson;
 import com.tamias.catalog.maintenanceperson.repository.MaintenancePersonRepository;
 import com.tamias.catalog.mapper.CatalogMapper;
 import com.tamias.common.dto.PageResponse;
+import com.tamias.common.exception.BadRequestException;
 import com.tamias.common.exception.ConflictException;
 import com.tamias.common.exception.NotFoundException;
 import com.tamias.organization.repository.OrganizationRepository;
@@ -20,19 +21,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
 public class MaintenancePersonService {
-
     private final MaintenancePersonRepository repository;
     private final OrganizationRepository organizationRepository;
     private final CurrentUserService currentUserService;
     private final CatalogMapper catalogMapper;
 
     public MaintenancePersonService(
-            MaintenancePersonRepository repository,
-            OrganizationRepository organizationRepository,
-            CurrentUserService currentUserService,
-            CatalogMapper catalogMapper
+        MaintenancePersonRepository repository,
+        OrganizationRepository organizationRepository,
+        CurrentUserService currentUserService,
+        CatalogMapper catalogMapper
     ) {
         this.repository = repository;
         this.organizationRepository = organizationRepository;
@@ -41,59 +40,75 @@ public class MaintenancePersonService {
     }
 
     @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF', 'READ_ONLY')")
     public PageResponse<MaintenancePersonResponse> findAll(CatalogStatus status, Pageable pageable) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
         Page<MaintenancePerson> page = status == null
-                ? repository.findByOrganization_IdAndDeletedAtIsNull(organizationId, pageable)
-                : repository.findByOrganization_IdAndStatusAndDeletedAtIsNull(organizationId, status, pageable);
+            ? repository.findByOrganization_IdAndDeletedAtIsNull(organizationId, pageable)
+            : repository.findByOrganization_IdAndStatusAndDeletedAtIsNull(organizationId, status, pageable);
 
         return PageResponse.from(page.map(catalogMapper::toMaintenancePersonResponse));
     }
 
     @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF', 'READ_ONLY')")
     public MaintenancePersonResponse findById(UUID id) {
         return catalogMapper.toMaintenancePersonResponse(findEntity(id));
     }
 
     @Transactional
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
     public MaintenancePersonResponse create(MaintenancePersonRequest request) {
-        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        validateWritableStatus(request.status());
 
-        if (repository.existsByOrganization_IdAndFullNameIgnoreCaseAndDeletedAtIsNull(organizationId, request.fullName())) {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        String normalizedFullName = request.fullName().trim();
+
+        if (repository.existsByOrganization_IdAndFullNameIgnoreCaseAndDeletedAtIsNull(organizationId, normalizedFullName)) {
             throw new ConflictException("maintenance person full name already exists");
         }
 
         var organization = organizationRepository.findByIdAndDeletedAtIsNull(organizationId)
-                .orElseThrow(() -> new NotFoundException("Organization not found"));
+            .orElseThrow(() -> new NotFoundException("Organization not found"));
 
         MaintenancePerson entity = new MaintenancePerson();
         entity.setOrganization(organization);
+
         catalogMapper.updateMaintenancePerson(entity, request);
+        entity.setFullName(normalizedFullName);
 
         return catalogMapper.toMaintenancePersonResponse(repository.save(entity));
     }
 
     @Transactional
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
     public MaintenancePersonResponse update(UUID id, MaintenancePersonRequest request) {
+        validateWritableStatus(request.status());
+
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         MaintenancePerson entity = findEntity(id);
+        String normalizedFullName = request.fullName().trim();
 
-        if (!entity.getFullName().equalsIgnoreCase(request.fullName())
-                && repository.existsByOrganization_IdAndFullNameIgnoreCaseAndDeletedAtIsNull(organizationId, request.fullName())) {
+        if (!entity.getFullName().equalsIgnoreCase(normalizedFullName)
+            && repository.existsByOrganization_IdAndFullNameIgnoreCaseAndDeletedAtIsNull(organizationId, normalizedFullName)) {
             throw new ConflictException("maintenance person full name already exists");
         }
 
         catalogMapper.updateMaintenancePerson(entity, request);
+        entity.setFullName(normalizedFullName);
 
         return catalogMapper.toMaintenancePersonResponse(repository.save(entity));
     }
 
     @Transactional
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
     public void delete(UUID id) {
         MaintenancePerson entity = findEntity(id);
+
         entity.setStatus(CatalogStatus.DELETED);
         entity.setDeletedAt(OffsetDateTime.now());
+
         repository.save(entity);
     }
 
@@ -101,6 +116,12 @@ public class MaintenancePersonService {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
         return repository.findByIdAndOrganization_IdAndDeletedAtIsNull(id, organizationId)
-                .orElseThrow(() -> new NotFoundException("maintenance person not found"));
+            .orElseThrow(() -> new NotFoundException("maintenance person not found"));
+    }
+
+    private void validateWritableStatus(CatalogStatus status) {
+        if (status == CatalogStatus.DELETED) {
+            throw new BadRequestException("Use the delete endpoint to delete maintenance person");
+        }
     }
 }

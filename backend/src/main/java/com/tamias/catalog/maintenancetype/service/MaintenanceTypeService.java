@@ -3,10 +3,11 @@ package com.tamias.catalog.maintenancetype.service;
 import com.tamias.catalog.dto.MaintenanceTypeRequest;
 import com.tamias.catalog.dto.MaintenanceTypeResponse;
 import com.tamias.catalog.enums.CatalogStatus;
+import com.tamias.catalog.mapper.CatalogMapper;
 import com.tamias.catalog.maintenancetype.entity.MaintenanceType;
 import com.tamias.catalog.maintenancetype.repository.MaintenanceTypeRepository;
-import com.tamias.catalog.mapper.CatalogMapper;
 import com.tamias.common.dto.PageResponse;
+import com.tamias.common.exception.BadRequestException;
 import com.tamias.common.exception.ConflictException;
 import com.tamias.common.exception.NotFoundException;
 import com.tamias.organization.repository.OrganizationRepository;
@@ -20,19 +21,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
 public class MaintenanceTypeService {
-
     private final MaintenanceTypeRepository repository;
     private final OrganizationRepository organizationRepository;
     private final CurrentUserService currentUserService;
     private final CatalogMapper catalogMapper;
 
     public MaintenanceTypeService(
-            MaintenanceTypeRepository repository,
-            OrganizationRepository organizationRepository,
-            CurrentUserService currentUserService,
-            CatalogMapper catalogMapper
+        MaintenanceTypeRepository repository,
+        OrganizationRepository organizationRepository,
+        CurrentUserService currentUserService,
+        CatalogMapper catalogMapper
     ) {
         this.repository = repository;
         this.organizationRepository = organizationRepository;
@@ -41,60 +40,75 @@ public class MaintenanceTypeService {
     }
 
     @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF', 'READ_ONLY')")
     public PageResponse<MaintenanceTypeResponse> findAll(CatalogStatus status, Pageable pageable) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
         Page<MaintenanceType> page = status == null
-                ? repository.findByOrganization_IdAndDeletedAtIsNull(organizationId, pageable)
-                : repository.findByOrganization_IdAndStatusAndDeletedAtIsNull(organizationId, status, pageable);
+            ? repository.findByOrganization_IdAndDeletedAtIsNull(organizationId, pageable)
+            : repository.findByOrganization_IdAndStatusAndDeletedAtIsNull(organizationId, status, pageable);
 
         return PageResponse.from(page.map(catalogMapper::toMaintenanceTypeResponse));
     }
 
     @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF', 'READ_ONLY')")
     public MaintenanceTypeResponse findById(UUID id) {
         return catalogMapper.toMaintenanceTypeResponse(findEntity(id));
     }
 
     @Transactional
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
     public MaintenanceTypeResponse create(MaintenanceTypeRequest request) {
-        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        validateWritableStatus(request.status());
 
-        if (repository.existsByOrganization_IdAndNameIgnoreCaseAndDeletedAtIsNull(organizationId, request.name())) {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        String normalizedName = request.name().trim();
+
+        if (repository.existsByOrganization_IdAndNameIgnoreCaseAndDeletedAtIsNull(organizationId, normalizedName)) {
             throw new ConflictException("maintenance type name already exists");
         }
 
         var organization = organizationRepository.findByIdAndDeletedAtIsNull(organizationId)
-                .orElseThrow(() -> new NotFoundException("Organization not found"));
+            .orElseThrow(() -> new NotFoundException("Organization not found"));
 
         MaintenanceType entity = new MaintenanceType();
         entity.setOrganization(organization);
+
         catalogMapper.updateMaintenanceType(entity, request);
+        entity.setName(normalizedName);
 
         return catalogMapper.toMaintenanceTypeResponse(repository.save(entity));
     }
 
     @Transactional
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
     public MaintenanceTypeResponse update(UUID id, MaintenanceTypeRequest request) {
+        validateWritableStatus(request.status());
+
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-
         MaintenanceType entity = findEntity(id);
+        String normalizedName = request.name().trim();
 
-        if (!entity.getName().equalsIgnoreCase(request.name())
-                && repository.existsByOrganization_IdAndNameIgnoreCaseAndDeletedAtIsNull(organizationId, request.name())) {
+        if (!entity.getName().equalsIgnoreCase(normalizedName)
+            && repository.existsByOrganization_IdAndNameIgnoreCaseAndDeletedAtIsNull(organizationId, normalizedName)) {
             throw new ConflictException("maintenance type name already exists");
         }
 
         catalogMapper.updateMaintenanceType(entity, request);
+        entity.setName(normalizedName);
 
         return catalogMapper.toMaintenanceTypeResponse(repository.save(entity));
     }
 
     @Transactional
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
     public void delete(UUID id) {
         MaintenanceType entity = findEntity(id);
+
         entity.setStatus(CatalogStatus.DELETED);
         entity.setDeletedAt(OffsetDateTime.now());
+
         repository.save(entity);
     }
 
@@ -102,6 +116,12 @@ public class MaintenanceTypeService {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
         return repository.findByIdAndOrganization_IdAndDeletedAtIsNull(id, organizationId)
-                .orElseThrow(() -> new NotFoundException("maintenance type not found"));
+            .orElseThrow(() -> new NotFoundException("maintenance type not found"));
+    }
+
+    private void validateWritableStatus(CatalogStatus status) {
+        if (status == CatalogStatus.DELETED) {
+            throw new BadRequestException("Use the delete endpoint to delete maintenance type");
+        }
     }
 }
