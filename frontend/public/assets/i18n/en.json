@@ -291,6 +291,16 @@
       }
     }
   },
+  "inventoryItems": {
+    "type": {
+      "MATERIAL": "Material",
+      "SUPPLY": "Supply",
+      "AMENITY": "Amenity",
+      "CLEANING_SUPPLY": "Cleaning supply",
+      "TOOL": "Tool",
+      "OTHER": "Other"
+    }
+  },
   "maintenance": {
     "title": "Maintenance",
     "subtitle": "Create, update and review maintenance records and evidence images.",
@@ -398,7 +408,7 @@
       "loading": "Loading maintenance details...",
       "confirmDeleteTitle": "Remove detail",
       "confirmRemovePersonMessage": "Remove \"{{name}}\" from this maintenance record?",
-      "confirmRemoveMaterialMessage": "Remove material \"{{name}}\" from this maintenance record?",
+      "confirmRemoveItemMessage": "Remove item \"{{name}}\" from this maintenance record?",
       "people": {
         "title": "Assigned people",
         "person": "Person",
@@ -407,9 +417,10 @@
         "empty": "No additional people assigned yet."
       },
       "materials": {
-        "title": "Materials used",
-        "material": "Material",
-        "noCatalogMaterial": "No catalog material",
+        "title": "Used items",
+        "material": "Item",
+        "noCatalogItem": "No catalog item",
+        "manualItemName": "Manual item name",
         "manualName": "Manual material name",
         "quantity": "Quantity",
         "unit": "Unit",
@@ -427,7 +438,7 @@
         "materialAdded": "Material added successfully.",
         "materialUpdated": "Material updated successfully.",
         "materialSaveError": "Unable to save material.",
-        "materialRemoved": "Material removed successfully.",
+        "itemRemoved": "Item removed successfully.",
         "deleteError": "Unable to remove detail."
       }
     }
@@ -457,12 +468,19 @@
       "website": "Website",
       "notes": "Notes",
       "status": "Status",
-      "createdAt": "Created"
+      "createdAt": "Created",
+      "itemType": "Type",
+      "internalCode": "Internal code",
+      "barcode": "Barcode",
+      "availableForMaintenance": "Available for maintenance",
+      "availableForReservations": "Available for reservations",
+      "availableForPurchases": "Available for purchases"
     },
     "form": {
       "createTitle": "Create {{catalog}}",
       "editTitle": "Edit {{catalog}}",
-      "save": "Save item"
+      "save": "Save item",
+      "selectPlaceholder": "Select an option"
     },
     "validation": {
       "fieldInvalid": "{{field}} is invalid or required.",
@@ -493,9 +511,9 @@
         "title": "Brands",
         "description": "Brands used for materials, tools and inventory."
       },
-      "materials": {
-        "title": "Materials",
-        "description": "Materials and supplies used in maintenance and purchases."
+      "inventoryItems": {
+        "title": "Inventory Items",
+        "description": "Shared catalog of operational items used in maintenance, purchases and reservations."
       },
       "suppliers": {
         "title": "Suppliers",
@@ -875,7 +893,7 @@
   },
   "purchases": {
     "title": "Purchases",
-    "subtitle": "Manage purchase lists, suppliers, materials and purchased item tracking.",
+    "subtitle": "Manage purchase lists, suppliers, supplies, materials and purchased item tracking.",
     "newPurchaseList": "New purchase list",
     "loading": "Loading purchase lists...",
     "confirmDeleteTitle": "Delete purchase list",
@@ -952,6 +970,8 @@
       "loading": "Loading purchase items...",
       "newItem": "New item",
       "editItem": "Edit item",
+      "inventoryItem": "Inventory item",
+      "noInventoryItem": "No inventory item",
       "material": "Material",
       "noMaterial": "No material",
       "brand": "Brand",

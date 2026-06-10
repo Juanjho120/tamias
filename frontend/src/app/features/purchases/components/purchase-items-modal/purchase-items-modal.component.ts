@@ -7,7 +7,7 @@ import { ConfirmModalComponent } from '../../../../shared/confirm-modal/confirm-
 import { QuetzalCurrencyPipe } from '../../../../shared/pipes/quetzal-currency.pipe';
 import { ToastService } from '../../../../shared/toast/toast.service';
 import { PurchaseItem, PurchaseList, PurchaseListSummary } from '../../models/purchase-list.model';
-import { PurchaseBrandOption, PurchaseMaterialOption } from '../../models/purchase-reference.model';
+import { PurchaseBrandOption, PurchaseInventoryItemOption } from '../../models/purchase-reference.model';
 import { PurchaseListService } from '../../services/purchase-list.service';
 
 @Component({
@@ -24,7 +24,8 @@ export class PurchaseItemsModalComponent implements OnChanges {
 
   @Input() open = false;
   @Input() purchaseListSummary: PurchaseListSummary | null = null;
-  @Input() materials: PurchaseMaterialOption[] = [];
+  @Input() inventoryItems: PurchaseInventoryItemOption[] = [];
+  @Input() materials: PurchaseInventoryItemOption[] = [];
   @Input() brands: PurchaseBrandOption[] = [];
 
   @Output() close = new EventEmitter<void>();
@@ -38,7 +39,7 @@ export class PurchaseItemsModalComponent implements OnChanges {
   readonly editingItem = signal<PurchaseItem | null>(null);
 
   readonly itemForm = this.formBuilder.nonNullable.group({
-    materialId: [''],
+    inventoryItemId: [''],
     brandId: [''],
     itemNameSnapshot: ['', [Validators.maxLength(150)]],
     quantity: [''],
@@ -93,7 +94,7 @@ export class PurchaseItemsModalComponent implements OnChanges {
 
     const rawValue = this.itemForm.getRawValue();
 
-    if (!rawValue.materialId && !rawValue.itemNameSnapshot.trim()) {
+    if (!rawValue.inventoryItemId && !rawValue.itemNameSnapshot.trim()) {
       this.itemForm.controls.itemNameSnapshot.setErrors({ required: true });
       this.itemForm.controls.itemNameSnapshot.markAsTouched();
       return;
@@ -105,7 +106,7 @@ export class PurchaseItemsModalComponent implements OnChanges {
     }
 
     const request = {
-      materialId: rawValue.materialId || null,
+      inventoryItemId: rawValue.inventoryItemId || null,
       brandId: rawValue.brandId || null,
       itemNameSnapshot: rawValue.itemNameSnapshot.trim() || null,
       quantity: rawValue.quantity === '' ? null : Number(rawValue.quantity),
@@ -145,7 +146,7 @@ export class PurchaseItemsModalComponent implements OnChanges {
   editItem(item: PurchaseItem): void {
     this.editingItem.set(item);
     this.itemForm.reset({
-      materialId: item.materialId ?? '',
+      inventoryItemId: item.inventoryItemId ?? item.materialId ?? '',
       brandId: item.brandId ?? '',
       itemNameSnapshot: item.itemNameSnapshot ?? '',
       quantity: item.quantity !== null && item.quantity !== undefined ? String(item.quantity) : '',
@@ -159,7 +160,7 @@ export class PurchaseItemsModalComponent implements OnChanges {
   cancelEdit(): void {
     this.editingItem.set(null);
     this.itemForm.reset({
-      materialId: '',
+      inventoryItemId: '',
       brandId: '',
       itemNameSnapshot: '',
       quantity: '',
@@ -228,8 +229,9 @@ export class PurchaseItemsModalComponent implements OnChanges {
     });
   }
 
-  onMaterialSelected(materialId: string): void {
-    const material = this.materials.find((item) => item.id === materialId);
+  onInventoryItemSelected(inventoryItemId: string): void {
+    const inventoryItems = this.inventoryItems.length ? this.inventoryItems : this.materials;
+    const material = inventoryItems.find((item) => item.id === inventoryItemId);
 
     if (material?.unit && !this.itemForm.controls.unit.value) {
       this.itemForm.controls.unit.setValue(material.unit);
@@ -241,7 +243,7 @@ export class PurchaseItemsModalComponent implements OnChanges {
   }
 
   itemDisplayName(item: PurchaseItem): string {
-    return item.materialName ?? item.itemNameSnapshot ?? '—';
+    return item.inventoryItemName ?? item.materialName ?? item.itemNameSnapshot ?? '—';
   }
 
   trackById(index: number, item: { id: string }): string {

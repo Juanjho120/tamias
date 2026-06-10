@@ -4,7 +4,7 @@ import { map } from 'rxjs/operators';
 import { PageResponse } from '../../../core/models/page-response.model';
 import { ApiService } from '../../../core/services/api.service';
 import {
-  MaintenanceMaterialOption,
+  MaintenanceInventoryItemOption,
   MaintenancePersonOption,
   MaintenanceReferenceOption,
   PropertyOption
@@ -15,7 +15,8 @@ export interface MaintenanceReferenceData {
   categories: MaintenanceReferenceOption[];
   types: MaintenanceReferenceOption[];
   people: MaintenancePersonOption[];
-  materials: MaintenanceMaterialOption[];
+  inventoryItems: MaintenanceInventoryItemOption[];
+  materials: MaintenanceInventoryItemOption[];
 }
 
 @Injectable({
@@ -51,12 +52,18 @@ export class MaintenanceReferenceDataService {
         size: 200,
         sort: 'fullName,asc'
       }).pipe(map((response) => response.content)),
-      materials: this.apiService.get<PageResponse<MaintenanceMaterialOption>>('/catalogs/materials', {
+      inventoryItems: this.apiService.get<PageResponse<MaintenanceInventoryItemOption>>('/inventory-items', {
         status: 'ACTIVE',
+        availableForMaintenance: true,
         page: 0,
         size: 200,
         sort: 'name,asc'
       }).pipe(map((response) => response.content))
-    });
+    }).pipe(
+      map((data) => ({
+        ...data,
+        materials: data.inventoryItems
+      }))
+    );
   }
 }

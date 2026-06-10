@@ -105,10 +105,10 @@
                           <select
                             id="maintenance-detail-material"
                             class="form-select"
-                            formControlName="materialId"
+                            formControlName="inventoryItemId"
                             (ngModelChange)="onMaterialSelected($event)">
-                            <option value="">{{ 'maintenance.details.materials.noCatalogMaterial' | translate }}</option>
-                            @for (material of materialOptions; track material.id) {
+                            <option value="">{{ 'maintenance.details.materials.noCatalogItem' | translate }}</option>
+                            @for (material of (inventoryItemOptions.length ? inventoryItemOptions : materialOptions); track material.id) {
                               <option [value]="material.id">{{ material.name }}</option>
                             }
                           </select>
@@ -116,14 +116,14 @@
 
                         <div class="col-12 col-lg-6">
                           <label for="maintenance-detail-material-name" class="form-label">
-                            {{ 'maintenance.details.materials.manualName' | translate }}
+                            {{ 'maintenance.details.materials.manualItemName' | translate }}
                           </label>
                           <input
                             id="maintenance-detail-material-name"
                             type="text"
                             class="form-control"
                             maxlength="150"
-                            formControlName="materialNameSnapshot">
+                            formControlName="itemNameSnapshot">
                         </div>
 
                         <div class="col-12 col-lg-4">

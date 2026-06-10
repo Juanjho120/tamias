@@ -17,11 +17,16 @@ export interface PurchaseSupplierOption {
   email: string | null;
 }
 
-export interface PurchaseMaterialOption {
+export interface PurchaseInventoryItemOption {
   id: string;
   name: string;
   unit: string | null;
+  itemType?: string | null;
+  internalCode?: string | null;
+  barcode?: string | null;
 }
+
+export type PurchaseMaterialOption = PurchaseInventoryItemOption;
 
 export interface PurchaseBrandOption {
   id: string;

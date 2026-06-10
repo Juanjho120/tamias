@@ -12,23 +12,30 @@ export interface MaintenanceRecordPersonRequest {
   maintenancePersonId: string;
 }
 
-export interface MaintenanceMaterialUsed {
+export interface MaintenanceRecordItem {
   id: string;
   maintenanceRecordId: string;
-  materialId: string | null;
-  materialName: string | null;
-  materialNameSnapshot: string | null;
+  inventoryItemId: string | null;
+  inventoryItemName: string | null;
+  materialId?: string | null;
+  materialName?: string | null;
+  itemNameSnapshot: string | null;
+  materialNameSnapshot?: string | null;
   quantity: number | null;
   unit: string | null;
   notes: string | null;
 }
 
-export interface MaintenanceMaterialUsedRequest {
-  materialId: string | null;
-  materialNameSnapshot: string | null;
+export interface MaintenanceRecordItemRequest {
+  inventoryItemId: string | null;
+  itemNameSnapshot: string | null;
   quantity: number | null;
   unit: string | null;
   notes: string | null;
 }
 
-export type MaintenanceMaterialUsedUpdateRequest = MaintenanceMaterialUsedRequest;
+export type MaintenanceRecordItemUpdateRequest = MaintenanceRecordItemRequest;
+
+export type MaintenanceMaterialUsed = MaintenanceRecordItem;
+export type MaintenanceMaterialUsedRequest = MaintenanceRecordItemRequest;
+export type MaintenanceMaterialUsedUpdateRequest = MaintenanceRecordItemUpdateRequest;

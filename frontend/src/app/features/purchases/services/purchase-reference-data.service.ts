@@ -6,7 +6,7 @@ import { ApiService } from '../../../core/services/api.service';
 import {
   PurchaseBrandOption,
   PurchaseCityOption,
-  PurchaseMaterialOption,
+  PurchaseInventoryItemOption,
   PurchasePropertyOption,
   PurchaseSupplierOption
 } from '../models/purchase-reference.model';
@@ -15,7 +15,8 @@ export interface PurchaseReferenceData {
   properties: PurchasePropertyOption[];
   cities: PurchaseCityOption[];
   suppliers: PurchaseSupplierOption[];
-  materials: PurchaseMaterialOption[];
+  inventoryItems: PurchaseInventoryItemOption[];
+  materials: PurchaseInventoryItemOption[];
   brands: PurchaseBrandOption[];
 }
 
@@ -46,8 +47,9 @@ export class PurchaseReferenceDataService {
         size: 200,
         sort: 'name,asc'
       }).pipe(map((response) => response.content)),
-      materials: this.apiService.get<PageResponse<PurchaseMaterialOption>>('/catalogs/materials', {
+      inventoryItems: this.apiService.get<PageResponse<PurchaseInventoryItemOption>>('/inventory-items', {
         status: 'ACTIVE',
+        availableForPurchases: true,
         page: 0,
         size: 200,
         sort: 'name,asc'
@@ -58,6 +60,11 @@ export class PurchaseReferenceDataService {
         size: 200,
         sort: 'name,asc'
       }).pipe(map((response) => response.content))
-    });
+    }).pipe(
+      map((data) => ({
+        ...data,
+        materials: data.inventoryItems
+      }))
+    );
   }
 }

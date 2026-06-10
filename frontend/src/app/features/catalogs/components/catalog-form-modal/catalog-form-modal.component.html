@@ -14,56 +14,71 @@
 
         <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
           <div class="modal-body">
-            <div class="row g-3">
-              @for (field of config.fields; track field.key) {
-                <div class="col-12" [class.col-lg-6]="field.type !== 'textarea'">
-                  <label [for]="'catalog-field-' + field.key" class="form-label">
+            @for (field of config.fields; track field.key) {
+              @if (field.type === 'checkbox') {
+                <div class="form-check form-switch mb-3">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    role="switch"
+                    [id]="'catalog-field-' + field.key"
+                    [formControlName]="field.key">
+                  <label class="form-check-label" [for]="'catalog-field-' + field.key">
+                    {{ field.labelKey | translate }}
+                  </label>
+                </div>
+              } @else {
+                <div class="mb-3">
+                  <label class="form-label" [for]="'catalog-field-' + field.key">
                     {{ field.labelKey | translate }}
                   </label>
 
                   @if (field.type === 'textarea') {
                     <textarea
-                      [id]="'catalog-field-' + field.key"
                       class="form-control"
-                      [ngClass]="{ 'is-invalid': isInvalid(field) }"
-                      [formControlName]="field.key"
-                      [rows]="field.rows || 3">
+                      [id]="'catalog-field-' + field.key"
+                      [rows]="field.rows ?? 3"
+                      [attr.maxlength]="field.maxLength ?? null"
+                      [formControlName]="field.key">
                     </textarea>
+                  } @else if (field.type === 'select') {
+                    <select
+                      class="form-select"
+                      [id]="'catalog-field-' + field.key"
+                      [formControlName]="field.key">
+                      <option value="">{{ 'catalogs.form.selectPlaceholder' | translate }}</option>
+                      @for (option of field.options || []; track option.value) {
+                        <option [value]="option.value">{{ option.labelKey | translate }}</option>
+                      }
+                    </select>
                   } @else {
                     <input
+                      class="form-control"
                       [id]="'catalog-field-' + field.key"
                       [type]="fieldInputType(field)"
-                      class="form-control"
-                      [ngClass]="{ 'is-invalid': isInvalid(field) }"
-                      [formControlName]="field.key"
-                      [attr.maxlength]="field.maxLength || null">
+                      [attr.maxlength]="field.maxLength ?? null"
+                      [formControlName]="field.key">
                   }
 
                   @if (isInvalid(field)) {
-                    <div class="invalid-feedback">
+                    <div class="text-danger small mt-1">
                       {{ 'catalogs.validation.fieldInvalid' | translate:{ field: (field.labelKey | translate) } }}
                     </div>
                   }
                 </div>
               }
+            }
 
-              <div class="col-12 col-lg-6">
-                <label for="catalog-status" class="form-label">{{ 'catalogs.fields.status' | translate }}</label>
-                <select
-                  id="catalog-status"
-                  class="form-select"
-                  [ngClass]="{ 'is-invalid': isInvalid('status') }"
-                  formControlName="status">
-                  @for (status of statuses; track status) {
-                    <option [value]="status">{{ 'status.' + status | translate }}</option>
-                  }
-                </select>
-                @if (isInvalid('status')) {
-                  <div class="invalid-feedback">
-                    {{ 'catalogs.validation.statusRequired' | translate }}
-                  </div>
+            <div class="mb-3">
+              <label class="form-label" for="catalog-status">{{ 'catalogs.fields.status' | translate }}</label>
+              <select id="catalog-status" class="form-select" formControlName="status">
+                @for (status of statuses; track status) {
+                  <option [value]="status">{{ 'status.' + status | translate }}</option>
                 }
-              </div>
+              </select>
+              @if (isInvalid('status')) {
+                <div class="text-danger small mt-1">{{ 'catalogs.validation.statusRequired' | translate }}</div>
+              }
             </div>
           </div>
 
@@ -73,7 +88,7 @@
             </button>
             <button type="submit" class="btn btn-primary" [disabled]="loading">
               @if (loading) {
-                <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+                <span class="spinner-border spinner-border-sm me-1"></span>
                 {{ 'common.saving' | translate }}
               } @else {
                 {{ 'catalogs.form.save' | translate }}

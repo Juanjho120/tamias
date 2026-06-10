@@ -1,6 +1,11 @@
 export type CatalogStatus = 'ACTIVE' | 'INACTIVE' | 'DELETED';
+export type InventoryItemType = 'MATERIAL' | 'SUPPLY' | 'AMENITY' | 'CLEANING_SUPPLY' | 'TOOL' | 'OTHER';
+export type CatalogFieldType = 'text' | 'email' | 'url' | 'textarea' | 'select' | 'checkbox';
 
-export type CatalogFieldType = 'text' | 'email' | 'url' | 'textarea';
+export interface CatalogSelectOption {
+  value: string;
+  labelKey: string;
+}
 
 export interface CatalogItem {
   id: string;
@@ -9,6 +14,12 @@ export interface CatalogItem {
   description?: string | null;
   country?: string | null;
   unit?: string | null;
+  itemType?: InventoryItemType | null;
+  internalCode?: string | null;
+  barcode?: string | null;
+  availableForMaintenance?: boolean | null;
+  availableForReservations?: boolean | null;
+  availableForPurchases?: boolean | null;
   phone?: string | null;
   email?: string | null;
   website?: string | null;
@@ -19,7 +30,7 @@ export interface CatalogItem {
 }
 
 export interface CatalogRequest {
-  [key: string]: string | CatalogStatus | null;
+  [key: string]: string | boolean | CatalogStatus | InventoryItemType | null;
 }
 
 export interface CatalogFilters {
@@ -38,6 +49,7 @@ export interface CatalogFieldConfig {
   rows?: number;
   table?: boolean;
   primary?: boolean;
+  options?: CatalogSelectOption[];
 }
 
 export interface CatalogConfig {
@@ -50,3 +62,12 @@ export interface CatalogConfig {
 }
 
 export const CATALOG_STATUSES: CatalogStatus[] = ['ACTIVE', 'INACTIVE', 'DELETED'];
+
+export const INVENTORY_ITEM_TYPES: InventoryItemType[] = [
+  'MATERIAL',
+  'SUPPLY',
+  'AMENITY',
+  'CLEANING_SUPPLY',
+  'TOOL',
+  'OTHER'
+];

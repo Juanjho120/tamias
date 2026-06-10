@@ -1,7 +1,7 @@
 export type PurchaseListStatus = 'OPEN' | 'PARTIALLY_PURCHASED' | 'COMPLETED' | 'CANCELLED' | 'DELETED';
 
 export interface PurchaseItemRequest {
-  materialId: string | null;
+  inventoryItemId: string | null;
   brandId: string | null;
   itemNameSnapshot: string | null;
   quantity: number | null;
@@ -20,8 +20,10 @@ export interface PurchaseItemPurchasedRequest {
 
 export interface PurchaseItem {
   id: string;
-  materialId: string | null;
-  materialName: string | null;
+  inventoryItemId: string | null;
+  inventoryItemName: string | null;
+  materialId?: string | null;
+  materialName?: string | null;
   brandId: string | null;
   brandName: string | null;
   itemNameSnapshot: string | null;

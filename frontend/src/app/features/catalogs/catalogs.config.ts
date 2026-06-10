@@ -1,4 +1,4 @@
-import { CatalogConfig } from './models/catalog.model';
+import { CatalogConfig, INVENTORY_ITEM_TYPES } from './models/catalog.model';
 
 const baseFields = [
   {
@@ -18,6 +18,11 @@ const baseFields = [
     table: true
   }
 ];
+
+const inventoryItemTypeOptions = INVENTORY_ITEM_TYPES.map((type) => ({
+  value: type,
+  labelKey: `inventoryItems.type.${type}`
+}));
 
 export const CATALOG_CONFIGS: CatalogConfig[] = [
   {
@@ -52,10 +57,11 @@ export const CATALOG_CONFIGS: CatalogConfig[] = [
     fields: baseFields
   },
   {
-    key: 'materials',
-    titleKey: 'catalogs.items.materials.title',
-    descriptionKey: 'catalogs.items.materials.description',
-    endpoint: '/catalogs/materials',
+    key: 'inventory-items',
+    titleKey: 'catalogs.items.inventoryItems.title',
+    descriptionKey: 'catalogs.items.inventoryItems.description',
+    endpoint: '/inventory-items',
+    defaultSort: 'name,asc',
     fields: [
       ...baseFields,
       {
@@ -63,6 +69,46 @@ export const CATALOG_CONFIGS: CatalogConfig[] = [
         labelKey: 'catalogs.fields.unit',
         type: 'text',
         maxLength: 50,
+        table: true
+      },
+      {
+        key: 'itemType',
+        labelKey: 'catalogs.fields.itemType',
+        type: 'select',
+        required: true,
+        table: true,
+        options: inventoryItemTypeOptions
+      },
+      {
+        key: 'internalCode',
+        labelKey: 'catalogs.fields.internalCode',
+        type: 'text',
+        maxLength: 100,
+        table: true
+      },
+      {
+        key: 'barcode',
+        labelKey: 'catalogs.fields.barcode',
+        type: 'text',
+        maxLength: 100,
+        table: true
+      },
+      {
+        key: 'availableForMaintenance',
+        labelKey: 'catalogs.fields.availableForMaintenance',
+        type: 'checkbox',
+        table: true
+      },
+      {
+        key: 'availableForReservations',
+        labelKey: 'catalogs.fields.availableForReservations',
+        type: 'checkbox',
+        table: true
+      },
+      {
+        key: 'availableForPurchases',
+        labelKey: 'catalogs.fields.availableForPurchases',
+        type: 'checkbox',
         table: true
       }
     ]

@@ -1,6 +1,6 @@
 import { NgClass } from '@angular/common';
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject } from '@angular/core';
-import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslatePipe } from '@ngx-translate/core';
 import {
   CatalogConfig,
@@ -11,7 +11,7 @@ import {
   CATALOG_STATUSES
 } from '../../models/catalog.model';
 
-type CatalogFormGroup = FormGroup<Record<string, FormControl<string | CatalogStatus>>>;
+type CatalogFormGroup = FormGroup<Record<string, FormControl<string | boolean>>>;
 
 @Component({
   selector: 'app-catalog-form-modal',
@@ -20,8 +20,6 @@ type CatalogFormGroup = FormGroup<Record<string, FormControl<string | CatalogSta
   templateUrl: './catalog-form-modal.component.html'
 })
 export class CatalogFormModalComponent implements OnChanges {
-  private readonly formBuilder = inject(FormBuilder);
-
   @Input() open = false;
   @Input() config: CatalogConfig | null = null;
   @Input() item: CatalogItem | null = null;
@@ -59,11 +57,15 @@ export class CatalogFormModalComponent implements OnChanges {
 
     for (const field of this.config.fields) {
       const value = rawValue[field.key];
-      request[field.key] = typeof value === 'string' ? value.trim() || null : value ?? null;
+
+      if (field.type === 'checkbox') {
+        request[field.key] = Boolean(value);
+      } else {
+        request[field.key] = typeof value === 'string' ? value.trim() || null : null;
+      }
     }
 
-    request['status'] = rawValue['status'];
-
+    request['status'] = rawValue['status'] as CatalogStatus;
     this.save.emit(request);
   }
 
@@ -90,20 +92,14 @@ export class CatalogFormModalComponent implements OnChanges {
   }
 
   private createEmptyForm(): CatalogFormGroup {
-    return new FormGroup<Record<string, FormControl<string | CatalogStatus>>>({
-      status: new FormControl<CatalogStatus>('ACTIVE', {
-        nonNullable: true,
-        validators: [Validators.required]
-      })
+    return new FormGroup<Record<string, FormControl<string | boolean>>>({
+      status: new FormControl<string | boolean>('ACTIVE', { nonNullable: true, validators: [Validators.required] })
     });
   }
 
   private buildForm(): CatalogFormGroup {
-    const controls: Record<string, FormControl<string | CatalogStatus>> = {
-      status: new FormControl<CatalogStatus>('ACTIVE', {
-        nonNullable: true,
-        validators: [Validators.required]
-      })
+    const controls: Record<string, FormControl<string | boolean>> = {
+      status: new FormControl<string | boolean>('ACTIVE', { nonNullable: true, validators: [Validators.required] })
     };
 
     if (this.config) {
@@ -122,14 +118,14 @@ export class CatalogFormModalComponent implements OnChanges {
           validators.push(Validators.email);
         }
 
-        controls[field.key] = new FormControl<string>('', {
-          nonNullable: true,
-          validators
-        });
+        controls[field.key] = new FormControl<string | boolean>(
+          field.type === 'checkbox' ? false : '',
+          { nonNullable: true, validators }
+        );
       }
     }
 
-    return new FormGroup<Record<string, FormControl<string | CatalogStatus>>>(controls);
+    return new FormGroup<Record<string, FormControl<string | boolean>>>(controls);
   }
 
   private patchForm(): void {
@@ -137,13 +133,18 @@ export class CatalogFormModalComponent implements OnChanges {
       return;
     }
 
-    const value: Record<string, string | CatalogStatus> = {
+    const value: Record<string, string | boolean> = {
       status: this.item?.status === 'DELETED' ? 'INACTIVE' : this.item?.status ?? 'ACTIVE'
     };
 
     for (const field of this.config.fields) {
       const rawValue = this.item?.[field.key as keyof CatalogItem];
-      value[field.key] = typeof rawValue === 'string' ? rawValue : '';
+
+      if (field.type === 'checkbox') {
+        value[field.key] = Boolean(rawValue);
+      } else {
+        value[field.key] = typeof rawValue === 'string' ? rawValue : '';
+      }
     }
 
     this.form.reset(value);

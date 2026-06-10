@@ -13,7 +13,7 @@ import {
 import {
   PurchaseBrandOption,
   PurchaseCityOption,
-  PurchaseMaterialOption,
+  PurchaseInventoryItemOption,
   PurchasePropertyOption,
   PurchaseSupplierOption
 } from '../../models/purchase-reference.model';
@@ -32,7 +32,8 @@ export class PurchaseListFormModalComponent implements OnChanges {
   @Input() properties: PurchasePropertyOption[] = [];
   @Input() cities: PurchaseCityOption[] = [];
   @Input() suppliers: PurchaseSupplierOption[] = [];
-  @Input() materials: PurchaseMaterialOption[] = [];
+  @Input() inventoryItems: PurchaseInventoryItemOption[] = [];
+  @Input() materials: PurchaseInventoryItemOption[] = [];
   @Input() brands: PurchaseBrandOption[] = [];
   @Input() loading = false;
 
@@ -53,7 +54,7 @@ export class PurchaseListFormModalComponent implements OnChanges {
   });
 
   readonly itemForm = this.formBuilder.nonNullable.group({
-    materialId: [''],
+    inventoryItemId: [''],
     brandId: [''],
     itemNameSnapshot: ['', [Validators.maxLength(150)]],
     quantity: [''],
@@ -93,7 +94,7 @@ export class PurchaseListFormModalComponent implements OnChanges {
   addOrUpdateItem(): void {
     const rawValue = this.itemForm.getRawValue();
 
-    if (!rawValue.materialId && !rawValue.itemNameSnapshot.trim()) {
+    if (!rawValue.inventoryItemId && !rawValue.itemNameSnapshot.trim()) {
       this.itemForm.controls.itemNameSnapshot.setErrors({ required: true });
       this.itemForm.controls.itemNameSnapshot.markAsTouched();
       return;
@@ -105,7 +106,7 @@ export class PurchaseListFormModalComponent implements OnChanges {
     }
 
     const item: PurchaseItemRequest = {
-      materialId: rawValue.materialId || null,
+      inventoryItemId: rawValue.inventoryItemId || null,
       brandId: rawValue.brandId || null,
       itemNameSnapshot: rawValue.itemNameSnapshot.trim() || null,
       quantity: rawValue.quantity === '' ? null : Number(rawValue.quantity),
@@ -137,7 +138,7 @@ export class PurchaseListFormModalComponent implements OnChanges {
 
     this.editingItemIndex.set(index);
     this.itemForm.reset({
-      materialId: item.materialId ?? '',
+      inventoryItemId: item.inventoryItemId ?? '',
       brandId: item.brandId ?? '',
       itemNameSnapshot: item.itemNameSnapshot ?? '',
       quantity: item.quantity !== null && item.quantity !== undefined ? String(item.quantity) : '',
@@ -158,7 +159,7 @@ export class PurchaseListFormModalComponent implements OnChanges {
   cancelItemEdit(): void {
     this.editingItemIndex.set(null);
     this.itemForm.reset({
-      materialId: '',
+      inventoryItemId: '',
       brandId: '',
       itemNameSnapshot: '',
       quantity: '',
@@ -169,8 +170,9 @@ export class PurchaseListFormModalComponent implements OnChanges {
     });
   }
 
-  onMaterialSelected(materialId: string): void {
-    const material = this.materials.find((item) => item.id === materialId);
+  onInventoryItemSelected(inventoryItemId: string): void {
+    const inventoryItems = this.inventoryItems.length ? this.inventoryItems : this.materials;
+    const material = inventoryItems.find((item) => item.id === inventoryItemId);
 
     if (material?.unit && !this.itemForm.controls.unit.value) {
       this.itemForm.controls.unit.setValue(material.unit);
@@ -182,7 +184,7 @@ export class PurchaseListFormModalComponent implements OnChanges {
   }
 
   itemDisplayName(item: PurchaseItemRequest): string {
-    const material = item.materialId ? this.materials.find((candidate) => candidate.id === item.materialId) : null;
+    const material = item.inventoryItemId ? (this.inventoryItems.length ? this.inventoryItems : this.materials).find((candidate) => candidate.id === item.inventoryItemId) : null;
     return material?.name ?? item.itemNameSnapshot ?? '—';
   }
 
@@ -226,7 +228,7 @@ export class PurchaseListFormModalComponent implements OnChanges {
     });
 
     this.items.set((this.purchaseList.items ?? []).map((item) => ({
-      materialId: item.materialId,
+      inventoryItemId: item.inventoryItemId ?? item.materialId ?? null,
       brandId: item.brandId,
       itemNameSnapshot: item.itemNameSnapshot,
       quantity: item.quantity,

@@ -291,6 +291,16 @@
       }
     }
   },
+  "inventoryItems": {
+    "type": {
+      "MATERIAL": "Material",
+      "SUPPLY": "Insumo",
+      "AMENITY": "Amenity",
+      "CLEANING_SUPPLY": "Insumo de limpieza",
+      "TOOL": "Herramienta",
+      "OTHER": "Otro"
+    }
+  },
   "maintenance": {
     "title": "Mantenimiento",
     "subtitle": "Crea, actualiza y revisa registros de mantenimiento e imágenes de evidencia.",
@@ -398,7 +408,7 @@
       "loading": "Cargando detalles del mantenimiento...",
       "confirmDeleteTitle": "Remover detalle",
       "confirmRemovePersonMessage": "¿Remover a \"{{name}}\" de este mantenimiento?",
-      "confirmRemoveMaterialMessage": "¿Remover el material \"{{name}}\" de este mantenimiento?",
+      "confirmRemoveItemMessage": "¿Remover el item \"{{name}}\" de este mantenimiento?",
       "people": {
         "title": "Personas asignadas",
         "person": "Persona",
@@ -407,10 +417,10 @@
         "empty": "Aún no hay personas adicionales asignadas."
       },
       "materials": {
-        "title": "Materiales usados",
-        "material": "Material",
-        "noCatalogMaterial": "Sin material de catálogo",
-        "manualName": "Nombre manual del material",
+        "title": "Items usados",
+        "material": "Item",
+        "noCatalogItem": "Sin item de catálogo",
+        "manualItemName": "Nombre manual del item",
         "quantity": "Cantidad",
         "unit": "Unidad",
         "notes": "Notas",
@@ -427,7 +437,7 @@
         "materialAdded": "Material agregado correctamente.",
         "materialUpdated": "Material actualizado correctamente.",
         "materialSaveError": "No se pudo guardar el material.",
-        "materialRemoved": "Material removido correctamente.",
+        "itemRemoved": "Item removido correctamente.",
         "deleteError": "No se pudo remover el detalle."
       }
     }
@@ -457,12 +467,19 @@
       "website": "Sitio web",
       "notes": "Notas",
       "status": "Estado",
-      "createdAt": "Creado"
+      "createdAt": "Creado",
+      "itemType": "Tipo",
+      "internalCode": "Código interno",
+      "barcode": "Código de barras",
+      "availableForMaintenance": "Disponible para mantenimiento",
+      "availableForReservations": "Disponible para reservaciones",
+      "availableForPurchases": "Disponible para compras"
     },
     "form": {
       "createTitle": "Crear {{catalog}}",
       "editTitle": "Editar {{catalog}}",
-      "save": "Guardar item"
+      "save": "Guardar item",
+      "selectPlaceholder": "Selecciona una opción"
     },
     "validation": {
       "fieldInvalid": "{{field}} es inválido o requerido.",
@@ -493,9 +510,9 @@
         "title": "Marcas",
         "description": "Marcas usadas para materiales, herramientas e inventario."
       },
-      "materials": {
-        "title": "Materiales",
-        "description": "Materiales e insumos usados en mantenimiento y compras."
+      "inventoryItems": {
+        "title": "Insumos y materiales",
+        "description": "Catálogo compartido de items operativos usados en mantenimiento, compras y reservaciones."
       },
       "suppliers": {
         "title": "Proveedores",
@@ -875,7 +892,7 @@
   },
   "purchases": {
     "title": "Compras",
-    "subtitle": "Administra listas de compras, proveedores, materiales y seguimiento de items comprados.",
+    "subtitle": "Administra listas de compras, proveedores, insumos, materiales y seguimiento de items comprados.",
     "newPurchaseList": "Nueva lista de compras",
     "loading": "Cargando listas de compras...",
     "confirmDeleteTitle": "Eliminar lista de compras",
@@ -947,6 +964,8 @@
     },
     "items": {
       "button": "Items",
+      "inventoryItem": "Item de inventario",
+      "noInventoryItem": "Sin item de inventario",
       "title": "Items de compra",
       "modalTitle": "Items de la lista de compras",
       "loading": "Cargando items de compra...",

@@ -203,6 +203,7 @@
   [properties]="references().properties"
   [cities]="references().cities"
   [suppliers]="references().suppliers"
+  [inventoryItems]="references().inventoryItems"
   [materials]="references().materials"
   [brands]="references().brands"
   [loading]="saving()"
@@ -212,6 +213,7 @@
 <app-purchase-items-modal
   [open]="!!purchaseListForItems()"
   [purchaseListSummary]="purchaseListForItems()"
+  [inventoryItems]="references().inventoryItems"
   [materials]="references().materials"
   [brands]="references().brands"
   (close)="closeItems()"

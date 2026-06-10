@@ -27,14 +27,14 @@
 
                     <form [formGroup]="itemForm" (ngSubmit)="saveItem()" novalidate>
                       <div class="mb-3">
-                        <label for="purchase-item-modal-material" class="form-label">{{ 'purchases.items.material' | translate }}</label>
+                        <label for="purchase-item-modal-inventory-item" class="form-label">{{ 'purchases.items.inventoryItem' | translate }}</label>
                         <select
-                          id="purchase-item-modal-material"
+                          id="purchase-item-modal-inventory-item"
                           class="form-select"
-                          formControlName="materialId"
-                          (ngModelChange)="onMaterialSelected($event)">
-                          <option value="">{{ 'purchases.items.noMaterial' | translate }}</option>
-                          @for (material of materials; track material.id) {
+                          formControlName="inventoryItemId"
+                          (ngModelChange)="onInventoryItemSelected($event)">
+                          <option value="">{{ 'purchases.items.noInventoryItem' | translate }}</option>
+                          @for (material of (inventoryItems.length ? inventoryItems : materials); track material.id) {
                             <option [value]="material.id">{{ material.name }}</option>
                           }
                         </select>

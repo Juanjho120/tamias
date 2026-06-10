@@ -1,3 +1,4 @@
+import { DecimalPipe } from '@angular/common';
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, computed, inject, signal } from '@angular/core';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -6,12 +7,12 @@ import { LanguageService } from '../../../../core/i18n/language.service';
 import { ApiError } from '../../../../core/models/api-error.model';
 import { ConfirmModalComponent } from '../../../../shared/confirm-modal/confirm-modal.component';
 import { ToastService } from '../../../../shared/toast/toast.service';
-import { MaintenanceMaterialUsed, MaintenanceRecordPerson } from '../../models/maintenance-detail.model';
-import { MaintenanceMaterialOption, MaintenancePersonOption } from '../../models/maintenance-reference.model';
+import { MaintenanceRecordItem, MaintenanceRecordPerson } from '../../models/maintenance-detail.model';
+import { MaintenanceInventoryItemOption, MaintenancePersonOption } from '../../models/maintenance-reference.model';
 import { MaintenanceRecordSummary } from '../../models/maintenance-record.model';
 import { MaintenanceDetailService } from '../../services/maintenance-detail.service';
 
-type DeleteTargetType = 'person' | 'material';
+type DeleteTargetType = 'person' | 'item';
 
 interface DeleteTarget {
   type: DeleteTargetType;
@@ -22,7 +23,7 @@ interface DeleteTarget {
 @Component({
   selector: 'app-maintenance-details-modal',
   standalone: true,
-  imports: [FormsModule, ReactiveFormsModule, TranslatePipe, ConfirmModalComponent],
+  imports: [DecimalPipe, FormsModule, ReactiveFormsModule, TranslatePipe, ConfirmModalComponent],
   templateUrl: './maintenance-details-modal.component.html'
 })
 export class MaintenanceDetailsModalComponent implements OnChanges {
@@ -34,28 +35,31 @@ export class MaintenanceDetailsModalComponent implements OnChanges {
   @Input() open = false;
   @Input() maintenanceRecord: MaintenanceRecordSummary | null = null;
   @Input() peopleOptions: MaintenancePersonOption[] = [];
-  @Input() materialOptions: MaintenanceMaterialOption[] = [];
+  @Input() inventoryItemOptions: MaintenanceInventoryItemOption[] = [];
+  @Input() materialOptions: MaintenanceInventoryItemOption[] = [];
 
   @Output() close = new EventEmitter<void>();
   @Output() detailsChanged = new EventEmitter<void>();
 
   readonly people = signal<MaintenanceRecordPerson[]>([]);
-  readonly materials = signal<MaintenanceMaterialUsed[]>([]);
+  readonly items = signal<MaintenanceRecordItem[]>([]);
+  readonly materials = this.items;
 
   readonly loading = signal(false);
   readonly addingPerson = signal(false);
   readonly savingMaterial = signal(false);
   readonly deleting = signal(false);
   readonly deleteTarget = signal<DeleteTarget | null>(null);
-  readonly editingMaterial = signal<MaintenanceMaterialUsed | null>(null);
+  readonly editingItem = signal<MaintenanceRecordItem | null>(null);
+  readonly editingMaterial = this.editingItem;
 
   readonly personForm = this.formBuilder.nonNullable.group({
     maintenancePersonId: ['', [Validators.required]]
   });
 
   readonly materialForm = this.formBuilder.nonNullable.group({
-    materialId: [''],
-    materialNameSnapshot: [''],
+    inventoryItemId: [''],
+    itemNameSnapshot: [''],
     quantity: ['', [Validators.min(0.01)]],
     unit: [''],
     notes: ['']
@@ -70,7 +74,7 @@ export class MaintenanceDetailsModalComponent implements OnChanges {
 
     const key = target.type === 'person'
       ? 'maintenance.details.confirmRemovePersonMessage'
-      : 'maintenance.details.confirmRemoveMaterialMessage';
+      : 'maintenance.details.confirmRemoveItemMessage';
 
     return this.languageService.instant(key, { name: target.name });
   });
@@ -106,11 +110,11 @@ export class MaintenanceDetailsModalComponent implements OnChanges {
 
     forkJoin({
       people: this.maintenanceDetailService.findPeople(record.id),
-      materials: this.maintenanceDetailService.findMaterials(record.id)
+      items: this.maintenanceDetailService.findItems(record.id)
     }).subscribe({
-      next: ({ people, materials }) => {
+      next: ({ people, items }) => {
         this.people.set(people);
-        this.materials.set(materials);
+        this.items.set(items);
         this.loading.set(false);
       },
       error: (error: unknown) => {
@@ -149,11 +153,11 @@ export class MaintenanceDetailsModalComponent implements OnChanges {
     });
   }
 
-  editMaterial(material: MaintenanceMaterialUsed): void {
+  editMaterial(material: MaintenanceRecordItem): void {
     this.editingMaterial.set(material);
     this.materialForm.reset({
-      materialId: material.materialId ?? '',
-      materialNameSnapshot: material.materialNameSnapshot ?? '',
+      inventoryItemId: material.inventoryItemId ?? material.materialId ?? '',
+      itemNameSnapshot: material.itemNameSnapshot ?? material.materialNameSnapshot ?? '',
       quantity: material.quantity !== null && material.quantity !== undefined ? String(material.quantity) : '',
       unit: material.unit ?? '',
       notes: material.notes ?? ''
@@ -167,8 +171,8 @@ export class MaintenanceDetailsModalComponent implements OnChanges {
 
     this.editingMaterial.set(null);
     this.materialForm.reset({
-      materialId: '',
-      materialNameSnapshot: '',
+      inventoryItemId: '',
+      itemNameSnapshot: '',
       quantity: '',
       unit: '',
       notes: ''
@@ -184,7 +188,7 @@ export class MaintenanceDetailsModalComponent implements OnChanges {
 
     const rawValue = this.materialForm.getRawValue();
 
-    if (!rawValue.materialId && !rawValue.materialNameSnapshot.trim()) {
+    if (!rawValue.inventoryItemId && !rawValue.itemNameSnapshot.trim()) {
       this.toastService.warning(this.languageService.instant('maintenance.details.messages.materialRequired'));
       return;
     }
@@ -195,8 +199,8 @@ export class MaintenanceDetailsModalComponent implements OnChanges {
     }
 
     const request = {
-      materialId: rawValue.materialId || null,
-      materialNameSnapshot: rawValue.materialNameSnapshot.trim() || null,
+      inventoryItemId: rawValue.inventoryItemId || null,
+      itemNameSnapshot: rawValue.itemNameSnapshot.trim() || null,
       quantity: rawValue.quantity === '' ? null : Number(rawValue.quantity),
       unit: rawValue.unit.trim() || null,
       notes: rawValue.notes.trim() || null
@@ -207,8 +211,8 @@ export class MaintenanceDetailsModalComponent implements OnChanges {
     const editingMaterial = this.editingMaterial();
 
     const saveRequest = editingMaterial
-      ? this.maintenanceDetailService.updateMaterial(record.id, editingMaterial.id, request)
-      : this.maintenanceDetailService.addMaterial(record.id, request);
+      ? this.maintenanceDetailService.updateItem(record.id, editingMaterial.id, request)
+      : this.maintenanceDetailService.addItem(record.id, request);
 
     saveRequest.subscribe({
       next: () => {
@@ -237,9 +241,9 @@ export class MaintenanceDetailsModalComponent implements OnChanges {
     });
   }
 
-  requestRemoveMaterial(material: MaintenanceMaterialUsed): void {
+  requestRemoveMaterial(material: MaintenanceRecordItem): void {
     this.deleteTarget.set({
-      type: 'material',
+      type: 'item',
       id: material.id,
       name: this.materialDisplayName(material)
     });
@@ -265,7 +269,7 @@ export class MaintenanceDetailsModalComponent implements OnChanges {
 
     const deleteRequest = target.type === 'person'
       ? this.maintenanceDetailService.removePerson(record.id, target.id)
-      : this.maintenanceDetailService.removeMaterial(record.id, target.id);
+      : this.maintenanceDetailService.removeItem(record.id, target.id);
 
     deleteRequest.subscribe({
       next: () => {
@@ -274,7 +278,7 @@ export class MaintenanceDetailsModalComponent implements OnChanges {
         this.toastService.success(
           target.type === 'person'
             ? this.languageService.instant('maintenance.details.messages.personRemoved')
-            : this.languageService.instant('maintenance.details.messages.materialRemoved')
+            : this.languageService.instant('maintenance.details.messages.itemRemoved')
         );
         this.detailsChanged.emit();
         this.loadDetails();
@@ -286,16 +290,17 @@ export class MaintenanceDetailsModalComponent implements OnChanges {
     });
   }
 
-  onMaterialSelected(materialId: string): void {
-    const material = this.materialOptions.find((item) => item.id === materialId);
+  onMaterialSelected(inventoryItemId: string): void {
+    const inventoryItems = this.inventoryItemOptions.length ? this.inventoryItemOptions : this.materialOptions;
+    const material = inventoryItems.find((item) => item.id === inventoryItemId);
 
     if (material?.unit && !this.materialForm.controls.unit.value) {
       this.materialForm.controls.unit.setValue(material.unit);
     }
   }
 
-  materialDisplayName(material: MaintenanceMaterialUsed): string {
-    return material.materialName ?? material.materialNameSnapshot ?? '—';
+  materialDisplayName(material: MaintenanceRecordItem): string {
+    return material.inventoryItemName ?? material.materialName ?? material.itemNameSnapshot ?? material.materialNameSnapshot ?? '—';
   }
 
   trackById(index: number, item: { id: string }): string {
@@ -304,13 +309,13 @@ export class MaintenanceDetailsModalComponent implements OnChanges {
 
   private resetState(): void {
     this.people.set([]);
-    this.materials.set([]);
+    this.items.set([]);
     this.deleteTarget.set(null);
     this.editingMaterial.set(null);
     this.personForm.reset({ maintenancePersonId: '' });
     this.materialForm.reset({
-      materialId: '',
-      materialNameSnapshot: '',
+      inventoryItemId: '',
+      itemNameSnapshot: '',
       quantity: '',
       unit: '',
       notes: ''

@@ -59,6 +59,7 @@ export class PurchasesPageComponent implements OnInit {
     properties: [],
     cities: [],
     suppliers: [],
+    inventoryItems: [],
     materials: [],
     brands: []
   });

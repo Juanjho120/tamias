@@ -254,6 +254,14 @@ export class CatalogsPageComponent implements OnInit {
       return '—';
     }
 
+    if (typeof value === 'boolean') {
+      return value ? this.languageService.instant('common.yes') : this.languageService.instant('common.no');
+    }
+
+    if (field.key === 'itemType') {
+      return this.languageService.instant(`inventoryItems.type.${value}`);
+    }
+
     return String(value);
   }
 

@@ -8,11 +8,16 @@ export interface MaintenancePersonOption {
   fullName: string;
 }
 
-export interface MaintenanceMaterialOption {
+export interface MaintenanceInventoryItemOption {
   id: string;
   name: string;
   unit: string | null;
+  itemType?: string | null;
+  internalCode?: string | null;
+  barcode?: string | null;
 }
+
+export type MaintenanceMaterialOption = MaintenanceInventoryItemOption;
 
 export interface PropertyOption {
   id: string;

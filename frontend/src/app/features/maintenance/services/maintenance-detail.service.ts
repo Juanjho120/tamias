@@ -2,9 +2,9 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from '../../../core/services/api.service';
 import {
-  MaintenanceMaterialUsed,
-  MaintenanceMaterialUsedRequest,
-  MaintenanceMaterialUsedUpdateRequest,
+  MaintenanceRecordItem,
+  MaintenanceRecordItemRequest,
+  MaintenanceRecordItemUpdateRequest,
   MaintenanceRecordPerson,
   MaintenanceRecordPersonRequest
 } from '../models/maintenance-detail.model';
@@ -28,26 +28,43 @@ export class MaintenanceDetailService {
     return this.apiService.delete<void>(`/maintenance-records/${maintenanceRecordId}/people/${personAssignmentId}`);
   }
 
-  findMaterials(maintenanceRecordId: string): Observable<MaintenanceMaterialUsed[]> {
-    return this.apiService.get<MaintenanceMaterialUsed[]>(`/maintenance-records/${maintenanceRecordId}/materials`);
+  findItems(maintenanceRecordId: string): Observable<MaintenanceRecordItem[]> {
+    return this.apiService.get<MaintenanceRecordItem[]>(`/maintenance-records/${maintenanceRecordId}/items`);
   }
 
-  addMaterial(maintenanceRecordId: string, request: MaintenanceMaterialUsedRequest): Observable<MaintenanceMaterialUsed> {
-    return this.apiService.post<MaintenanceMaterialUsed>(`/maintenance-records/${maintenanceRecordId}/materials`, request);
+  addItem(maintenanceRecordId: string, request: MaintenanceRecordItemRequest): Observable<MaintenanceRecordItem> {
+    return this.apiService.post<MaintenanceRecordItem>(`/maintenance-records/${maintenanceRecordId}/items`, request);
+  }
+
+  updateItem(
+    maintenanceRecordId: string,
+    itemId: string,
+    request: MaintenanceRecordItemUpdateRequest
+  ): Observable<MaintenanceRecordItem> {
+    return this.apiService.put<MaintenanceRecordItem>(`/maintenance-records/${maintenanceRecordId}/items/${itemId}`, request);
+  }
+
+  removeItem(maintenanceRecordId: string, itemId: string): Observable<void> {
+    return this.apiService.delete<void>(`/maintenance-records/${maintenanceRecordId}/items/${itemId}`);
+  }
+
+  findMaterials(maintenanceRecordId: string): Observable<MaintenanceRecordItem[]> {
+    return this.findItems(maintenanceRecordId);
+  }
+
+  addMaterial(maintenanceRecordId: string, request: MaintenanceRecordItemRequest): Observable<MaintenanceRecordItem> {
+    return this.addItem(maintenanceRecordId, request);
   }
 
   updateMaterial(
     maintenanceRecordId: string,
     materialUsedId: string,
-    request: MaintenanceMaterialUsedUpdateRequest
-  ): Observable<MaintenanceMaterialUsed> {
-    return this.apiService.put<MaintenanceMaterialUsed>(
-      `/maintenance-records/${maintenanceRecordId}/materials/${materialUsedId}`,
-      request
-    );
+    request: MaintenanceRecordItemUpdateRequest
+  ): Observable<MaintenanceRecordItem> {
+    return this.updateItem(maintenanceRecordId, materialUsedId, request);
   }
 
   removeMaterial(maintenanceRecordId: string, materialUsedId: string): Observable<void> {
-    return this.apiService.delete<void>(`/maintenance-records/${maintenanceRecordId}/materials/${materialUsedId}`);
+    return this.removeItem(maintenanceRecordId, materialUsedId);
   }
 }
