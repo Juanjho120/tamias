@@ -215,6 +215,7 @@ public class ReservationService {
         Reservation saved = reservationRepository.save(entity);
 
         reservationGuestRepository.deleteByReservation_Id(saved.getId());
+        reservationGuestRepository.flush();
         replaceGuests(saved, request.guests(), saved.getOrganization(), currentUser);
 
         if (request.supplies() != null) {
@@ -363,6 +364,7 @@ public class ReservationService {
 
     private void replaceSupplies(Reservation reservation, List<ReservationSupplyRequest> supplyRequests) {
         reservationSupplyRepository.deleteByReservation_Id(reservation.getId());
+        reservationSupplyRepository.flush();
 
         if (supplyRequests == null || supplyRequests.isEmpty()) {
             return;
