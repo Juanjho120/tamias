@@ -20,12 +20,16 @@ import { ApiError } from '../../core/models/api-error.model';
 import { QuetzalCurrencyPipe } from '../../shared/pipes/quetzal-currency.pipe';
 import { ToastService } from '../../shared/toast/toast.service';
 import {
+  DashboardCalendarData,
   DashboardCalendarDay,
+  DashboardCalendarDayIcon,
   DashboardCalendarRow,
   DashboardData,
   DashboardMetric,
   DashboardReservationCalendarSegment,
   DashboardReservationDetail,
+  DashboardScheduledMaintenanceCalendarItem,
+  DashboardScheduledMaintenanceCalendarSegment,
   DashboardTaskListSummary
 } from './models/dashboard.model';
 import { DashboardService } from './services/dashboard.service';
@@ -37,11 +41,12 @@ import { DashboardService } from './services/dashboard.service';
   templateUrl: './dashboard.component.html'
 })
 export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
-  @ViewChildren('reservationTooltip') reservationTooltipElements?: QueryList<ElementRef<HTMLElement>>;
+  @ViewChildren('calendarTooltip') calendarTooltipElements?: QueryList<ElementRef<HTMLElement>>;
 
   private readonly dashboardService = inject(DashboardService);
   private readonly toastService = inject(ToastService);
   private readonly languageService = inject(LanguageService);
+  private readonly datePipe = inject(DatePipe);
 
   private readonly tooltipInstances = new Map<HTMLElement, Tooltip>();
   private needsTooltipRefresh = false;
@@ -190,12 +195,12 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.loadingCalendar.set(true);
     this.disposeTooltips();
 
-    this.dashboardService.loadReservationCalendar(
+    this.dashboardService.loadCalendarData(
       this.calendarRangeStart(),
       this.calendarRangeEnd()
     ).subscribe({
-      next: (reservations) => {
-        this.calendarRows.set(this.buildCalendarRows(reservations));
+      next: (calendarData) => {
+        this.calendarRows.set(this.buildCalendarRows(calendarData));
         this.loadingCalendar.set(false);
         this.needsTooltipRefresh = true;
       },
@@ -287,6 +292,71 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
     return 'calendar-event-middle';
   }
 
+  scheduledMaintenanceSegmentClass(segment: DashboardScheduledMaintenanceCalendarSegment): string {
+    switch (segment.status) {
+      case 'ACTIVE':
+        return 'calendar-event-scheduled-active';
+      case 'PAUSED':
+        return 'calendar-event-scheduled-paused';
+      case 'COMPLETED':
+        return 'calendar-event-scheduled-completed';
+      case 'DELETED':
+        return 'calendar-event-scheduled-deleted';
+      default:
+        return 'calendar-event-scheduled-default';
+    }
+  }
+
+  scheduledMaintenanceSegmentShapeClass(segment: DashboardScheduledMaintenanceCalendarSegment): string {
+    if (segment.rangeStartsHere && segment.rangeEndsHere) {
+      return 'calendar-event-single';
+    }
+
+    if (segment.rangeStartsHere) {
+      return 'calendar-event-start';
+    }
+
+    if (segment.rangeEndsHere) {
+      return 'calendar-event-end';
+    }
+
+    return 'calendar-event-middle';
+  }
+
+  scheduledMaintenanceSegmentGridColumn(segment: DashboardScheduledMaintenanceCalendarSegment): string {
+    return `${segment.gridColumnStart} / ${segment.gridColumnEnd}`;
+  }
+
+  scheduledMaintenanceSegmentGridRow(segment: DashboardScheduledMaintenanceCalendarSegment): string {
+    return `${segment.lane + 1}`;
+  }
+
+  calendarIconClass(icon: DashboardCalendarDayIcon): string {
+    switch (icon.type) {
+      case 'MAINTENANCE_RECORD':
+        return 'calendar-day-icon-maintenance';
+      case 'TASK_LIST':
+        return 'calendar-day-icon-task';
+      case 'PURCHASE_LIST':
+        return 'calendar-day-icon-purchase';
+      default:
+        return 'calendar-day-icon-default';
+    }
+  }
+
+  calendarIconBootstrapIcon(icon: DashboardCalendarDayIcon): string {
+    switch (icon.type) {
+      case 'MAINTENANCE_RECORD':
+        return 'bi-tools';
+      case 'TASK_LIST':
+        return 'bi-check2-square';
+      case 'PURCHASE_LIST':
+        return 'bi-cart-check';
+      default:
+        return 'bi-dot';
+    }
+  }
+
   segmentMarginLeft(segment: DashboardReservationCalendarSegment): string {
     if (!segment.startsAtCheckIn) {
       return '0';
@@ -320,7 +390,7 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   calendarRowMinHeightRem(row: DashboardCalendarRow): number {
-    return 4.4 + Math.max(1, row.maxLanes) * 1.7;
+    return 4.8 + Math.max(1, row.maxLanes) * 1.7 + Math.max(1, row.maxIconRows) * 1.25;
   }
 
   invoiceStatusLabel(invoiceStatus: 'INVOICED' | 'NOT_INVOICED'): string {
@@ -366,6 +436,102 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
     `;
   }
 
+  scheduledMaintenanceTooltipHtml(segment: DashboardScheduledMaintenanceCalendarSegment): string {
+    this.languageService.currentLanguage();
+
+    return this.calendarTooltipContentHtml(
+      segment.title,
+      [
+        [this.languageService.instant('dashboard.calendar.tooltip.type'), segment.maintenanceTypeName || '—'],
+        [this.languageService.instant('dashboard.calendar.tooltip.category'), segment.maintenanceCategoryName || '—'],
+        [this.languageService.instant('dashboard.calendar.tooltip.person'), segment.maintenancePersonName || '—'],
+        [this.languageService.instant('dashboard.calendar.tooltip.property'), segment.propertyName],
+        [this.languageService.instant('dashboard.calendar.tooltip.cost'), this.formatMoney(segment.estimatedCost)],
+        [this.languageService.instant('dashboard.calendar.tooltip.nextDueDate'), segment.nextDueDate || '—'],
+        [this.languageService.instant('dashboard.calendar.tooltip.status'), this.languageService.instant(`scheduledMaintenance.status.${segment.status}`)]
+      ]
+    );
+  }
+
+  calendarIconTooltipHtml(icon: DashboardCalendarDayIcon): string {
+    this.languageService.currentLanguage();
+
+    switch (icon.type) {
+      case 'MAINTENANCE_RECORD':
+        return this.maintenanceRecordIconTooltipHtml(icon);
+      case 'TASK_LIST':
+        return this.taskListIconTooltipHtml(icon);
+      case 'PURCHASE_LIST':
+        return this.purchaseListIconTooltipHtml(icon);
+      default:
+        return this.calendarTooltipContentHtml(icon.title, []);
+    }
+  }
+
+  private maintenanceRecordIconTooltipHtml(icon: DashboardCalendarDayIcon): string {
+    const maintenance = icon.maintenanceRecord;
+
+    if (!maintenance) {
+      return this.calendarTooltipContentHtml(icon.title, []);
+    }
+
+    return this.calendarTooltipContentHtml(
+      maintenance.title,
+      [
+        [this.languageService.instant('dashboard.calendar.tooltip.type'), maintenance.maintenanceTypeName || '—'],
+        [this.languageService.instant('dashboard.calendar.tooltip.category'), maintenance.maintenanceCategoryName || '—'],
+        [this.languageService.instant('dashboard.calendar.tooltip.person'), maintenance.maintenancePersonName || '—'],
+        [this.languageService.instant('dashboard.calendar.tooltip.property'), maintenance.propertyName],
+        [this.languageService.instant('dashboard.calendar.tooltip.materialsTotal'), String(maintenance.materialsTotal)],
+        [this.languageService.instant('dashboard.calendar.tooltip.peopleTotal'), String(maintenance.peopleTotal)],
+        [this.languageService.instant('dashboard.calendar.tooltip.status'), this.languageService.instant(`maintenance.status.${maintenance.status}`)],
+        [this.languageService.instant('dashboard.calendar.tooltip.cost'), this.formatMoney(maintenance.cost)],
+        [this.languageService.instant('dashboard.calendar.tooltip.performedAt'), maintenance.performedAt || '—']
+      ]
+    );
+  }
+
+  private taskListIconTooltipHtml(icon: DashboardCalendarDayIcon): string {
+    const taskList = icon.taskList;
+
+    if (!taskList) {
+      return this.calendarTooltipContentHtml(icon.title, []);
+    }
+
+    return this.calendarTooltipContentHtml(
+      taskList.title,
+      [
+        [this.languageService.instant('dashboard.calendar.tooltip.property'), taskList.propertyName],
+        [this.languageService.instant('dashboard.calendar.tooltip.progress'), this.progressLabel(taskList.completedItems, taskList.totalItems)],
+        [this.languageService.instant('dashboard.calendar.tooltip.status'), this.languageService.instant(`tasks.status.${taskList.status}`)],
+        [this.languageService.instant('dashboard.calendar.tooltip.creationDate'), this.formatDateTime(taskList.creationDate || taskList.createdAt)],
+        [this.languageService.instant('dashboard.calendar.tooltip.reservation'), taskList.reservationLabel || this.shortId(taskList.reservationId) || '—'],
+        [this.languageService.instant('dashboard.calendar.tooltip.maintenance'), taskList.maintenanceRecordLabel || this.shortId(taskList.maintenanceRecordId) || '—']
+      ]
+    );
+  }
+
+  private purchaseListIconTooltipHtml(icon: DashboardCalendarDayIcon): string {
+    const purchaseList = icon.purchaseList;
+
+    if (!purchaseList) {
+      return this.calendarTooltipContentHtml(icon.title, []);
+    }
+
+    return this.calendarTooltipContentHtml(
+      purchaseList.cityName || this.languageService.instant('dashboard.calendar.purchase'),
+      [
+        [this.languageService.instant('dashboard.calendar.tooltip.city'), purchaseList.cityName || '—'],
+        [this.languageService.instant('dashboard.calendar.tooltip.supplier'), purchaseList.supplierName || '—'],
+        [this.languageService.instant('dashboard.calendar.tooltip.property'), purchaseList.propertyName || '—'],
+        [this.languageService.instant('dashboard.calendar.tooltip.progress'), this.progressLabel(purchaseList.purchasedItems, purchaseList.totalItems)],
+        [this.languageService.instant('dashboard.calendar.tooltip.status'), this.languageService.instant(`purchases.status.${purchaseList.status}`)],
+        [this.languageService.instant('dashboard.calendar.tooltip.creationDate'), this.formatDateTime(purchaseList.createdAt) || '—'],
+        [this.languageService.instant('dashboard.calendar.tooltip.estimatedTotal'), this.formatMoney(purchaseList.estimatedTotal)]
+      ]
+    );
+  }
+
   trackByRow(index: number, row: DashboardCalendarRow): string {
     return row.id;
   }
@@ -378,7 +544,7 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
     return segment.id;
   }
 
-  private buildCalendarRows(reservations: DashboardReservationDetail[]): DashboardCalendarRow[] {
+  private buildCalendarRows(calendarData: DashboardCalendarData): DashboardCalendarRow[] {
     const year = this.calendarYear();
     const month = this.calendarMonth();
     const firstDayOfMonth = new Date(year, month, 1);
@@ -401,21 +567,105 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
           date: dateString,
           dayNumber: date.getDate(),
           currentMonth: date.getMonth() === month,
-          today: dateString === today
+          today: dateString === today,
+          icons: []
         });
       }
 
-      const segments = this.segmentsForCalendarRow(days, reservations);
+      this.assignDayIcons(days, calendarData);
+
+      const reservationSegments = this.segmentsForCalendarRow(days, calendarData.reservations);
+      const reservationLaneCount = reservationSegments.length === 0
+        ? 0
+        : Math.max(...reservationSegments.map((segment) => segment.lane)) + 1;
+      const scheduledMaintenanceSegments = this.scheduledMaintenanceSegmentsForCalendarRow(
+        days,
+        calendarData.scheduledMaintenances,
+        reservationLaneCount
+      );
+      const scheduledLaneCount = scheduledMaintenanceSegments.length === 0
+        ? 0
+        : Math.max(...scheduledMaintenanceSegments.map((segment) => segment.lane - reservationLaneCount)) + 1;
+      const maxIconRows = Math.max(1, ...days.map((day) => day.icons.length));
 
       rows.push({
         id: days[0].date,
         days,
-        segments,
-        maxLanes: segments.length === 0 ? 1 : Math.max(...segments.map((segment) => segment.lane)) + 1
+        segments: reservationSegments,
+        scheduledMaintenanceSegments,
+        maxLanes: Math.max(1, reservationLaneCount + scheduledLaneCount),
+        maxIconRows
       });
     }
 
     return rows;
+  }
+
+  private assignDayIcons(days: DashboardCalendarDay[], calendarData: DashboardCalendarData): void {
+    const daysByDate = new Map(days.map((day) => [day.date, day]));
+
+    for (const maintenance of calendarData.maintenanceRecords) {
+      const date = this.normalizeDashboardDate(maintenance.scheduledAt);
+
+      if (!date) {
+        continue;
+      }
+
+      daysByDate.get(date)?.icons.push({
+        id: `maintenance-${maintenance.id}`,
+        type: 'MAINTENANCE_RECORD',
+        date,
+        title: maintenance.title,
+        status: maintenance.status,
+        maintenanceRecord: maintenance
+      });
+    }
+
+    for (const taskList of calendarData.taskLists) {
+      const date = this.normalizeDashboardDate(taskList.dueDate);
+
+      if (!date) {
+        continue;
+      }
+
+      daysByDate.get(date)?.icons.push({
+        id: `task-${taskList.id}`,
+        type: 'TASK_LIST',
+        date,
+        title: taskList.title,
+        status: taskList.status,
+        taskList
+      });
+    }
+
+    for (const purchaseList of calendarData.purchaseLists) {
+      const date = this.normalizeDashboardDate(purchaseList.purchaseDate);
+
+      if (!date) {
+        continue;
+      }
+
+      daysByDate.get(date)?.icons.push({
+        id: `purchase-${purchaseList.id}`,
+        type: 'PURCHASE_LIST',
+        date,
+        title: purchaseList.supplierName || purchaseList.cityName || this.languageService.instant('dashboard.calendar.purchase'),
+        status: purchaseList.status,
+        purchaseList
+      });
+    }
+
+    for (const day of days) {
+      day.icons.sort((left, right) => {
+        const order = {
+          MAINTENANCE_RECORD: 1,
+          TASK_LIST: 2,
+          PURCHASE_LIST: 3
+        };
+
+        return order[left.type] - order[right.type] || left.title.localeCompare(right.title);
+      });
+    }
   }
 
   private segmentsForCalendarRow(days: DashboardCalendarDay[], reservations: DashboardReservationDetail[]): DashboardReservationCalendarSegment[] {
@@ -444,10 +694,6 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
         continue;
       }
 
-      // Visual rule requested for the dashboard:
-      // checkIn starts at half of the check-in day cell and checkOut ends at
-      // half of the checkout day cell. Therefore checkOut is part of the visual
-      // range, even though it is not a full occupied night.
       if (this.compareDashboardDates(checkOutDate, rowStartDate) < 0 || this.compareDashboardDates(checkInDate, rowEndDate) > 0) {
         continue;
       }
@@ -498,6 +744,92 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
         item.startIndex,
         item.endIndex,
         lane
+      ));
+    }
+
+    return segments;
+  }
+
+  private scheduledMaintenanceSegmentsForCalendarRow(
+    days: DashboardCalendarDay[],
+    scheduledMaintenances: DashboardScheduledMaintenanceCalendarItem[],
+    laneOffset: number
+  ): DashboardScheduledMaintenanceCalendarSegment[] {
+    const rowStartDate = this.parseDashboardDate(days[0].date);
+    const rowEndDate = this.parseDashboardDate(days[6].date);
+
+    if (!rowStartDate || !rowEndDate) {
+      return [];
+    }
+
+    const overlappingItems: Array<{
+      maintenance: DashboardScheduledMaintenanceCalendarItem;
+      startDate: Date;
+      endDate: Date;
+      segmentStartDate: Date;
+      segmentEndDate: Date;
+      startIndex: number;
+      endIndex: number;
+    }> = [];
+
+    for (const maintenance of scheduledMaintenances) {
+      const startDate = this.parseDashboardDate(maintenance.startDate);
+      const endDate = this.parseDashboardDate(maintenance.endDate ?? maintenance.startDate);
+
+      if (!startDate || !endDate) {
+        continue;
+      }
+
+      if (this.compareDashboardDates(endDate, rowStartDate) < 0 || this.compareDashboardDates(startDate, rowEndDate) > 0) {
+        continue;
+      }
+
+      const segmentStartDate = this.maxDashboardDate(startDate, rowStartDate);
+      const segmentEndDate = this.minDashboardDate(endDate, rowEndDate);
+      const startIndex = this.daysBetween(rowStartDate, segmentStartDate);
+      const endIndex = this.daysBetween(rowStartDate, segmentEndDate);
+
+      if (startIndex < 0 || startIndex > 6 || endIndex < 0 || endIndex > 6 || startIndex > endIndex) {
+        continue;
+      }
+
+      overlappingItems.push({
+        maintenance,
+        startDate,
+        endDate,
+        segmentStartDate,
+        segmentEndDate,
+        startIndex,
+        endIndex
+      });
+    }
+
+    overlappingItems.sort((left, right) => {
+      const byStart = this.compareDashboardDates(left.segmentStartDate, right.segmentStartDate);
+
+      if (byStart !== 0) {
+        return byStart;
+      }
+
+      return this.compareDashboardDates(right.segmentEndDate, left.segmentEndDate);
+    });
+
+    const laneEndIndexes: number[] = [];
+    const segments: DashboardScheduledMaintenanceCalendarSegment[] = [];
+
+    for (const item of overlappingItems) {
+      const lane = this.findAvailableLane(laneEndIndexes, item.startIndex);
+      laneEndIndexes[lane] = item.endIndex;
+
+      segments.push(this.toScheduledMaintenanceSegment(
+        item.maintenance,
+        item.startDate,
+        item.endDate,
+        item.segmentStartDate,
+        item.segmentEndDate,
+        item.startIndex,
+        item.endIndex,
+        lane + laneOffset
       ));
     }
 
@@ -558,6 +890,43 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
     };
   }
 
+  private toScheduledMaintenanceSegment(
+    maintenance: DashboardScheduledMaintenanceCalendarItem,
+    startDate: Date,
+    endDate: Date,
+    segmentStartDate: Date,
+    segmentEndDate: Date,
+    startIndex: number,
+    endIndex: number,
+    lane: number
+  ): DashboardScheduledMaintenanceCalendarSegment {
+    const startDateString = this.toLocalDateString(startDate);
+    const endDateString = this.toLocalDateString(endDate);
+    const segmentStart = this.toLocalDateString(segmentStartDate);
+    const segmentEnd = this.toLocalDateString(segmentEndDate);
+
+    return {
+      id: `${maintenance.id}-${segmentStart}-${segmentEnd}`,
+      scheduledMaintenanceId: maintenance.id,
+      propertyId: maintenance.propertyId,
+      propertyName: maintenance.propertyName,
+      maintenanceCategoryName: maintenance.maintenanceCategoryName,
+      maintenanceTypeName: maintenance.maintenanceTypeName,
+      maintenancePersonName: maintenance.maintenancePersonName,
+      title: maintenance.title,
+      startDate: startDateString,
+      endDate: endDateString,
+      nextDueDate: maintenance.nextDueDate,
+      estimatedCost: maintenance.estimatedCost,
+      status: maintenance.status,
+      rangeStartsHere: this.isSameDashboardDate(startDate, segmentStartDate),
+      rangeEndsHere: this.isSameDashboardDate(endDate, segmentEndDate),
+      gridColumnStart: startIndex + 1,
+      gridColumnEnd: endIndex + 2,
+      lane
+    };
+  }
+
   private calendarRangeStart(): string {
     const year = this.calendarYear();
     const month = this.calendarMonth();
@@ -589,7 +958,7 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
   private refreshBootstrapTooltips(): void {
     this.disposeTooltips();
 
-    const elements = this.reservationTooltipElements?.toArray() ?? [];
+    const elements = this.calendarTooltipElements?.toArray() ?? [];
 
     for (const elementRef of elements) {
       const element = elementRef.nativeElement;
@@ -625,6 +994,55 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
   private extractErrorMessage(error: unknown, fallback: string): string {
     const maybeHttpError = error as { error?: ApiError };
     return maybeHttpError.error?.message ?? fallback;
+  }
+
+  private calendarTooltipContentHtml(title: string, rows: Array<[string, string]>): string {
+    const rowsHtml = rows.map(([label, value]) => `
+      <div class="reservation-calendar-tooltip-row">
+        <span>${this.escapeHtml(label)}</span>
+        <strong>${this.escapeHtml(value)}</strong>
+      </div>
+    `).join('');
+
+    return `
+      <div class="reservation-calendar-tooltip-content">
+        <div class="reservation-calendar-tooltip-title">${this.escapeHtml(title)}</div>
+        ${rowsHtml}
+      </div>
+    `;
+  }
+
+  private formatMoney(value: number | null | undefined): string {
+    if (value === null || value === undefined) {
+      return '—';
+    }
+
+    return new Intl.NumberFormat(this.calendarLocale(), {
+      style: 'currency',
+      currency: 'GTQ'
+    }).format(value);
+  }
+
+  private progressLabel(completedItems: number, totalItems: number): string {
+    if (!totalItems) {
+      return '0/0 (0%)';
+    }
+
+    const percentage = Math.round((completedItems / totalItems) * 100);
+
+    return `${completedItems}/${totalItems} (${percentage}%)`;
+  }
+
+  private shortId(value: string | null | undefined): string | null {
+    return value ? value.slice(0, 8) : null;
+  }
+
+  private normalizeDashboardDate(value: string | null | undefined): string | null {
+    if (!value) {
+      return null;
+    }
+
+    return String(value).slice(0, 10);
   }
 
   private calendarSegmentColumnSpan(segment: DashboardReservationCalendarSegment): number {
@@ -679,5 +1097,13 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
 
   private dashboardDateNumber(date: Date): number {
     return Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86_400_000);
+  }
+
+  private formatDateTime(value: string | null | undefined): string {
+    if (!value) {
+      return '—';
+    }
+
+    return this.datePipe.transform(value, 'dd/MM/yyyy HH:mm:ss') ?? value;
   }
 }

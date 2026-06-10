@@ -4,13 +4,16 @@ import { map, switchMap } from 'rxjs/operators';
 import { PageResponse } from '../../../core/models/page-response.model';
 import { ApiService } from '../../../core/services/api.service';
 import {
+  DashboardCalendarData,
   DashboardData,
   DashboardDocumentSummary,
+  DashboardMaintenanceRecordCalendarItem,
   DashboardMaintenanceRecordSummary,
   DashboardPropertySummary,
   DashboardPurchaseListSummary,
   DashboardReservationDetail,
   DashboardReservationSummary,
+  DashboardScheduledMaintenanceCalendarItem,
   DashboardScheduledMaintenanceSummary,
   DashboardTaskListSummary
 } from '../models/dashboard.model';
@@ -26,6 +29,27 @@ interface DashboardPropertyImage {
   createdAt: string;
   fileUrl: string | null;
   fileUrlExpiresIn: number | null;
+}
+
+interface DashboardMaintenanceRecordPerson {
+  id: string;
+  maintenanceRecordId: string;
+  maintenancePersonId: string;
+  fullName: string;
+  phone: string | null;
+  email: string | null;
+  notes: string | null;
+}
+
+interface DashboardMaintenanceMaterialUsed {
+  id: string;
+  maintenanceRecordId: string;
+  materialId: string | null;
+  materialName: string | null;
+  materialNameSnapshot: string | null;
+  quantity: number | null;
+  unit: string | null;
+  notes: string | null;
 }
 
 @Injectable({
@@ -74,38 +98,22 @@ export class DashboardService {
     );
   }
 
-  loadReservationDetailsForMonth(year: number, month: number): Observable<DashboardReservationDetail[]> {
-    const monthStart = this.toDateString(new Date(year, month, 1));
-    const monthEnd = this.toDateString(new Date(year, month + 1, 1));
-
-    return this.getPage<DashboardReservationSummary>('/reservations/calendar', {
-      startDate: monthStart,
-      endDate: monthEnd,
-      page: 0,
-      size: 200,
-      sort: 'checkIn,asc'
-    }).pipe(
-      switchMap((response) => {
-        if (response.content.length === 0) {
-          return of([]);
-        }
-
-        return forkJoin(response.content.map((reservation) => this.findReservationById(reservation.id)));
-      })
-    );
+  loadCalendarData(startDate: string, endDate: string): Observable<DashboardCalendarData> {
+    return forkJoin({
+      reservations: this.loadReservationCalendar(startDate, endDate),
+      maintenanceRecords: this.loadMaintenanceRecordCalendarItems(startDate, endDate),
+      scheduledMaintenances: this.loadScheduledMaintenanceCalendarItems(startDate, endDate),
+      taskLists: this.loadTaskListCalendarItems(startDate, endDate),
+      purchaseLists: this.loadPurchaseListCalendarItems(startDate, endDate)
+    });
   }
-
-  private findReservationById(id: string): Observable<DashboardReservationDetail> {
-    return this.apiService.get<DashboardReservationDetail>(`/reservations/${id}`);
-  }
-
 
   loadReservationCalendar(startDate: string, endDate: string): Observable<DashboardReservationDetail[]> {
     return this.getPage<DashboardReservationSummary>('/reservations/calendar', {
       startDate,
       endDate,
       page: 0,
-      size: 200,
+      size: 500,
       sort: 'checkIn,asc'
     }).pipe(
       switchMap((response) => {
@@ -113,46 +121,155 @@ export class DashboardService {
           this.apiService.get<DashboardReservationDetail>(`/reservations/${reservation.id}`)
         );
 
-        return detailRequests.length
-          ? forkJoin(detailRequests)
-          : new Observable<DashboardReservationDetail[]>((subscriber) => {
-            subscriber.next([]);
-            subscriber.complete();
-          });
+        return detailRequests.length ? forkJoin(detailRequests) : of([]);
       }),
-      switchMap((reservations) => {
-        const propertyIds = [...new Set(reservations.map((reservation) => reservation.propertyId))];
+      switchMap((reservations) => this.attachPropertyCoverImages(reservations))
+    );
+  }
 
-        if (propertyIds.length === 0) {
-          return new Observable<DashboardReservationDetail[]>((subscriber) => {
-            subscriber.next(reservations);
-            subscriber.complete();
-          });
-        }
-
-        const imageRequests = propertyIds.map((propertyId) =>
-          this.apiService.get<DashboardPropertyImage[]>(`/properties/${propertyId}/images`).pipe(
-            map((images) => ({
-              propertyId,
-              coverImageUrl: this.findCoverImageUrl(images)
+  private loadMaintenanceRecordCalendarItems(startDate: string, endDate: string): Observable<DashboardMaintenanceRecordCalendarItem[]> {
+    return this.getPage<DashboardMaintenanceRecordSummary>('/maintenance-records', {
+      page: 0,
+      size: 500,
+      sort: 'scheduledAt,asc'
+    }).pipe(
+      map((response) => response.content.filter((record) => {
+        const scheduledAt = this.normalizeDate(record.scheduledAt);
+        return !!scheduledAt && scheduledAt >= startDate && scheduledAt <= endDate;
+      })),
+      switchMap((records) => {
+        const requests = records.map((record) =>
+          forkJoin({
+            detail: this.apiService.get<DashboardMaintenanceRecordCalendarItem>(`/maintenance-records/${record.id}`),
+            people: this.apiService.get<DashboardMaintenanceRecordPerson[]>(`/maintenance-records/${record.id}/people`),
+            materials: this.apiService.get<DashboardMaintenanceMaterialUsed[]>(`/maintenance-records/${record.id}/materials`)
+          }).pipe(
+            map(({ detail, people, materials }) => ({
+              ...detail,
+              materialsTotal: materials.length,
+              peopleTotal: people.length
             }))
           )
         );
 
-        return forkJoin(imageRequests).pipe(
-          map((coverImages) => {
-            const coverByPropertyId = new Map(
-              coverImages.map((item) => [item.propertyId, item.coverImageUrl])
-            );
-
-            return reservations.map((reservation) => ({
-              ...reservation,
-              propertyCoverImageUrl: coverByPropertyId.get(reservation.propertyId) ?? null
-            }));
-          })
-        );
+        return requests.length ? forkJoin(requests) : of([]);
       })
     );
+  }
+
+  private loadScheduledMaintenanceCalendarItems(startDate: string, endDate: string): Observable<DashboardScheduledMaintenanceCalendarItem[]> {
+    return this.getPage<DashboardScheduledMaintenanceSummary>('/scheduled-maintenance', {
+      page: 0,
+      size: 500,
+      sort: 'startDate,asc'
+    }).pipe(
+      switchMap((response) => {
+        const detailRequests = response.content.map((item) =>
+          this.apiService.get<DashboardScheduledMaintenanceCalendarItem>(`/scheduled-maintenance/${item.id}`)
+        );
+
+        return detailRequests.length ? forkJoin(detailRequests) : of([]);
+      }),
+      map((items) => items.filter((item) => {
+        const itemStart = this.normalizeDate(item.startDate);
+        const itemEnd = this.normalizeDate(item.endDate) ?? itemStart;
+
+        return !!itemStart && !!itemEnd && itemEnd >= startDate && itemStart <= endDate;
+      }))
+    );
+  }
+
+  private loadTaskListCalendarItems(startDate: string, endDate: string): Observable<DashboardTaskListSummary[]> {
+    return this.getPage<DashboardTaskListSummary>('/task-lists', {
+      page: 0,
+      size: 500,
+      sort: 'dueDate,asc'
+    }).pipe(
+      map((response) => response.content.filter((taskList) => {
+        const dueDate = this.normalizeDate(taskList.dueDate);
+        return !!dueDate && dueDate >= startDate && dueDate <= endDate;
+      })),
+      switchMap((taskLists) => this.attachTaskAssociationLabels(taskLists))
+    );
+  }
+
+  private loadPurchaseListCalendarItems(startDate: string, endDate: string): Observable<DashboardPurchaseListSummary[]> {
+    return this.getPage<DashboardPurchaseListSummary>('/purchase-lists', {
+      page: 0,
+      size: 500,
+      sort: 'purchaseDate,asc'
+    }).pipe(
+      map((response) => response.content.filter((purchaseList) => {
+        const purchaseDate = this.normalizeDate(purchaseList.purchaseDate);
+        return !!purchaseDate && purchaseDate >= startDate && purchaseDate <= endDate;
+      }))
+    );
+  }
+
+  private attachPropertyCoverImages(reservations: DashboardReservationDetail[]): Observable<DashboardReservationDetail[]> {
+    const propertyIds = [...new Set(reservations.map((reservation) => reservation.propertyId))];
+
+    if (propertyIds.length === 0) {
+      return of(reservations);
+    }
+
+    const imageRequests = propertyIds.map((propertyId) =>
+      this.apiService.get<DashboardPropertyImage[]>(`/properties/${propertyId}/images`).pipe(
+        map((images) => ({
+          propertyId,
+          coverImageUrl: this.findCoverImageUrl(images)
+        }))
+      )
+    );
+
+    return forkJoin(imageRequests).pipe(
+      map((coverImages) => {
+        const coverByPropertyId = new Map(
+          coverImages.map((item) => [item.propertyId, item.coverImageUrl])
+        );
+
+        return reservations.map((reservation) => ({
+          ...reservation,
+          propertyCoverImageUrl: coverByPropertyId.get(reservation.propertyId) ?? null
+        }));
+      })
+    );
+  }
+
+  private attachTaskAssociationLabels(taskLists: DashboardTaskListSummary[]): Observable<DashboardTaskListSummary[]> {
+    const requests = taskLists.map((taskList) => {
+      const reservationRequest = taskList.reservationId
+        ? this.apiService.get<DashboardReservationDetail>(`/reservations/${taskList.reservationId}`).pipe(
+          map((reservation) => reservation.reservationCode || reservation.propertyName || reservation.id)
+        )
+        : of(null);
+
+      const maintenanceRequest = taskList.maintenanceRecordId
+        ? this.apiService.get<DashboardMaintenanceRecordCalendarItem>(`/maintenance-records/${taskList.maintenanceRecordId}`).pipe(
+          map((maintenance) => maintenance.title || maintenance.id)
+        )
+        : of(null);
+
+      return forkJoin({
+        reservationLabel: reservationRequest,
+        maintenanceRecordLabel: maintenanceRequest
+      }).pipe(
+        map(({ reservationLabel, maintenanceRecordLabel }) => ({
+          ...taskList,
+          reservationLabel,
+          maintenanceRecordLabel
+        }))
+      );
+    });
+
+    return requests.length ? forkJoin(requests) : of([]);
+  }
+
+  private findCoverImageUrl(images: DashboardPropertyImage[]): string | null {
+    const activeImages = images.filter((image) => image.status === 'ACTIVE' && !!image.fileUrl);
+    const coverImage = activeImages.find((image) => image.cover);
+
+    return coverImage?.fileUrl ?? activeImages[0]?.fileUrl ?? null;
   }
 
   private getPage<T>(path: string, params: Record<string, string | number | boolean | null | undefined>): Observable<PageResponse<T>> {
@@ -169,14 +286,11 @@ export class DashboardService {
     return date.toISOString().slice(0, 10);
   }
 
-  private toDateString(date: Date): string {
-    return date.toISOString().slice(0, 10);
-  }
+  private normalizeDate(value: string | null | undefined): string | null {
+    if (!value) {
+      return null;
+    }
 
-  private findCoverImageUrl(images: DashboardPropertyImage[]): string | null {
-    const activeImages = images.filter((image) => image.status === 'ACTIVE' && !!image.fileUrl);
-    const coverImage = activeImages.find((image) => image.cover);
-
-    return coverImage?.fileUrl ?? activeImages[0]?.fileUrl ?? null;
+    return String(value).slice(0, 10);
   }
 }

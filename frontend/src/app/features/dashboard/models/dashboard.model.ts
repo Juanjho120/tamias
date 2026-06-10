@@ -40,6 +40,7 @@ export interface DashboardReservationDetail {
   id: string;
   propertyId: string;
   propertyName: string;
+  propertyCoverImageUrl: string | null;
   platformId: string | null;
   platformName: string | null;
   reservationCode: string | null;
@@ -54,13 +55,16 @@ export interface DashboardReservationDetail {
   status: string;
   createdAt: string;
   updatedAt: string;
-  propertyCoverImageUrl: string | null;
 }
 
 export interface DashboardMaintenanceRecordSummary {
   id: string;
   propertyId: string;
   propertyName: string;
+  maintenanceCategoryId: string | null;
+  maintenanceCategoryName: string | null;
+  maintenanceTypeId: string | null;
+  maintenanceTypeName: string | null;
   title: string;
   scheduledAt: string | null;
   performedAt: string | null;
@@ -69,20 +73,43 @@ export interface DashboardMaintenanceRecordSummary {
   createdAt: string;
 }
 
+export interface DashboardMaintenanceRecordCalendarItem extends DashboardMaintenanceRecordSummary {
+  maintenancePersonId: string | null;
+  maintenancePersonName: string | null;
+  materialsTotal: number;
+  peopleTotal: number;
+}
+
 export interface DashboardScheduledMaintenanceSummary {
   id: string;
   propertyId: string;
   propertyName: string;
+  maintenanceCategoryId: string | null;
+  maintenanceCategoryName: string | null;
+  maintenanceTypeId: string | null;
+  maintenanceTypeName: string | null;
   title: string;
   nextDueDate: string | null;
   frequency: string | null;
+  estimatedCost: number | null;
   status: string;
+}
+
+export interface DashboardScheduledMaintenanceCalendarItem extends DashboardScheduledMaintenanceSummary {
+  maintenancePersonId: string | null;
+  maintenancePersonName: string | null;
+  startDate: string;
+  endDate: string | null;
 }
 
 export interface DashboardTaskListSummary {
   id: string;
   propertyId: string;
   propertyName: string;
+  reservationId: string | null;
+  reservationLabel: string | null;
+  maintenanceRecordId: string | null;
+  maintenanceRecordLabel: string | null;
   title: string;
   creationDate: string | null;
   dueDate: string | null;
@@ -96,6 +123,9 @@ export interface DashboardPurchaseListSummary {
   id: string;
   propertyId: string | null;
   propertyName: string | null;
+  cityId: string | null;
+  cityName: string | null;
+  supplierId: string | null;
   supplierName: string | null;
   purchaseDate: string;
   status: string;
@@ -117,33 +147,42 @@ export interface DashboardDocumentSummary {
   createdAt: string;
 }
 
+export type DashboardCalendarIconType = 'MAINTENANCE_RECORD' | 'TASK_LIST' | 'PURCHASE_LIST';
+
+export interface DashboardCalendarDayIcon {
+  id: string;
+  type: DashboardCalendarIconType;
+  date: string;
+  title: string;
+  status: string;
+  maintenanceRecord?: DashboardMaintenanceRecordCalendarItem;
+  taskList?: DashboardTaskListSummary;
+  purchaseList?: DashboardPurchaseListSummary;
+}
+
 export interface DashboardCalendarDay {
   date: string;
   dayNumber: number;
   currentMonth: boolean;
   today: boolean;
+  icons: DashboardCalendarDayIcon[];
 }
 
 export interface DashboardCalendarRow {
   id: string;
   days: DashboardCalendarDay[];
   segments: DashboardReservationCalendarSegment[];
+  scheduledMaintenanceSegments: DashboardScheduledMaintenanceCalendarSegment[];
   maxLanes: number;
+  maxIconRows: number;
 }
 
-/**
- * Segmento visual de una reservación.
- *
- * La reservación sigue siendo un solo rango checkIn -> checkOut.
- * Si el rango cruza una línea del calendario mensual, el navegador necesita
- * dibujarlo en más de una fila visual. Todos los segmentos comparten
- * reservationId y la información completa de la misma reservación.
- */
 export interface DashboardReservationCalendarSegment {
   id: string;
   reservationId: string;
   propertyId: string;
   propertyName: string;
+  propertyCoverImageUrl: string | null;
   platformName: string | null;
   reservationCode: string | null;
   checkIn: string;
@@ -155,13 +194,41 @@ export interface DashboardReservationCalendarSegment {
   status: string;
   rangeStartsHere: boolean;
   rangeEndsHere: boolean;
+  startsAtCheckIn: boolean;
+  endsAtCheckOut: boolean;
   gridColumnStart: number;
   gridColumnEnd: number;
   lane: number;
   topRem: number;
-  propertyCoverImageUrl: string | null;
-  startsAtCheckIn: boolean;
-  endsAtCheckOut: boolean;
+}
+
+export interface DashboardScheduledMaintenanceCalendarSegment {
+  id: string;
+  scheduledMaintenanceId: string;
+  propertyId: string;
+  propertyName: string;
+  maintenanceCategoryName: string | null;
+  maintenanceTypeName: string | null;
+  maintenancePersonName: string | null;
+  title: string;
+  startDate: string;
+  endDate: string;
+  nextDueDate: string | null;
+  estimatedCost: number | null;
+  status: string;
+  rangeStartsHere: boolean;
+  rangeEndsHere: boolean;
+  gridColumnStart: number;
+  gridColumnEnd: number;
+  lane: number;
+}
+
+export interface DashboardCalendarData {
+  reservations: DashboardReservationDetail[];
+  maintenanceRecords: DashboardMaintenanceRecordCalendarItem[];
+  scheduledMaintenances: DashboardScheduledMaintenanceCalendarItem[];
+  taskLists: DashboardTaskListSummary[];
+  purchaseLists: DashboardPurchaseListSummary[];
 }
 
 export interface DashboardData {

@@ -156,6 +156,13 @@
       "invoiced": "FACTURADO",
       "notInvoiced": "SIN FACTURAR",
       "noGuest": "Sin huésped",
+      "purchase": "Compra",
+      "legend": {
+        "scheduledMaintenance": "Mantenimiento programado",
+        "maintenanceRecords": "Mantenimientos",
+        "tasks": "Tareas",
+        "purchases": "Compras"
+      },
       "messages": {
         "loadError": "No se pudo cargar el calendario de reservaciones."
       },
@@ -166,7 +173,23 @@
         "platform": "Plataforma",
         "invoice": "Factura",
         "status": "Estado",
-        "dates": "Fechas"
+        "dates": "Fechas",
+        "type": "Tipo",
+        "category": "Categoría",
+        "person": "Persona a cargo",
+        "property": "Propiedad",
+        "materialsTotal": "Materiales",
+        "peopleTotal": "Personas",
+        "cost": "Costo",
+        "performedAt": "Realizado",
+        "nextDueDate": "Próxima fecha",
+        "progress": "Progreso",
+        "creationDate": "Fecha creación",
+        "reservation": "Reservación asociada",
+        "maintenance": "Mantenimiento asociado",
+        "city": "Ciudad",
+        "supplier": "Proveedor",
+        "estimatedTotal": "Total estimado"
       },
       "weekDays": {
         "sun": "Dom",

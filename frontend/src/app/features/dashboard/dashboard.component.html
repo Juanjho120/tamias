@@ -83,6 +83,24 @@
                     [class.reservation-calendar-day-muted]="!day.currentMonth"
                     [class.reservation-calendar-day-today]="day.today">
                     <div class="reservation-calendar-day-number">{{ day.dayNumber }}</div>
+
+                    @if (day.icons.length) {
+                      <div class="reservation-calendar-day-icons">
+                        @for (icon of day.icons; track icon.id) {
+                          <button
+                            #calendarTooltip
+                            type="button"
+                            class="reservation-calendar-day-icon"
+                            data-bs-toggle="tooltip"
+                            data-bs-html="true"
+                            [attr.aria-label]="icon.title"
+                            [attr.data-bs-title]="calendarIconTooltipHtml(icon)"
+                            [ngClass]="calendarIconClass(icon)">
+                            <i class="bi" [ngClass]="calendarIconBootstrapIcon(icon)"></i>
+                          </button>
+                        }
+                      </div>
+                    }
                   </div>
                 }
               </div>
@@ -90,7 +108,7 @@
               <div class="reservation-calendar-row-bars">
                 @for (segment of row.segments; track trackByCalendarSegment($index, segment)) {
                   <div
-                    #reservationTooltip
+                    #calendarTooltip
                     class="reservation-calendar-event"
                     tabindex="0"
                     data-bs-toggle="tooltip"
@@ -104,6 +122,23 @@
                     <span class="reservation-calendar-event-label">{{ segment.primaryGuestName }}</span>
                   </div>
                 }
+
+                @for (segment of row.scheduledMaintenanceSegments; track segment.id) {
+                  <div
+                    #calendarTooltip
+                    class="reservation-calendar-event scheduled-maintenance-calendar-event"
+                    tabindex="0"
+                    data-bs-toggle="tooltip"
+                    data-bs-html="true"
+                    [attr.data-bs-title]="scheduledMaintenanceTooltipHtml(segment)"
+                    [ngClass]="[scheduledMaintenanceSegmentClass(segment), scheduledMaintenanceSegmentShapeClass(segment)]"
+                    [style.grid-column]="scheduledMaintenanceSegmentGridColumn(segment)"
+                    [style.grid-row]="scheduledMaintenanceSegmentGridRow(segment)">
+                    <span class="reservation-calendar-event-label">
+                      <i class="bi bi-calendar-check me-1"></i>{{ segment.title }}
+                    </span>
+                  </div>
+                }
               </div>
             </div>
           }
@@ -114,6 +149,10 @@
         <span><i class="bi bi-square-fill reservation-calendar-legend-active me-1"></i>{{ 'reservations.status.ACTIVE' | translate }}</span>
         <span><i class="bi bi-square-fill reservation-calendar-legend-cancelled me-1"></i>{{ 'reservations.status.CANCELLED' | translate }}</span>
         <span><i class="bi bi-square-fill reservation-calendar-legend-deleted me-1"></i>{{ 'reservations.status.DELETED' | translate }}</span>
+        <span><i class="bi bi-square-fill calendar-event-scheduled-active me-1"></i>{{ 'dashboard.calendar.legend.scheduledMaintenance' | translate }}</span>
+        <span><i class="bi bi-tools calendar-day-icon-maintenance me-1"></i>{{ 'dashboard.calendar.legend.maintenanceRecords' | translate }}</span>
+        <span><i class="bi bi-check2-square calendar-day-icon-task me-1"></i>{{ 'dashboard.calendar.legend.tasks' | translate }}</span>
+        <span><i class="bi bi-cart-check calendar-day-icon-purchase me-1"></i>{{ 'dashboard.calendar.legend.purchases' | translate }}</span>
         <span class="ms-lg-auto">{{ 'dashboard.calendar.tooltipHelp' | translate }}</span>
       </div>
     </div>

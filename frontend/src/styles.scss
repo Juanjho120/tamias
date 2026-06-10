@@ -399,12 +399,10 @@ a {
 
 .calendar-event-single {
   border-radius: 999px;
-  margin-inline: 0.25rem;
 }
 
 .calendar-event-start {
   border-radius: 999px 0 0 999px;
-  margin-left: 0.25rem;
 }
 
 .calendar-event-middle {
@@ -413,7 +411,6 @@ a {
 
 .calendar-event-end {
   border-radius: 0 999px 999px 0;
-  margin-right: 0.25rem;
 }
 
 .calendar-event-active,
@@ -555,4 +552,87 @@ a {
 
 .reservation-calendar-tooltip-content-with-cover .reservation-calendar-tooltip-title {
   margin-bottom: 0;
+}
+
+/* Dashboard calendar: extra event types */
+.scheduled-maintenance-calendar-event {
+  opacity: 0.92;
+}
+
+.calendar-event-scheduled-active {
+  background: #0d6efd;
+  color: #fff;
+}
+
+.calendar-event-scheduled-paused {
+  background: #6f42c1;
+  color: #fff;
+}
+
+.calendar-event-scheduled-completed {
+  background: #198754;
+  color: #fff;
+}
+
+.calendar-event-scheduled-deleted {
+  background: #6c757d;
+  color: #fff;
+}
+
+.calendar-event-scheduled-default {
+  background: #495057;
+  color: #fff;
+}
+
+.reservation-calendar-day-icons {
+  position: absolute;
+  left: 0.4rem;
+  right: 0.4rem;
+  bottom: 0.35rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  align-items: flex-end;
+  z-index: 5;
+}
+
+.reservation-calendar-day-icon {
+  width: 1.45rem;
+  height: 1.45rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  color: var(--bs-white);
+  font-size: 0.75rem;
+  line-height: 1;
+  padding: 0;
+  box-shadow: 0 0.25rem 0.55rem rgba(15, 23, 42, 0.18);
+  cursor: help;
+}
+
+.reservation-calendar-day-icon:focus {
+  outline: 2px solid var(--bs-primary);
+  outline-offset: 2px;
+}
+
+.calendar-day-icon-maintenance {
+  background: #fd7e14;
+  color: #fff;
+}
+
+.calendar-day-icon-task {
+  background: #20c997;
+  color: #fff;
+}
+
+.calendar-day-icon-purchase {
+  background: #dc3545;
+  color: #fff;
+}
+
+.calendar-day-icon-default {
+  background: #6c757d;
+  color: #fff;
 }

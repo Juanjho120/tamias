@@ -156,6 +156,13 @@
       "invoiced": "INVOICED",
       "notInvoiced": "NOT INVOICED",
       "noGuest": "No guest",
+      "purchase": "Purchase",
+      "legend": {
+        "scheduledMaintenance": "Scheduled maintenance",
+        "maintenanceRecords": "Maintenance records",
+        "tasks": "Tasks",
+        "purchases": "Purchases"
+      },
       "messages": {
         "loadError": "Unable to load reservation calendar."
       },
@@ -166,7 +173,23 @@
         "platform": "Platform",
         "invoice": "Invoice",
         "status": "Status",
-        "dates": "Dates"
+        "dates": "Dates",
+        "type": "Type",
+        "category": "Category",
+        "person": "Person in charge",
+        "property": "Property",
+        "materialsTotal": "Materials",
+        "peopleTotal": "People",
+        "cost": "Cost",
+        "performedAt": "Performed at",
+        "nextDueDate": "Next due date",
+        "progress": "Progress",
+        "creationDate": "Creation date",
+        "reservation": "Associated reservation",
+        "maintenance": "Associated maintenance",
+        "city": "City",
+        "supplier": "Supplier",
+        "estimatedTotal": "Estimated total"
       },
       "weekdays": {
         "sun": "Sun",
