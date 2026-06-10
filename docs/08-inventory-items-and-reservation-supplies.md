@@ -2,20 +2,23 @@
 
 ## Purpose
 
-TAMIAS needs a clean shared catalog for operational items used across maintenance, purchases, reservations and future inventory reporting.
+TAMIAS uses a clean shared catalog for operational items used across maintenance, purchases, reservations and future inventory reporting.
 
-The original MVP used `materials` as a catalog. That worked for maintenance and purchases, but it does not scale cleanly because the same kind of item can be:
+The original MVP used `materials` as a catalog. That worked for maintenance and purchases, but it did not scale cleanly because the same kind of item can be:
 
 - used as a maintenance material,
 - purchased in a purchase list,
 - delivered to a guest during a reservation,
-- tracked later with an internal code or barcode.
+- tracked later with an internal code or barcode,
+- used in future analytics and AI tool calling.
 
-Because of this, TAMIAS will refactor `materials` into a broader concept:
+Because of this, TAMIAS refactored `materials` into a broader concept:
 
 ```text
 Inventory Items
 ```
+
+---
 
 ## Business naming
 
@@ -26,11 +29,13 @@ Recommended UI labels:
 | Spanish | Insumos y materiales |
 | English | Inventory Items |
 
-`Suministros` is understandable, but `Insumos` is more natural for the type of operational items TAMIAS needs to manage.
+`Insumos` is more natural for the operational items TAMIAS needs to manage.
+
+---
 
 ## Technical decision
 
-TAMIAS will use:
+TAMIAS uses:
 
 ```text
 inventory_items
@@ -38,22 +43,19 @@ inventory_items
 
 as the shared operational item catalog.
 
-Existing `materials` will be renamed to `inventory_items`.
-
-Existing maintenance item usage will be represented by:
+The old `materials` concept was replaced by:
 
 ```text
-maintenance_record_items
+InventoryItem
 ```
 
-Instead of older names such as:
+---
 
-```text
-maintenance_materials_used
-maintenance_record_materials
-```
+## Current implemented model
 
-## Inventory item fields
+### inventory_items
+
+Main fields:
 
 ```text
 id
@@ -73,8 +75,6 @@ updated_at
 deleted_at
 ```
 
-## Item types
-
 Initial supported item types:
 
 ```text
@@ -86,9 +86,7 @@ TOOL
 OTHER
 ```
 
-## Availability flags
-
-The item type does not fully define where the item can be used. Availability is controlled by explicit flags:
+Availability is controlled by explicit flags:
 
 ```text
 available_for_maintenance
@@ -96,9 +94,13 @@ available_for_reservations
 available_for_purchases
 ```
 
-## API direction
+The item type classifies the item, but it does not fully define where it can be used.
 
-The new main catalog API is:
+---
+
+## API
+
+Main catalog API:
 
 ```http
 GET    /api/v1/inventory-items
@@ -119,17 +121,17 @@ Supported filters:
 /api/v1/inventory-items?search=shampoo
 ```
 
-A temporary compatibility endpoint may remain during frontend migration:
+---
 
-```http
-/api/v1/catalogs/materials
+## Maintenance Items
+
+Maintenance records use:
+
+```text
+maintenance_record_items
 ```
 
-but the frontend should move to `/api/v1/inventory-items`.
-
-## Maintenance items
-
-Maintenance records should use:
+Endpoints:
 
 ```http
 GET    /api/v1/maintenance-records/{maintenanceRecordId}/items
@@ -138,69 +140,99 @@ PUT    /api/v1/maintenance-records/{maintenanceRecordId}/items/{itemId}
 DELETE /api/v1/maintenance-records/{maintenanceRecordId}/items/{itemId}
 ```
 
-Temporary compatibility endpoints may remain:
+Each item references `inventory_items` when available and stores a snapshot of the item name for historical traceability.
 
-```http
-/api/v1/maintenance-records/{maintenanceRecordId}/materials
-```
+---
 
-## Purchase items
+## Purchase Items
 
-Purchase items now reference:
+Purchase items reference:
 
 ```text
 inventory_item_id
 ```
 
-The frontend should eventually rename `materialId` to `inventoryItemId`.
+The frontend now uses:
 
-During the transition, the backend can accept both names.
+```text
+inventoryItemId
+inventoryItemName
+```
 
-## Future reservation supplies
+instead of legacy material aliases.
 
-Reservation supplies should be implemented in a later block using:
+Purchase items can still store manual item names through snapshots when needed.
+
+---
+
+## Reservation Supplies
+
+Reservation supplies are implemented using:
 
 ```text
 reservation_supplies
 ```
 
-Each supply will reference an `inventory_item_id`.
-
-Suggested fields:
+Each supply references:
 
 ```text
-id
-organization_id
-reservation_id
 inventory_item_id
-quantity
-unit
+```
+
+and stores snapshots:
+
+```text
 item_name_snapshot
 internal_code_snapshot
 barcode_snapshot
-unit_cost_snapshot
-notes
-created_at
-updated_at
 ```
 
-## Scope of this block
+Endpoints:
 
-This block covers:
+```http
+GET    /api/v1/reservations/{reservationId}/supplies
+POST   /api/v1/reservations/{reservationId}/supplies
+PUT    /api/v1/reservations/{reservationId}/supplies/{supplyId}
+DELETE /api/v1/reservations/{reservationId}/supplies/{supplyId}
+```
+
+Frontend behavior:
+
+- Supplies are not edited inside the main reservation form.
+- Supplies use a dedicated modal opened from the reservation table.
+- The modal loads inventory items using `availableForReservations=true`.
+
+---
+
+## Current scope completed
+
+This refactor completed:
 
 ```text
-Documentation
+Documentation sync
 Backend InventoryItem refactor
 materials -> inventory_items
-maintenance material table -> maintenance_record_items
+maintenance item usage -> maintenance_record_items
 purchase_items.material_id -> purchase_items.inventory_item_id
+Frontend Inventory Items refactor
+Reservation Supplies backend
+Reservation Supplies frontend modal
+Frontend legacy material aliases cleanup
 ```
 
-This block does not implement:
+---
+
+## Not included yet
+
+The refactor does not implement formal stock control.
+
+Future inventory features may include:
 
 ```text
-Frontend inventory items refactor
-Reservation supplies UI
-Stock control
-Inventory movements
+inventory_movements
+stock_on_hand
+stock adjustments
+low stock alerts
+consumption analytics
+AI tool calling for inventory usage
 ```

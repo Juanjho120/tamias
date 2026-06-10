@@ -1,369 +1,330 @@
-# TAMIAS — Decisions
+# TAMIAS — Architecture and Technical Decisions
 
-Este archivo registra decisiones técnicas importantes del proyecto TAMIAS. Debe actualizarse cada vez que se tome una decisión que afecte arquitectura, seguridad, base de datos, IA, despliegue o estructura del producto.
-
----
-
-## DEC-0001 — Usar Modular Monolith
-
-### Estado
-
-Aceptada
-
-### Decisión
-
-TAMIAS iniciará como un Modular Monolith usando Java 21 y Spring Boot 3.
-
-### Razón
-
-El producto está en etapa inicial y cada organización tendrá aproximadamente hasta 5 usuarios simultáneos. Una arquitectura de microservicios agregaría complejidad innecesaria para el MVP.
-
-### Ventajas
-
-- Desarrollo más rápido.
-- Menor complejidad.
-- Despliegue más simple.
-- Mejor trazabilidad inicial.
-- Más fácil de documentar para portfolio.
-- Permite separación interna por módulos.
-
-### Desventajas
-
-- Si el producto crece mucho, algunas partes podrían necesitar separarse después.
-- Requiere disciplina para mantener módulos bien separados.
-
-### Consecuencia
-
-La estructura backend se organizará por módulos de dominio dentro de un solo proyecto Spring Boot.
+This document records important technical decisions for TAMIAS.
 
 ---
 
-## DEC-0002 — Usar shared database + shared schema para multi-tenancy
+## 1. Architecture style
 
-### Estado
-
-Aceptada
-
-### Decisión
-
-TAMIAS usará una sola base de datos PostgreSQL y un solo esquema compartido. La separación entre organizaciones se hará mediante `organization_id`.
-
-### Razón
-
-Es la opción más simple, económica y adecuada para el tamaño inicial del producto.
-
-### Ventajas
-
-- Menor costo.
-- Menor complejidad.
-- Más fácil de consultar.
-- Compatible con Supabase PostgreSQL.
-- Suficiente para el MVP.
-
-### Desventajas
-
-- Requiere extrema disciplina para filtrar por organización.
-- Un error de seguridad podría exponer datos entre organizaciones.
-
-### Consecuencia
-
-Toda entidad operativa debe incluir `organization_id` cuando aplique. El backend debe filtrar usando la organización del usuario autenticado.
-
----
-
-## DEC-0003 — Usar UUID como identificador principal
-
-### Estado
-
-Aceptada
-
-### Decisión
-
-Las entidades principales usarán UUID como identificador primario.
-
-### Razón
-
-Los UUID son adecuados para sistemas SaaS, evitan exposición de secuencias incrementales y facilitan futuras integraciones.
-
-### Ventajas
-
-- Mejor seguridad por no exponer IDs secuenciales.
-- Adecuado para sistemas distribuidos.
-- Útil para referencias externas.
-
-### Desventajas
-
-- Índices más grandes que con enteros.
-- Menor legibilidad manual.
-
-### Consecuencia
-
-Las tablas principales usarán columnas `id UUID PRIMARY KEY`.
-
----
-
-## DEC-0004 — Usar AWS S3 para archivos
-
-### Estado
-
-Aceptada
-
-### Decisión
-
-Los documentos, imágenes de propiedades e imágenes de mantenimiento se almacenarán en AWS S3.
-
-### Razón
-
-S3 es una solución estándar, escalable y adecuada para archivos de usuario.
-
-### Ventajas
-
-- Escalable.
-- Seguro.
-- Compatible con pre-signed URLs.
-- Evita cargar archivos pesados en el backend o base de datos.
-
-### Desventajas
-
-- Requiere configuración adicional.
-- Tiene costo.
-- Se deben manejar permisos cuidadosamente.
-
-### Consecuencia
-
-PostgreSQL solo guardará metadatos de archivos. El archivo físico se guardará en S3.
-
----
-
-## DEC-0005 — Usar pre-signed URLs para acceso a archivos
-
-### Estado
-
-Aceptada
-
-### Decisión
-
-El acceso a archivos privados se hará mediante pre-signed URLs generadas por el backend.
-
-### Razón
-
-No se deben exponer archivos directamente ni hacerlos públicos por defecto.
-
-### Ventajas
-
-- Mayor seguridad.
-- Acceso temporal.
-- El backend mantiene control de permisos.
-- Compatible con S3.
-
-### Desventajas
-
-- Requiere lógica adicional.
-- Las URLs expiran y deben regenerarse.
-
-### Consecuencia
-
-El frontend solicitará al backend una URL temporal para visualizar o descargar documentos.
-
----
-
-## DEC-0006 — Usar Flyway para migraciones
-
-### Estado
-
-Aceptada
-
-### Decisión
-
-TAMIAS usará Flyway para controlar cambios de base de datos.
-
-### Razón
-
-Flyway permite versionar la base de datos de forma profesional y reproducible.
-
-### Ventajas
-
-- Cambios controlados.
-- Compatible con CI/CD.
-- Facilita despliegues.
-- Mejora mantenibilidad.
-
-### Desventajas
-
-- Requiere disciplina al modificar estructura de datos.
-- Las migraciones deben revisarse cuidadosamente.
-
-### Consecuencia
-
-Toda tabla o cambio estructural debe crearse mediante scripts versionados.
-
----
-
-## DEC-0007 — Usar RAG con Spring AI, OpenAI y Chroma para documentos
-
-### Estado
-
-Aceptada
-
-### Decisión
-
-El primer módulo IA será búsqueda y preguntas sobre documentos usando RAG.
-
-### Razón
-
-Es una funcionalidad diferenciadora, útil y realista para el MVP.
-
-### Ventajas
-
-- Aporta alto valor al producto.
-- Demuestra uso práctico de IA.
-- Permite respuestas basadas en documentos.
-- Puede citar fuentes.
-
-### Desventajas
-
-- Requiere manejo de embeddings.
-- Requiere extracción de texto.
-- Tiene costo si se usa OpenAI.
-- Requiere evaluar calidad de respuestas.
-
-### Consecuencia
-
-Los documentos cargados deberán procesarse para extraer texto, dividirlo en chunks, vectorizarlo y almacenarlo en Chroma.
-
----
-
-## DEC-0008 — No permitir SQL libre desde la IA
-
-### Estado
-
-Aceptada
-
-### Decisión
-
-El asistente IA no podrá ejecutar SQL libre directamente contra PostgreSQL.
-
-### Razón
-
-Permitir SQL libre introduce riesgos de seguridad, exposición de datos, errores destructivos y consultas fuera del contexto del usuario.
-
-### Ventajas
-
-- Mayor seguridad.
-- Mejor control de permisos.
-- Menor riesgo de fuga entre organizaciones.
-- Mejor trazabilidad.
-
-### Desventajas
-
-- Requiere crear herramientas específicas.
-- Menos flexible que SQL libre.
-
-### Consecuencia
-
-El tool calling se implementará mediante herramientas controladas por dominio, como:
-
-- findLastPurchaseByMaterial(materialName)
-- getMaintenanceCostByYear(year)
-- findOverdueTasks()
-- findLastMaintenanceByCategory(categoryName)
-
----
-
-## DEC-0009 — Dejar JasperReports fuera del MVP inicial
-
-### Estado
-
-Aceptada
-
-### Decisión
-
-JasperReports/iReport no se implementará en el MVP inicial. Se dejará para una fase posterior.
-
-### Razón
-
-El MVP ya contiene suficientes módulos complejos. Reportería avanzada podría retrasar la entrega base del producto.
-
-### Ventajas
-
-- Reduce alcance inicial.
-- Permite enfocarse en módulos principales.
-- Evita retrasos por diseño de plantillas PDF.
-
-### Desventajas
-
-- El MVP no tendrá reportes PDF avanzados.
-- Algunos casos de negocio deberán resolverse con vistas o tablas inicialmente.
-
-### Consecuencia
-
-Se podrá diseñar el módulo `report`, pero su implementación avanzada queda para fases posteriores.
-
----
-
-## DEC-0010 — Usar monorepo para el proyecto
-
-### Estado
-
-Aceptada
-
-### Decisión
-
-TAMIAS usará inicialmente un monorepo.
-
-Estructura esperada:
+Decision:
 
 ```text
-tamias/
-  backend/
-  frontend/
-  docs/
-  docker-compose.yml
-  README.md
-  .github/
-    workflows/
+Use Modular Monolith for the MVP.
 ```
 
-### Razón
+Reason:
 
-Para portfolio y desarrollo inicial, un monorepo facilita documentación, revisión y despliegue coordinado.
+- Lower operational complexity.
+- Faster development.
+- Easier deployment.
+- Easier testing.
+- Enough for the expected early scale.
+- Still allows clean separation by domain modules.
 
-### Ventajas
+---
 
-- Una sola URL de GitHub.
-- Más fácil de mostrar en portfolio.
-- Más fácil de documentar.
-- Docker Compose centralizado.
-- CI/CD centralizado.
+## 2. Multi-tenancy strategy
 
-### Desventajas
-
-- El repositorio puede crecer bastante.
-- Los pipelines deberán distinguir cambios entre frontend y backend.
-
-### Consecuencia
-
-Backend, frontend, documentación y configuración DevOps vivirán en el mismo repositorio.
-
-# Decision: Inventory Items as shared operational catalog
-
-TAMIAS will replace the narrow `materials` concept with `inventory_items`.
-
-Inventory items are the shared catalog for materials, supplies, amenities, cleaning supplies, tools and other purchasable or usable operational items.
-
-Domain usage is represented through association tables and references:
+Decision:
 
 ```text
-maintenance_record_items.inventory_item_id
-purchase_items.inventory_item_id
-future reservation_supplies.inventory_item_id
+Shared database + shared schema + organization_id
 ```
 
-The UI should use:
+Reason:
+
+- Simpler MVP.
+- Lower cost.
+- Easier reporting.
+- Easier deployment.
+- Good fit for early SaaS stage.
+
+Rule:
+
+> The backend resolves organization from authenticated user context. The frontend is not trusted as source of truth for organization isolation.
+
+---
+
+## 3. Primary keys
+
+Decision:
+
+```text
+Use UUID primary keys.
+```
+
+Reason:
+
+- Avoid sequential ID enumeration.
+- Better for SaaS and future integrations.
+- Suitable for distributed-friendly designs.
+
+---
+
+## 4. Backend framework
+
+Decision:
+
+```text
+Use Java 21 + Spring Boot 3.
+```
+
+Reason:
+
+- Strong backend stack for portfolio.
+- Good ecosystem for security, JPA, validation, scheduling, S3 and AI.
+- Aligns with target professional experience.
+
+---
+
+## 5. Frontend framework
+
+Decision:
+
+```text
+Use Angular + TypeScript + Bootstrap.
+```
+
+Reason:
+
+- Good fit for admin dashboards.
+- Strong typed frontend.
+- Reactive Forms.
+- Fast UI development with Bootstrap.
+- Relevant professional stack.
+
+---
+
+## 6. Database migration
+
+Decision:
+
+```text
+Use Flyway.
+```
+
+Reason:
+
+- Explicit schema evolution.
+- Versioned migrations.
+- Good fit with PostgreSQL and Spring Boot.
+
+Rule:
+
+> Do not modify migrations already applied in shared environments. Create new migrations for changes.
+
+---
+
+## 7. File storage
+
+Decision:
+
+```text
+Use AWS S3 with private buckets and pre-signed URLs.
+```
+
+Reason:
+
+- Avoid storing files in the backend filesystem.
+- Production-friendly.
+- Secure temporary access.
+- Good portfolio value.
+
+---
+
+## 8. AI MVP
+
+Decision:
+
+```text
+Start with RAG over documents.
+```
+
+Reason:
+
+- Clear business value.
+- Lower risk than unrestricted database agents.
+- Allows document-grounded answers.
+- Fits house rules, manuals, property documents and policies.
+
+Rules:
+
+- AI answers must be grounded in available documents.
+- AI must say when information is not found.
+- AI must not invent property rules.
+- AI must respect organization isolation.
+- No free SQL execution by AI.
+
+---
+
+## 9. Inventory Items refactor
+
+Decision:
+
+```text
+Replace the old materials catalog with Inventory Items.
+```
+
+Reason:
+
+The old `materials` concept was too narrow. TAMIAS needs one shared operational item catalog that can support:
+
+- maintenance usage,
+- purchase lists,
+- reservation supplies,
+- future inventory reporting,
+- future AI tool calling.
+
+Current model:
+
+```text
+inventory_items
+```
+
+Business label:
 
 ```text
 Spanish: Insumos y materiales
 English: Inventory Items
 ```
 
-The old `materials` API can remain temporarily as a compatibility alias during frontend migration, but `/api/v1/inventory-items` is the preferred API.
+The item type is represented by:
+
+```text
+MATERIAL
+SUPPLY
+AMENITY
+CLEANING_SUPPLY
+TOOL
+OTHER
+```
+
+Operational availability is controlled by:
+
+```text
+available_for_maintenance
+available_for_reservations
+available_for_purchases
+```
+
+---
+
+## 10. Maintenance item usage
+
+Decision:
+
+```text
+Use maintenance_record_items.
+```
+
+Reason:
+
+- Avoid legacy naming tied only to materials.
+- Support any Inventory Item type.
+- Preserve item snapshots for history.
+- Better fit for reports and AI queries.
+
+---
+
+## 11. Purchase items
+
+Decision:
+
+```text
+Purchase items reference inventory_items through inventory_item_id.
+```
+
+Reason:
+
+- Shared item catalog.
+- Better analytics.
+- Future inventory stock support.
+- Cleaner frontend/backend naming.
+
+---
+
+## 12. Reservation supplies
+
+Decision:
+
+```text
+Use reservation_supplies for items delivered to guests during reservations.
+```
+
+Reason:
+
+- Supplies are operationally different from reservation header data.
+- Supplies may be added/edited after reservation creation.
+- Supplies should be reportable.
+- Supplies should be queryable by future AI tools.
+
+Frontend decision:
+
+```text
+Use a separate Supplies modal from the Reservations table.
+```
+
+Reason:
+
+- Keeps the main reservation form clean.
+- Matches the Purchases Items modal pattern.
+- Allows focused add/edit/delete behavior.
+
+---
+
+## 13. Frontend legacy cleanup
+
+Decision:
+
+```text
+Remove frontend material aliases after the Inventory Items migration.
+```
+
+Reason:
+
+- Avoid technical debt.
+- Prevent confusion between old materials and current inventory items.
+- Keep UI/services/models aligned with backend domain language.
+
+---
+
+## 14. Reports
+
+Decision:
+
+```text
+Do not implement JasperReports in the MVP.
+```
+
+Reason:
+
+- More valuable to first complete stable operational flows.
+- Reports can build on existing clean data later.
+- Dashboard analytics should come before full PDF reporting.
+
+---
+
+## 15. Tool Calling
+
+Decision:
+
+```text
+Tool Calling will be added after MVP hardening and analytics foundations.
+```
+
+Reason:
+
+- Tool calling should run over stable domain services.
+- Read-only tools should come first.
+- No SQL should be exposed directly to the model.
+
+Initial tool candidates:
+
+```text
+findLastPurchaseByInventoryItem(itemName)
+getMaintenanceCostByYear(year)
+findOverdueTasks()
+findLastMaintenanceByCategory(categoryName)
+getUpcomingScheduledMaintenance(days)
+getReservationSuppliesByReservation(reservationCode)
+```

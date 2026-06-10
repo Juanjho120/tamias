@@ -1,20 +1,32 @@
-# TAMIAS — Documento inicial de arquitectura y alcance MVP
+# TAMIAS — Arquitectura y alcance MVP
 
 ## 1. Visión del producto
 
-TAMIAS será una plataforma SaaS para la administración operativa de alojamientos pequeños como casas vacacionales, apartamentos, bungalows, cabañas y villas.
+TAMIAS es una plataforma SaaS para la administración operativa de alojamientos pequeños como casas vacacionales, apartamentos, bungalows, cabañas y villas.
 
-El objetivo principal es ayudar a propietarios y administradores a controlar mantenimiento, reservaciones, tareas, compras, documentos importantes, reportes y operaciones generales desde una sola plataforma.
+El objetivo principal es ayudar a propietarios y administradores a controlar desde una sola plataforma:
 
-TAMIAS no será únicamente un sistema CRUD. Su diferenciador será combinar administración operativa con un asistente de IA capaz de consultar documentos, responder preguntas del negocio y, en fases posteriores, analizar planos y ejecutar consultas controladas mediante tool calling.
+- Propiedades.
+- Mantenimiento.
+- Mantenimiento programado.
+- Reservaciones.
+- Supplies entregados en reservaciones.
+- Tareas.
+- Compras.
+- Inventory Items.
+- Documentos.
+- Búsqueda documental con IA.
+- Dashboard operativo.
+
+TAMIAS no es únicamente un sistema CRUD. Su diferenciador es combinar administración operativa con un asistente de IA capaz de consultar documentos, responder preguntas del negocio y, en fases posteriores, consultar datos operativos mediante tool calling controlado.
 
 ---
 
 ## 2. Objetivo profesional
 
-TAMIAS también será una pieza principal del portfolio profesional de Juan Tzun.
+TAMIAS también es una pieza principal del portfolio profesional de Juan Tzun.
 
-Por eso, el proyecto debe demostrar:
+El proyecto debe demostrar:
 
 - Buen diseño de arquitectura.
 - Backend profesional con Java 21 y Spring Boot 3.
@@ -33,102 +45,97 @@ Por eso, el proyecto debe demostrar:
 
 ### Frontend
 
-- Angular
-- TypeScript
-- Bootstrap
-- Angular Reactive Forms
-- FullCalendar
+- Angular.
+- TypeScript.
+- Bootstrap.
+- Bootstrap Icons.
+- Angular Reactive Forms.
+- FullCalendar.
+- RxJS.
+- ngx-translate.
 
 ### Backend
 
-- Java 21
-- Spring Boot 3
-- Spring Security
-- JWT Authentication
-- Spring Data JPA
-- Hibernate
-- Flyway
-- Swagger/OpenAPI
+- Java 21.
+- Spring Boot 3.
+- Spring Security.
+- JWT Authentication.
+- Spring Data JPA.
+- Hibernate.
+- Flyway.
+- Swagger/OpenAPI.
 
 ### Base de datos
 
-- PostgreSQL
+- PostgreSQL.
 
 ### Archivos
 
-- AWS S3
-
-### Reportería
-
-- JasperReports
-- iReport
-
-### Correos
-
-- Java Mail Sender
+- AWS S3.
+- Pre-signed URLs.
 
 ### Inteligencia Artificial
 
-- Spring AI
-- OpenAI
-- Ollama
-- Chroma
-- RAG
-- Tool Calling
-- AI Agents
+- Spring AI.
+- OpenAI.
+- Ollama, opcional para pruebas locales.
+- Chroma.
+- RAG.
+- Tool Calling, fase futura.
+- AI Agents, fase futura.
 
 ### DevOps
 
-- Docker
-- Docker Compose
-- GitHub Actions
-- CI/CD
+- Docker.
+- Docker Compose.
+- GitHub Actions.
+- CI/CD.
 
 ### Despliegue
 
-- Frontend: Vercel
-- Backend: Render
-- Base de datos: Supabase PostgreSQL
-- IA: Railway
-- Archivos: AWS S3
-- Dominio: tamias.juantzun.dev
+- Frontend: Vercel.
+- Backend: Render.
+- Base de datos: Supabase PostgreSQL.
+- IA / Chroma: Railway.
+- Archivos: AWS S3.
+- Dominio: `tamias.juantzun.dev`.
 
 ---
 
 ## 4. Arquitectura recomendada
 
-TAMIAS iniciará como un Modular Monolith usando Spring Boot 3.
+TAMIAS inicia como un **Modular Monolith** usando Spring Boot 3.
 
 No se recomienda iniciar con microservicios porque:
 
 - El producto todavía está en etapa inicial.
 - Cada organización tendrá aproximadamente hasta 5 usuarios simultáneos.
 - Microservicios aumentarían la complejidad de despliegue, observabilidad, seguridad y comunicación interna.
-- Para portfolio, es más valioso demostrar una arquitectura modular, limpia y bien documentada que una arquitectura distribuida innecesaria.
+- Para portfolio, es más valioso demostrar una arquitectura modular, limpia y bien documentada.
 
 Arquitectura general:
 
 ```text
 Angular Frontend
-      |
-      | REST API + JWT
-      v
+        |
+        | REST API + JWT
+        v
 Spring Boot Backend
-      |
-      | JPA / Hibernate
-      v
+        |
+        | JPA / Hibernate
+        v
 PostgreSQL
 
 Spring Boot Backend
-      |
-      | AWS SDK
-      v
+        |
+        | AWS SDK
+        v
 AWS S3
 
 Spring Boot Backend
-      |
-      | Spring AI
-      v
+        |
+        | Spring AI
+        v
 OpenAI / Chroma / Ollama
 ```
 
@@ -136,17 +143,7 @@ OpenAI / Chroma / Ollama
 
 ## 5. Modelo SaaS y multi-tenant
 
-TAMIAS debe nacer con estructura multi-tenant.
-
-La entidad raíz será:
-
-```text
-Organization
-```
-
-Cada organización representa a un propietario, administrador o empresa que administra alojamientos.
-
-La estrategia multi-tenant será:
+TAMIAS usa:
 
 ```text
 Shared database + shared schema + organization_id
@@ -154,49 +151,45 @@ Shared database + shared schema + organization_id
 
 Esto significa que todas las organizaciones comparten la misma base de datos y las mismas tablas, pero los registros se separan mediante `organization_id`.
 
-Ejemplo:
-
-```sql
-properties
-- id
-- organization_id
-- name
-- address
-- description
-- status
-```
-
 Regla crítica:
 
 > Toda consulta de datos operativos debe filtrar por el `organization_id` del usuario autenticado.
 
-El frontend no debe enviar el `organization_id` como fuente confiable. El backend debe resolverlo a partir del usuario autenticado y su contexto de seguridad.
+El frontend no debe enviar `organization_id` como fuente confiable. El backend debe resolverlo a partir del usuario autenticado y su contexto de seguridad.
 
 ---
 
-## 6. Alcance MVP
+## 6. Alcance MVP actualizado
 
-El MVP debe enfocarse en construir una base real, funcional y presentable.
+### Módulos incluidos en el MVP actual
 
-### Módulos incluidos en MVP
-
-- Authentication
-- Organizations
-- Users
-- Roles básicos
-- Properties
-- Catalogs
-- Maintenance
-- Scheduled Maintenance
-- Reservations
-- Purchase Lists
-- Documents
-- AI Document Search con RAG
-- Basic Deploy
+- Authentication.
+- Organizations.
+- Users.
+- Roles básicos.
+- Properties.
+- Property Images.
+- Catalogs.
+- Inventory Items.
+- Maintenance.
+- Maintenance Record Items.
+- Maintenance Images.
+- Scheduled Maintenance.
+- Scheduled Maintenance History.
+- Reservations.
+- Guests.
+- Reservation Supplies.
+- Task Lists.
+- Purchase Lists.
+- Purchase Items.
+- Documents.
+- AWS S3 File Storage.
+- AI Document Search con RAG.
+- AI Chat Sessions.
+- Dashboard Calendar.
+- Basic Deploy foundation.
 
 ### Módulos fuera del MVP inicial
-
-Estos módulos quedan para versiones posteriores:
 
 - Recuperación de contraseña.
 - Invitaciones por correo.
@@ -207,14 +200,12 @@ Estos módulos quedan para versiones posteriores:
 - AI Agents especializados.
 - Billing/subscriptions.
 - Integraciones directas con Airbnb, Booking o VRBO.
-- Inventario formal.
+- Inventario formal con stock y movimientos.
 - Notificaciones automáticas avanzadas.
 
 ---
 
 ## 7. Roles iniciales
-
-Los roles iniciales son:
 
 ### Administrator
 
@@ -224,8 +215,10 @@ Puede administrar toda la organización:
 - Roles.
 - Propiedades.
 - Catálogos.
+- Inventory Items.
 - Mantenimientos.
 - Reservaciones.
+- Supplies.
 - Compras.
 - Documentos.
 - IA.
@@ -238,6 +231,7 @@ Puede gestionar la operación diaria:
 - Propiedades asignadas.
 - Mantenimientos.
 - Reservaciones.
+- Supplies de reservaciones.
 - Compras.
 - Documentos.
 - Consultas operativas.
@@ -252,6 +246,7 @@ Puede:
 - Completar tareas.
 - Subir evidencia.
 - Agregar observaciones.
+- Consultar datos operativos limitados.
 
 No debe ver información financiera completa ni administrar catálogos críticos.
 
@@ -276,11 +271,12 @@ com.tamias
   catalog
   maintenance
   reservation
+  task
   purchase
   document
+  ai
   notification
   report
-  ai
 ```
 
 Cada módulo puede organizarse internamente así:
@@ -295,72 +291,70 @@ mapper
 exception
 ```
 
-Ejemplo:
-
-```text
-maintenance
-  controller
-  service
-  repository
-  entity
-  dto
-  mapper
-```
-
 ---
 
 ## 9. Entidades principales del MVP
 
 ### Seguridad y organización
 
-- Organization
-- User
-- Role
-- UserOrganization
+- Organization.
+- User.
+- Role.
+- UserOrganization.
 
 ### Propiedades
 
-- Property
-- PropertyImage
+- Property.
+- PropertyImage.
 
 ### Catálogos
 
-- MaintenanceCategory
-- MaintenanceType
-- MaintenancePerson
-- Platform
-- Supplier
-- City
-- Material
-- Supply
-- TaskTemplate
-- Brand
+- MaintenanceCategory.
+- MaintenanceType.
+- MaintenancePerson.
+- Platform.
+- Supplier.
+- City.
+- Brand.
+- TaskTemplate.
+- InventoryItem.
 
 ### Mantenimiento
 
-- MaintenanceRecord
-- MaintenanceRecordImage
-- MaintenanceMaterialUsed
-- ScheduledMaintenance
-- ScheduledMaintenanceHistory
+- MaintenanceRecord.
+- MaintenanceRecordImage.
+- MaintenanceRecordItem.
+- ScheduledMaintenance.
+- ScheduledMaintenanceHistory.
 
 ### Reservaciones
 
-- Reservation
-- Guest
-- ReservationGuest
+- Reservation.
+- Guest.
+- ReservationGuest.
+- ReservationSupply.
+
+### Tareas
+
+- TaskList.
+- TaskItem.
 
 ### Compras
 
-- PurchaseList
-- PurchaseItem
+- PurchaseList.
+- PurchaseItem.
 
 ### Documentos
 
-- Document
-- DocumentChunkMetadata
+- Document.
+- DocumentChunkMetadata.
 
-Los embeddings se guardarán en Chroma, mientras PostgreSQL mantendrá metadatos, relaciones y trazabilidad.
+### IA
+
+- AiChatSession.
+- AiChatMessage.
+
+Los embeddings se guardan en Chroma, mientras PostgreSQL mantiene metadatos, relaciones y trazabilidad.
 
 ---
 
@@ -374,6 +368,7 @@ Las rutas deben ser versionadas:
 /api/v1/organizations
 /api/v1/properties
 /api/v1/catalogs
+/api/v1/inventory-items
 /api/v1/maintenance-records
 /api/v1/scheduled-maintenance
 /api/v1/reservations
@@ -382,31 +377,27 @@ Las rutas deben ser versionadas:
 /api/v1/ai
 ```
 
-Ejemplo de propiedades:
+Endpoints operativos relevantes:
 
 ```http
-GET    /api/v1/properties
-GET    /api/v1/properties/{id}
-POST   /api/v1/properties
-PUT    /api/v1/properties/{id}
-DELETE /api/v1/properties/{id}
+GET    /api/v1/inventory-items
+POST   /api/v1/inventory-items
+PUT    /api/v1/inventory-items/{id}
+DELETE /api/v1/inventory-items/{id}
 ```
 
-Ejemplo de documentos:
-
 ```http
-POST   /api/v1/documents
-GET    /api/v1/documents
-GET    /api/v1/documents/{id}
-DELETE /api/v1/documents/{id}
-POST   /api/v1/documents/{id}/process
+GET    /api/v1/maintenance-records/{id}/items
+POST   /api/v1/maintenance-records/{id}/items
+PUT    /api/v1/maintenance-records/{id}/items/{itemId}
+DELETE /api/v1/maintenance-records/{id}/items/{itemId}
 ```
 
-Ejemplo de IA:
-
 ```http
-POST /api/v1/ai/chat
-POST /api/v1/ai/documents/search
+GET    /api/v1/reservations/{id}/supplies
+POST   /api/v1/reservations/{id}/supplies
+PUT    /api/v1/reservations/{id}/supplies/{supplyId}
+DELETE /api/v1/reservations/{id}/supplies/{supplyId}
 ```
 
 ---
@@ -418,23 +409,19 @@ Estructura recomendada:
 ```text
 src/app
   core
-    auth
-    interceptors
-    guards
-    layout
   shared
-    components
-    pipes
-    validators
   features
+    auth
     dashboard
     properties
+    catalogs
     maintenance
+    scheduled-maintenance
     reservations
+    tasks
     purchases
     documents
     ai-assistant
-    catalogs
     users
 ```
 
@@ -447,23 +434,24 @@ Principios:
 - Guards por autenticación y rol.
 - Componentes reutilizables.
 - Bootstrap para acelerar interfaz.
-- FullCalendar para mantenimientos programados.
+- FullCalendar para calendario/dashboard.
 
 Pantallas MVP:
 
-- Login
-- Dashboard
-- Properties
-- Property Form
-- Maintenance Records
-- Maintenance Form
-- Scheduled Maintenance
-- Maintenance Calendar
-- Reservations
-- Purchase Lists
-- Documents
-- AI Assistant
-- Catalogs
+- Login.
+- Dashboard.
+- Properties.
+- Catalogs.
+- Inventory Items.
+- Maintenance Records.
+- Scheduled Maintenance.
+- Reservations.
+- Reservation Supplies modal.
+- Task Lists.
+- Purchase Lists.
+- Documents.
+- AI Assistant.
+- Users.
 
 ---
 
@@ -484,23 +472,23 @@ Flujo:
 
 ```text
 Usuario sube documento
-      |
+        |
 Archivo se guarda en S3
-      |
+        |
 Backend extrae texto
-      |
+        |
 Texto se divide en chunks
-      |
+        |
 Chunks se vectorizan
-      |
+        |
 Embeddings se guardan en Chroma
-      |
+        |
 Usuario pregunta
-      |
+        |
 Se recuperan chunks relevantes
-      |
+        |
 OpenAI genera respuesta
-      |
+        |
 Respuesta cita documento fuente
 ```
 
@@ -516,6 +504,7 @@ Ejemplos:
 - ¿Cuánto gasté en mantenimiento este año?
 - ¿Qué tareas están vencidas?
 - ¿Cuál fue el último mantenimiento de la bomba?
+- ¿Qué supplies se entregaron en una reservación específica?
 
 Regla importante:
 
@@ -524,27 +513,12 @@ Regla importante:
 Se deben exponer herramientas específicas:
 
 ```text
-findLastPurchaseByMaterial(materialName)
+findLastPurchaseByInventoryItem(itemName)
 getMaintenanceCostByYear(year)
 findOverdueTasks()
 findLastMaintenanceByCategory(categoryName)
+getReservationSuppliesByReservation(reservationCode)
 ```
-
-### Fase IA 3 — Blueprint Analysis
-
-Objetivo:
-
-Analizar planos con OCR y modelos de visión.
-
-Ejemplos:
-
-- ¿Cuánto mide la habitación principal?
-- ¿Dónde está ubicada la cisterna?
-- ¿Qué área tiene la terraza?
-
-Regla:
-
-> Si la información no es concluyente, la IA debe decirlo claramente.
 
 ---
 
@@ -565,18 +539,19 @@ Principios:
 
 ## 14. Reportería
 
-Los reportes con JasperReports/iReport quedan fuera del MVP inicial, pero la arquitectura debe dejar espacio para el módulo `report`.
+Los reportes con JasperReports/iReport quedan fuera del MVP inicial, pero la arquitectura deja espacio para el módulo `report`.
 
 Reportes futuros:
 
-- Maintenance History
-- Maintenance Costs
-- Upcoming Maintenance
-- Reservation Summary
-- Purchase History
-- Expense Summary
-- Inventory Usage
-- Task Completion
+- Maintenance History.
+- Maintenance Costs.
+- Upcoming Maintenance.
+- Reservation Summary.
+- Purchase History.
+- Expense Summary.
+- Inventory Usage.
+- Reservation Supplies Usage.
+- Task Completion.
 
 Ruta futura de ejemplo:
 
@@ -586,68 +561,7 @@ GET /api/v1/reports/maintenance-history?propertyId={id}&from={date}&to={date}
 
 ---
 
-## 15. Notificaciones
-
-Para fases posteriores:
-
-- Reservación creada.
-- Mantenimiento próximo.
-- Tarea vencida.
-- Invitación creada.
-- Mantenimiento reprogramado.
-
-Componentes sugeridos:
-
-- NotificationService
-- EmailService
-- EmailTemplateService
-
----
-
-## 16. DevOps y despliegue
-
-### Desarrollo local
-
-Docker Compose debe levantar:
-
-- PostgreSQL
-- Chroma
-- Ollama, opcional
-- Backend
-- Frontend
-
-### CI/CD
-
-Pipeline general:
-
-```text
-Push / Pull Request
-      |
-Backend tests
-      |
-Frontend tests
-      |
-Backend build
-      |
-Frontend build
-      |
-Docker build
-      |
-Deploy on main
-```
-
-### Plataformas
-
-- Frontend: Vercel
-- Backend: Render
-- PostgreSQL: Supabase
-- Vector DB / IA: Railway
-- Archivos: AWS S3
-- Dominio: tamias.juantzun.dev
-
----
-
-## 17. Reglas de consistencia del proyecto
+## 15. Reglas de consistencia del proyecto
 
 Antes de diseñar o implementar cualquier módulo, validar:
 
@@ -658,25 +572,3 @@ Antes de diseñar o implementar cualquier módulo, validar:
 5. ¿Agrega complejidad innecesaria?
 6. ¿Contradice una decisión previa?
 7. ¿Es útil para portfolio profesional?
-
----
-
-## 18. Siguiente paso técnico
-
-El siguiente entregable recomendado es:
-
-```text
-TAMIAS — Diseño de base de datos MVP
-```
-
-Debe incluir:
-
-- Tablas.
-- Campos.
-- Tipos de datos.
-- Relaciones.
-- Índices.
-- Constraints.
-- Migraciones Flyway.
-- Decisiones de soft delete.
-- Qué entra en MVP y qué queda para fases futuras.

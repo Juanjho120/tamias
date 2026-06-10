@@ -10,7 +10,7 @@ The product is focused on small-scale rental businesses such as:
 - Cabins
 - Villas
 
-TAMIAS centralizes property operations including maintenance, scheduled maintenance, reservations, task lists, purchase lists, important documents, reporting, and AI-assisted document search.
+TAMIAS centralizes property operations including maintenance, scheduled maintenance, reservations, task lists, purchase lists, inventory items, reservation supplies, important documents, reporting foundations, and AI-assisted document search.
 
 ---
 
@@ -47,28 +47,40 @@ This creates problems such as:
 - Purchase lists scattered across messages
 - Important property rules and manuals hard to search
 - No quick way to answer operational questions
+- No centralized tracking of operational items and supplies
 
-TAMIAS aims to solve this by providing a centralized platform for managing all key operational data.
+TAMIAS solves this by providing a centralized platform for managing key operational data.
 
 ---
 
 ## Core MVP Features
 
-The MVP includes:
+The current MVP includes:
 
 - Authentication
 - Organizations
 - Users and roles
 - Properties
 - Catalogs
+- Inventory Items
 - Maintenance records
+- Maintenance record items
+- Maintenance images
 - Scheduled maintenance
+- Scheduled maintenance history
 - Reservations
+- Guests
+- Reservation supplies
 - Task lists
 - Purchase lists
+- Purchase items
 - Document management
-- AI document search
-- Basic deployment
+- AWS S3 file storage
+- AI document processing
+- AI document search using RAG
+- AI chat sessions
+- Dashboard calendar
+- Basic deployment foundation
 
 ---
 
@@ -76,15 +88,17 @@ The MVP includes:
 
 Planned future features include:
 
+- MVP hardening and automated test coverage
+- Advanced dashboard analytics
+- Production-like deployment
+- AI tool calling over controlled PostgreSQL domain tools
 - Advanced notifications
 - JasperReports PDF reporting
-- AI tool calling over PostgreSQL data
 - Blueprint analysis with OCR and vision models
 - AI agents by business domain
-- Inventory management
+- Formal inventory stock control
 - Platform integrations with Airbnb, Booking, and VRBO
 - Billing and subscriptions
-- Advanced analytics
 
 ---
 
@@ -95,8 +109,11 @@ Planned future features include:
 - Angular
 - TypeScript
 - Bootstrap
+- Bootstrap Icons
 - Angular Reactive Forms
 - FullCalendar
+- RxJS
+- ngx-translate
 
 ### Backend
 
@@ -116,6 +133,7 @@ Planned future features include:
 ### File Storage
 
 - AWS S3
+- Pre-signed URLs
 
 ### Artificial Intelligence
 
@@ -208,8 +226,6 @@ Important rule:
 
 ## Initial Roles
 
-TAMIAS starts with four roles:
-
 | Role | Description |
 |---|---|
 | Administrator | Full access within the organization |
@@ -219,145 +235,63 @@ TAMIAS starts with four roles:
 
 ---
 
-## Repository Structure
-
-Expected monorepo structure:
-
-```text
-tamias/
-  backend/
-  frontend/
-  docs/
-  docker-compose.yml
-  .env.example
-  README.md
-  .github/
-    workflows/
-```
-
-Current project documentation is located in:
-
-```text
-docs/
-```
-
----
-
 ## Documentation
-
-The project is guided by technical documentation stored in the repository.
 
 | Document | Purpose |
 |---|---|
-| [`docs/01-architecture-mvp.md`](docs/01-architecture-mvp.md) | Initial architecture and MVP scope |
-| [`docs/02-database-design-mvp.md`](docs/02-database-design-mvp.md) | MVP database design |
+| [`docs/01-architecture-mvp.md`](docs/01-architecture-mvp.md) | Architecture and MVP scope |
+| [`docs/02-database-design-mvp.md`](docs/02-database-design-mvp.md) | Database design |
 | [`docs/03-api-design-mvp.md`](docs/03-api-design-mvp.md) | REST API design |
 | [`docs/04-backend-design-mvp.md`](docs/04-backend-design-mvp.md) | Spring Boot backend design |
 | [`docs/05-frontend-design-mvp.md`](docs/05-frontend-design-mvp.md) | Angular frontend design |
 | [`docs/06-ai-design-mvp.md`](docs/06-ai-design-mvp.md) | AI and RAG design |
 | [`docs/07-devops-deployment-mvp.md`](docs/07-devops-deployment-mvp.md) | DevOps and deployment design |
+| [`docs/08-inventory-items-and-reservation-supplies.md`](docs/08-inventory-items-and-reservation-supplies.md) | Inventory Items and Reservation Supplies design |
 | [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md) | Short project context |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | Project roadmap |
 | [`docs/DECISIONS.md`](docs/DECISIONS.md) | Architecture and technical decisions |
 
 ---
 
-## MVP Roadmap
+## Current Project Status
 
-### Phase 0 — Project Setup
+```text
+MVP feature implementation in progress.
+Core operational modules are implemented.
+Current focus: documentation sync, MVP hardening, dashboard analytics, deployment, and AI tool calling.
+```
 
-- Create repository
-- Add documentation
-- Define project structure
-- Prepare backend and frontend foundations
+Completed or mostly completed:
 
-### Phase 1 — Security and SaaS Foundation
-
-- Organizations
-- Users
-- Roles
-- Login
-- JWT
-- Protected routes
-
-### Phase 2 — Properties and Catalogs
-
-- Property management
-- Maintenance categories
-- Maintenance types
-- Platforms
-- Suppliers
-- Cities
-- Materials
-- Brands
-- Task templates
-
-### Phase 3 — Maintenance
-
-- Maintenance records
-- Responsible people
-- Materials used
-- Images
+- Backend foundation
+- Frontend foundation
+- Authentication
+- Organizations and users
+- Properties
+- Catalogs
+- Inventory Items
+- Maintenance
 - Scheduled maintenance
-- Rescheduling
-- Cancellation
-- History
-
-### Phase 4 — Reservations and Tasks
-
 - Reservations
-- Guests
-- Task lists
-- Checklists
-- Task completion
+- Reservation Supplies
+- Task Lists
+- Purchase Lists
+- Documents
+- S3 integration
+- RAG document search
+- Dashboard calendar
 
-### Phase 5 — Purchase Lists
+Next recommended phases:
 
-- Purchase lists
-- Purchase items
-- Suppliers
-- Cities
-- Materials
-- Estimated prices
-- Purchased status
-
-### Phase 6 — Documents
-
-- Document upload
-- AWS S3 storage
-- Secure download URLs
-- Document types
-- Processing status
-
-### Phase 7 — AI Document Search
-
-- Text extraction
-- Chunking
-- Embeddings
-- Chroma vector store
-- RAG search
-- AI answers with sources
-
-### Phase 8 — Deployment
-
-- Frontend on Vercel
-- Backend on Render
-- Database on Supabase
-- Files on AWS S3
-- Chroma on Railway
-- Domain configuration
+1. MVP hardening.
+2. Automated tests and quality checks.
+3. Dashboard analytics.
+4. Production-like deployment.
+5. AI tool calling with controlled read-only tools.
 
 ---
 
 ## Local Development
-
-Local development will use Docker Compose for dependencies.
-
-Expected services:
-
-- PostgreSQL
-- Chroma
-- Ollama, optional
 
 Start local dependencies:
 
@@ -371,17 +305,7 @@ Stop local dependencies:
 docker compose down
 ```
 
----
-
-## Backend
-
-The backend will be located in:
-
-```text
-backend/
-```
-
-Expected commands:
+### Backend
 
 ```bash
 cd backend
@@ -400,17 +324,7 @@ Build:
 ./mvnw clean package
 ```
 
----
-
-## Frontend
-
-The frontend will be located in:
-
-```text
-frontend/
-```
-
-Expected commands:
+### Frontend
 
 ```bash
 cd frontend
@@ -433,12 +347,6 @@ npm run build
 ---
 
 ## Environment Variables
-
-Environment variables will be documented in:
-
-```text
-.env.example
-```
 
 Main backend variables:
 
@@ -468,7 +376,7 @@ Secrets must never be committed to the repository.
 
 The AI Assistant MVP focuses on document search using RAG.
 
-The assistant will answer questions such as:
+The assistant answers questions such as:
 
 - What do the house rules say about pets?
 - Is smoking allowed?
@@ -479,7 +387,7 @@ The assistant will answer questions such as:
 AI rules:
 
 - Answers must be based on available documents.
-- Answers must include sources.
+- Answers must include sources when available.
 - If information is not found, the assistant must say so clearly.
 - The assistant must not invent property rules.
 - The assistant must respect organization-level data isolation.
@@ -508,80 +416,17 @@ TAMIAS follows these security principles:
 
 The MVP database follows these rules:
 
-- Primary IDs use UUID
-- Operational entities include `organization_id`
-- Main tables include `created_at` and `updated_at`
-- Operational records may include `created_by` and `updated_by`
-- Important records use `status`
-- Critical operational records use soft delete
-- Unique constraints include `organization_id` where applicable
-- Flyway manages schema migrations
-
----
-
-## CI/CD
-
-GitHub Actions will validate:
-
-- Backend tests
-- Backend build
-- Backend Docker image build
-- Frontend tests
-- Frontend build
-
-Production deployment strategy:
-
-- Vercel auto-deploys the frontend from `main`
-- Render auto-deploys the backend from `main`
-- GitHub Actions validates the code before merging
-
----
-
-## Deployment Status
-
-Current status:
-
-```text
-Documentation phase
-```
-
-Planned production URLs:
-
-```text
-Frontend: https://tamias.juantzun.dev
-Backend: Render URL pending
-```
-
----
-
-## Project Status
-
-TAMIAS is currently in the architecture and planning stage.
-
-Current completed documentation:
-
-- Architecture and MVP scope
-- Database design
-- API design
-- Backend design
-- Frontend design
-- AI design
-- DevOps and deployment design
-
-Next implementation steps:
-
-1. Create backend Spring Boot project.
-2. Create frontend Angular project.
-3. Configure Docker Compose.
-4. Implement database migrations.
-5. Implement authentication.
-6. Implement properties and catalogs.
-7. Continue feature implementation by roadmap phase.
+- Primary IDs use UUID.
+- Operational entities include `organization_id`.
+- Main tables include `created_at` and `updated_at`.
+- Operational records may include `created_by` and `updated_by`.
+- Important records use `status`.
+- Critical operational records use soft delete.
+- Unique constraints include `organization_id` where applicable.
+- Flyway manages schema migrations.
 
 ---
 
 ## License
 
-This project is currently intended as a personal portfolio and product development project.
-
-License details will be defined later.
+This project is currently intended as a personal portfolio and product development project. License details will be defined later.
