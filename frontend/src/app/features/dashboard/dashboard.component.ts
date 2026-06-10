@@ -33,11 +33,12 @@ import {
   DashboardTaskListSummary
 } from './models/dashboard.model';
 import { DashboardService } from './services/dashboard.service';
+import { DashboardAnalyticsComponent } from './components/dashboard-analytics/dashboard-analytics.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [DatePipe, NgClass, RouterLink, TranslatePipe, QuetzalCurrencyPipe],
+  imports: [DatePipe, NgClass, RouterLink, TranslatePipe, QuetzalCurrencyPipe, DashboardAnalyticsComponent],
   templateUrl: './dashboard.component.html'
 })
 export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {

@@ -210,6 +210,37 @@
         "title": "Comportamiento del calendario",
         "description": "El check-out se trata como fecha exclusiva, por eso la barra se muestra hasta la noche anterior al check-out."
       }
+    },
+    "analytics": {
+      "title": "Analítica del dashboard",
+      "subtitle": "Métricas operativas clave basadas en la actividad reciente.",
+      "refresh": "Actualizar analítica",
+      "loading": "Cargando analítica...",
+      "kpis": {
+        "activeReservationsToday": "Reservaciones activas hoy",
+        "pendingMaintenanceRecords": "Mantenimientos pendientes",
+        "overdueTaskLists": "Listas de tareas vencidas",
+        "upcomingScheduledMaintenance": "Mantenimientos programados próximos",
+        "openPurchaseLists": "Listas de compras abiertas",
+        "estimatedOpenPurchaseTotal": "Total estimado de compras abiertas"
+      },
+      "charts": {
+        "maintenanceCostByMonth": "Costo de mantenimiento por mes",
+        "purchaseCostByMonth": "Costo de compras por mes",
+        "reservationsByMonth": "Reservaciones por mes",
+        "topReservationSupplies": "Insumos más usados en reservaciones",
+        "topPurchasedItems": "Items más comprados"
+      },
+      "empty": {
+        "monthlyMaintenance": "No se encontraron costos de mantenimiento.",
+        "monthlyPurchases": "No se encontraron costos de compras.",
+        "monthlyReservations": "No se encontraron datos de reservaciones.",
+        "reservationSupplies": "No se encontraron insumos de reservaciones.",
+        "purchasedItems": "No se encontraron items comprados."
+      },
+      "messages": {
+        "loadError": "No se pudo cargar la analítica del dashboard."
+      }
     }
   },
   "properties": {

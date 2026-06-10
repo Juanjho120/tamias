@@ -210,6 +210,37 @@
         "title": "Calendar behavior",
         "description": "Check-out is treated as an exclusive date, so the bar is shown until the night before check-out."
       }
+    },
+    "analytics": {
+      "title": "Dashboard analytics",
+      "subtitle": "Key operational metrics from recent activity.",
+      "refresh": "Refresh analytics",
+      "loading": "Loading analytics...",
+      "kpis": {
+        "activeReservationsToday": "Active reservations today",
+        "pendingMaintenanceRecords": "Pending maintenance records",
+        "overdueTaskLists": "Overdue task lists",
+        "upcomingScheduledMaintenance": "Upcoming scheduled maintenance",
+        "openPurchaseLists": "Open purchase lists",
+        "estimatedOpenPurchaseTotal": "Estimated open purchase total"
+      },
+      "charts": {
+        "maintenanceCostByMonth": "Maintenance cost by month",
+        "purchaseCostByMonth": "Purchase cost by month",
+        "reservationsByMonth": "Reservations by month",
+        "topReservationSupplies": "Top reservation supplies",
+        "topPurchasedItems": "Top purchased items"
+      },
+      "empty": {
+        "monthlyMaintenance": "No maintenance cost data found.",
+        "monthlyPurchases": "No purchase cost data found.",
+        "monthlyReservations": "No reservation data found.",
+        "reservationSupplies": "No reservation supplies data found.",
+        "purchasedItems": "No purchased items data found."
+      },
+      "messages": {
+        "loadError": "Unable to load dashboard analytics."
+      }
     }
   },
   "properties": {
