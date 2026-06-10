@@ -65,6 +65,7 @@ export class MaintenancePageComponent implements OnInit {
     categories: [],
     types: [],
     people: [],
+    inventoryItems: [],
     materials: []
   });
 
