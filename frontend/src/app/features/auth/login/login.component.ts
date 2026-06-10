@@ -36,8 +36,14 @@ export class LoginComponent {
     this.loading.set(true);
 
     this.authService.login(this.form.getRawValue()).subscribe({
-      next: () => {
+      next: (response) => {
         this.loading.set(false);
+
+        if (response.user.passwordChangeRequired) {
+          this.router.navigateByUrl('/profile');
+          return;
+        }
+
         this.router.navigateByUrl('/dashboard');
       },
       error: (error) => {

@@ -19,17 +19,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AuthService {
-
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
     private final UserOrganizationRepository userOrganizationRepository;
 
     public AuthService(
-            AuthenticationManager authenticationManager,
-            JwtTokenProvider jwtTokenProvider,
-            UserRepository userRepository,
-            UserOrganizationRepository userOrganizationRepository
+        AuthenticationManager authenticationManager,
+        JwtTokenProvider jwtTokenProvider,
+        UserRepository userRepository,
+        UserOrganizationRepository userOrganizationRepository
     ) {
         this.authenticationManager = authenticationManager;
         this.jwtTokenProvider = jwtTokenProvider;
@@ -40,32 +39,32 @@ public class AuthService {
     @Transactional(readOnly = true)
     public LoginResponse login(LoginRequest request) {
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.email(), request.password())
+            new UsernamePasswordAuthenticationToken(request.email(), request.password())
         );
 
         User user = userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(request.email())
-                .filter(foundUser -> foundUser.getStatus() == UserStatus.ACTIVE)
-                .orElseThrow();
+            .filter(foundUser -> foundUser.getStatus() == UserStatus.ACTIVE)
+            .orElseThrow();
 
         var userOrganization = userOrganizationRepository
-                .findFirstByUserIdAndStatus(user.getId(), UserOrganizationStatus.ACTIVE)
-                .orElseThrow();
+            .findFirstByUserIdAndStatus(user.getId(), UserOrganizationStatus.ACTIVE)
+            .orElseThrow();
 
         var authenticatedUser = new AuthenticatedUser(
-                user.getId(),
-                userOrganization.getOrganization().getId(),
-                user.getEmail(),
-                user.getPasswordHash(),
-                userOrganization.getRole().getCode()
+            user.getId(),
+            userOrganization.getOrganization().getId(),
+            user.getEmail(),
+            user.getPasswordHash(),
+            userOrganization.getRole().getCode()
         );
 
         String token = jwtTokenProvider.generateToken(authenticatedUser);
 
         return new LoginResponse(
-                token,
-                "Bearer",
-                jwtTokenProvider.getExpirationSeconds(),
-                toAuthUserResponse(user, userOrganization)
+            token,
+            "Bearer",
+            jwtTokenProvider.getExpirationSeconds(),
+            toAuthUserResponse(user, userOrganization)
         );
     }
 
@@ -74,36 +73,29 @@ public class AuthService {
         User user = userRepository.findById(userId).orElseThrow();
 
         var userOrganization = userOrganizationRepository
-                .findFirstByUserIdAndStatus(user.getId(), UserOrganizationStatus.ACTIVE)
-                .orElseThrow();
-
-        var authenticatedUser = new AuthenticatedUser(
-                user.getId(),
-                userOrganization.getOrganization().getId(),
-                user.getEmail(),
-                user.getPasswordHash(),
-                userOrganization.getRole().getCode()
-        );
+            .findFirstByUserIdAndStatus(user.getId(), UserOrganizationStatus.ACTIVE)
+            .orElseThrow();
 
         return new LoginResponse(
-                null,
-                "Bearer",
-                jwtTokenProvider.getExpirationSeconds(),
-                toAuthUserResponse(user, userOrganization)
+            null,
+            "Bearer",
+            jwtTokenProvider.getExpirationSeconds(),
+            toAuthUserResponse(user, userOrganization)
         );
     }
 
     private AuthUserResponse toAuthUserResponse(User user, com.tamias.user.entity.UserOrganization userOrganization) {
         return new AuthUserResponse(
-                user.getId(),
-                user.getFirstName(),
-                user.getLastName(),
-                user.getEmail(),
-                userOrganization.getRole().getCode().name(),
-                new AuthOrganizationResponse(
-                        userOrganization.getOrganization().getId(),
-                        userOrganization.getOrganization().getName()
-                )
+            user.getId(),
+            user.getFirstName(),
+            user.getLastName(),
+            user.getEmail(),
+            userOrganization.getRole().getCode().name(),
+            new AuthOrganizationResponse(
+                userOrganization.getOrganization().getId(),
+                userOrganization.getOrganization().getName()
+            ),
+            user.isPasswordChangeRequired()
         );
     }
 }

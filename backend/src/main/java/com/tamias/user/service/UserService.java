@@ -12,7 +12,6 @@ import com.tamias.user.dto.UserSummaryResponse;
 import com.tamias.user.dto.UserUpdateRequest;
 import com.tamias.user.entity.User;
 import com.tamias.user.entity.UserOrganization;
-import com.tamias.user.enums.RoleCode;
 import com.tamias.user.enums.UserOrganizationStatus;
 import com.tamias.user.enums.UserStatus;
 import com.tamias.user.mapper.UserMapper;
@@ -30,7 +29,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @PreAuthorize("hasRole('ADMINISTRATOR')")
 public class UserService {
-
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final UserOrganizationRepository userOrganizationRepository;
@@ -40,13 +38,13 @@ public class UserService {
     private final UserMapper userMapper;
 
     public UserService(
-            UserRepository userRepository,
-            RoleRepository roleRepository,
-            UserOrganizationRepository userOrganizationRepository,
-            OrganizationRepository organizationRepository,
-            CurrentUserService currentUserService,
-            PasswordEncoder passwordEncoder,
-            UserMapper userMapper
+        UserRepository userRepository,
+        RoleRepository roleRepository,
+        UserOrganizationRepository userOrganizationRepository,
+        OrganizationRepository organizationRepository,
+        CurrentUserService currentUserService,
+        PasswordEncoder passwordEncoder,
+        UserMapper userMapper
     ) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
@@ -62,12 +60,12 @@ public class UserService {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
         var page = userOrganizationRepository
-                .findByOrganization_IdAndStatus(
-                        organizationId,
-                        UserOrganizationStatus.ACTIVE,
-                        pageable
-                )
-                .map(userMapper::toSummaryResponse);
+            .findByOrganization_IdAndStatus(
+                organizationId,
+                UserOrganizationStatus.ACTIVE,
+                pageable
+            )
+            .map(userMapper::toSummaryResponse);
 
         return PageResponse.from(page);
     }
@@ -75,7 +73,6 @@ public class UserService {
     @Transactional(readOnly = true)
     public UserResponse findById(UUID id) {
         UserOrganization userOrganization = findUserOrganizationInCurrentOrganization(id);
-
         return userMapper.toResponse(userOrganization);
     }
 
@@ -88,17 +85,19 @@ public class UserService {
         }
 
         var organization = organizationRepository.findByIdAndDeletedAtIsNull(organizationId)
-                .orElseThrow(() -> new NotFoundException("Organization not found"));
+            .orElseThrow(() -> new NotFoundException("Organization not found"));
 
         var role = roleRepository.findByCode(request.role())
-                .orElseThrow(() -> new BadRequestException("Invalid role"));
+            .orElseThrow(() -> new BadRequestException("Invalid role"));
 
         User user = new User();
         user.setFirstName(request.firstName());
         user.setLastName(request.lastName());
         user.setEmail(request.email());
         user.setPasswordHash(passwordEncoder.encode(request.password()));
+        user.setPasswordChangeRequired(true);
         user.setStatus(UserStatus.ACTIVE);
+
         user = userRepository.save(user);
 
         UserOrganization userOrganization = new UserOrganization();
@@ -106,6 +105,7 @@ public class UserService {
         userOrganization.setOrganization(organization);
         userOrganization.setRole(role);
         userOrganization.setStatus(UserOrganizationStatus.ACTIVE);
+
         userOrganization = userOrganizationRepository.save(userOrganization);
 
         return userMapper.toResponse(userOrganization);
@@ -116,13 +116,12 @@ public class UserService {
         UserOrganization userOrganization = findUserOrganizationInCurrentOrganization(id);
         User user = userOrganization.getUser();
 
-        if (!user.getEmail().equalsIgnoreCase(request.email())
-                && userRepository.existsByEmailIgnoreCase(request.email())) {
+        if (!user.getEmail().equalsIgnoreCase(request.email()) && userRepository.existsByEmailIgnoreCase(request.email())) {
             throw new ConflictException("Email is already registered");
         }
 
         var role = roleRepository.findByCode(request.role())
-                .orElseThrow(() -> new BadRequestException("Invalid role"));
+            .orElseThrow(() -> new BadRequestException("Invalid role"));
 
         user.setFirstName(request.firstName());
         user.setLastName(request.lastName());
@@ -143,11 +142,10 @@ public class UserService {
         }
 
         UserOrganization userOrganization = findUserOrganizationInCurrentOrganization(id);
-
         User user = userOrganization.getUser();
+
         user.setStatus(UserStatus.DELETED);
         user.setDeletedAt(OffsetDateTime.now());
-
         userOrganization.setStatus(UserOrganizationStatus.DELETED);
 
         userRepository.save(user);
@@ -158,11 +156,10 @@ public class UserService {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
         UserOrganization userOrganization = userOrganizationRepository
-                .findByUser_IdAndOrganization_Id(userId, organizationId)
-                .orElseThrow(() -> new NotFoundException("User not found"));
+            .findByUser_IdAndOrganization_Id(userId, organizationId)
+            .orElseThrow(() -> new NotFoundException("User not found"));
 
-        if (userOrganization.getStatus() == UserOrganizationStatus.DELETED
-                || userOrganization.getUser().getDeletedAt() != null) {
+        if (userOrganization.getStatus() == UserOrganizationStatus.DELETED || userOrganization.getUser().getDeletedAt() != null) {
             throw new NotFoundException("User not found");
         }
 

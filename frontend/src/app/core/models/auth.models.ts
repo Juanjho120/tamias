@@ -15,6 +15,7 @@ export interface AuthUser {
   email: string;
   role: string;
   organization: AuthOrganization;
+  passwordChangeRequired: boolean;
 }
 
 export interface LoginResponse {

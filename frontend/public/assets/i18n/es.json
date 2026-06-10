@@ -41,6 +41,7 @@
   },
   "navigation": {
     "dashboard": "Dashboard",
+    "profile": "Mi perfil",
     "properties": "Propiedades",
     "catalogs": "Catálogos",
     "maintenance": "Mantenimiento",
@@ -53,7 +54,7 @@
     "users": "Usuarios"
   },
   "login": {
-    "title": "Bienvenido a TAMIAS",
+    "title": "Bienvenido",
     "subtitle": "Inicia sesión para administrar tus propiedades.",
     "email": "Correo electrónico",
     "password": "Contraseña",
@@ -1289,5 +1290,42 @@
     },
     "confirmDeleteTitle": "Eliminar usuario",
     "confirmDeleteMessage": "¿Seguro que deseas eliminar a {{name}}?"
+  },
+  "profile": {
+    "title": "Mi perfil",
+    "subtitle": "Actualiza tu información personal y contraseña.",
+    "fields": {
+      "firstName": "Nombre",
+      "lastName": "Apellido",
+      "currentPassword": "Contraseña actual",
+      "newPassword": "Nueva contraseña",
+      "confirmNewPassword": "Confirmar nueva contraseña"
+    },
+    "actions": {
+      "saveProfile": "Guardar perfil",
+      "changePassword": "Cambiar contraseña"
+    },
+    "password": {
+      "title": "Contraseña",
+      "subtitle": "Cambia tu contraseña de forma segura."
+    },
+    "temporaryPassword": {
+      "title": "Cambio de contraseña temporal requerido",
+      "description": "Tu contraseña actual es temporal. Debes cambiarla antes de continuar usando el resto de TAMIAS."
+    },
+    "validation": {
+      "firstNameRequired": "El nombre es obligatorio.",
+      "lastNameRequired": "El apellido es obligatorio.",
+      "currentPasswordRequired": "La contraseña actual es obligatoria.",
+      "newPasswordRequired": "La nueva contraseña debe tener entre 8 y 100 caracteres.",
+      "confirmPasswordRequired": "Confirma tu nueva contraseña.",
+      "passwordMismatch": "Las contraseñas no coinciden."
+    },
+    "messages": {
+      "profileUpdated": "Perfil actualizado correctamente.",
+      "profileUpdateError": "No se pudo actualizar el perfil.",
+      "passwordUpdated": "Contraseña cambiada correctamente.",
+      "passwordUpdateError": "No se pudo cambiar la contraseña."
+    }
   }
 }

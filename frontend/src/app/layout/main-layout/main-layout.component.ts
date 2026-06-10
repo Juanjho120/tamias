@@ -37,6 +37,7 @@ export class MainLayoutComponent {
 
   readonly menuItems = computed<MenuItem[]>(() => {
     const items: MenuItem[] = [
+      { labelKey: 'navigation.profile', icon: 'bi-person-circle', route: '/profile' },
       { labelKey: 'navigation.dashboard', icon: 'bi-speedometer2', route: '/dashboard' },
       { labelKey: 'navigation.properties', icon: 'bi-houses', route: '/properties' },
       { labelKey: 'navigation.catalogs', icon: 'bi-tags', route: '/catalogs' },

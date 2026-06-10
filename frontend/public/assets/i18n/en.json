@@ -41,6 +41,7 @@
   },
   "navigation": {
     "dashboard": "Dashboard",
+    "profile": "My Profile",
     "properties": "Properties",
     "catalogs": "Catalogs",
     "maintenance": "Maintenance",
@@ -53,7 +54,7 @@
     "users": "Users"
   },
   "login": {
-    "title": "Welcome to TAMIAS",
+    "title": "Welcome",
     "subtitle": "Sign in to manage your properties.",
     "email": "Email",
     "password": "Password",
@@ -1290,5 +1291,42 @@
     },
     "confirmDeleteTitle": "Delete user",
     "confirmDeleteMessage": "Are you sure you want to delete {{name}}?"
+  },
+  "profile": {
+    "title": "My Profile",
+    "subtitle": "Update your personal information and password.",
+    "fields": {
+      "firstName": "First name",
+      "lastName": "Last name",
+      "currentPassword": "Current password",
+      "newPassword": "New password",
+      "confirmNewPassword": "Confirm new password"
+    },
+    "actions": {
+      "saveProfile": "Save profile",
+      "changePassword": "Change password"
+    },
+    "password": {
+      "title": "Password",
+      "subtitle": "Change your password securely."
+    },
+    "temporaryPassword": {
+      "title": "Temporary password change required",
+      "description": "Your current password is temporary. You must change it before continuing to the rest of TAMIAS."
+    },
+    "validation": {
+      "firstNameRequired": "First name is required.",
+      "lastNameRequired": "Last name is required.",
+      "currentPasswordRequired": "Current password is required.",
+      "newPasswordRequired": "New password must be between 8 and 100 characters.",
+      "confirmPasswordRequired": "Confirm your new password.",
+      "passwordMismatch": "Passwords do not match."
+    },
+    "messages": {
+      "profileUpdated": "Profile updated successfully.",
+      "profileUpdateError": "Could not update profile.",
+      "passwordUpdated": "Password changed successfully.",
+      "passwordUpdateError": "Could not change password."
+    }
   }
 }

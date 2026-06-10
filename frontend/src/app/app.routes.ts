@@ -24,6 +24,11 @@ export const routes: Routes = [
         title: 'Dashboard | TAMIAS'
       },
       {
+        path: 'profile',
+        loadComponent: () => import('./features/profile/pages/profile-page/profile-page.component').then((m) => m.ProfilePageComponent),
+        title: 'My Profile | TAMIAS'
+      },
+      {
         path: 'properties',
         loadComponent: () => import('./features/properties/pages/properties-page/properties-page.component').then((m) => m.PropertiesPageComponent),
         title: 'Properties | TAMIAS'

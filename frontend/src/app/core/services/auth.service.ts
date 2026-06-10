@@ -13,13 +13,13 @@ const USER_KEY = 'tamias_user';
 })
 export class AuthService {
   private readonly apiUrl = `${environment.apiBaseUrl}/auth`;
-
   private readonly tokenSignal = signal<string | null>(localStorage.getItem(TOKEN_KEY));
   private readonly userSignal = signal<AuthUser | null>(this.readStoredUser());
 
   readonly token = this.tokenSignal.asReadonly();
   readonly currentUser = this.userSignal.asReadonly();
   readonly isAuthenticated = computed(() => !!this.tokenSignal());
+  readonly passwordChangeRequired = computed(() => this.userSignal()?.passwordChangeRequired === true);
 
   constructor(
     private readonly http: HttpClient,
@@ -47,6 +47,11 @@ export class AuthService {
     return this.tokenSignal();
   }
 
+  updateCurrentUser(user: AuthUser): void {
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    this.userSignal.set(user);
+  }
+
   private setSession(response: LoginResponse): void {
     localStorage.setItem(TOKEN_KEY, response.accessToken);
     localStorage.setItem(USER_KEY, JSON.stringify(response.user));
@@ -62,7 +67,11 @@ export class AuthService {
     }
 
     try {
-      return JSON.parse(rawUser) as AuthUser;
+      const parsedUser = JSON.parse(rawUser) as AuthUser;
+      return {
+        ...parsedUser,
+        passwordChangeRequired: parsedUser.passwordChangeRequired === true
+      };
     } catch {
       localStorage.removeItem(USER_KEY);
       return null;
