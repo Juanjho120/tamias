@@ -21,15 +21,35 @@ public interface InventoryItemRepository extends BaseCatalogRepository<Inventory
               AND (:availableForMaintenance IS NULL OR item.availableForMaintenance = :availableForMaintenance)
               AND (:availableForReservations IS NULL OR item.availableForReservations = :availableForReservations)
               AND (:availableForPurchases IS NULL OR item.availableForPurchases = :availableForPurchases)
-              AND (
-                    :search IS NULL
-                    OR LOWER(item.name) LIKE LOWER(CONCAT('%', :search, '%'))
-                    OR LOWER(COALESCE(item.description, '')) LIKE LOWER(CONCAT('%', :search, '%'))
-                    OR LOWER(COALESCE(item.internalCode, '')) LIKE LOWER(CONCAT('%', :search, '%'))
-                    OR LOWER(COALESCE(item.barcode, '')) LIKE LOWER(CONCAT('%', :search, '%'))
-              )
             """)
     Page<InventoryItem> search(
+            UUID organizationId,
+            CatalogStatus status,
+            InventoryItemType itemType,
+            Boolean availableForMaintenance,
+            Boolean availableForReservations,
+            Boolean availableForPurchases,
+            Pageable pageable
+    );
+
+    @Query("""
+            SELECT item
+            FROM InventoryItem item
+            WHERE item.organization.id = :organizationId
+              AND item.deletedAt IS NULL
+              AND (:status IS NULL OR item.status = :status)
+              AND (:itemType IS NULL OR item.itemType = :itemType)
+              AND (:availableForMaintenance IS NULL OR item.availableForMaintenance = :availableForMaintenance)
+              AND (:availableForReservations IS NULL OR item.availableForReservations = :availableForReservations)
+              AND (:availableForPurchases IS NULL OR item.availableForPurchases = :availableForPurchases)
+              AND (
+                    LOWER(item.name) LIKE CONCAT('%', LOWER(:search), '%')
+                    OR LOWER(COALESCE(item.description, '')) LIKE CONCAT('%', LOWER(:search), '%')
+                    OR LOWER(COALESCE(item.internalCode, '')) LIKE CONCAT('%', LOWER(:search), '%')
+                    OR LOWER(COALESCE(item.barcode, '')) LIKE CONCAT('%', LOWER(:search), '%')
+              )
+            """)
+    Page<InventoryItem> searchWithText(
             UUID organizationId,
             CatalogStatus status,
             InventoryItemType itemType,

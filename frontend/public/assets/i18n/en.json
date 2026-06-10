@@ -19,7 +19,9 @@
     "next": "Next",
     "rowsPerPage": "Rows per page",
     "total": "total",
-    "viewAll": "View all"
+    "viewAll": "View all",
+    "no": "No",
+    "yes": "Yes"
   },
   "status": {
     "ACTIVE": "Active",

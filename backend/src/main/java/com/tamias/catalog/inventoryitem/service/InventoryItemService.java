@@ -55,16 +55,26 @@ public class InventoryItemService {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         String normalizedSearch = search == null || search.isBlank() ? null : search.trim();
 
-        Page<InventoryItem> page = repository.search(
-                organizationId,
-                status,
-                itemType,
-                availableForMaintenance,
-                availableForReservations,
-                availableForPurchases,
-                normalizedSearch,
-                pageable
-        );
+        Page<InventoryItem> page = normalizedSearch == null
+                ? repository.search(
+                        organizationId,
+                        status,
+                        itemType,
+                        availableForMaintenance,
+                        availableForReservations,
+                        availableForPurchases,
+                        pageable
+                )
+                : repository.searchWithText(
+                        organizationId,
+                        status,
+                        itemType,
+                        availableForMaintenance,
+                        availableForReservations,
+                        availableForPurchases,
+                        normalizedSearch,
+                        pageable
+                );
 
         return PageResponse.from(page.map(catalogMapper::toInventoryItemResponse));
     }
