@@ -12,6 +12,8 @@ Debe permitir administrar:
 
 - Autenticación.
 - Dashboard.
+- Perfil de usuario.
+- Administración de usuarios.
 - Propiedades.
 - Catálogos.
 - Inventory Items.
@@ -24,7 +26,6 @@ Debe permitir administrar:
 - Compras.
 - Documentos.
 - Asistente IA.
-- Usuarios.
 
 ---
 
@@ -43,15 +44,6 @@ HTTP Client
 ngx-translate
 ```
 
-Recomendaciones:
-
-- Usar Angular standalone components.
-- Usar TypeScript estricto.
-- Usar Reactive Forms para formularios.
-- Usar Bootstrap para acelerar UI.
-- Usar FullCalendar para calendario/dashboard.
-- Evitar librerías UI pesadas al inicio.
-
 ---
 
 ## 3. Arquitectura frontend
@@ -66,7 +58,7 @@ features
 
 Principios:
 
-- `core` contiene servicios globales y configuración.
+- `core` contiene servicios globales, guards, interceptors y modelos de sesión.
 - `shared` contiene componentes reutilizables.
 - `features` contiene módulos/pantallas del dominio.
 - Cada feature encapsula páginas, componentes, modelos y servicios.
@@ -84,10 +76,15 @@ frontend/
       app.config.ts
       app.routes.ts
       core/
+        guards/
+        interceptors/
+        models/
+        services/
       shared/
       features/
         auth/
         dashboard/
+        profile/
         properties/
         catalogs/
         maintenance/
@@ -114,27 +111,75 @@ frontend/
 ```text
 /login
 /dashboard
+/profile
 /properties
 /catalogs
-/maintenance-records
+/maintenance
 /scheduled-maintenance
 /reservations
-/task-lists
-/purchase-lists
+/tasks
+/purchases
 /documents
 /ai-assistant
 /users
 ```
 
-Inventory Items se administra desde la sección Catalogs, usando el endpoint backend:
+`/profile` está disponible para cualquier usuario autenticado.
+
+`/users` debe mostrarse solo a usuarios con rol:
 
 ```text
-/api/v1/inventory-items
+ADMINISTRATOR
 ```
 
 ---
 
-## 6. Layout
+## 6. Auth Flow
+
+Login:
+
+```text
+User submits credentials
+        |
+Backend validates credentials
+        |
+Backend returns JWT + current user
+        |
+Frontend stores token and user session
+        |
+If passwordChangeRequired = true -> redirect to /profile
+Otherwise -> redirect to /dashboard
+```
+
+---
+
+## 7. Mandatory Password Change Flow
+
+El frontend debe usar el valor:
+
+```text
+passwordChangeRequired
+```
+
+del usuario autenticado.
+
+Reglas:
+
+- Si `passwordChangeRequired = true`, el usuario debe ser redirigido a `/profile`.
+- Mientras `passwordChangeRequired = true`, el usuario no debe poder navegar al resto del sistema.
+- `/profile` debe permitir cambiar password usando password actual.
+- Cuando el backend responde con `passwordChangeRequired = false`, la sesión local debe actualizarse.
+- Después del cambio exitoso, el usuario puede continuar al dashboard.
+
+Guard recomendado:
+
+```text
+passwordChangeGuard
+```
+
+---
+
+## 8. Layout
 
 ### Auth Layout
 
@@ -164,37 +209,60 @@ Debe contener:
 - Usuario actual.
 - Botón de logout.
 - Navegación principal.
+- Acceso a My Profile.
+- Acceso a Users solo si el usuario es Administrator.
 
 ---
 
-## 7. Navegación principal
-
-Menú recomendado:
-
-```text
-Dashboard
-Properties
-Maintenance
-Scheduled Maintenance
-Reservations
-Tasks
-Purchase Lists
-Documents
-AI Assistant
-Catalogs
-Users
-```
-
----
-
-## 8. Features actuales
+## 9. Features actuales
 
 ### Auth
 
 - Login.
 - JWT storage.
 - Auth guard.
+- Guest guard.
+- Password change guard.
 - Interceptor HTTP.
+
+### Profile
+
+Ruta:
+
+```text
+/profile
+```
+
+Permite:
+
+- Ver datos del usuario autenticado.
+- Actualizar first name.
+- Actualizar last name.
+- Cambiar password.
+
+No permite:
+
+- Cambiar email.
+- Cambiar rol.
+- Cambiar estado.
+- Administrar otros usuarios.
+
+### Users
+
+Ruta:
+
+```text
+/users
+```
+
+Permite a administradores:
+
+- Listar usuarios.
+- Crear usuarios.
+- Asignar roles.
+- Cambiar estado.
+- Activar/desactivar.
+- Eliminar.
 
 ### Dashboard
 
@@ -230,19 +298,6 @@ Spanish: Insumos y materiales
 English: Inventory Items
 ```
 
-Campos principales:
-
-- Name.
-- Description.
-- Unit.
-- Item Type.
-- Internal Code.
-- Barcode.
-- Available for Maintenance.
-- Available for Reservations.
-- Available for Purchases.
-- Status.
-
 ### Maintenance
 
 Incluye:
@@ -253,18 +308,6 @@ Incluye:
 - Images.
 - People involved.
 - Costs.
-
-Los items de mantenimiento se manejan como:
-
-```text
-MaintenanceRecordItem
-```
-
-y se relacionan con:
-
-```text
-InventoryItem
-```
 
 ### Reservations
 
@@ -282,19 +325,6 @@ Reservation supplies se maneja en modal separado, abierto desde la tabla de rese
 
 ```text
 Supplies
-```
-
-El modal permite:
-
-- Listar supplies de una reservación.
-- Agregar supply.
-- Editar supply.
-- Eliminar supply.
-
-Los supplies usan `InventoryItem` filtrados por:
-
-```text
-availableForReservations = true
 ```
 
 ### Purchases
@@ -330,27 +360,6 @@ Incluye:
 
 ---
 
-## 9. Servicios HTTP por feature
-
-Cada feature debe tener su propio service.
-
-Ejemplos:
-
-```text
-PropertyService
-CatalogService
-InventoryItemService
-MaintenanceDetailService
-ScheduledMaintenanceService
-ReservationService
-PurchaseListService
-DocumentService
-AiAssistantService
-UserService
-```
-
----
-
 ## 10. i18n
 
 El frontend usa archivos JSON bajo:
@@ -364,6 +373,13 @@ Idiomas iniciales:
 - English.
 - Spanish.
 
+Keys agregadas por Profile:
+
+```text
+navigation.profile
+profile.*
+```
+
 Reglas:
 
 - No hardcodear textos visibles cuando ya exista infraestructura i18n.
@@ -372,21 +388,7 @@ Reglas:
 
 ---
 
-## 11. Formularios reactivos
-
-Todos los formularios principales deben usar Reactive Forms.
-
-Reglas:
-
-- Validación frontend para UX.
-- Validación backend como fuente real de seguridad.
-- No confiar en valores enviados por frontend para multi-tenancy.
-- Mostrar mensajes claros.
-- Manejar loading/saving states.
-
----
-
-## 12. Manejo de errores
+## 11. Manejo de errores
 
 El frontend debe:
 
@@ -396,23 +398,11 @@ El frontend debe:
 - No mostrar stack traces.
 - Manejar `401` redirigiendo a login.
 - Manejar `403` mostrando mensaje de permisos.
+- Mostrar errores claros al cambiar password.
 
 ---
 
-## 13. Responsive design
-
-El MVP debe verse correctamente en:
-
-- Desktop.
-- Laptop.
-- Tablet.
-- Mobile básico.
-
-No se requiere diseño mobile-first completo, pero los modales y tablas deben ser utilizables.
-
----
-
-## 14. Próximos pasos frontend
+## 12. Próximos pasos frontend
 
 Prioridades siguientes:
 

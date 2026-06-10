@@ -20,6 +20,7 @@ Todas las APIs deben seguir estas reglas:
 10. Usar Swagger/OpenAPI para documentación.
 11. No confiar en `organizationId` enviado desde frontend.
 12. Resolver la organización activa desde el usuario autenticado.
+13. Separar administración de usuarios de self-service profile.
 
 ---
 
@@ -35,6 +36,7 @@ Todas las APIs deben seguir estas reglas:
 
 ```text
 /auth
+/profile
 /users
 /organizations
 /properties
@@ -60,9 +62,167 @@ GET  /api/v1/auth/me
 POST /api/v1/auth/logout
 ```
 
+Login response includes the current user and the temporary password flag:
+
+```json
+{
+  "accessToken": "jwt",
+  "tokenType": "Bearer",
+  "expiresIn": 7200,
+  "user": {
+    "id": "uuid",
+    "firstName": "Juan",
+    "lastName": "Tzun",
+    "email": "juan@example.com",
+    "role": "ADMINISTRATOR",
+    "organization": {
+      "id": "uuid",
+      "name": "My Organization"
+    },
+    "passwordChangeRequired": false
+  }
+}
+```
+
 ---
 
-## 5. Properties API
+## 5. Profile API
+
+The Profile API is available to every authenticated user.
+
+It does not require `ADMINISTRATOR`.
+
+```http
+GET   /api/v1/profile
+PATCH /api/v1/profile
+PATCH /api/v1/profile/password
+```
+
+### Get current profile
+
+```http
+GET /api/v1/profile
+```
+
+Response:
+
+```json
+{
+  "id": "uuid",
+  "firstName": "Juan",
+  "lastName": "Tzun",
+  "email": "juan@example.com",
+  "role": "PROPERTY_MANAGER",
+  "organization": {
+    "id": "uuid",
+    "name": "My Organization"
+  },
+  "passwordChangeRequired": false
+}
+```
+
+### Update profile
+
+```http
+PATCH /api/v1/profile
+```
+
+Request:
+
+```json
+{
+  "firstName": "Juan",
+  "lastName": "Tzun"
+}
+```
+
+Allowed fields:
+
+```text
+firstName
+lastName
+```
+
+Email and role are not changed from this endpoint.
+
+### Change password
+
+```http
+PATCH /api/v1/profile/password
+```
+
+Request:
+
+```json
+{
+  "currentPassword": "temporary-or-current-password",
+  "newPassword": "new-secure-password",
+  "confirmNewPassword": "new-secure-password"
+}
+```
+
+Rules:
+
+- Current password is required.
+- New password must be different from current password.
+- Confirmation must match.
+- After success, `passwordChangeRequired` becomes `false`.
+
+---
+
+## 6. Users API
+
+The Users API is intended for administrators.
+
+```http
+GET    /api/v1/users
+GET    /api/v1/users/{id}
+POST   /api/v1/users
+PUT    /api/v1/users/{id}
+DELETE /api/v1/users/{id}
+```
+
+Administrator responsibilities:
+
+- Create users.
+- Assign roles.
+- Update status.
+- Activate/deactivate users.
+- Delete users.
+
+When an administrator creates a user, the initial password is temporary and the backend must set:
+
+```text
+password_change_required = true
+```
+
+Create request:
+
+```json
+{
+  "firstName": "Ana",
+  "lastName": "Lopez",
+  "email": "ana@example.com",
+  "password": "temporary-password",
+  "role": "PROPERTY_MANAGER"
+}
+```
+
+Update request:
+
+```json
+{
+  "firstName": "Ana",
+  "lastName": "Lopez",
+  "email": "ana@example.com",
+  "role": "PROPERTY_MANAGER",
+  "status": "ACTIVE"
+}
+```
+
+---
+
+## 7. Properties API
 
 ```http
 GET    /api/v1/properties
@@ -81,7 +241,7 @@ DELETE /api/v1/properties/{id}/images/{imageId}
 
 ---
 
-## 6. Catalog APIs
+## 8. Catalog APIs
 
 Catálogos incluidos:
 
@@ -108,7 +268,7 @@ DELETE /api/v1/catalogs/{catalog}/{id}
 
 ---
 
-## 7. Inventory Items API
+## 9. Inventory Items API
 
 `Inventory Items` es el catálogo operativo compartido para mantenimiento, compras, reservaciones y futuros reportes de inventario.
 
@@ -131,26 +291,9 @@ GET /api/v1/inventory-items?availableForPurchases=true
 GET /api/v1/inventory-items?search=shampoo
 ```
 
-Request:
-
-```json
-{
-  "name": "Shampoo",
-  "description": "Guest shampoo",
-  "unit": "unit",
-  "itemType": "SUPPLY",
-  "internalCode": "SUP-SHAMPOO",
-  "barcode": null,
-  "availableForMaintenance": false,
-  "availableForReservations": true,
-  "availableForPurchases": true,
-  "status": "ACTIVE"
-}
-```
-
 ---
 
-## 8. Maintenance API
+## 10. Maintenance API
 
 Maintenance records:
 
@@ -180,23 +323,7 @@ DELETE /api/v1/maintenance-records/{id}/images/{imageId}
 
 ---
 
-## 9. Scheduled Maintenance API
-
-```http
-GET    /api/v1/scheduled-maintenance
-GET    /api/v1/scheduled-maintenance/{id}
-POST   /api/v1/scheduled-maintenance
-PUT    /api/v1/scheduled-maintenance/{id}
-PATCH  /api/v1/scheduled-maintenance/{id}/complete
-PATCH  /api/v1/scheduled-maintenance/{id}/reschedule
-PATCH  /api/v1/scheduled-maintenance/{id}/cancel
-GET    /api/v1/scheduled-maintenance/{id}/history
-DELETE /api/v1/scheduled-maintenance/{id}
-```
-
----
-
-## 10. Reservations API
+## 11. Reservations API
 
 Reservations:
 
@@ -219,64 +346,9 @@ PUT    /api/v1/reservations/{id}/supplies/{supplyId}
 DELETE /api/v1/reservations/{id}/supplies/{supplyId}
 ```
 
-Supply request:
-
-```json
-{
-  "inventoryItemId": "uuid",
-  "quantity": 2,
-  "unit": "unit",
-  "notes": "Delivered at check-in"
-}
-```
-
 ---
 
-## 11. Task Lists API
-
-```http
-GET    /api/v1/task-lists
-GET    /api/v1/task-lists/{id}
-POST   /api/v1/task-lists
-PUT    /api/v1/task-lists/{id}
-DELETE /api/v1/task-lists/{id}
-```
-
-Task items:
-
-```http
-POST   /api/v1/task-lists/{id}/items
-PUT    /api/v1/task-lists/{id}/items/{itemId}
-PATCH  /api/v1/task-lists/{id}/items/{itemId}/complete
-DELETE /api/v1/task-lists/{id}/items/{itemId}
-```
-
----
-
-## 12. Purchase Lists API
-
-```http
-GET    /api/v1/purchase-lists
-GET    /api/v1/purchase-lists/{id}
-POST   /api/v1/purchase-lists
-PUT    /api/v1/purchase-lists/{id}
-DELETE /api/v1/purchase-lists/{id}
-```
-
-Purchase items:
-
-```http
-POST   /api/v1/purchase-lists/{id}/items
-PUT    /api/v1/purchase-lists/{id}/items/{itemId}
-PATCH  /api/v1/purchase-lists/{id}/items/{itemId}/purchased
-DELETE /api/v1/purchase-lists/{id}/items/{itemId}
-```
-
-Purchase items reference `inventoryItemId`.
-
----
-
-## 13. Documents API
+## 12. Documents API
 
 ```http
 GET    /api/v1/documents
@@ -289,7 +361,7 @@ DELETE /api/v1/documents/{id}
 
 ---
 
-## 14. AI API
+## 13. AI API
 
 ```http
 POST /api/v1/ai/chat

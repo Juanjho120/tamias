@@ -10,7 +10,7 @@ The product is focused on small-scale rental businesses such as:
 - Cabins
 - Villas
 
-TAMIAS centralizes property operations including maintenance, scheduled maintenance, reservations, task lists, purchase lists, inventory items, reservation supplies, important documents, reporting foundations, and AI-assisted document search.
+TAMIAS centralizes property operations including maintenance, scheduled maintenance, reservations, task lists, purchase lists, inventory items, reservation supplies, important documents, reporting foundations, user access management, self-service profile management, mandatory temporary password changes, and AI-assisted document search.
 
 ---
 
@@ -26,6 +26,7 @@ The goal is to demonstrate practical experience in:
 - PostgreSQL database design
 - SaaS multi-tenancy
 - JWT authentication and role-based access control
+- User and profile management
 - AWS S3 file storage
 - AI-powered document search using RAG
 - Docker-based local development
@@ -48,6 +49,7 @@ This creates problems such as:
 - Important property rules and manuals hard to search
 - No quick way to answer operational questions
 - No centralized tracking of operational items and supplies
+- No simple way to manage user access and profile updates
 
 TAMIAS solves this by providing a centralized platform for managing key operational data.
 
@@ -60,6 +62,9 @@ The current MVP includes:
 - Authentication
 - Organizations
 - Users and roles
+- User management for administrators
+- Self-service profile management
+- Mandatory temporary password change
 - Properties
 - Catalogs
 - Inventory Items
@@ -81,6 +86,48 @@ The current MVP includes:
 - AI chat sessions
 - Dashboard calendar
 - Basic deployment foundation
+
+---
+
+## User Access Model
+
+TAMIAS separates user administration from self-service profile management.
+
+### User Management
+
+The `/users` screen is intended for administrators.
+
+Administrators can:
+
+- List organization users.
+- Create users with a temporary password.
+- Assign roles.
+- Update role and status.
+- Activate users.
+- Deactivate users.
+- Delete users.
+
+### My Profile
+
+The `/profile` screen is available to every authenticated user.
+
+Users can:
+
+- Update their first name.
+- Update their last name.
+- Change their own password.
+
+### Mandatory Temporary Password Change
+
+When an administrator creates a new user, the initial password is considered temporary.
+
+The backend stores this using:
+
+```text
+password_change_required
+```
+
+If `passwordChangeRequired = true`, the frontend must force the user to change the password before continuing to the rest of the application.
 
 ---
 
@@ -170,14 +217,6 @@ TAMIAS starts as a **Modular Monolith**.
 
 This means the system is deployed as a single Spring Boot backend application, but internally organized by business modules.
 
-This approach was chosen because:
-
-- It keeps the MVP simpler to build and deploy.
-- It avoids unnecessary microservice complexity.
-- It is easier to maintain during early product development.
-- It is appropriate for the expected scale of approximately 5 simultaneous users per organization.
-- It still allows clean separation by domain.
-
 High-level architecture:
 
 ```text
@@ -228,10 +267,12 @@ Important rule:
 
 | Role | Description |
 |---|---|
-| Administrator | Full access within the organization |
+| Administrator | Full access within the organization, including user management |
 | Property Manager | Manages daily operations |
 | Maintenance Staff | Handles assigned maintenance and tasks |
 | Read Only | Can view information but cannot modify it |
+
+Every authenticated role can access `/profile` to update personal data and change password.
 
 ---
 
@@ -267,6 +308,9 @@ Completed or mostly completed:
 - Frontend foundation
 - Authentication
 - Organizations and users
+- User management
+- Self-service profile
+- Mandatory temporary password change
 - Properties
 - Catalogs
 - Inventory Items
@@ -372,29 +416,6 @@ Secrets must never be committed to the repository.
 
 ---
 
-## AI Assistant
-
-The AI Assistant MVP focuses on document search using RAG.
-
-The assistant answers questions such as:
-
-- What do the house rules say about pets?
-- Is smoking allowed?
-- What is not allowed in the property?
-- Where is the electrical panel located?
-- What does the manual say about the water filter?
-
-AI rules:
-
-- Answers must be based on available documents.
-- Answers must include sources when available.
-- If information is not found, the assistant must say so clearly.
-- The assistant must not invent property rules.
-- The assistant must respect organization-level data isolation.
-- SQL execution by the AI is not allowed in the MVP.
-
----
-
 ## Security Principles
 
 TAMIAS follows these security principles:
@@ -405,25 +426,12 @@ TAMIAS follows these security principles:
 - Backend-enforced permissions
 - Private S3 buckets
 - Pre-signed URLs for file access
+- Mandatory password change for temporary passwords
+- Self-service password changes for authenticated users
 - No secrets in frontend code
 - No secrets committed to GitHub
 - No unrestricted SQL execution from AI
 - CORS restricted by environment
-
----
-
-## Database Principles
-
-The MVP database follows these rules:
-
-- Primary IDs use UUID.
-- Operational entities include `organization_id`.
-- Main tables include `created_at` and `updated_at`.
-- Operational records may include `created_by` and `updated_by`.
-- Important records use `status`.
-- Critical operational records use soft delete.
-- Unique constraints include `organization_id` where applicable.
-- Flyway manages schema migrations.
 
 ---
 

@@ -1,6 +1,6 @@
 # TAMIAS — Roadmap
 
-This roadmap reflects the current state after the Inventory Items and Reservation Supplies refactor.
+This roadmap reflects the current state after the Inventory Items, Reservation Supplies, Users Management, My Profile and Mandatory Password Change updates.
 
 ---
 
@@ -28,6 +28,9 @@ Status: Completed / MVP-ready.
 - Protected routes.
 - Current user context.
 - Organization-based data isolation.
+- User management for administrators.
+- Self-service profile.
+- Mandatory password change for temporary passwords.
 
 ---
 
@@ -134,6 +137,9 @@ Goals:
 
 - Review role-based access by endpoint.
 - Review multi-tenant filtering.
+- Verify `/users` is administrator-only.
+- Verify `/profile` is accessible to every authenticated role.
+- Verify temporary password changes are mandatory.
 - Improve backend tests for critical services.
 - Improve frontend tests for critical services/components.
 - Validate build from clean clone.

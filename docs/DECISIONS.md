@@ -45,23 +45,7 @@ Rule:
 
 ---
 
-## 3. Primary keys
-
-Decision:
-
-```text
-Use UUID primary keys.
-```
-
-Reason:
-
-- Avoid sequential ID enumeration.
-- Better for SaaS and future integrations.
-- Suitable for distributed-friendly designs.
-
----
-
-## 4. Backend framework
+## 3. Backend framework
 
 Decision:
 
@@ -77,7 +61,7 @@ Reason:
 
 ---
 
-## 5. Frontend framework
+## 4. Frontend framework
 
 Decision:
 
@@ -95,69 +79,87 @@ Reason:
 
 ---
 
-## 6. Database migration
+## 5. User management
 
 Decision:
 
 ```text
-Use Flyway.
+Keep user administration under /users and restrict it to administrators.
 ```
 
 Reason:
 
-- Explicit schema evolution.
-- Versioned migrations.
-- Good fit with PostgreSQL and Spring Boot.
-
-Rule:
-
-> Do not modify migrations already applied in shared environments. Create new migrations for changes.
+- User creation, role assignment and status management are administrative operations.
+- Backend must enforce this with authorization.
+- Frontend menu visibility is only a UX convenience, not the security source of truth.
 
 ---
 
-## 7. File storage
+## 6. Self-service profile
 
 Decision:
 
 ```text
-Use AWS S3 with private buckets and pre-signed URLs.
+Add /profile as a self-service screen for every authenticated user.
 ```
 
 Reason:
 
-- Avoid storing files in the backend filesystem.
-- Production-friendly.
-- Secure temporary access.
-- Good portfolio value.
+- Non-admin users must be able to update their own basic data.
+- Users must be able to change their own password.
+- This avoids requiring an administrator for basic profile updates.
+
+Allowed fields:
+
+```text
+firstName
+lastName
+password
+```
+
+Not allowed from profile:
+
+```text
+email
+role
+status
+organization
+```
 
 ---
 
-## 8. AI MVP
+## 7. Mandatory temporary password change
 
 Decision:
 
 ```text
-Start with RAG over documents.
+New users created by an administrator must change their temporary password on first login.
 ```
 
-Reason:
+Implementation:
 
-- Clear business value.
-- Lower risk than unrestricted database agents.
-- Allows document-grounded answers.
-- Fits house rules, manuals, property documents and policies.
+```text
+users.password_change_required
+```
 
 Rules:
 
-- AI answers must be grounded in available documents.
-- AI must say when information is not found.
-- AI must not invent property rules.
-- AI must respect organization isolation.
-- No free SQL execution by AI.
+- Existing users default to `false`.
+- New admin-created users are created with `true`.
+- Login response includes `passwordChangeRequired`.
+- Frontend redirects users with `passwordChangeRequired = true` to `/profile`.
+- User cannot continue using the rest of the app until password is changed.
+- Successful password change sets `passwordChangeRequired = false`.
+
+Reason:
+
+- Admin-created passwords are temporary.
+- Users should take ownership of their password.
+- Reduces risk of shared or reused temporary credentials.
 
 ---
 
-## 9. Inventory Items refactor
+## 8. Inventory Items refactor
 
 Decision:
 
@@ -188,17 +190,6 @@ Spanish: Insumos y materiales
 English: Inventory Items
 ```
 
-The item type is represented by:
-
-```text
-MATERIAL
-SUPPLY
-AMENITY
-CLEANING_SUPPLY
-TOOL
-OTHER
-```
-
 Operational availability is controlled by:
 
 ```text
@@ -209,41 +200,7 @@ available_for_purchases
 
 ---
 
-## 10. Maintenance item usage
-
-Decision:
-
-```text
-Use maintenance_record_items.
-```
-
-Reason:
-
-- Avoid legacy naming tied only to materials.
-- Support any Inventory Item type.
-- Preserve item snapshots for history.
-- Better fit for reports and AI queries.
-
----
-
-## 11. Purchase items
-
-Decision:
-
-```text
-Purchase items reference inventory_items through inventory_item_id.
-```
-
-Reason:
-
-- Shared item catalog.
-- Better analytics.
-- Future inventory stock support.
-- Cleaner frontend/backend naming.
-
----
-
-## 12. Reservation supplies
+## 9. Reservation supplies
 
 Decision:
 
@@ -264,31 +221,9 @@ Frontend decision:
 Use a separate Supplies modal from the Reservations table.
 ```
 
-Reason:
-
-- Keeps the main reservation form clean.
-- Matches the Purchases Items modal pattern.
-- Allows focused add/edit/delete behavior.
-
 ---
 
-## 13. Frontend legacy cleanup
-
-Decision:
-
-```text
-Remove frontend material aliases after the Inventory Items migration.
-```
-
-Reason:
-
-- Avoid technical debt.
-- Prevent confusion between old materials and current inventory items.
-- Keep UI/services/models aligned with backend domain language.
-
----
-
-## 14. Reports
+## 10. Reports
 
 Decision:
 
@@ -304,7 +239,7 @@ Reason:
 
 ---
 
-## 15. Tool Calling
+## 11. Tool Calling
 
 Decision:
 

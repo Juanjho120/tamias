@@ -15,6 +15,9 @@ El objetivo principal es ayudar a propietarios y administradores a controlar des
 - Compras.
 - Inventory Items.
 - Documentos.
+- Usuarios y roles.
+- Perfil de usuario.
+- Cambio obligatorio de contraseña temporal.
 - Búsqueda documental con IA.
 - Dashboard operativo.
 
@@ -32,6 +35,9 @@ El proyecto debe demostrar:
 - Backend profesional con Java 21 y Spring Boot 3.
 - Frontend administrativo moderno con Angular.
 - Seguridad con JWT, roles y permisos.
+- Administración de usuarios.
+- Self-service profile.
+- Cambio obligatorio de contraseña temporal.
 - Modelo SaaS multi-tenant.
 - Manejo de archivos en AWS S3.
 - Base de datos PostgreSQL con migraciones Flyway.
@@ -41,77 +47,9 @@ El proyecto debe demostrar:
 
 ---
 
-## 3. Stack tecnológico definido
-
-### Frontend
-
-- Angular.
-- TypeScript.
-- Bootstrap.
-- Bootstrap Icons.
-- Angular Reactive Forms.
-- FullCalendar.
-- RxJS.
-- ngx-translate.
-
-### Backend
-
-- Java 21.
-- Spring Boot 3.
-- Spring Security.
-- JWT Authentication.
-- Spring Data JPA.
-- Hibernate.
-- Flyway.
-- Swagger/OpenAPI.
-
-### Base de datos
-
-- PostgreSQL.
-
-### Archivos
-
-- AWS S3.
-- Pre-signed URLs.
-
-### Inteligencia Artificial
-
-- Spring AI.
-- OpenAI.
-- Ollama, opcional para pruebas locales.
-- Chroma.
-- RAG.
-- Tool Calling, fase futura.
-- AI Agents, fase futura.
-
-### DevOps
-
-- Docker.
-- Docker Compose.
-- GitHub Actions.
-- CI/CD.
-
-### Despliegue
-
-- Frontend: Vercel.
-- Backend: Render.
-- Base de datos: Supabase PostgreSQL.
-- IA / Chroma: Railway.
-- Archivos: AWS S3.
-- Dominio: `tamias.juantzun.dev`.
-
----
-
-## 4. Arquitectura recomendada
+## 3. Arquitectura recomendada
 
 TAMIAS inicia como un **Modular Monolith** usando Spring Boot 3.
-
-No se recomienda iniciar con microservicios porque:
-
-- El producto todavía está en etapa inicial.
-- Cada organización tendrá aproximadamente hasta 5 usuarios simultáneos.
-- Microservicios aumentarían la complejidad de despliegue, observabilidad, seguridad y comunicación interna.
-- Para portfolio, es más valioso demostrar una arquitectura modular, limpia y bien documentada.
 
 Arquitectura general:
 
@@ -141,7 +79,7 @@ OpenAI / Chroma / Ollama
 
 ---
 
-## 5. Modelo SaaS y multi-tenant
+## 4. Modelo SaaS y multi-tenant
 
 TAMIAS usa:
 
@@ -159,14 +97,17 @@ El frontend no debe enviar `organization_id` como fuente confiable. El backend d
 
 ---
 
-## 6. Alcance MVP actualizado
+## 5. Alcance MVP actualizado
 
 ### Módulos incluidos en el MVP actual
 
 - Authentication.
 - Organizations.
 - Users.
+- User Management.
 - Roles básicos.
+- My Profile.
+- Mandatory Temporary Password Change.
 - Properties.
 - Property Images.
 - Catalogs.
@@ -191,8 +132,9 @@ El frontend no debe enviar `organization_id` como fuente confiable. El backend d
 
 ### Módulos fuera del MVP inicial
 
-- Recuperación de contraseña.
+- Recuperación de contraseña por correo.
 - Invitaciones por correo.
+- Permisos personalizados dinámicos.
 - JasperReports avanzados.
 - Reportes complejos.
 - Tool Calling completo contra PostgreSQL.
@@ -202,6 +144,90 @@ El frontend no debe enviar `organization_id` como fuente confiable. El backend d
 - Integraciones directas con Airbnb, Booking o VRBO.
 - Inventario formal con stock y movimientos.
 - Notificaciones automáticas avanzadas.
+
+---
+
+## 6. Seguridad, usuarios y perfiles
+
+TAMIAS separa claramente dos responsabilidades:
+
+### User Management
+
+Ruta frontend:
+
+```text
+/users
+```
+
+Backend:
+
+```text
+/api/v1/users
+```
+
+Uso:
+
+- Solo administradores.
+- Crear usuarios.
+- Asignar roles.
+- Actualizar estado.
+- Activar/desactivar usuarios.
+- Eliminar usuarios.
+
+Cuando un administrador crea un usuario, el password inicial se considera temporal.
+
+### My Profile
+
+Ruta frontend:
+
+```text
+/profile
+```
+
+Backend:
+
+```text
+/api/v1/profile
+```
+
+Uso:
+
+- Disponible para todo usuario autenticado.
+- Actualizar `firstName`.
+- Actualizar `lastName`.
+- Cambiar su propio password.
+
+No requiere rol `ADMINISTRATOR`.
+
+### Mandatory Temporary Password Change
+
+Campo de base de datos:
+
+```text
+users.password_change_required
+```
+
+Flujo:
+
+```text
+Admin crea usuario
+        |
+Backend guarda password temporal
+        |
+password_change_required = true
+        |
+Usuario inicia sesión
+        |
+Frontend detecta passwordChangeRequired
+        |
+Usuario es enviado a /profile
+        |
+No puede continuar usando el sistema hasta cambiar password
+        |
+Backend guarda nuevo password
+        |
+password_change_required = false
+```
 
 ---
 
@@ -254,6 +280,16 @@ No debe ver información financiera completa ni administrar catálogos críticos
 
 Puede consultar información, pero no modificarla.
 
+### Todos los roles autenticados
+
+Pueden acceder a:
+
+```text
+/profile
+```
+
+para actualizar sus datos personales y cambiar su password.
+
 ---
 
 ## 8. Módulos backend
@@ -267,6 +303,7 @@ com.tamias
   common
   organization
   user
+  profile
   property
   catalog
   maintenance
@@ -301,6 +338,12 @@ exception
 - User.
 - Role.
 - UserOrganization.
+
+Campo importante en `User`:
+
+```text
+password_change_required
+```
 
 ### Propiedades
 
@@ -354,8 +397,6 @@ exception
 - AiChatSession.
 - AiChatMessage.
 
-Los embeddings se guardan en Chroma, mientras PostgreSQL mantiene metadatos, relaciones y trazabilidad.
-
 ---
 
 ## 10. API REST
@@ -364,6 +405,7 @@ Las rutas deben ser versionadas:
 
 ```text
 /api/v1/auth
+/api/v1/profile
 /api/v1/users
 /api/v1/organizations
 /api/v1/properties
@@ -377,27 +419,12 @@ Las rutas deben ser versionadas:
 /api/v1/ai
 ```
 
-Endpoints operativos relevantes:
+Endpoints de perfil:
 
 ```http
-GET    /api/v1/inventory-items
-POST   /api/v1/inventory-items
-PUT    /api/v1/inventory-items/{id}
-DELETE /api/v1/inventory-items/{id}
-```
-
-```http
-GET    /api/v1/maintenance-records/{id}/items
-POST   /api/v1/maintenance-records/{id}/items
-PUT    /api/v1/maintenance-records/{id}/items/{itemId}
-DELETE /api/v1/maintenance-records/{id}/items/{itemId}
-```
-
-```http
-GET    /api/v1/reservations/{id}/supplies
-POST   /api/v1/reservations/{id}/supplies
-PUT    /api/v1/reservations/{id}/supplies/{supplyId}
-DELETE /api/v1/reservations/{id}/supplies/{supplyId}
+GET   /api/v1/profile
+PATCH /api/v1/profile
+PATCH /api/v1/profile/password
 ```
 
 ---
@@ -413,6 +440,7 @@ src/app
   features
     auth
     dashboard
+    profile
     properties
     catalogs
     maintenance
@@ -425,21 +453,11 @@ src/app
     users
 ```
 
-Principios:
-
-- Angular standalone components.
-- Reactive Forms.
-- Servicios por feature.
-- Interceptor JWT.
-- Guards por autenticación y rol.
-- Componentes reutilizables.
-- Bootstrap para acelerar interfaz.
-- FullCalendar para calendario/dashboard.
-
 Pantallas MVP:
 
 - Login.
 - Dashboard.
+- My Profile.
 - Properties.
 - Catalogs.
 - Inventory Items.
@@ -455,74 +473,7 @@ Pantallas MVP:
 
 ---
 
-## 12. IA en TAMIAS
-
-### Fase IA 1 — RAG sobre documentos
-
-Objetivo:
-
-Permitir preguntas como:
-
-- ¿Qué dice el reglamento sobre mascotas?
-- ¿Se permite fumar?
-- ¿Qué no está permitido en la propiedad?
-- ¿Dónde está ubicado el tablero eléctrico?
-
-Flujo:
-
-```text
-Usuario sube documento
-        |
-Archivo se guarda en S3
-        |
-Backend extrae texto
-        |
-Texto se divide en chunks
-        |
-Chunks se vectorizan
-        |
-Embeddings se guardan en Chroma
-        |
-Usuario pregunta
-        |
-Se recuperan chunks relevantes
-        |
-OpenAI genera respuesta
-        |
-Respuesta cita documento fuente
-```
-
-### Fase IA 2 — Tool Calling
-
-Objetivo:
-
-Permitir que el asistente consulte datos reales del sistema usando herramientas controladas.
-
-Ejemplos:
-
-- ¿Cuándo compré por última vez filtros de agua?
-- ¿Cuánto gasté en mantenimiento este año?
-- ¿Qué tareas están vencidas?
-- ¿Cuál fue el último mantenimiento de la bomba?
-- ¿Qué supplies se entregaron en una reservación específica?
-
-Regla importante:
-
-> La IA no debe ejecutar SQL libre directamente.
-
-Se deben exponer herramientas específicas:
-
-```text
-findLastPurchaseByInventoryItem(itemName)
-getMaintenanceCostByYear(year)
-findOverdueTasks()
-findLastMaintenanceByCategory(categoryName)
-getReservationSuppliesByReservation(reservationCode)
-```
-
----
-
-## 13. Seguridad
+## 12. Seguridad
 
 Principios:
 
@@ -530,45 +481,11 @@ Principios:
 - Roles y permisos validados en backend.
 - Multi-tenant enforced por `organization_id`.
 - No confiar en IDs enviados por frontend para aislamiento de datos.
+- `/users` restringido a administradores.
+- `/profile` disponible para cualquier usuario autenticado.
+- Password temporal debe obligar cambio en primer login.
+- El cambio de password debe requerir password actual.
 - Pre-signed URLs para archivos S3.
 - Validación de tamaño y tipo de archivo.
 - Soft delete para entidades críticas.
 - Auditoría básica con `created_at`, `updated_at`, `created_by`, `updated_by`.
-
----
-
-## 14. Reportería
-
-Los reportes con JasperReports/iReport quedan fuera del MVP inicial, pero la arquitectura deja espacio para el módulo `report`.
-
-Reportes futuros:
-
-- Maintenance History.
-- Maintenance Costs.
-- Upcoming Maintenance.
-- Reservation Summary.
-- Purchase History.
-- Expense Summary.
-- Inventory Usage.
-- Reservation Supplies Usage.
-- Task Completion.
-
-Ruta futura de ejemplo:
-
-```http
-GET /api/v1/reports/maintenance-history?propertyId={id}&from={date}&to={date}
-```
-
----
-
-## 15. Reglas de consistencia del proyecto
-
-Antes de diseñar o implementar cualquier módulo, validar:
-
-1. ¿Respeta el MVP?
-2. ¿Respeta el modelo multi-tenant?
-3. ¿Filtra por `organization_id` cuando corresponde?
-4. ¿Pertenece a la fase actual o futura?
-5. ¿Agrega complejidad innecesaria?
-6. ¿Contradice una decisión previa?
-7. ¿Es útil para portfolio profesional?
