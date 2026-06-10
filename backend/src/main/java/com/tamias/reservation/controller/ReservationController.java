@@ -5,10 +5,14 @@ import com.tamias.reservation.dto.CancelReservationRequest;
 import com.tamias.reservation.dto.ReservationRequest;
 import com.tamias.reservation.dto.ReservationResponse;
 import com.tamias.reservation.dto.ReservationSummaryResponse;
+import com.tamias.reservation.dto.ReservationSupplyRequest;
+import com.tamias.reservation.dto.ReservationSupplyResponse;
+import com.tamias.reservation.dto.ReservationSupplyUpdateRequest;
 import com.tamias.reservation.enums.ReservationStatus;
 import com.tamias.reservation.service.ReservationService;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -60,6 +64,38 @@ public class ReservationController {
             @Valid @RequestBody ReservationRequest request
     ) {
         return reservationService.update(id, request);
+    }
+
+    @GetMapping("/{id}/supplies")
+    public List<ReservationSupplyResponse> findSupplies(@PathVariable UUID id) {
+        return reservationService.findSupplies(id);
+    }
+
+    @PostMapping("/{id}/supplies")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ReservationSupplyResponse addSupply(
+            @PathVariable UUID id,
+            @Valid @RequestBody ReservationSupplyRequest request
+    ) {
+        return reservationService.addSupply(id, request);
+    }
+
+    @PutMapping("/{id}/supplies/{supplyId}")
+    public ReservationSupplyResponse updateSupply(
+            @PathVariable UUID id,
+            @PathVariable UUID supplyId,
+            @Valid @RequestBody ReservationSupplyUpdateRequest request
+    ) {
+        return reservationService.updateSupply(id, supplyId, request);
+    }
+
+    @DeleteMapping("/{id}/supplies/{supplyId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteSupply(
+            @PathVariable UUID id,
+            @PathVariable UUID supplyId
+    ) {
+        reservationService.deleteSupply(id, supplyId);
     }
 
     @PatchMapping("/{id}/cancel")

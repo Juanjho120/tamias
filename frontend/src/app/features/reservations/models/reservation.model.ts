@@ -3,7 +3,6 @@ export type ReservationStatus = 'ACTIVE' | 'CANCELLED' | 'DELETED';
 export interface ReservationGuestRequest {
   guestId: string | null;
   fullName: string | null;
-  email: string | null;
   phone: string | null;
   primary: boolean | null;
 }
@@ -14,6 +13,31 @@ export interface ReservationGuest {
   fullName: string | null;
   phone: string | null;
   primary: boolean | null;
+}
+
+export interface ReservationSupplyRequest {
+  inventoryItemId: string;
+  quantity: number;
+  unit: string | null;
+  notes: string | null;
+}
+
+export interface ReservationSupply {
+  id: string;
+  reservationId: string;
+  inventoryItemId: string;
+  inventoryItemName: string;
+  itemType: string | null;
+  internalCode: string | null;
+  barcode: string | null;
+  quantity: number;
+  unit: string | null;
+  itemNameSnapshot: string;
+  internalCodeSnapshot: string | null;
+  barcodeSnapshot: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ReservationSummary {
@@ -46,6 +70,7 @@ export interface Reservation {
   invoiceNumber: string | null;
   invoiceSeries: string | null;
   guests: ReservationGuest[];
+  supplies: ReservationSupply[];
   status: ReservationStatus;
   createdAt: string;
   updatedAt: string;
@@ -64,6 +89,7 @@ export interface ReservationRequest {
   invoiceSeries: string | null;
   status: ReservationStatus;
   guests: ReservationGuestRequest[];
+  supplies: ReservationSupplyRequest[];
 }
 
 export interface ReservationFilters {

@@ -4,8 +4,10 @@ import com.tamias.reservation.dto.ReservationGuestResponse;
 import com.tamias.reservation.dto.ReservationRequest;
 import com.tamias.reservation.dto.ReservationResponse;
 import com.tamias.reservation.dto.ReservationSummaryResponse;
+import com.tamias.reservation.dto.ReservationSupplyResponse;
 import com.tamias.reservation.entity.Reservation;
 import com.tamias.reservation.entity.ReservationGuest;
+import com.tamias.reservation.entity.ReservationSupply;
 import java.util.List;
 import org.springframework.stereotype.Component;
 
@@ -51,7 +53,8 @@ public class ReservationMapper {
 
     public ReservationResponse toResponse(
             Reservation entity,
-            List<ReservationGuest> reservationGuests
+            List<ReservationGuest> reservationGuests,
+            List<ReservationSupply> reservationSupplies
     ) {
         var property = entity.getProperty();
         var platform = entity.getPlatform();
@@ -73,9 +76,34 @@ public class ReservationMapper {
                 reservationGuests.stream()
                         .map(this::toGuestResponse)
                         .toList(),
+                reservationSupplies.stream()
+                        .map(this::toSupplyResponse)
+                        .toList(),
                 entity.getStatus(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
+        );
+    }
+
+    public ReservationSupplyResponse toSupplyResponse(ReservationSupply reservationSupply) {
+        var inventoryItem = reservationSupply.getInventoryItem();
+
+        return new ReservationSupplyResponse(
+                reservationSupply.getId(),
+                reservationSupply.getReservation().getId(),
+                inventoryItem.getId(),
+                inventoryItem.getName(),
+                inventoryItem.getItemType().name(),
+                inventoryItem.getInternalCode(),
+                inventoryItem.getBarcode(),
+                reservationSupply.getQuantity(),
+                reservationSupply.getUnit(),
+                reservationSupply.getItemNameSnapshot(),
+                reservationSupply.getInternalCodeSnapshot(),
+                reservationSupply.getBarcodeSnapshot(),
+                reservationSupply.getNotes(),
+                reservationSupply.getCreatedAt(),
+                reservationSupply.getUpdatedAt()
         );
     }
 

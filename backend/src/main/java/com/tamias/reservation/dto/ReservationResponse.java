@@ -22,6 +22,7 @@ public record ReservationResponse(
         String invoiceNumber,
         String invoiceSeries,
         List<ReservationGuestResponse> guests,
+        List<ReservationSupplyResponse> supplies,
         ReservationStatus status,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt

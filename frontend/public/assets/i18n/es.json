@@ -761,7 +761,9 @@
       "checkInRequired": "La fecha de check-in es requerida.",
       "checkOutRequired": "La fecha de check-out es requerida.",
       "guestNameRequired": "El nombre del huésped es requerido.",
-      "emailInvalid": "El correo debe ser válido."
+      "emailInvalid": "El correo debe ser válido.",
+      "supplyItemRequired": "Selecciona un insumo.",
+      "supplyQuantityRequired": "Ingresa una cantidad válida."
     },
     "messages": {
       "loadError": "No se pudieron cargar las reservaciones.",
@@ -774,6 +776,18 @@
       "updated": "Reservación actualizada correctamente.",
       "deleted": "Reservación eliminada correctamente.",
       "cancelled": "Reservación cancelada correctamente."
+    },
+    "supplies": {
+      "title": "Insumos entregados",
+      "subtitle": "Registra los insumos dados al huésped durante la reservación.",
+      "item": "Insumo",
+      "selectItem": "Selecciona un insumo",
+      "quantity": "Cantidad",
+      "unit": "Unidad",
+      "notes": "Notas",
+      "add": "Agregar insumo",
+      "update": "Actualizar insumo",
+      "empty": "Aún no hay insumos agregados a esta reservación."
     }
   },
   "tasks": {

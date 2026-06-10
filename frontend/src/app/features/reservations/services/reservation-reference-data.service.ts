@@ -3,11 +3,16 @@ import { forkJoin, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { PageResponse } from '../../../core/models/page-response.model';
 import { ApiService } from '../../../core/services/api.service';
-import { ReservationPlatformOption, ReservationPropertyOption } from '../models/reservation-reference.model';
+import {
+  ReservationInventoryItemOption,
+  ReservationPlatformOption,
+  ReservationPropertyOption
+} from '../models/reservation-reference.model';
 
 export interface ReservationReferenceData {
   properties: ReservationPropertyOption[];
   platforms: ReservationPlatformOption[];
+  inventoryItems: ReservationInventoryItemOption[];
 }
 
 @Injectable({
@@ -29,6 +34,13 @@ export class ReservationReferenceDataService {
         status: 'ACTIVE',
         page: 0,
         size: 200,
+        sort: 'name,asc'
+      }).pipe(map((response) => response.content)),
+      inventoryItems: this.apiService.get<PageResponse<ReservationInventoryItemOption>>('/inventory-items', {
+        status: 'ACTIVE',
+        availableForReservations: true,
+        page: 0,
+        size: 500,
         sort: 'name,asc'
       }).pipe(map((response) => response.content))
     });

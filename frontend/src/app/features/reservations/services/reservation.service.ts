@@ -8,7 +8,9 @@ import {
   ReservationCalendarFilters,
   ReservationFilters,
   ReservationRequest,
-  ReservationSummary
+  ReservationSummary,
+  ReservationSupply,
+  ReservationSupplyRequest
 } from '../models/reservation.model';
 
 @Injectable({
@@ -48,6 +50,22 @@ export class ReservationService {
 
   update(id: string, request: ReservationRequest): Observable<Reservation> {
     return this.apiService.put<Reservation>(`/reservations/${id}`, request);
+  }
+
+  findSupplies(id: string): Observable<ReservationSupply[]> {
+    return this.apiService.get<ReservationSupply[]>(`/reservations/${id}/supplies`);
+  }
+
+  addSupply(id: string, request: ReservationSupplyRequest): Observable<ReservationSupply> {
+    return this.apiService.post<ReservationSupply>(`/reservations/${id}/supplies`, request);
+  }
+
+  updateSupply(id: string, supplyId: string, request: ReservationSupplyRequest): Observable<ReservationSupply> {
+    return this.apiService.put<ReservationSupply>(`/reservations/${id}/supplies/${supplyId}`, request);
+  }
+
+  deleteSupply(id: string, supplyId: string): Observable<void> {
+    return this.apiService.delete<void>(`/reservations/${id}/supplies/${supplyId}`);
   }
 
   cancel(id: string, request: CancelReservationRequest): Observable<Reservation> {

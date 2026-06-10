@@ -152,10 +152,6 @@
                 </td>
                 <td class="text-end">
                   <div class="btn-group">
-                    <button type="button" class="btn btn-outline-dark btn-sm" (click)="openTasks(reservation)">
-                      <i class="bi bi-list-check me-1"></i>
-                      {{ 'tasks.related.button' | translate }}
-                    </button>
                     <button type="button" class="btn btn-outline-primary btn-sm" (click)="openEditForm(reservation.id)">
                       <i class="bi bi-pencil-square me-1"></i>
                       {{ 'common.edit' | translate }}
@@ -221,14 +217,6 @@
   [loading]="saving()"
   (save)="saveReservation($event)"
   (cancel)="closeForm()" />
-
-<app-related-task-lists-modal
-  [open]="!!reservationForTasks()"
-  contextType="reservation"
-  [contextId]="reservationForTasks()?.id ?? null"
-  [propertyId]="reservationForTasks()?.propertyId ?? null"
-  [contextTitle]="reservationTasksTitle()"
-  (close)="closeTasks()" />
 
 <app-cancel-reservation-modal
   [open]="!!reservationToCancel()"

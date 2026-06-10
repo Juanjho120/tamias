@@ -762,7 +762,9 @@
       "checkInRequired": "Check-in date is required.",
       "checkOutRequired": "Check-out date is required.",
       "guestNameRequired": "Guest name is required.",
-      "emailInvalid": "Email must be valid."
+      "emailInvalid": "Email must be valid.",
+      "supplyItemRequired": "Select a supply.",
+      "supplyQuantityRequired": "Enter a valid quantity."
     },
     "messages": {
       "loadError": "Unable to load reservations.",
@@ -775,6 +777,18 @@
       "updated": "Reservation updated successfully.",
       "deleted": "Reservation deleted successfully.",
       "cancelled": "Reservation cancelled successfully."
+    },
+    "supplies": {
+      "title": "Delivered supplies",
+      "subtitle": "Track the supplies delivered to the guest during the reservation.",
+      "item": "Supply",
+      "selectItem": "Select a supply",
+      "quantity": "Quantity",
+      "unit": "Unit",
+      "notes": "Notes",
+      "add": "Add supply",
+      "update": "Update supply",
+      "empty": "No supplies have been added to this reservation yet."
     }
   },
   "tasks": {

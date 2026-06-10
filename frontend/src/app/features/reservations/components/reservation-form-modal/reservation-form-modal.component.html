@@ -123,7 +123,7 @@
               </div>
 
               <div class="col-12 col-xl-5">
-                <div class="card border-0 bg-light h-100">
+                <div class="card border-0 bg-light mb-3">
                   <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
                       <div>
@@ -147,19 +147,6 @@
                           formControlName="fullName">
                         @if (isGuestInvalid('fullName')) {
                           <div class="invalid-feedback">{{ 'reservations.validation.guestNameRequired' | translate }}</div>
-                        }
-                      </div>
-
-                      <div class="col-12 col-lg-6">
-                        <label for="reservation-guest-email" class="form-label">{{ 'reservations.guests.email' | translate }}</label>
-                        <input
-                          id="reservation-guest-email"
-                          type="email"
-                          class="form-control"
-                          [ngClass]="{ 'is-invalid': isGuestInvalid('email') }"
-                          formControlName="email">
-                        @if (isGuestInvalid('email')) {
-                          <div class="invalid-feedback">{{ 'reservations.validation.emailInvalid' | translate }}</div>
                         }
                       </div>
 
@@ -206,7 +193,7 @@
                                 }
                               </div>
                               <div class="small text-muted">
-                                {{ guest.email || '—' }} · {{ guest.phone || '—' }}
+                                {{ guest.phone || '—' }}
                               </div>
                             </div>
                             <div class="btn-group">
@@ -219,6 +206,111 @@
                                 <i class="bi bi-pencil-square"></i>
                               </button>
                               <button type="button" class="btn btn-outline-danger btn-sm" (click)="removeGuest($index)">
+                                <i class="bi bi-trash"></i>
+                              </button>
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                <div class="card border-0 bg-light">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                      <div>
+                        <h6 class="mb-1">{{ 'reservations.supplies.title' | translate }}</h6>
+                        <div class="small text-muted">{{ 'reservations.supplies.subtitle' | translate }}</div>
+                      </div>
+                      <span class="badge text-bg-secondary">{{ suppliesCount() }}</span>
+                    </div>
+
+                    <div [formGroup]="supplyForm" class="row g-2 mb-3">
+                      <div class="col-12">
+                        <label for="reservation-supply-item" class="form-label">{{ 'reservations.supplies.item' | translate }}</label>
+                        <select
+                          id="reservation-supply-item"
+                          class="form-select"
+                          [ngClass]="{ 'is-invalid': isSupplyInvalid('inventoryItemId') }"
+                          formControlName="inventoryItemId"
+                          (change)="onSupplyInventoryItemSelected(supplyForm.controls.inventoryItemId.value)">
+                          <option value="">{{ 'reservations.supplies.selectItem' | translate }}</option>
+                          @for (item of inventoryItems; track item.id) {
+                            <option [value]="item.id">
+                              {{ item.name }}
+                              @if (item.internalCode) {
+                                — {{ item.internalCode }}
+                              }
+                            </option>
+                          }
+                        </select>
+                        @if (isSupplyInvalid('inventoryItemId')) {
+                          <div class="invalid-feedback">{{ 'reservations.validation.supplyItemRequired' | translate }}</div>
+                        }
+                      </div>
+
+                      <div class="col-12 col-lg-6">
+                        <label for="reservation-supply-quantity" class="form-label">{{ 'reservations.supplies.quantity' | translate }}</label>
+                        <input
+                          id="reservation-supply-quantity"
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          class="form-control"
+                          [ngClass]="{ 'is-invalid': isSupplyInvalid('quantity') }"
+                          formControlName="quantity">
+                        @if (isSupplyInvalid('quantity')) {
+                          <div class="invalid-feedback">{{ 'reservations.validation.supplyQuantityRequired' | translate }}</div>
+                        }
+                      </div>
+
+                      <div class="col-12 col-lg-6">
+                        <label for="reservation-supply-unit" class="form-label">{{ 'reservations.supplies.unit' | translate }}</label>
+                        <input id="reservation-supply-unit" type="text" class="form-control" maxlength="50" formControlName="unit">
+                      </div>
+
+                      <div class="col-12">
+                        <label for="reservation-supply-notes" class="form-label">{{ 'reservations.supplies.notes' | translate }}</label>
+                        <textarea id="reservation-supply-notes" class="form-control" rows="2" formControlName="notes"></textarea>
+                      </div>
+
+                      <div class="col-12 d-flex gap-2">
+                        <button type="button" class="btn btn-primary" (click)="addOrUpdateSupply()">
+                          <i class="bi bi-plus-lg me-1"></i>
+                          {{ (editingSupplyIndex() === null ? 'reservations.supplies.add' : 'reservations.supplies.update') | translate }}
+                        </button>
+                        @if (editingSupplyIndex() !== null) {
+                          <button type="button" class="btn btn-outline-secondary" (click)="cancelSupplyEdit()">
+                            {{ 'common.cancel' | translate }}
+                          </button>
+                        }
+                      </div>
+                    </div>
+
+                    @if (supplies().length === 0) {
+                      <div class="text-muted small border rounded-3 p-3 bg-white">
+                        {{ 'reservations.supplies.empty' | translate }}
+                      </div>
+                    } @else {
+                      <div class="list-group">
+                        @for (supply of supplies(); track $index) {
+                          <div class="list-group-item d-flex justify-content-between align-items-start gap-3">
+                            <div>
+                              <div class="fw-semibold">{{ supplyItemName(supply) }}</div>
+                              <div class="small text-muted">
+                                {{ supply.quantity | number:'1.0-2' }} {{ supply.unit || '' }}
+                                · {{ supplyItemCode(supply) }}
+                              </div>
+                              @if (supply.notes) {
+                                <div class="small text-muted">{{ supply.notes }}</div>
+                              }
+                            </div>
+                            <div class="btn-group">
+                              <button type="button" class="btn btn-outline-primary btn-sm" (click)="editSupply($index)">
+                                <i class="bi bi-pencil-square"></i>
+                              </button>
+                              <button type="button" class="btn btn-outline-danger btn-sm" (click)="removeSupply($index)">
                                 <i class="bi bi-trash"></i>
                               </button>
                             </div>

@@ -42,6 +42,9 @@ public record ReservationRequest(
         ReservationStatus status,
 
         @Valid
-        List<ReservationGuestRequest> guests
+        List<ReservationGuestRequest> guests,
+
+        @Valid
+        List<ReservationSupplyRequest> supplies
 ) {
 }

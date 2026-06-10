@@ -1,5 +1,7 @@
 package com.tamias.reservation.service;
 
+import com.tamias.catalog.inventoryitem.entity.InventoryItem;
+import com.tamias.catalog.inventoryitem.repository.InventoryItemRepository;
 import com.tamias.catalog.platform.repository.PlatformRepository;
 import com.tamias.common.dto.PageResponse;
 import com.tamias.common.exception.BadRequestException;
@@ -14,20 +16,24 @@ import com.tamias.property.repository.PropertyRepository;
 import com.tamias.reservation.dto.ReservationGuestRequest;
 import com.tamias.reservation.dto.ReservationRequest;
 import com.tamias.reservation.dto.ReservationResponse;
-import com.tamias.reservation.enums.ReservationStatus;
-import com.tamias.reservation.mapper.ReservationMapper;
+import com.tamias.reservation.dto.ReservationSummaryResponse;
+import com.tamias.reservation.dto.ReservationSupplyRequest;
+import com.tamias.reservation.dto.ReservationSupplyResponse;
+import com.tamias.reservation.dto.ReservationSupplyUpdateRequest;
 import com.tamias.reservation.entity.Reservation;
 import com.tamias.reservation.entity.ReservationGuest;
+import com.tamias.reservation.entity.ReservationSupply;
+import com.tamias.reservation.enums.ReservationStatus;
+import com.tamias.reservation.mapper.ReservationMapper;
 import com.tamias.reservation.repository.ReservationGuestRepository;
 import com.tamias.reservation.repository.ReservationRepository;
+import com.tamias.reservation.repository.ReservationSupplyRepository;
 import com.tamias.security.service.CurrentUserService;
 import com.tamias.user.entity.User;
 import com.tamias.user.repository.UserRepository;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -39,10 +45,12 @@ public class ReservationService {
 
     private final ReservationRepository reservationRepository;
     private final ReservationGuestRepository reservationGuestRepository;
+    private final ReservationSupplyRepository reservationSupplyRepository;
     private final GuestRepository guestRepository;
     private final OrganizationRepository organizationRepository;
     private final PropertyRepository propertyRepository;
     private final PlatformRepository platformRepository;
+    private final InventoryItemRepository inventoryItemRepository;
     private final UserRepository userRepository;
     private final CurrentUserService currentUserService;
     private final ReservationMapper reservationMapper;
@@ -50,20 +58,24 @@ public class ReservationService {
     public ReservationService(
             ReservationRepository reservationRepository,
             ReservationGuestRepository reservationGuestRepository,
+            ReservationSupplyRepository reservationSupplyRepository,
             GuestRepository guestRepository,
             OrganizationRepository organizationRepository,
             PropertyRepository propertyRepository,
             PlatformRepository platformRepository,
+            InventoryItemRepository inventoryItemRepository,
             UserRepository userRepository,
             CurrentUserService currentUserService,
             ReservationMapper reservationMapper
     ) {
         this.reservationRepository = reservationRepository;
         this.reservationGuestRepository = reservationGuestRepository;
+        this.reservationSupplyRepository = reservationSupplyRepository;
         this.guestRepository = guestRepository;
         this.organizationRepository = organizationRepository;
         this.propertyRepository = propertyRepository;
         this.platformRepository = platformRepository;
+        this.inventoryItemRepository = inventoryItemRepository;
         this.userRepository = userRepository;
         this.currentUserService = currentUserService;
         this.reservationMapper = reservationMapper;
@@ -71,7 +83,7 @@ public class ReservationService {
 
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'READ_ONLY')")
-    public PageResponse findAll(
+    public PageResponse<ReservationSummaryResponse> findAll(
             UUID propertyId,
             ReservationStatus status,
             Pageable pageable
@@ -94,7 +106,7 @@ public class ReservationService {
 
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'READ_ONLY')")
-    public PageResponse findCalendar(
+    public PageResponse<ReservationSummaryResponse> findCalendar(
             LocalDate startDate,
             LocalDate endDate,
             Pageable pageable
@@ -129,10 +141,20 @@ public class ReservationService {
     public ReservationResponse findById(UUID id) {
         Reservation reservation = findEntityInCurrentOrganization(id);
 
-        return reservationMapper.toResponse(
-                reservation,
-                reservationGuestRepository.findByReservation_Id(reservation.getId())
-        );
+        return toResponse(reservation);
+    }
+
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'READ_ONLY')")
+    public List<ReservationSupplyResponse> findSupplies(UUID reservationId) {
+        Reservation reservation = findEntityInCurrentOrganization(reservationId);
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+
+        return reservationSupplyRepository
+                .findByReservation_IdAndOrganization_IdOrderByCreatedAtAsc(reservation.getId(), organizationId)
+                .stream()
+                .map(reservationMapper::toSupplyResponse)
+                .toList();
     }
 
     @Transactional
@@ -151,8 +173,7 @@ public class ReservationService {
 
         validateAvailability(organizationId, request.propertyId(), request.checkIn(), request.checkOut(), null);
 
-        User currentUser = userRepository.findByIdAndDeletedAtIsNull(currentUserService.getCurrentUserId())
-                .orElseThrow(() -> new NotFoundException("User not found"));
+        User currentUser = findCurrentUser();
 
         Reservation entity = new Reservation();
         entity.setOrganization(organization);
@@ -165,11 +186,9 @@ public class ReservationService {
 
         Reservation saved = reservationRepository.save(entity);
         replaceGuests(saved, request.guests(), organization, currentUser);
+        replaceSupplies(saved, request.supplies());
 
-        return reservationMapper.toResponse(
-                saved,
-                reservationGuestRepository.findByReservation_Id(saved.getId())
-        );
+        return toResponse(saved);
     }
 
     @Transactional
@@ -185,8 +204,7 @@ public class ReservationService {
                 .findByIdAndOrganization_IdAndDeletedAtIsNull(request.propertyId(), organizationId)
                 .orElseThrow(() -> new NotFoundException("Property not found"));
 
-        User currentUser = userRepository.findByIdAndDeletedAtIsNull(currentUserService.getCurrentUserId())
-                .orElseThrow(() -> new NotFoundException("User not found"));
+        User currentUser = findCurrentUser();
 
         entity.setProperty(property);
         entity.setUpdatedBy(currentUser);
@@ -197,30 +215,67 @@ public class ReservationService {
         Reservation saved = reservationRepository.save(entity);
 
         reservationGuestRepository.deleteByReservation_Id(saved.getId());
-
-        /*
-         * Important:
-         * deleteByReservation_Id is executed in the same transaction.
-         * Flush before inserting replacement guests so PostgreSQL sees the old
-         * reservation_guest rows deleted before we insert the same guest again.
-         */
-        reservationGuestRepository.flush();
-
         replaceGuests(saved, request.guests(), saved.getOrganization(), currentUser);
 
-        return reservationMapper.toResponse(
-                saved,
-                reservationGuestRepository.findByReservation_Id(saved.getId())
-        );
+        if (request.supplies() != null) {
+            replaceSupplies(saved, request.supplies());
+        }
+
+        return toResponse(saved);
+    }
+
+    @Transactional
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
+    public ReservationSupplyResponse addSupply(UUID reservationId, ReservationSupplyRequest request) {
+        Reservation reservation = findEntityInCurrentOrganization(reservationId);
+        ReservationSupply saved = createSupplyEntity(reservation, request);
+
+        return reservationMapper.toSupplyResponse(saved);
+    }
+
+    @Transactional
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
+    public ReservationSupplyResponse updateSupply(
+            UUID reservationId,
+            UUID supplyId,
+            ReservationSupplyUpdateRequest request
+    ) {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+
+        ReservationSupply entity = reservationSupplyRepository
+                .findByIdAndReservation_IdAndOrganization_Id(supplyId, reservationId, organizationId)
+                .orElseThrow(() -> new NotFoundException("Reservation supply not found"));
+
+        InventoryItem inventoryItem = resolveReservationInventoryItem(request.inventoryItemId(), organizationId);
+
+        entity.setInventoryItem(inventoryItem);
+        entity.setQuantity(request.quantity());
+        entity.setUnit(resolveUnit(request.unit(), inventoryItem));
+        entity.setItemNameSnapshot(inventoryItem.getName());
+        entity.setInternalCodeSnapshot(inventoryItem.getInternalCode());
+        entity.setBarcodeSnapshot(inventoryItem.getBarcode());
+        entity.setNotes(request.notes());
+
+        return reservationMapper.toSupplyResponse(reservationSupplyRepository.save(entity));
+    }
+
+    @Transactional
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
+    public void deleteSupply(UUID reservationId, UUID supplyId) {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+
+        ReservationSupply entity = reservationSupplyRepository
+                .findByIdAndReservation_IdAndOrganization_Id(supplyId, reservationId, organizationId)
+                .orElseThrow(() -> new NotFoundException("Reservation supply not found"));
+
+        reservationSupplyRepository.delete(entity);
     }
 
     @Transactional
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
     public ReservationResponse cancel(UUID id, String reason) {
         Reservation entity = findEntityInCurrentOrganization(id);
-
-        var currentUser = userRepository.findByIdAndDeletedAtIsNull(currentUserService.getCurrentUserId())
-                .orElseThrow(() -> new NotFoundException("User not found"));
+        User currentUser = findCurrentUser();
 
         entity.setStatus(ReservationStatus.CANCELLED);
         entity.setObservations(appendReason(entity.getObservations(), reason));
@@ -228,19 +283,14 @@ public class ReservationService {
 
         Reservation saved = reservationRepository.save(entity);
 
-        return reservationMapper.toResponse(
-                saved,
-                reservationGuestRepository.findByReservation_Id(saved.getId())
-        );
+        return toResponse(saved);
     }
 
     @Transactional
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
     public void delete(UUID id) {
         Reservation entity = findEntityInCurrentOrganization(id);
-
-        var currentUser = userRepository.findByIdAndDeletedAtIsNull(currentUserService.getCurrentUserId())
-                .orElseThrow(() -> new NotFoundException("User not found"));
+        User currentUser = findCurrentUser();
 
         entity.setStatus(ReservationStatus.DELETED);
         entity.setDeletedAt(OffsetDateTime.now());
@@ -250,11 +300,29 @@ public class ReservationService {
         reservationRepository.save(entity);
     }
 
+    private ReservationResponse toResponse(Reservation reservation) {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+
+        return reservationMapper.toResponse(
+                reservation,
+                reservationGuestRepository.findByReservation_Id(reservation.getId()),
+                reservationSupplyRepository.findByReservation_IdAndOrganization_IdOrderByCreatedAtAsc(
+                        reservation.getId(),
+                        organizationId
+                )
+        );
+    }
+
     private Reservation findEntityInCurrentOrganization(UUID id) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
         return reservationRepository.findByIdAndOrganization_IdAndDeletedAtIsNull(id, organizationId)
                 .orElseThrow(() -> new NotFoundException("Reservation not found"));
+    }
+
+    private User findCurrentUser() {
+        return userRepository.findByIdAndDeletedAtIsNull(currentUserService.getCurrentUserId())
+                .orElseThrow(() -> new NotFoundException("User not found"));
     }
 
     private void setOptionalPlatform(Reservation entity, UUID platformId, UUID organizationId) {
@@ -280,14 +348,8 @@ public class ReservationService {
             return;
         }
 
-        Set<UUID> guestIdsInRequest = new LinkedHashSet<>();
-
         for (ReservationGuestRequest guestRequest : guestRequests) {
             Guest guest = resolveGuest(guestRequest, organization, currentUser);
-
-            if (!guestIdsInRequest.add(guest.getId())) {
-                throw new BadRequestException("Duplicate guest in reservation request");
-            }
 
             ReservationGuest reservationGuest = new ReservationGuest();
             reservationGuest.setOrganization(organization);
@@ -297,6 +359,56 @@ public class ReservationService {
 
             reservationGuestRepository.save(reservationGuest);
         }
+    }
+
+    private void replaceSupplies(Reservation reservation, List<ReservationSupplyRequest> supplyRequests) {
+        reservationSupplyRepository.deleteByReservation_Id(reservation.getId());
+
+        if (supplyRequests == null || supplyRequests.isEmpty()) {
+            return;
+        }
+
+        for (ReservationSupplyRequest supplyRequest : supplyRequests) {
+            createSupplyEntity(reservation, supplyRequest);
+        }
+    }
+
+    private ReservationSupply createSupplyEntity(Reservation reservation, ReservationSupplyRequest request) {
+        UUID organizationId = reservation.getOrganization().getId();
+        InventoryItem inventoryItem = resolveReservationInventoryItem(request.inventoryItemId(), organizationId);
+
+        ReservationSupply entity = new ReservationSupply();
+        entity.setOrganization(reservation.getOrganization());
+        entity.setReservation(reservation);
+        entity.setInventoryItem(inventoryItem);
+        entity.setQuantity(request.quantity());
+        entity.setUnit(resolveUnit(request.unit(), inventoryItem));
+        entity.setItemNameSnapshot(inventoryItem.getName());
+        entity.setInternalCodeSnapshot(inventoryItem.getInternalCode());
+        entity.setBarcodeSnapshot(inventoryItem.getBarcode());
+        entity.setNotes(request.notes());
+
+        return reservationSupplyRepository.save(entity);
+    }
+
+    private InventoryItem resolveReservationInventoryItem(UUID inventoryItemId, UUID organizationId) {
+        InventoryItem inventoryItem = inventoryItemRepository
+                .findByIdAndOrganization_IdAndDeletedAtIsNull(inventoryItemId, organizationId)
+                .orElseThrow(() -> new NotFoundException("Inventory item not found"));
+
+        if (!Boolean.TRUE.equals(inventoryItem.getAvailableForReservations())) {
+            throw new BadRequestException("Inventory item is not available for reservations");
+        }
+
+        return inventoryItem;
+    }
+
+    private String resolveUnit(String requestedUnit, InventoryItem inventoryItem) {
+        if (requestedUnit != null && !requestedUnit.isBlank()) {
+            return requestedUnit.trim();
+        }
+
+        return inventoryItem.getUnit();
     }
 
     private Guest resolveGuest(

@@ -8,3 +8,12 @@ export interface ReservationPlatformOption {
   id: string;
   name: string;
 }
+
+export interface ReservationInventoryItemOption {
+  id: string;
+  name: string;
+  unit: string | null;
+  itemType: string | null;
+  internalCode: string | null;
+  barcode: string | null;
+}
