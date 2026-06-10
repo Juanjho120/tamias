@@ -26,7 +26,9 @@
   "status": {
     "ACTIVE": "Activo",
     "INACTIVE": "Inactivo",
-    "DELETED": "Eliminado"
+    "DELETED": "Eliminado",
+    "INVITED": "Invitado",
+    "LOCKED": "Bloqueado"
   },
   "errors": {
     "network": "Backend no disponible. Verifica que la API esté levantada.",
@@ -47,10 +49,11 @@
     "tasks": "Tareas",
     "purchases": "Compras",
     "documents": "Documentos",
-    "aiAssistant": "Asistente IA"
+    "aiAssistant": "Asistente IA",
+    "users": "Usuarios"
   },
   "login": {
-    "title": "Bienvenido",
+    "title": "Bienvenido a TAMIAS",
     "subtitle": "Inicia sesión para administrar tus propiedades.",
     "email": "Correo electrónico",
     "password": "Contraseña",
@@ -1196,5 +1199,95 @@
       "renameError": "No se pudo renombrar la sesión.",
       "renamed": "Sesión renombrada correctamente."
     }
+  },
+  "roles": {
+    "ADMINISTRATOR": {
+      "label": "Administrador",
+      "description": "Acceso completo para administrar usuarios, roles, propiedades, operación, documentos e IA dentro de la organización."
+    },
+    "PROPERTY_MANAGER": {
+      "label": "Administrador de propiedades",
+      "description": "Puede gestionar la operación diaria: mantenimiento, reservaciones, compras, documentos y tareas."
+    },
+    "MAINTENANCE_STAFF": {
+      "label": "Personal de mantenimiento",
+      "description": "Puede trabajar con flujos de mantenimiento y tareas operativas asignadas con acceso limitado."
+    },
+    "READ_ONLY": {
+      "label": "Solo lectura",
+      "description": "Puede consultar información, pero no puede crear, actualizar ni eliminar registros operativos."
+    }
+  },
+  "users": {
+    "title": "Usuarios",
+    "save": "Guardar usuario",
+    "subtitle": "Administra usuarios, roles y accesos dentro de tu organización.",
+    "newUser": "Nuevo usuario",
+    "loading": "Cargando usuarios...",
+    "currentUser": "Usuario actual",
+    "fields": {
+      "firstName": "Nombre",
+      "lastName": "Apellido",
+      "email": "Correo",
+      "password": "Contraseña temporal",
+      "role": "Rol",
+      "status": "Estado"
+    },
+    "table": {
+      "name": "Nombre",
+      "email": "Correo",
+      "role": "Rol",
+      "status": "Estado",
+      "created": "Creado",
+      "actions": "Acciones",
+      "you": "Tú"
+    },
+    "actions": {
+      "activate": "Activar",
+      "deactivate": "Desactivar"
+    },
+    "form": {
+      "createTitle": "Crear usuario",
+      "editTitle": "Editar usuario",
+      "subtitle": "Asigna un rol y controla el acceso del usuario.",
+      "passwordHelp": "El usuario podrá usar esta contraseña para iniciar sesión por primera vez."
+    },
+    "roles": {
+      "title": "Roles disponibles"
+    },
+    "permissions": {
+      "title": "Roles y permisos",
+      "description": "Los permisos actualmente son por rol y se validan en el backend. La administración de permisos personalizados puede agregarse más adelante si se necesita."
+    },
+    "empty": {
+      "title": "No hay usuarios",
+      "description": "Crea el primer usuario para esta organización."
+    },
+    "pagination": {
+      "noUsers": "No hay usuarios",
+      "pageOf": "Página {{page}} de {{totalPages}}"
+    },
+    "validation": {
+      "firstNameRequired": "El nombre es obligatorio.",
+      "lastNameRequired": "El apellido es obligatorio.",
+      "emailRequired": "Ingresa un correo válido.",
+      "passwordRequired": "La contraseña debe tener entre 8 y 100 caracteres.",
+      "roleRequired": "El rol es obligatorio.",
+      "statusRequired": "El estado es obligatorio."
+    },
+    "messages": {
+      "loadError": "No se pudieron cargar los usuarios.",
+      "detailError": "No se pudo cargar el detalle del usuario.",
+      "saveError": "No se pudo guardar el usuario.",
+      "deleteError": "No se pudo eliminar el usuario.",
+      "statusError": "No se pudo actualizar el estado del usuario.",
+      "created": "Usuario creado correctamente.",
+      "updated": "Usuario actualizado correctamente.",
+      "deleted": "Usuario eliminado correctamente.",
+      "activated": "Usuario activado correctamente.",
+      "deactivated": "Usuario desactivado correctamente."
+    },
+    "confirmDeleteTitle": "Eliminar usuario",
+    "confirmDeleteMessage": "¿Seguro que deseas eliminar a {{name}}?"
   }
 }

@@ -26,7 +26,9 @@
   "status": {
     "ACTIVE": "Active",
     "INACTIVE": "Inactive",
-    "DELETED": "Deleted"
+    "DELETED": "Deleted",
+    "INVITED": "Invited",
+    "LOCKED": "Locked"
   },
   "errors": {
     "network": "Backend unavailable. Please verify that the API is running.",
@@ -47,10 +49,11 @@
     "tasks": "Tasks",
     "purchases": "Purchases",
     "documents": "Documents",
-    "aiAssistant": "AI Assistant"
+    "aiAssistant": "AI Assistant",
+    "users": "Users"
   },
   "login": {
-    "title": "Welcome",
+    "title": "Welcome to TAMIAS",
     "subtitle": "Sign in to manage your properties.",
     "email": "Email",
     "password": "Password",
@@ -1198,10 +1201,29 @@
       "renamed": "Chat session renamed successfully."
     }
   },
+  "roles": {
+    "ADMINISTRATOR": {
+      "label": "Administrator",
+      "description": "Full access to manage users, roles, properties, operations, documents and AI within the organization."
+    },
+    "PROPERTY_MANAGER": {
+      "label": "Property Manager",
+      "description": "Can manage daily property operations such as maintenance, reservations, purchases, documents and tasks."
+    },
+    "MAINTENANCE_STAFF": {
+      "label": "Maintenance Staff",
+      "description": "Can work with maintenance-related flows and assigned operational tasks with limited access."
+    },
+    "READ_ONLY": {
+      "label": "Read Only",
+      "description": "Can view information but cannot create, update or delete operational records."
+    }
+  },
   "users": {
     "title": "Users",
     "subtitle": "Manage users, roles and access inside your organization.",
     "newUser": "New user",
+    "save": "Save user",
     "loading": "Loading users...",
     "currentUser": "Current user",
     "fields": {
