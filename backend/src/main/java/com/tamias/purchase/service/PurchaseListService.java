@@ -3,6 +3,7 @@ package com.tamias.purchase.service;
 import com.tamias.catalog.brand.entity.Brand;
 import com.tamias.catalog.brand.repository.BrandRepository;
 import com.tamias.catalog.city.repository.CityRepository;
+import com.tamias.catalog.enums.CatalogStatus;
 import com.tamias.catalog.inventoryitem.entity.InventoryItem;
 import com.tamias.catalog.inventoryitem.repository.InventoryItemRepository;
 import com.tamias.catalog.supplier.repository.SupplierRepository;
@@ -37,7 +38,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class PurchaseListService {
-
     private final PurchaseListRepository purchaseListRepository;
     private final PurchaseItemRepository purchaseItemRepository;
     private final OrganizationRepository organizationRepository;
@@ -51,17 +51,17 @@ public class PurchaseListService {
     private final PurchaseMapper purchaseMapper;
 
     public PurchaseListService(
-            PurchaseListRepository purchaseListRepository,
-            PurchaseItemRepository purchaseItemRepository,
-            OrganizationRepository organizationRepository,
-            PropertyRepository propertyRepository,
-            CityRepository cityRepository,
-            SupplierRepository supplierRepository,
-            InventoryItemRepository inventoryItemRepository,
-            BrandRepository brandRepository,
-            UserRepository userRepository,
-            CurrentUserService currentUserService,
-            PurchaseMapper purchaseMapper
+        PurchaseListRepository purchaseListRepository,
+        PurchaseItemRepository purchaseItemRepository,
+        OrganizationRepository organizationRepository,
+        PropertyRepository propertyRepository,
+        CityRepository cityRepository,
+        SupplierRepository supplierRepository,
+        InventoryItemRepository inventoryItemRepository,
+        BrandRepository brandRepository,
+        UserRepository userRepository,
+        CurrentUserService currentUserService,
+        PurchaseMapper purchaseMapper
     ) {
         this.purchaseListRepository = purchaseListRepository;
         this.purchaseItemRepository = purchaseItemRepository;
@@ -79,11 +79,11 @@ public class PurchaseListService {
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF', 'READ_ONLY')")
     public PageResponse<PurchaseListSummaryResponse> findAll(
-            UUID propertyId,
-            UUID supplierId,
-            UUID cityId,
-            PurchaseListStatus status,
-            Pageable pageable
+        UUID propertyId,
+        UUID supplierId,
+        UUID cityId,
+        PurchaseListStatus status,
+        Pageable pageable
     ) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
@@ -91,36 +91,36 @@ public class PurchaseListService {
 
         if (supplierId != null) {
             page = purchaseListRepository.findByOrganization_IdAndSupplier_IdAndDeletedAtIsNull(
-                    organizationId,
-                    supplierId,
-                    pageable
+                organizationId,
+                supplierId,
+                pageable
             );
         } else if (cityId != null) {
             page = purchaseListRepository.findByOrganization_IdAndCity_IdAndDeletedAtIsNull(
-                    organizationId,
-                    cityId,
-                    pageable
+                organizationId,
+                cityId,
+                pageable
             );
         } else if (propertyId == null && status == null) {
             page = purchaseListRepository.findByOrganization_IdAndDeletedAtIsNull(organizationId, pageable);
         } else if (propertyId != null && status == null) {
             page = purchaseListRepository.findByOrganization_IdAndProperty_IdAndDeletedAtIsNull(
-                    organizationId,
-                    propertyId,
-                    pageable
+                organizationId,
+                propertyId,
+                pageable
             );
         } else if (propertyId == null) {
             page = purchaseListRepository.findByOrganization_IdAndStatusAndDeletedAtIsNull(
-                    organizationId,
-                    status,
-                    pageable
+                organizationId,
+                status,
+                pageable
             );
         } else {
             page = purchaseListRepository.findByOrganization_IdAndProperty_IdAndStatusAndDeletedAtIsNull(
-                    organizationId,
-                    propertyId,
-                    status,
-                    pageable
+                organizationId,
+                propertyId,
+                status,
+                pageable
             );
         }
 
@@ -133,22 +133,24 @@ public class PurchaseListService {
         PurchaseList purchaseList = findPurchaseList(id);
 
         return purchaseMapper.toResponse(
-                purchaseList,
-                purchaseItemRepository.findByPurchaseList_IdOrderByCreatedAtAsc(purchaseList.getId()),
-                purchaseItemRepository.calculateEstimatedTotal(purchaseList.getId())
+            purchaseList,
+            purchaseItemRepository.findByPurchaseList_IdOrderByCreatedAtAsc(purchaseList.getId()),
+            purchaseItemRepository.calculateEstimatedTotal(purchaseList.getId())
         );
     }
 
     @Transactional
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF')")
     public PurchaseListResponse create(PurchaseListRequest request) {
+        validateWritableStatus(request.status());
+
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
         var organization = organizationRepository.findByIdAndDeletedAtIsNull(organizationId)
-                .orElseThrow(() -> new NotFoundException("Organization not found"));
+            .orElseThrow(() -> new NotFoundException("Organization not found"));
 
         var currentUser = userRepository.findByIdAndDeletedAtIsNull(currentUserService.getCurrentUserId())
-                .orElseThrow(() -> new NotFoundException("User not found"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
 
         PurchaseList purchaseList = new PurchaseList();
         purchaseList.setOrganization(organization);
@@ -172,12 +174,13 @@ public class PurchaseListService {
     @Transactional
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF')")
     public PurchaseListResponse update(UUID id, PurchaseListRequest request) {
-        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        validateWritableStatus(request.status());
 
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
         PurchaseList purchaseList = findPurchaseList(id);
 
         var currentUser = userRepository.findByIdAndDeletedAtIsNull(currentUserService.getCurrentUserId())
-                .orElseThrow(() -> new NotFoundException("User not found"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
 
         purchaseList.setUpdatedBy(currentUser);
 
@@ -199,7 +202,7 @@ public class PurchaseListService {
         PurchaseList purchaseList = findPurchaseList(id);
 
         var currentUser = userRepository.findByIdAndDeletedAtIsNull(currentUserService.getCurrentUserId())
-                .orElseThrow(() -> new NotFoundException("User not found"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
 
         purchaseList.setStatus(PurchaseListStatus.DELETED);
         purchaseList.setDeletedAt(OffsetDateTime.now());
@@ -214,6 +217,7 @@ public class PurchaseListService {
     public PurchaseItemResponse createItem(UUID purchaseListId, PurchaseItemRequest request) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         PurchaseList purchaseList = findPurchaseList(purchaseListId);
+
         PurchaseItem saved = createItemEntity(purchaseList, request, organizationId);
 
         return purchaseMapper.toItemResponse(saved);
@@ -224,9 +228,11 @@ public class PurchaseListService {
     public PurchaseItemResponse updateItem(UUID purchaseListId, UUID itemId, PurchaseItemUpdateRequest request) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
+        findPurchaseList(purchaseListId);
+
         PurchaseItem item = purchaseItemRepository
-                .findByIdAndPurchaseList_IdAndOrganization_Id(itemId, purchaseListId, organizationId)
-                .orElseThrow(() -> new NotFoundException("Purchase item not found"));
+            .findByIdAndPurchaseList_IdAndOrganization_Id(itemId, purchaseListId, organizationId)
+            .orElseThrow(() -> new NotFoundException("Purchase item not found"));
 
         InventoryItem inventoryItem = resolveInventoryItem(request.requestedInventoryItemId(), organizationId);
         Brand brand = resolveBrand(request.brandId(), organizationId);
@@ -240,15 +246,17 @@ public class PurchaseListService {
     @Transactional
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF')")
     public PurchaseItemResponse updateItemPurchased(
-            UUID purchaseListId,
-            UUID itemId,
-            PurchaseItemPurchasedRequest request
+        UUID purchaseListId,
+        UUID itemId,
+        PurchaseItemPurchasedRequest request
     ) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
+        findPurchaseList(purchaseListId);
+
         PurchaseItem item = purchaseItemRepository
-                .findByIdAndPurchaseList_IdAndOrganization_Id(itemId, purchaseListId, organizationId)
-                .orElseThrow(() -> new NotFoundException("Purchase item not found"));
+            .findByIdAndPurchaseList_IdAndOrganization_Id(itemId, purchaseListId, organizationId)
+            .orElseThrow(() -> new NotFoundException("Purchase item not found"));
 
         item.setPurchased(request.purchased());
 
@@ -260,9 +268,11 @@ public class PurchaseListService {
     public void deleteItem(UUID purchaseListId, UUID itemId) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
+        findPurchaseList(purchaseListId);
+
         PurchaseItem item = purchaseItemRepository
-                .findByIdAndPurchaseList_IdAndOrganization_Id(itemId, purchaseListId, organizationId)
-                .orElseThrow(() -> new NotFoundException("Purchase item not found"));
+            .findByIdAndPurchaseList_IdAndOrganization_Id(itemId, purchaseListId, organizationId)
+            .orElseThrow(() -> new NotFoundException("Purchase item not found"));
 
         purchaseItemRepository.delete(item);
     }
@@ -271,15 +281,15 @@ public class PurchaseListService {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
         return purchaseListRepository.findByIdAndOrganization_IdAndDeletedAtIsNull(id, organizationId)
-                .orElseThrow(() -> new NotFoundException("Purchase list not found"));
+            .orElseThrow(() -> new NotFoundException("Purchase list not found"));
     }
 
     private PurchaseListSummaryResponse toSummaryResponse(PurchaseList purchaseList) {
         return purchaseMapper.toSummaryResponse(
-                purchaseList,
-                purchaseItemRepository.countByPurchaseList_Id(purchaseList.getId()),
-                purchaseItemRepository.countByPurchaseList_IdAndPurchased(purchaseList.getId(), true),
-                purchaseItemRepository.calculateEstimatedTotal(purchaseList.getId())
+            purchaseList,
+            purchaseItemRepository.countByPurchaseList_Id(purchaseList.getId()),
+            purchaseItemRepository.countByPurchaseList_IdAndPurchased(purchaseList.getId(), true),
+            purchaseItemRepository.calculateEstimatedTotal(purchaseList.getId())
         );
     }
 
@@ -302,8 +312,8 @@ public class PurchaseListService {
             purchaseList.setProperty(null);
         } else {
             var property = propertyRepository
-                    .findByIdAndOrganization_IdAndDeletedAtIsNull(request.propertyId(), organizationId)
-                    .orElseThrow(() -> new NotFoundException("Property not found"));
+                .findByIdAndOrganization_IdAndDeletedAtIsNull(request.propertyId(), organizationId)
+                .orElseThrow(() -> new NotFoundException("Property not found"));
 
             purchaseList.setProperty(property);
         }
@@ -312,8 +322,8 @@ public class PurchaseListService {
             purchaseList.setCity(null);
         } else {
             var city = cityRepository
-                    .findByIdAndOrganization_IdAndDeletedAtIsNull(request.cityId(), organizationId)
-                    .orElseThrow(() -> new NotFoundException("City not found"));
+                .findByIdAndOrganization_IdAndDeletedAtIsNull(request.cityId(), organizationId)
+                .orElseThrow(() -> new NotFoundException("City not found"));
 
             purchaseList.setCity(city);
         }
@@ -322,8 +332,8 @@ public class PurchaseListService {
             purchaseList.setSupplier(null);
         } else {
             var supplier = supplierRepository
-                    .findByIdAndOrganization_IdAndDeletedAtIsNull(request.supplierId(), organizationId)
-                    .orElseThrow(() -> new NotFoundException("Supplier not found"));
+                .findByIdAndOrganization_IdAndDeletedAtIsNull(request.supplierId(), organizationId)
+                .orElseThrow(() -> new NotFoundException("Supplier not found"));
 
             purchaseList.setSupplier(supplier);
         }
@@ -334,9 +344,15 @@ public class PurchaseListService {
             return null;
         }
 
-        return inventoryItemRepository
-                .findByIdAndOrganization_IdAndDeletedAtIsNull(inventoryItemId, organizationId)
-                .orElseThrow(() -> new NotFoundException("Inventory item not found"));
+        InventoryItem inventoryItem = inventoryItemRepository
+            .findByIdAndOrganization_IdAndDeletedAtIsNull(inventoryItemId, organizationId)
+            .orElseThrow(() -> new NotFoundException("Inventory item not found"));
+
+        if (inventoryItem.getStatus() != CatalogStatus.ACTIVE || !Boolean.TRUE.equals(inventoryItem.getAvailableForPurchases())) {
+            throw new BadRequestException("Inventory item is not available for purchases");
+        }
+
+        return inventoryItem;
     }
 
     private Brand resolveBrand(UUID brandId, UUID organizationId) {
@@ -345,8 +361,8 @@ public class PurchaseListService {
         }
 
         return brandRepository
-                .findByIdAndOrganization_IdAndDeletedAtIsNull(brandId, organizationId)
-                .orElseThrow(() -> new NotFoundException("Brand not found"));
+            .findByIdAndOrganization_IdAndDeletedAtIsNull(brandId, organizationId)
+            .orElseThrow(() -> new NotFoundException("Brand not found"));
     }
 
     private String resolveItemName(String requestedName, InventoryItem inventoryItem) {
@@ -363,7 +379,7 @@ public class PurchaseListService {
 
     private void replaceItems(PurchaseList purchaseList, List<PurchaseItemRequest> itemRequests, UUID organizationId) {
         List<PurchaseItem> currentItems = purchaseItemRepository.findByPurchaseList_IdOrderByCreatedAtAsc(
-                purchaseList.getId()
+            purchaseList.getId()
         );
 
         purchaseItemRepository.deleteAll(currentItems);
@@ -371,6 +387,12 @@ public class PurchaseListService {
 
         for (PurchaseItemRequest itemRequest : itemRequests) {
             createItemEntity(purchaseList, itemRequest, organizationId);
+        }
+    }
+
+    private void validateWritableStatus(PurchaseListStatus status) {
+        if (status == PurchaseListStatus.DELETED) {
+            throw new BadRequestException("Use the delete endpoint to delete a purchase list");
         }
     }
 }
