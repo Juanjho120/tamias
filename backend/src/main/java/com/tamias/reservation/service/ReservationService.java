@@ -1,5 +1,6 @@
 package com.tamias.reservation.service;
 
+import com.tamias.catalog.enums.CatalogStatus;
 import com.tamias.catalog.inventoryitem.entity.InventoryItem;
 import com.tamias.catalog.inventoryitem.repository.InventoryItemRepository;
 import com.tamias.catalog.platform.repository.PlatformRepository;
@@ -42,7 +43,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ReservationService {
-
     private final ReservationRepository reservationRepository;
     private final ReservationGuestRepository reservationGuestRepository;
     private final ReservationSupplyRepository reservationSupplyRepository;
@@ -56,17 +56,17 @@ public class ReservationService {
     private final ReservationMapper reservationMapper;
 
     public ReservationService(
-            ReservationRepository reservationRepository,
-            ReservationGuestRepository reservationGuestRepository,
-            ReservationSupplyRepository reservationSupplyRepository,
-            GuestRepository guestRepository,
-            OrganizationRepository organizationRepository,
-            PropertyRepository propertyRepository,
-            PlatformRepository platformRepository,
-            InventoryItemRepository inventoryItemRepository,
-            UserRepository userRepository,
-            CurrentUserService currentUserService,
-            ReservationMapper reservationMapper
+        ReservationRepository reservationRepository,
+        ReservationGuestRepository reservationGuestRepository,
+        ReservationSupplyRepository reservationSupplyRepository,
+        GuestRepository guestRepository,
+        OrganizationRepository organizationRepository,
+        PropertyRepository propertyRepository,
+        PlatformRepository platformRepository,
+        InventoryItemRepository inventoryItemRepository,
+        UserRepository userRepository,
+        CurrentUserService currentUserService,
+        ReservationMapper reservationMapper
     ) {
         this.reservationRepository = reservationRepository;
         this.reservationGuestRepository = reservationGuestRepository;
@@ -84,32 +84,45 @@ public class ReservationService {
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'READ_ONLY')")
     public PageResponse<ReservationSummaryResponse> findAll(
-            UUID propertyId,
-            ReservationStatus status,
-            Pageable pageable
+        UUID propertyId,
+        ReservationStatus status,
+        Pageable pageable
     ) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
         var page = propertyId == null && status == null
-                ? reservationRepository.findByOrganization_IdAndDeletedAtIsNull(organizationId, pageable)
-                : propertyId != null && status == null
-                ? reservationRepository.findByOrganization_IdAndProperty_IdAndDeletedAtIsNull(organizationId, propertyId, pageable)
+            ? reservationRepository.findByOrganization_IdAndDeletedAtIsNull(organizationId, pageable)
+            : propertyId != null && status == null
+                ? reservationRepository.findByOrganization_IdAndProperty_IdAndDeletedAtIsNull(
+                    organizationId,
+                    propertyId,
+                    pageable
+                )
                 : propertyId == null
-                ? reservationRepository.findByOrganization_IdAndStatusAndDeletedAtIsNull(organizationId, status, pageable)
-                : reservationRepository.findByOrganization_IdAndProperty_IdAndStatusAndDeletedAtIsNull(organizationId, propertyId, status, pageable);
+                    ? reservationRepository.findByOrganization_IdAndStatusAndDeletedAtIsNull(
+                        organizationId,
+                        status,
+                        pageable
+                    )
+                    : reservationRepository.findByOrganization_IdAndProperty_IdAndStatusAndDeletedAtIsNull(
+                        organizationId,
+                        propertyId,
+                        status,
+                        pageable
+                    );
 
         return PageResponse.from(page.map(reservation -> reservationMapper.toSummaryResponse(
-                reservation,
-                reservationGuestRepository.findByReservation_Id(reservation.getId())
+            reservation,
+            reservationGuestRepository.findByReservation_Id(reservation.getId())
         )));
     }
 
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'READ_ONLY')")
     public PageResponse<ReservationSummaryResponse> findCalendar(
-            LocalDate startDate,
-            LocalDate endDate,
-            Pageable pageable
+        LocalDate startDate,
+        LocalDate endDate,
+        Pageable pageable
     ) {
         if (startDate == null || endDate == null) {
             throw new BadRequestException("Start date and end date are required");
@@ -122,16 +135,16 @@ public class ReservationService {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
         var page = reservationRepository
-                .findByOrganization_IdAndCheckInLessThanAndCheckOutGreaterThanAndDeletedAtIsNull(
-                        organizationId,
-                        endDate,
-                        startDate,
-                        pageable
-                )
-                .map(reservation -> reservationMapper.toSummaryResponse(
-                        reservation,
-                        reservationGuestRepository.findByReservation_Id(reservation.getId())
-                ));
+            .findByOrganization_IdAndCheckInLessThanAndCheckOutGreaterThanAndDeletedAtIsNull(
+                organizationId,
+                endDate,
+                startDate,
+                pageable
+            )
+            .map(reservation -> reservationMapper.toSummaryResponse(
+                reservation,
+                reservationGuestRepository.findByReservation_Id(reservation.getId())
+            ));
 
         return PageResponse.from(page);
     }
@@ -140,7 +153,6 @@ public class ReservationService {
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'READ_ONLY')")
     public ReservationResponse findById(UUID id) {
         Reservation reservation = findEntityInCurrentOrganization(id);
-
         return toResponse(reservation);
     }
 
@@ -151,27 +163,34 @@ public class ReservationService {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
         return reservationSupplyRepository
-                .findByReservation_IdAndOrganization_IdOrderByCreatedAtAsc(reservation.getId(), organizationId)
-                .stream()
-                .map(reservationMapper::toSupplyResponse)
-                .toList();
+            .findByReservation_IdAndOrganization_IdOrderByCreatedAtAsc(reservation.getId(), organizationId)
+            .stream()
+            .map(reservationMapper::toSupplyResponse)
+            .toList();
     }
 
     @Transactional
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
     public ReservationResponse create(ReservationRequest request) {
+        validateWritableStatus(request.status());
         validateDates(request);
 
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
         Organization organization = organizationRepository.findByIdAndDeletedAtIsNull(organizationId)
-                .orElseThrow(() -> new NotFoundException("Organization not found"));
+            .orElseThrow(() -> new NotFoundException("Organization not found"));
 
         var property = propertyRepository
-                .findByIdAndOrganization_IdAndDeletedAtIsNull(request.propertyId(), organizationId)
-                .orElseThrow(() -> new NotFoundException("Property not found"));
+            .findByIdAndOrganization_IdAndDeletedAtIsNull(request.propertyId(), organizationId)
+            .orElseThrow(() -> new NotFoundException("Property not found"));
 
-        validateAvailability(organizationId, request.propertyId(), request.checkIn(), request.checkOut(), null);
+        validateAvailability(
+            organizationId,
+            request.propertyId(),
+            request.checkIn(),
+            request.checkOut(),
+            null
+        );
 
         User currentUser = findCurrentUser();
 
@@ -185,6 +204,7 @@ public class ReservationService {
         setOptionalPlatform(entity, request.platformId(), organizationId);
 
         Reservation saved = reservationRepository.save(entity);
+
         replaceGuests(saved, request.guests(), organization, currentUser);
         replaceSupplies(saved, request.supplies());
 
@@ -194,15 +214,23 @@ public class ReservationService {
     @Transactional
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
     public ReservationResponse update(UUID id, ReservationRequest request) {
+        validateWritableStatus(request.status());
         validateDates(request);
 
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-
         Reservation entity = findEntityInCurrentOrganization(id);
 
         var property = propertyRepository
-                .findByIdAndOrganization_IdAndDeletedAtIsNull(request.propertyId(), organizationId)
-                .orElseThrow(() -> new NotFoundException("Property not found"));
+            .findByIdAndOrganization_IdAndDeletedAtIsNull(request.propertyId(), organizationId)
+            .orElseThrow(() -> new NotFoundException("Property not found"));
+
+        validateAvailability(
+            organizationId,
+            request.propertyId(),
+            request.checkIn(),
+            request.checkOut(),
+            id
+        );
 
         User currentUser = findCurrentUser();
 
@@ -230,22 +258,22 @@ public class ReservationService {
     public ReservationSupplyResponse addSupply(UUID reservationId, ReservationSupplyRequest request) {
         Reservation reservation = findEntityInCurrentOrganization(reservationId);
         ReservationSupply saved = createSupplyEntity(reservation, request);
-
         return reservationMapper.toSupplyResponse(saved);
     }
 
     @Transactional
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
     public ReservationSupplyResponse updateSupply(
-            UUID reservationId,
-            UUID supplyId,
-            ReservationSupplyUpdateRequest request
+        UUID reservationId,
+        UUID supplyId,
+        ReservationSupplyUpdateRequest request
     ) {
-        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        Reservation reservation = findEntityInCurrentOrganization(reservationId);
+        UUID organizationId = reservation.getOrganization().getId();
 
         ReservationSupply entity = reservationSupplyRepository
-                .findByIdAndReservation_IdAndOrganization_Id(supplyId, reservationId, organizationId)
-                .orElseThrow(() -> new NotFoundException("Reservation supply not found"));
+            .findByIdAndReservation_IdAndOrganization_Id(supplyId, reservationId, organizationId)
+            .orElseThrow(() -> new NotFoundException("Reservation supply not found"));
 
         InventoryItem inventoryItem = resolveReservationInventoryItem(request.inventoryItemId(), organizationId);
 
@@ -263,11 +291,12 @@ public class ReservationService {
     @Transactional
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
     public void deleteSupply(UUID reservationId, UUID supplyId) {
-        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        Reservation reservation = findEntityInCurrentOrganization(reservationId);
+        UUID organizationId = reservation.getOrganization().getId();
 
         ReservationSupply entity = reservationSupplyRepository
-                .findByIdAndReservation_IdAndOrganization_Id(supplyId, reservationId, organizationId)
-                .orElseThrow(() -> new NotFoundException("Reservation supply not found"));
+            .findByIdAndReservation_IdAndOrganization_Id(supplyId, reservationId, organizationId)
+            .orElseThrow(() -> new NotFoundException("Reservation supply not found"));
 
         reservationSupplyRepository.delete(entity);
     }
@@ -305,12 +334,12 @@ public class ReservationService {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
         return reservationMapper.toResponse(
-                reservation,
-                reservationGuestRepository.findByReservation_Id(reservation.getId()),
-                reservationSupplyRepository.findByReservation_IdAndOrganization_IdOrderByCreatedAtAsc(
-                        reservation.getId(),
-                        organizationId
-                )
+            reservation,
+            reservationGuestRepository.findByReservation_Id(reservation.getId()),
+            reservationSupplyRepository.findByReservation_IdAndOrganization_IdOrderByCreatedAtAsc(
+                reservation.getId(),
+                organizationId
+            )
         );
     }
 
@@ -318,12 +347,12 @@ public class ReservationService {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
         return reservationRepository.findByIdAndOrganization_IdAndDeletedAtIsNull(id, organizationId)
-                .orElseThrow(() -> new NotFoundException("Reservation not found"));
+            .orElseThrow(() -> new NotFoundException("Reservation not found"));
     }
 
     private User findCurrentUser() {
         return userRepository.findByIdAndDeletedAtIsNull(currentUserService.getCurrentUserId())
-                .orElseThrow(() -> new NotFoundException("User not found"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
     }
 
     private void setOptionalPlatform(Reservation entity, UUID platformId, UUID organizationId) {
@@ -333,17 +362,17 @@ public class ReservationService {
         }
 
         var platform = platformRepository
-                .findByIdAndOrganization_IdAndDeletedAtIsNull(platformId, organizationId)
-                .orElseThrow(() -> new NotFoundException("Platform not found"));
+            .findByIdAndOrganization_IdAndDeletedAtIsNull(platformId, organizationId)
+            .orElseThrow(() -> new NotFoundException("Platform not found"));
 
         entity.setPlatform(platform);
     }
 
     private void replaceGuests(
-            Reservation reservation,
-            List<ReservationGuestRequest> guestRequests,
-            Organization organization,
-            User currentUser
+        Reservation reservation,
+        List<ReservationGuestRequest> guestRequests,
+        Organization organization,
+        User currentUser
     ) {
         if (guestRequests == null || guestRequests.isEmpty()) {
             return;
@@ -394,11 +423,15 @@ public class ReservationService {
     }
 
     private InventoryItem resolveReservationInventoryItem(UUID inventoryItemId, UUID organizationId) {
-        InventoryItem inventoryItem = inventoryItemRepository
-                .findByIdAndOrganization_IdAndDeletedAtIsNull(inventoryItemId, organizationId)
-                .orElseThrow(() -> new NotFoundException("Inventory item not found"));
+        if (inventoryItemId == null) {
+            throw new BadRequestException("Inventory item is required");
+        }
 
-        if (!Boolean.TRUE.equals(inventoryItem.getAvailableForReservations())) {
+        InventoryItem inventoryItem = inventoryItemRepository
+            .findByIdAndOrganization_IdAndDeletedAtIsNull(inventoryItemId, organizationId)
+            .orElseThrow(() -> new NotFoundException("Inventory item not found"));
+
+        if (inventoryItem.getStatus() != CatalogStatus.ACTIVE || !Boolean.TRUE.equals(inventoryItem.getAvailableForReservations())) {
             throw new BadRequestException("Inventory item is not available for reservations");
         }
 
@@ -414,15 +447,15 @@ public class ReservationService {
     }
 
     private Guest resolveGuest(
-            ReservationGuestRequest guestRequest,
-            Organization organization,
-            User currentUser
+        ReservationGuestRequest guestRequest,
+        Organization organization,
+        User currentUser
     ) {
         UUID organizationId = organization.getId();
 
         if (guestRequest.guestId() != null) {
             return guestRepository.findByIdAndOrganization_IdAndDeletedAtIsNull(guestRequest.guestId(), organizationId)
-                    .orElseThrow(() -> new NotFoundException("Guest not found"));
+                .orElseThrow(() -> new NotFoundException("Guest not found"));
         }
 
         if (guestRequest.fullName() == null || guestRequest.fullName().isBlank()) {
@@ -446,20 +479,36 @@ public class ReservationService {
         }
     }
 
+    private void validateWritableStatus(ReservationStatus status) {
+        if (status == ReservationStatus.DELETED) {
+            throw new BadRequestException("Use the delete endpoint to delete a reservation");
+        }
+    }
+
     private void validateAvailability(
-            UUID organizationId,
-            UUID propertyId,
-            LocalDate checkIn,
-            LocalDate checkOut,
-            UUID currentReservationId
+        UUID organizationId,
+        UUID propertyId,
+        LocalDate checkIn,
+        LocalDate checkOut,
+        UUID currentReservationId
     ) {
-        boolean overlappingReservationExists = reservationRepository
+        boolean overlappingReservationExists = currentReservationId == null
+            ? reservationRepository
                 .existsByOrganization_IdAndProperty_IdAndStatusNotAndDeletedAtIsNullAndCheckInLessThanAndCheckOutGreaterThan(
-                        organizationId,
-                        propertyId,
-                        ReservationStatus.CANCELLED,
-                        checkOut,
-                        checkIn
+                    organizationId,
+                    propertyId,
+                    ReservationStatus.CANCELLED,
+                    checkOut,
+                    checkIn
+                )
+            : reservationRepository
+                .existsByOrganization_IdAndProperty_IdAndIdNotAndStatusNotAndDeletedAtIsNullAndCheckInLessThanAndCheckOutGreaterThan(
+                    organizationId,
+                    propertyId,
+                    currentReservationId,
+                    ReservationStatus.CANCELLED,
+                    checkOut,
+                    checkIn
                 );
 
         if (!overlappingReservationExists) {
