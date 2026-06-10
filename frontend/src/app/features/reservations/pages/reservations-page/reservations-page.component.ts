@@ -10,6 +10,7 @@ import { QuetzalCurrencyPipe } from '../../../../shared/pipes/quetzal-currency.p
 import { ToastService } from '../../../../shared/toast/toast.service';
 import { CancelReservationModalComponent } from '../../components/cancel-reservation-modal/cancel-reservation-modal.component';
 import { ReservationFormModalComponent } from '../../components/reservation-form-modal/reservation-form-modal.component';
+import { ReservationSuppliesModalComponent } from '../../components/reservation-supplies-modal/reservation-supplies-modal.component';
 import {
   Reservation,
   ReservationRequest,
@@ -34,7 +35,8 @@ type ViewMode = 'list' | 'calendar';
     ConfirmModalComponent,
     QuetzalCurrencyPipe,
     CancelReservationModalComponent,
-    ReservationFormModalComponent
+    ReservationFormModalComponent,
+    ReservationSuppliesModalComponent
   ],
   templateUrl: './reservations-page.component.html'
 })
@@ -56,6 +58,7 @@ export class ReservationsPageComponent implements OnInit {
   readonly selectedReservation = signal<Reservation | null>(null);
   readonly reservationToDelete = signal<ReservationSummary | null>(null);
   readonly reservationToCancel = signal<ReservationSummary | null>(null);
+  readonly reservationForSupplies = signal<ReservationSummary | null>(null);
 
   readonly references = signal<ReservationReferenceData>({
     properties: [],
@@ -265,6 +268,19 @@ export class ReservationsPageComponent implements OnInit {
         this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('reservations.messages.saveError')));
       }
     });
+  }
+
+
+  openSupplies(reservation: ReservationSummary): void {
+    this.reservationForSupplies.set(reservation);
+  }
+
+  closeSupplies(): void {
+    this.reservationForSupplies.set(null);
+  }
+
+  onSuppliesChanged(): void {
+    this.loadReservations();
   }
 
   requestCancel(reservation: ReservationSummary): void {

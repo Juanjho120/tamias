@@ -89,7 +89,7 @@ export interface ReservationRequest {
   invoiceSeries: string | null;
   status: ReservationStatus;
   guests: ReservationGuestRequest[];
-  supplies: ReservationSupplyRequest[];
+  supplies: ReservationSupplyRequest[] | null;
 }
 
 export interface ReservationFilters {

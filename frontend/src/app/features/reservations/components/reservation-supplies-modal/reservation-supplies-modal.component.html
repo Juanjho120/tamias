@@ -1,0 +1,159 @@
+@if (open) {
+  <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title">{{ 'reservations.supplies.modalTitle' | translate }}</h5>
+            <div class="small text-muted">
+              {{ selectedReservationTitle() }}
+            </div>
+          </div>
+          <button type="button" class="btn-close" aria-label="Close" [disabled]="saving()" (click)="close.emit()"></button>
+        </div>
+
+        <div class="modal-body">
+          @if (loading()) {
+            <div class="p-5 text-center">
+              <div class="spinner-border text-primary" role="status"></div>
+              <div class="text-muted mt-3">{{ 'reservations.supplies.loading' | translate }}</div>
+            </div>
+          } @else {
+            <div class="row g-4">
+              <div class="col-12 col-lg-5">
+                <div class="card border-0 bg-light h-100">
+                  <div class="card-body">
+                    <h6 class="mb-3">
+                      {{ editingSupply() ? ('reservations.supplies.editSupply' | translate) : ('reservations.supplies.newSupply' | translate) }}
+                    </h6>
+
+                    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+                      <div class="mb-3">
+                        <label for="reservation-supply-item" class="form-label">{{ 'reservations.supplies.item' | translate }}</label>
+                        <select
+                          id="reservation-supply-item"
+                          class="form-select"
+                          [ngClass]="{ 'is-invalid': isInvalid('inventoryItemId') }"
+                          formControlName="inventoryItemId"
+                          (change)="onInventoryItemSelected(form.controls.inventoryItemId.value)">
+                          <option value="">{{ 'reservations.supplies.selectItem' | translate }}</option>
+                          @for (item of inventoryItems; track item.id) {
+                            <option [value]="item.id">
+                              {{ item.name }}
+                              @if (item.internalCode) {
+                                — {{ item.internalCode }}
+                              }
+                            </option>
+                          }
+                        </select>
+                        @if (isInvalid('inventoryItemId')) {
+                          <div class="invalid-feedback">{{ 'reservations.validation.supplyItemRequired' | translate }}</div>
+                        }
+                      </div>
+
+                      <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                          <label for="reservation-supply-quantity" class="form-label">{{ 'reservations.supplies.quantity' | translate }}</label>
+                          <input
+                            id="reservation-supply-quantity"
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            class="form-control"
+                            [ngClass]="{ 'is-invalid': isInvalid('quantity') }"
+                            formControlName="quantity">
+                          @if (isInvalid('quantity')) {
+                            <div class="invalid-feedback">{{ 'reservations.validation.supplyQuantityRequired' | translate }}</div>
+                          }
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                          <label for="reservation-supply-unit" class="form-label">{{ 'reservations.supplies.unit' | translate }}</label>
+                          <input id="reservation-supply-unit" type="text" class="form-control" maxlength="50" formControlName="unit">
+                        </div>
+
+                        <div class="col-12">
+                          <label for="reservation-supply-notes" class="form-label">{{ 'reservations.supplies.notes' | translate }}</label>
+                          <textarea id="reservation-supply-notes" class="form-control" rows="3" formControlName="notes"></textarea>
+                        </div>
+                      </div>
+
+                      <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary" [disabled]="saving()">
+                          @if (saving()) {
+                            <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+                          } @else {
+                            <i class="bi bi-plus-lg me-1"></i>
+                          }
+                          {{ editingSupply() ? ('reservations.supplies.update' | translate) : ('reservations.supplies.add' | translate) }}
+                        </button>
+                        @if (editingSupply()) {
+                          <button type="button" class="btn btn-outline-secondary" [disabled]="saving()" (click)="resetForm()">
+                            {{ 'common.cancel' | translate }}
+                          </button>
+                        }
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-12 col-lg-7">
+                <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                  <div>
+                    <h6 class="mb-1">{{ 'reservations.supplies.currentSupplies' | translate }}</h6>
+                    <div class="small text-muted">{{ 'reservations.supplies.subtitle' | translate }}</div>
+                  </div>
+                  <span class="badge text-bg-secondary">{{ supplies().length }}</span>
+                </div>
+
+                @if (supplies().length === 0) {
+                  <div class="text-muted small border rounded-3 p-4 bg-light">
+                    {{ 'reservations.supplies.empty' | translate }}
+                  </div>
+                } @else {
+                  <div class="list-group">
+                    @for (supply of supplies(); track trackById($index, supply)) {
+                      <div class="list-group-item d-flex justify-content-between align-items-start gap-3">
+                        <div>
+                          <div class="fw-semibold">{{ itemDisplayName(supply) }}</div>
+                          <div class="small text-muted">
+                            {{ supply.quantity | number:'1.0-2' }} {{ supply.unit || '' }}
+                            · {{ itemCodeLabel(supply) }}
+                          </div>
+                          @if (supply.notes) {
+                            <div class="small text-muted">{{ supply.notes }}</div>
+                          }
+                        </div>
+
+                        <div class="btn-group">
+                          <button type="button" class="btn btn-outline-primary btn-sm" [disabled]="saving()" (click)="editSupply(supply)">
+                            <i class="bi bi-pencil-square"></i>
+                          </button>
+                          <button type="button" class="btn btn-outline-danger btn-sm" [disabled]="deletingId() === supply.id" (click)="deleteSupply(supply)">
+                            @if (deletingId() === supply.id) {
+                              <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                            } @else {
+                              <i class="bi bi-trash"></i>
+                            }
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" [disabled]="saving()" (click)="close.emit()">
+            {{ 'common.close' | translate }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}

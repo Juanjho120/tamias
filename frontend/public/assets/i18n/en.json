@@ -788,7 +788,21 @@
       "notes": "Notes",
       "add": "Add supply",
       "update": "Update supply",
-      "empty": "No supplies have been added to this reservation yet."
+      "empty": "No supplies have been added to this reservation yet.",
+      "button": "Supplies",
+      "modalTitle": "Reservation supplies",
+      "currentSupplies": "Current supplies",
+      "newSupply": "New supply",
+      "editSupply": "Edit supply",
+      "loading": "Loading supplies...",
+      "messages": {
+        "loadError": "Could not load supplies.",
+        "saveError": "Could not save the supply.",
+        "deleteError": "Could not delete the supply.",
+        "created": "Supply added successfully.",
+        "updated": "Supply updated successfully.",
+        "deleted": "Supply deleted successfully."
+      }
     }
   },
   "tasks": {

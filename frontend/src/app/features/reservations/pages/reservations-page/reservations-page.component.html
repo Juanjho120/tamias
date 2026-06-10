@@ -152,6 +152,10 @@
                 </td>
                 <td class="text-end">
                   <div class="btn-group">
+                    <button type="button" class="btn btn-outline-info btn-sm" (click)="openSupplies(reservation)">
+                      <i class="bi bi-box-seam me-1"></i>
+                      {{ 'reservations.supplies.button' | translate }}
+                    </button>
                     <button type="button" class="btn btn-outline-primary btn-sm" (click)="openEditForm(reservation.id)">
                       <i class="bi bi-pencil-square me-1"></i>
                       {{ 'common.edit' | translate }}
@@ -214,10 +218,16 @@
   [reservation]="selectedReservation()"
   [properties]="references().properties"
   [platforms]="references().platforms"
-  [inventoryItems]="references().inventoryItems"
   [loading]="saving()"
   (save)="saveReservation($event)"
   (cancel)="closeForm()" />
+
+<app-reservation-supplies-modal
+  [open]="!!reservationForSupplies()"
+  [reservationSummary]="reservationForSupplies()"
+  [inventoryItems]="references().inventoryItems"
+  (changed)="onSuppliesChanged()"
+  (close)="closeSupplies()" />
 
 <app-cancel-reservation-modal
   [open]="!!reservationToCancel()"

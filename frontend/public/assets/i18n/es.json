@@ -787,7 +787,21 @@
       "notes": "Notas",
       "add": "Agregar insumo",
       "update": "Actualizar insumo",
-      "empty": "Aún no hay insumos agregados a esta reservación."
+      "empty": "Aún no hay insumos agregados a esta reservación.",
+      "button": "Supplies",
+      "modalTitle": "Supplies de la reservación",
+      "currentSupplies": "Supplies actuales",
+      "newSupply": "Nuevo supply",
+      "editSupply": "Editar supply",
+      "loading": "Cargando supplies...",
+      "messages": {
+        "loadError": "No se pudieron cargar los supplies.",
+        "saveError": "No se pudo guardar el supply.",
+        "deleteError": "No se pudo eliminar el supply.",
+        "created": "Supply agregado correctamente.",
+        "updated": "Supply actualizado correctamente.",
+        "deleted": "Supply eliminado correctamente."
+      }
     }
   },
   "tasks": {

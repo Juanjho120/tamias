@@ -1,4 +1,4 @@
-import { DecimalPipe, NgClass } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -7,11 +7,9 @@ import {
   ReservationGuestRequest,
   ReservationRequest,
   ReservationStatus,
-  ReservationSupplyRequest,
   RESERVATION_STATUSES
 } from '../../models/reservation.model';
 import {
-  ReservationInventoryItemOption,
   ReservationPlatformOption,
   ReservationPropertyOption
 } from '../../models/reservation-reference.model';
@@ -19,7 +17,7 @@ import {
 @Component({
   selector: 'app-reservation-form-modal',
   standalone: true,
-  imports: [DecimalPipe, NgClass, ReactiveFormsModule, TranslatePipe],
+  imports: [NgClass, ReactiveFormsModule, TranslatePipe],
   templateUrl: './reservation-form-modal.component.html'
 })
 export class ReservationFormModalComponent implements OnChanges {
@@ -29,7 +27,6 @@ export class ReservationFormModalComponent implements OnChanges {
   @Input() reservation: Reservation | null = null;
   @Input() properties: ReservationPropertyOption[] = [];
   @Input() platforms: ReservationPlatformOption[] = [];
-  @Input() inventoryItems: ReservationInventoryItemOption[] = [];
   @Input() loading = false;
 
   @Output() save = new EventEmitter<ReservationRequest>();
@@ -37,9 +34,7 @@ export class ReservationFormModalComponent implements OnChanges {
 
   readonly statuses = RESERVATION_STATUSES.filter((status) => status !== 'DELETED');
   readonly guests = signal<ReservationGuestRequest[]>([]);
-  readonly supplies = signal<ReservationSupplyRequest[]>([]);
   readonly editingGuestIndex = signal<number | null>(null);
-  readonly editingSupplyIndex = signal<number | null>(null);
 
   readonly form = this.formBuilder.nonNullable.group({
     propertyId: ['', [Validators.required]],
@@ -61,19 +56,10 @@ export class ReservationFormModalComponent implements OnChanges {
     primary: [false]
   });
 
-  readonly supplyForm = this.formBuilder.nonNullable.group({
-    inventoryItemId: ['', [Validators.required]],
-    quantity: ['1', [Validators.required]],
-    unit: [''],
-    notes: ['']
-  });
-
   readonly primaryGuestName = computed(() => {
     const guest = this.guests().find((item) => item.primary);
     return guest?.fullName ?? '—';
   });
-
-  readonly suppliesCount = computed(() => this.supplies().length);
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['reservation'] || changes['open']) {
@@ -95,14 +81,14 @@ export class ReservationFormModalComponent implements OnChanges {
       reservationCode: rawValue.reservationCode.trim() || null,
       checkIn: rawValue.checkIn,
       checkOut: rawValue.checkOut,
-      suppliesDelivered: this.supplies().length > 0 || rawValue.suppliesDelivered,
+      suppliesDelivered: rawValue.suppliesDelivered,
       observations: rawValue.observations.trim() || null,
       reservationValue: rawValue.reservationValue === '' ? null : Number(rawValue.reservationValue),
       invoiceNumber: rawValue.invoiceNumber.trim() || null,
       invoiceSeries: rawValue.invoiceSeries.trim() || null,
       status: rawValue.status,
       guests: this.guests(),
-      supplies: this.supplies()
+      supplies: null
     });
   }
 
@@ -145,43 +131,6 @@ export class ReservationFormModalComponent implements OnChanges {
     this.cancelGuestEdit();
   }
 
-  addOrUpdateSupply(): void {
-    if (this.supplyForm.invalid) {
-      this.supplyForm.markAllAsTouched();
-      return;
-    }
-
-    const rawValue = this.supplyForm.getRawValue();
-    const quantity = Number(rawValue.quantity);
-
-    if (!Number.isFinite(quantity) || quantity <= 0) {
-      this.supplyForm.controls.quantity.setErrors({ min: true });
-      this.supplyForm.controls.quantity.markAsTouched();
-      return;
-    }
-
-    const inventoryItem = this.inventoryItems.find((item) => item.id === rawValue.inventoryItemId);
-    const supply: ReservationSupplyRequest = {
-      inventoryItemId: rawValue.inventoryItemId,
-      quantity,
-      unit: rawValue.unit.trim() || inventoryItem?.unit || null,
-      notes: rawValue.notes.trim() || null
-    };
-
-    const index = this.editingSupplyIndex();
-    const currentSupplies = [...this.supplies()];
-
-    if (index === null) {
-      currentSupplies.push(supply);
-    } else {
-      currentSupplies[index] = supply;
-    }
-
-    this.supplies.set(currentSupplies);
-    this.form.controls.suppliesDelivered.setValue(currentSupplies.length > 0);
-    this.cancelSupplyEdit();
-  }
-
   editGuest(index: number): void {
     const guest = this.guests()[index];
 
@@ -197,22 +146,6 @@ export class ReservationFormModalComponent implements OnChanges {
     });
   }
 
-  editSupply(index: number): void {
-    const supply = this.supplies()[index];
-
-    if (!supply) {
-      return;
-    }
-
-    this.editingSupplyIndex.set(index);
-    this.supplyForm.reset({
-      inventoryItemId: supply.inventoryItemId,
-      quantity: String(supply.quantity),
-      unit: supply.unit ?? '',
-      notes: supply.notes ?? ''
-    });
-  }
-
   removeGuest(index: number): void {
     const currentGuests = [...this.guests()];
     currentGuests.splice(index, 1);
@@ -223,15 +156,6 @@ export class ReservationFormModalComponent implements OnChanges {
 
     this.guests.set(currentGuests);
     this.cancelGuestEdit();
-  }
-
-  removeSupply(index: number): void {
-    const currentSupplies = [...this.supplies()];
-    currentSupplies.splice(index, 1);
-
-    this.supplies.set(currentSupplies);
-    this.form.controls.suppliesDelivered.setValue(currentSupplies.length > 0);
-    this.cancelSupplyEdit();
   }
 
   setPrimaryGuest(index: number): void {
@@ -250,33 +174,6 @@ export class ReservationFormModalComponent implements OnChanges {
     });
   }
 
-  cancelSupplyEdit(): void {
-    this.editingSupplyIndex.set(null);
-    this.supplyForm.reset({
-      inventoryItemId: '',
-      quantity: '1',
-      unit: '',
-      notes: ''
-    });
-  }
-
-  onSupplyInventoryItemSelected(inventoryItemId: string): void {
-    const inventoryItem = this.inventoryItems.find((item) => item.id === inventoryItemId);
-
-    if (inventoryItem?.unit && !this.supplyForm.controls.unit.value) {
-      this.supplyForm.controls.unit.setValue(inventoryItem.unit);
-    }
-  }
-
-  supplyItemName(supply: ReservationSupplyRequest): string {
-    return this.inventoryItems.find((item) => item.id === supply.inventoryItemId)?.name ?? '—';
-  }
-
-  supplyItemCode(supply: ReservationSupplyRequest): string {
-    const item = this.inventoryItems.find((option) => option.id === supply.inventoryItemId);
-    return item?.internalCode || item?.barcode || '—';
-  }
-
   isInvalid(controlName: keyof typeof this.form.controls): boolean {
     const control = this.form.controls[controlName];
     return control.invalid && (control.touched || control.dirty);
@@ -284,11 +181,6 @@ export class ReservationFormModalComponent implements OnChanges {
 
   isGuestInvalid(controlName: keyof typeof this.guestForm.controls): boolean {
     const control = this.guestForm.controls[controlName];
-    return control.invalid && (control.touched || control.dirty);
-  }
-
-  isSupplyInvalid(controlName: keyof typeof this.supplyForm.controls): boolean {
-    const control = this.supplyForm.controls[controlName];
     return control.invalid && (control.touched || control.dirty);
   }
 
@@ -308,9 +200,7 @@ export class ReservationFormModalComponent implements OnChanges {
         status: 'ACTIVE'
       });
       this.guests.set([]);
-      this.supplies.set([]);
       this.cancelGuestEdit();
-      this.cancelSupplyEdit();
       return;
     }
 
@@ -337,14 +227,6 @@ export class ReservationFormModalComponent implements OnChanges {
       primary: guest.primary
     })));
 
-    this.supplies.set((this.reservation.supplies ?? []).map((supply) => ({
-      inventoryItemId: supply.inventoryItemId,
-      quantity: supply.quantity,
-      unit: supply.unit,
-      notes: supply.notes
-    })));
-
     this.cancelGuestEdit();
-    this.cancelSupplyEdit();
   }
 }
