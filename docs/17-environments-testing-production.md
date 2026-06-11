@@ -72,6 +72,48 @@ or production branch -> production
 
 ---
 
+## Frontend build-time API URL
+
+Angular environment files are build-time.
+
+For this reason, each Vercel project must set:
+
+```text
+FRONTEND_API_BASE_URL
+```
+
+and use:
+
+```bash
+npm run build:prod
+```
+
+Testing project:
+
+```text
+FRONTEND_API_BASE_URL=https://tamias-api-testing.onrender.com/api/v1
+```
+
+Production project:
+
+```text
+FRONTEND_API_BASE_URL=https://tamias-api-prod.onrender.com/api/v1
+```
+
+The script responsible for this is:
+
+```text
+frontend/scripts/write-prod-env.js
+```
+
+For detailed instructions, see:
+
+```text
+docs/18-frontend-build-time-api-url.md
+```
+
+---
+
 ## Why two Vercel projects
 
 Two Vercel projects are recommended because each environment needs its own:
@@ -203,76 +245,16 @@ CHROMA_COLLECTION_NAME=tamias_prod_documents
 
 ---
 
-## Frontend API URL strategy
-
-Important:
-
-```text
-Angular environment files are build-time.
-```
-
-That means `environment.prod.ts` is baked into the frontend build.
-
-For two Vercel projects deploying from the same branch, each project must still produce a build with its own backend API URL.
-
-### Recommended MVP approach
-
-Generate `environment.prod.ts` during the Vercel build using an environment variable.
-
-Each Vercel project should define:
-
-```text
-FRONTEND_API_BASE_URL
-```
-
-Example:
-
-```text
-Testing Vercel project:
-FRONTEND_API_BASE_URL=https://tamias-api-testing.onrender.com/api/v1
-
-Production Vercel project:
-FRONTEND_API_BASE_URL=https://tamias-api-prod.onrender.com/api/v1
-```
-
-Then a later block can add a small script such as:
-
-```text
-frontend/scripts/write-prod-env.js
-```
-
-and change the Vercel build command to:
-
-```text
-node scripts/write-prod-env.js && npm run build
-```
-
-This allows both Vercel projects to use the same repository and branch while producing different API URLs.
-
-### Alternative
-
-Use runtime config:
-
-```text
-/assets/config.json
-```
-
-The app loads the API URL at startup.
-
-This is more flexible but requires a slightly bigger frontend change.
-
-For TAMIAS MVP, prefer the build-time script.
-
----
-
 ## DNS plan
 
 Cloudflare DNS should have:
 
 ```text
-tamias.juantzun.dev      -> CNAME to testing Vercel project
-tamias-prod.juantzun.dev -> CNAME to production Vercel project
+tamias.juantzun.dev
+tamias-prod.juantzun.dev
 ```
+
+Each one should point to its corresponding Vercel project.
 
 Do not point both domains to the same Vercel project unless you intentionally want them to use the same API configuration.
 
@@ -299,25 +281,12 @@ Testing can break. Production should not.
 
 1. Keep `application-prod.yml` shared.
 2. Keep both backends using `SPRING_PROFILES_ACTIVE=prod`.
-3. Add two Vercel projects.
-4. Add two Render services.
-5. Add separate Supabase/S3/Chroma resources.
-6. In a later block, add frontend build-time API URL generation.
+3. Use two Vercel projects with `FRONTEND_API_BASE_URL`.
+4. Use two Render services.
+5. Use separate Supabase/S3/Chroma resources.
 
 Recommended next block:
 
 ```text
 Bloque 8B: Docker production readiness
-```
-
-Then:
-
-```text
-Bloque 8C: Deployment documentation with dual environments
-```
-
-Then:
-
-```text
-Bloque 8D: Actual deployment
 ```
