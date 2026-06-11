@@ -1,0 +1,113 @@
+:host {
+  display: block;
+}
+
+:host h1 {
+  letter-spacing: -0.035em;
+}
+
+:host h2 {
+  letter-spacing: -0.02em;
+}
+
+:host app-dashboard-analytics {
+  display: block;
+  margin: 1.5rem 0 2rem;
+}
+
+.dashboard-metric-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboard-metric-card::after {
+  content: '';
+  position: absolute;
+  inset: auto -2rem -2.5rem auto;
+  width: 7rem;
+  height: 7rem;
+  border-radius: 999px;
+  background: var(--bs-primary-bg-subtle);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.dashboard-metric-card:hover .dashboard-metric-icon {
+  transform: scale(1.04);
+}
+
+.dashboard-metric-icon {
+  transition: transform 160ms ease;
+}
+
+.dashboard-metric-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-empty-state {
+  border-radius: 1rem;
+  background:
+    radial-gradient(circle at top left, rgba(var(--bs-primary-rgb), 0.06), transparent 18rem),
+    var(--bs-tertiary-bg);
+}
+
+.dashboard-empty-state i {
+  opacity: 0.72;
+}
+
+.card {
+  border-radius: 1rem;
+}
+
+.card-header {
+  background:
+    linear-gradient(180deg, rgba(var(--bs-primary-rgb), 0.035), transparent),
+    var(--bs-body-bg);
+}
+
+.table {
+  margin-bottom: 0;
+}
+
+.table thead th {
+  color: var(--bs-secondary-color);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.table tbody tr {
+  transition: background-color 120ms ease;
+}
+
+.table tbody tr:hover {
+  background: var(--bs-tertiary-bg);
+}
+
+.badge {
+  font-weight: 600;
+}
+
+.progress {
+  background-color: var(--bs-secondary-bg);
+}
+
+@media (max-width: 767.98px) {
+  :host app-dashboard-analytics {
+    margin: 1.25rem 0 1.5rem;
+  }
+
+  .dashboard-metric-card {
+    padding: 1rem;
+  }
+
+  .dashboard-metric-value {
+    font-size: 1.7rem;
+  }
+
+  .card-body {
+    padding: 1rem;
+  }
+}

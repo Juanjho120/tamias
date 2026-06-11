@@ -39,7 +39,8 @@ import { DashboardAnalyticsComponent } from './components/dashboard-analytics/da
   selector: 'app-dashboard',
   standalone: true,
   imports: [DatePipe, NgClass, RouterLink, TranslatePipe, QuetzalCurrencyPipe, DashboardAnalyticsComponent],
-  templateUrl: './dashboard.component.html'
+  templateUrl: './dashboard.component.html',
+  styleUrl: './dashboard.component.scss'
 })
 export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
   @ViewChildren('calendarTooltip') calendarTooltipElements?: QueryList<ElementRef<HTMLElement>>;
