@@ -157,3 +157,37 @@ docker build --build-arg FRONTEND_API_BASE_URL=/api/v1 -t tamias-frontend:ci ./f
 ```
 
 This keeps the frontend dockerized even though Vercel deploys the frontend from source.
+
+---
+
+## Docker Hub publishing
+
+Image publishing is handled separately in:
+
+```text
+docs/20-docker-hub-image-publishing.md
+.github/workflows/docker-publish.yml
+```
+
+Published images:
+
+```text
+<DOCKERHUB_USERNAME>/tamias-backend
+<DOCKERHUB_USERNAME>/tamias-frontend
+```
+
+Tags:
+
+```text
+latest
+sha-<short-git-sha>
+```
+
+Docker Hub publishing is useful for:
+
+```text
+portfolio credibility
+portable releases
+future hosting options
+manual rollback to SHA images
+```
