@@ -11,7 +11,7 @@ TAMIAS has two deployed environments:
 
 ## Recommended deployment order
 
-1. Create Docker Hub secrets in GitHub.
+1. Confirm GitHub CI and Docker Hub publishing works.
 2. Create Supabase databases.
 3. Create AWS S3 buckets and IAM credentials.
 4. Create Railway Chroma service or collections.
@@ -29,6 +29,27 @@ Read these documents in order:
 docs/21-deployment-dual-environments.md
 docs/22-deployment-runbook.md
 docs/23-environment-variables-checklist.md
+docs/24-actual-deployment-preparation.md
+```
+
+## Deployment preparation kit
+
+Use the templates in:
+
+```text
+deploy/
+```
+
+Important files:
+
+```text
+deploy/render/testing.env.example
+deploy/render/production.env.example
+deploy/vercel/testing.env.example
+deploy/vercel/production.env.example
+deploy/cloudflare/dns-records.md
+deploy/smoke-tests/tamias-smoke-tests.http
+deploy/smoke-tests/smoke-test-urls.md
 ```
 
 ## Quick environment map

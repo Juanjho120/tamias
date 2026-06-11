@@ -1,0 +1,65 @@
+### TAMIAS smoke tests
+### Use with VS Code REST Client or JetBrains HTTP Client.
+### Replace tokens and credentials before running protected endpoints.
+
+@testingFrontend = https://tamias.juantzun.dev
+@testingBackend = https://tamias-api-testing.onrender.com
+
+@productionFrontend = https://tamias-prod.juantzun.dev
+@productionBackend = https://tamias-api-prod.onrender.com
+
+@testingApi = {{testingBackend}}/api/v1
+@productionApi = {{productionBackend}}/api/v1
+
+@testingToken = replace-with-testing-jwt
+@productionToken = replace-with-production-jwt
+
+### ------------------------------------------------------------------
+### Testing / Portfolio — Backend health
+GET {{testingBackend}}/actuator/health
+
+### Testing / Portfolio — Login
+POST {{testingApi}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "replace-with-testing-email",
+  "password": "replace-with-testing-password"
+}
+
+### Testing / Portfolio — Dashboard analytics
+GET {{testingApi}}/dashboard/analytics
+Authorization: Bearer {{testingToken}}
+
+### Testing / Portfolio — Properties
+GET {{testingApi}}/properties
+Authorization: Bearer {{testingToken}}
+
+### Testing / Portfolio — Documents
+GET {{testingApi}}/documents
+Authorization: Bearer {{testingToken}}
+
+### ------------------------------------------------------------------
+### Production real — Backend health
+GET {{productionBackend}}/actuator/health
+
+### Production real — Login
+POST {{productionApi}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "replace-with-production-email",
+  "password": "replace-with-production-password"
+}
+
+### Production real — Dashboard analytics
+GET {{productionApi}}/dashboard/analytics
+Authorization: Bearer {{productionToken}}
+
+### Production real — Properties
+GET {{productionApi}}/properties
+Authorization: Bearer {{productionToken}}
+
+### Production real — Documents
+GET {{productionApi}}/documents
+Authorization: Bearer {{productionToken}}

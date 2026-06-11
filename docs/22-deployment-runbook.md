@@ -11,6 +11,13 @@ Testing / Portfolio
 Production real
 ```
 
+For copy/paste templates, use:
+
+```text
+deploy/
+docs/24-actual-deployment-preparation.md
+```
+
 ---
 
 # 1. GitHub repository secrets
@@ -209,6 +216,13 @@ Runtime environment variable:
 SPRING_PROFILES_ACTIVE=prod
 ```
 
+Use templates:
+
+```text
+deploy/render/testing.env.example
+deploy/render/production.env.example
+```
+
 Testing backend URL target:
 
 ```text
@@ -223,91 +237,7 @@ https://tamias-api-prod.onrender.com/api/v1
 
 ---
 
-# 6. Render testing environment variables
-
-Use these values in `tamias-api-testing`:
-
-```text
-SPRING_PROFILES_ACTIVE=prod
-PORT=8080
-
-DATABASE_URL=<testing-jdbc-url>
-DATABASE_USERNAME=<testing-db-username>
-DATABASE_PASSWORD=<testing-db-password>
-
-JWT_SECRET=<testing-long-random-secret>
-JWT_EXPIRATION_MINUTES=60
-
-CORS_ALLOWED_ORIGINS=https://tamias.juantzun.dev
-
-AWS_ACCESS_KEY_ID=<testing-aws-access-key>
-AWS_SECRET_ACCESS_KEY=<testing-aws-secret-key>
-AWS_REGION=us-east-2
-AWS_S3_BUCKET=tamias-testing-files
-S3_PRESIGNED_URL_EXPIRATION_SECONDS=300
-
-OPENAI_API_KEY=<openai-api-key>
-OPENAI_CHAT_MODEL=gpt-4o-mini
-OPENAI_EMBEDDING_MODEL=text-embedding-3-small
-OPENAI_TEMPERATURE=0.2
-
-CHROMA_HOST=<testing-chroma-host-with-protocol-no-port>
-CHROMA_PORT=8000
-CHROMA_BASE_URL=<testing-chroma-base-url>
-CHROMA_COLLECTION_NAME=tamias_testing_documents
-
-AI_DEFAULT_TOP_K=10
-AI_DEFAULT_SIMILARITY_THRESHOLD=0.30
-
-MAX_FILE_SIZE=8MB
-MAX_REQUEST_SIZE=8MB
-```
-
----
-
-# 7. Render production environment variables
-
-Use these values in `tamias-api-prod`:
-
-```text
-SPRING_PROFILES_ACTIVE=prod
-PORT=8080
-
-DATABASE_URL=<production-jdbc-url>
-DATABASE_USERNAME=<production-db-username>
-DATABASE_PASSWORD=<production-db-password>
-
-JWT_SECRET=<production-long-random-secret>
-JWT_EXPIRATION_MINUTES=60
-
-CORS_ALLOWED_ORIGINS=https://tamias-prod.juantzun.dev
-
-AWS_ACCESS_KEY_ID=<production-aws-access-key>
-AWS_SECRET_ACCESS_KEY=<production-aws-secret-key>
-AWS_REGION=us-east-2
-AWS_S3_BUCKET=tamias-prod-files
-S3_PRESIGNED_URL_EXPIRATION_SECONDS=300
-
-OPENAI_API_KEY=<openai-api-key>
-OPENAI_CHAT_MODEL=gpt-4o-mini
-OPENAI_EMBEDDING_MODEL=text-embedding-3-small
-OPENAI_TEMPERATURE=0.2
-
-CHROMA_HOST=<production-chroma-host-with-protocol-no-port>
-CHROMA_PORT=8000
-CHROMA_BASE_URL=<production-chroma-base-url>
-CHROMA_COLLECTION_NAME=tamias_prod_documents
-
-AI_DEFAULT_TOP_K=10
-AI_DEFAULT_SIMILARITY_THRESHOLD=0.30
-
-MAX_FILE_SIZE=8MB
-MAX_REQUEST_SIZE=8MB
-```
-
----
-
-# 8. Vercel frontend projects
+# 6. Vercel frontend projects
 
 Create two Vercel projects.
 
@@ -329,6 +259,12 @@ Environment variable:
 FRONTEND_API_BASE_URL=https://tamias-api-testing.onrender.com/api/v1
 ```
 
+Template:
+
+```text
+deploy/vercel/testing.env.example
+```
+
 ## Production real
 
 ```text
@@ -347,15 +283,27 @@ Environment variable:
 FRONTEND_API_BASE_URL=https://tamias-api-prod.onrender.com/api/v1
 ```
 
+Template:
+
+```text
+deploy/vercel/production.env.example
+```
+
 ---
 
-# 9. Cloudflare DNS
+# 7. Cloudflare DNS
 
 In Cloudflare:
 
 ```text
 Domain: juantzun.dev
 DNS -> Records
+```
+
+Use:
+
+```text
+deploy/cloudflare/dns-records.md
 ```
 
 Create records based on the values Vercel gives you.
@@ -373,7 +321,14 @@ Do not point both domains to the same Vercel project.
 
 ---
 
-# 10. Smoke tests
+# 8. Smoke tests
+
+Use:
+
+```text
+deploy/smoke-tests/tamias-smoke-tests.http
+deploy/smoke-tests/smoke-test-urls.md
+```
 
 Run these after deploying each environment.
 
@@ -399,49 +354,13 @@ Expected:
 }
 ```
 
-## Frontend loads
-
-Testing:
-
-```text
-https://tamias.juantzun.dev
-```
-
-Production:
-
-```text
-https://tamias-prod.juantzun.dev
-```
-
-Expected:
-
-```text
-Login page loads
-No blank screen
-No console error from missing environment config
-```
-
-## Auth
-
-Validate:
-
-```text
-POST /api/v1/auth/login
-```
-
-Expected:
-
-```text
-JWT returned
-Current user loads
-Menus render based on role
-```
-
-## Core modules
+## Core checks
 
 Validate at minimum:
 
 ```text
+Login
+Dashboard analytics
 Properties
 Catalogs
 Maintenance
@@ -450,34 +369,12 @@ Purchases
 Tasks
 Documents
 AI Assistant
-Dashboard analytics
-```
-
-## Files
-
-Validate:
-
-```text
-Upload property image
-Upload maintenance image
-Upload document
-Download document
-```
-
-## AI/RAG
-
-Validate:
-
-```text
-Upload document
-Process document
-Ask AI question using document content
-Confirm answer is scoped to the correct environment
+File upload/download
 ```
 
 ---
 
-# 11. Rollback strategy
+# 9. Rollback strategy
 
 ## Frontend Vercel rollback
 
@@ -514,7 +411,7 @@ Do not rely only on app-level rollback when migrations have already run.
 
 ---
 
-# 12. Production safety before real use
+# 10. Production safety before real use
 
 Before using `tamias-prod.juantzun.dev` for real vacation rental operations, confirm:
 
@@ -530,7 +427,7 @@ Production frontend cannot access testing backend
 
 ---
 
-# 13. Final deployment checklist
+# 11. Final deployment checklist
 
 ```text
 [ ] GitHub CI passes
