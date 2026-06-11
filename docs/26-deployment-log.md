@@ -226,6 +226,12 @@ Frontend is intentionally dockerized even though Vercel deploys from source.
 
 # Known issues
 
+See:
+
+```text
+docs/30-known-limitations.md
+```
+
 ## Render Free tier cold starts
 
 Status:
@@ -287,4 +293,12 @@ Testing / Portfolio:
 
 Production real:
   https://tamias-prod.juantzun.dev
+```
+
+---
+
+# Last updated
+
+```text
+2026-06-11
 ```
