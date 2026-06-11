@@ -158,7 +158,7 @@
     "calendar": {
       "title": "Calendario de reservaciones",
       "subtitle": "Vista mensual de reservaciones por fechas de estadía.",
-      "tooltipHelp": "Coloca el cursor sobre una barra para ver detalles.",
+      "tooltipHelp": "Coloca el cursor sobre un item para ver detalles.",
       "invoiced": "FACTURADO",
       "notInvoiced": "SIN FACTURAR",
       "noGuest": "Sin huésped",

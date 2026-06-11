@@ -158,7 +158,7 @@
     "calendar": {
       "title": "Reservation calendar",
       "subtitle": "Monthly view of reservations by stay date.",
-      "tooltipHelp": "Hover over a reservation bar to see details.",
+      "tooltipHelp": "Hover over an item to see details.",
       "invoiced": "INVOICED",
       "notInvoiced": "NOT INVOICED",
       "noGuest": "No guest",

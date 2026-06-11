@@ -146,13 +146,11 @@
       </div>
 
       <div class="d-flex flex-wrap gap-3 p-3 border-top small text-muted">
-        <span><i class="bi bi-square-fill reservation-calendar-legend-active me-1"></i>{{ 'reservations.status.ACTIVE' | translate }}</span>
-        <span><i class="bi bi-square-fill reservation-calendar-legend-cancelled me-1"></i>{{ 'reservations.status.CANCELLED' | translate }}</span>
-        <span><i class="bi bi-square-fill reservation-calendar-legend-deleted me-1"></i>{{ 'reservations.status.DELETED' | translate }}</span>
-        <span><i class="bi bi-square-fill calendar-event-scheduled-active me-1"></i>{{ 'dashboard.calendar.legend.scheduledMaintenance' | translate }}</span>
-        <span><i class="bi bi-tools calendar-day-icon-maintenance me-1"></i>{{ 'dashboard.calendar.legend.maintenanceRecords' | translate }}</span>
-        <span><i class="bi bi-check2-square calendar-day-icon-task me-1"></i>{{ 'dashboard.calendar.legend.tasks' | translate }}</span>
-        <span><i class="bi bi-cart-check calendar-day-icon-purchase me-1"></i>{{ 'dashboard.calendar.legend.purchases' | translate }}</span>
+        <span><i class="bi bi-calendar2-week calendar-event-active reservation-calendar-day-icon me-1"></i>{{ 'dashboard.cards.reservations.title' | translate }}</span>
+        <span><i class="bi bi-calendar2-check calendar-event-scheduled-active reservation-calendar-day-icon me-1"></i>{{ 'dashboard.calendar.legend.scheduledMaintenance' | translate }}</span>
+        <span><i class="bi bi-tools calendar-day-icon-maintenance reservation-calendar-day-icon me-1"></i>{{ 'dashboard.calendar.legend.maintenanceRecords' | translate }}</span>
+        <span><i class="bi bi-check2-square calendar-day-icon-task reservation-calendar-day-icon me-1"></i>{{ 'dashboard.calendar.legend.tasks' | translate }}</span>
+        <span><i class="bi bi-cart-check calendar-day-icon-purchase reservation-calendar-day-icon me-1"></i>{{ 'dashboard.calendar.legend.purchases' | translate }}</span>
         <span class="ms-lg-auto">{{ 'dashboard.calendar.tooltipHelp' | translate }}</span>
       </div>
     </div>
