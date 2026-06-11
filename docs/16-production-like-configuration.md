@@ -2,7 +2,7 @@
 
 ## Scope
 
-This block prepares TAMIAS for a production-like environment without performing a real deployment yet.
+This block prepares TAMIAS for production-like environments without performing a real deployment yet.
 
 It does not deploy to:
 
@@ -21,7 +21,14 @@ It only adds and aligns configuration files.
 
 ## Deployment targets
 
-The MVP deployment target remains:
+TAMIAS will use two deployed environments.
+
+| Environment | Purpose | Frontend domain |
+|---|---|---|
+| Testing / Portfolio | Public demo and portfolio environment | `https://tamias.juantzun.dev` |
+| Production real | Real environment for vacation rental operations | `https://tamias-prod.juantzun.dev` |
+
+The platform targets remain:
 
 ```text
 Frontend Angular        -> Vercel
@@ -30,7 +37,7 @@ PostgreSQL              -> Supabase PostgreSQL
 Files                   -> AWS S3
 Chroma / Vector Store   -> Railway
 OpenAI                  -> OpenAI API
-Domain                  -> Cloudflare / tamias.juantzun.dev
+Domain                  -> Cloudflare / juantzun.dev
 ```
 
 ---
@@ -43,6 +50,7 @@ backend/src/main/resources/application-prod.yml
 frontend/src/environments/environment.prod.ts
 .env.example
 docs/16-production-like-configuration.md
+docs/17-environments-testing-production.md
 ```
 
 ---
@@ -69,7 +77,7 @@ Why:
 
 ```text
 Local remains the default when no profile is provided.
-Production can activate prod with SPRING_PROFILES_ACTIVE=prod.
+Production-like deployed environments can activate prod with SPRING_PROFILES_ACTIVE=prod.
 ```
 
 This avoids accidentally hardcoding the local profile in deployed environments.
@@ -78,67 +86,84 @@ This avoids accidentally hardcoding the local profile in deployed environments.
 
 ## Backend production profile
 
-The new file:
+The file:
 
 ```text
 backend/src/main/resources/application-prod.yml
 ```
 
-uses environment variables for:
+is shared by both Testing and Production.
+
+Both Render services can run:
 
 ```text
-DATABASE_URL
-DATABASE_USERNAME
-DATABASE_PASSWORD
-JWT_SECRET
-JWT_EXPIRATION_MINUTES
-CORS_ALLOWED_ORIGINS
-AWS_REGION
-AWS_S3_BUCKET
-OPENAI_API_KEY
-OPENAI_CHAT_MODEL
-OPENAI_EMBEDDING_MODEL
-CHROMA_HOST
-CHROMA_PORT
-CHROMA_BASE_URL
-CHROMA_COLLECTION_NAME
+SPRING_PROFILES_ACTIVE=prod
 ```
 
-The backend still uses:
+The difference between environments comes from environment variables.
+
+Testing example:
 
 ```text
-ddl-auto: validate
-Flyway enabled
-UTC database timezone
-S3 storage provider
-health/info actuator endpoints
+CORS_ALLOWED_ORIGINS=https://tamias.juantzun.dev
+AWS_S3_BUCKET=tamias-testing-files
+CHROMA_COLLECTION_NAME=tamias_testing_documents
+```
+
+Production example:
+
+```text
+CORS_ALLOWED_ORIGINS=https://tamias-prod.juantzun.dev
+AWS_S3_BUCKET=tamias-prod-files
+CHROMA_COLLECTION_NAME=tamias_prod_documents
 ```
 
 ---
 
 ## Frontend production API URL
 
-The production frontend environment now points to:
+Important:
 
-```ts
-apiBaseUrl: 'https://tamias-api.onrender.com/api/v1'
+```text
+Angular environment files are build-time.
 ```
 
-Before the real deployment, replace this value with the real Render backend URL if it is different.
+For two Vercel projects using the same main branch, each project needs a different backend API URL.
 
-For example:
+Recommended MVP strategy:
 
-```ts
-apiBaseUrl: 'https://<your-real-render-service>.onrender.com/api/v1'
+```text
+Generate frontend/src/environments/environment.prod.ts during the Vercel build using FRONTEND_API_BASE_URL.
 ```
 
-If you later add a reverse proxy or Vercel rewrites, this can be changed again.
+Testing Vercel project:
+
+```text
+FRONTEND_API_BASE_URL=https://tamias-api-testing.onrender.com/api/v1
+```
+
+Production Vercel project:
+
+```text
+FRONTEND_API_BASE_URL=https://tamias-api-prod.onrender.com/api/v1
+```
+
+This will be implemented in a later block.
+
+Until then, remember that the committed `environment.prod.ts` is only a placeholder/default and must not be treated as the final dual-environment solution.
 
 ---
 
 ## Root .env.example
 
-The root `.env.example` documents all expected production-like variables.
+The root `.env.example` documents:
+
+```text
+shared backend variable names
+testing environment examples
+production environment examples
+frontend build-time API URL strategy
+```
 
 Do not put real values in this file.
 
@@ -146,7 +171,7 @@ Real values must be configured in:
 
 ```text
 Render environment variables
-Vercel environment variables, if needed
+Vercel environment variables
 Railway variables
 AWS IAM/S3
 Supabase project settings
@@ -168,8 +193,8 @@ Expected:
 
 ```text
 Active profile: local
-PostgreSQL: localhost:5434
-Chroma: localhost:8000
+PostgreSQL local config
+Chroma local config
 ```
 
 ### Backend prod profile validation
@@ -207,7 +232,7 @@ npm run build
 
 ## Manual smoke test after deployment later
 
-When deployment happens in a later block, validate:
+When deployment happens in a later block, validate in both environments:
 
 ```text
 GET /actuator/health
@@ -230,7 +255,7 @@ This block intentionally does not add or modify:
 Dockerfile
 docker-compose.prod-like.yml
 GitHub Actions deployment jobs
-Vercel config
+Vercel build script
 Render blueprint
 Railway service config
 ```
