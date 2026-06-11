@@ -2,28 +2,69 @@
 
 ## Scope
 
-This block adds Docker Hub image publishing to GitHub Actions.
+This block adds Docker Hub image publishing as part of the main CI workflow.
+
+It does not use a separate workflow.
 
 It does not change application runtime code.
 
 It does not deploy to Render or Vercel.
 
-It only publishes Docker images to Docker Hub.
+It only publishes Docker images to Docker Hub after the Docker image build step succeeds.
 
 ---
 
-## Workflow added
+## Workflow updated
+
+Docker Hub publishing is part of:
+
+```text
+.github/workflows/ci.yml
+```
+
+The previous separated workflow must not be used:
 
 ```text
 .github/workflows/docker-publish.yml
 ```
 
-This workflow runs on:
+If that file exists, delete it:
+
+```bash
+git rm .github/workflows/docker-publish.yml
+```
+
+---
+
+## CI flow
+
+The CI flow is:
+
+```text
+backend-build
+frontend-build
+docker-build
+  - Build backend Docker image
+  - Build frontend Docker image
+  - Login to Docker Hub
+  - Tag Docker images
+  - Push backend Docker image
+  - Push frontend Docker image
+```
+
+Publishing only runs on:
 
 ```text
 push to main
-manual workflow_dispatch
 ```
+
+Publishing does not run on:
+
+```text
+pull_request
+```
+
+This keeps PR validation safe while still publishing real images after merges/pushes to `main`.
 
 ---
 
@@ -43,7 +84,7 @@ juantzun/tamias-backend
 juantzun/tamias-frontend
 ```
 
-Use your real Docker Hub username.
+Use your real Docker Hub username in the GitHub secret.
 
 ---
 
@@ -93,13 +134,11 @@ Personal access tokens
 Generate new token
 ```
 
-Recommended permissions:
+Required permission:
 
 ```text
-Read, Write, Delete
+Read & Write
 ```
-
-For this workflow, write permission is required to push images.
 
 ---
 
@@ -126,41 +165,32 @@ DOCKERHUB_TOKEN=<your-dockerhub-access-token>
 
 ## Backend image
 
-The backend image uses:
+The backend image is first built locally inside CI as:
 
 ```text
-backend/Dockerfile
+tamias-backend:ci
 ```
 
-Build context:
+Then tagged as:
 
 ```text
-./backend
+<DOCKERHUB_USERNAME>/tamias-backend:latest
+<DOCKERHUB_USERNAME>/tamias-backend:sha-<short-git-sha>
 ```
 
-Published as:
-
-```text
-<DOCKERHUB_USERNAME>/tamias-backend
-```
+Then pushed to Docker Hub.
 
 ---
 
 ## Frontend image
 
-The frontend image uses:
+The frontend image is first built locally inside CI as:
 
 ```text
-frontend/Dockerfile
+tamias-frontend:ci
 ```
 
-Build context:
-
-```text
-./frontend
-```
-
-Build arg:
+The build uses:
 
 ```text
 FRONTEND_API_BASE_URL=/api/v1
@@ -172,14 +202,14 @@ Reason:
 The Docker frontend is designed to run behind Nginx and proxy /api/* to the backend container.
 ```
 
-Vercel still uses:
+Then it is tagged as:
 
 ```text
-FRONTEND_API_BASE_URL=https://tamias-api-testing.onrender.com/api/v1
-FRONTEND_API_BASE_URL=https://tamias-api-prod.onrender.com/api/v1
+<DOCKERHUB_USERNAME>/tamias-frontend:latest
+<DOCKERHUB_USERNAME>/tamias-frontend:sha-<short-git-sha>
 ```
 
-depending on the project.
+Then pushed to Docker Hub.
 
 ---
 
@@ -192,7 +222,7 @@ Frontend -> Vercel from GitHub source
 Backend  -> Render from backend Dockerfile or GitHub source
 ```
 
-So Docker Hub is not strictly required.
+So Docker Hub is not strictly required for the initial deployment.
 
 However, publishing images is useful for:
 
@@ -206,58 +236,16 @@ CI/CD maturity
 
 ---
 
-## Pull images locally
-
-Backend:
-
-```bash
-docker pull <DOCKERHUB_USERNAME>/tamias-backend:latest
-```
-
-Frontend:
-
-```bash
-docker pull <DOCKERHUB_USERNAME>/tamias-frontend:latest
-```
-
-Run frontend image manually:
-
-```bash
-docker run --rm -p 8088:80 \
-  -e BACKEND_API_URL=http://host.docker.internal:8080 \
-  <DOCKERHUB_USERNAME>/tamias-frontend:latest
-```
-
----
-
-## Render deployment note
-
-You can keep Render building from the repository Dockerfile.
-
-Later, if desired, Render can also deploy from the Docker Hub image:
-
-```text
-<DOCKERHUB_USERNAME>/tamias-backend:latest
-```
-
-For production real environments, prefer SHA tags for reproducibility:
-
-```text
-<DOCKERHUB_USERNAME>/tamias-backend:sha-a1b2c3d
-```
-
----
-
 ## Validation
 
 After pushing to `main`, check:
 
 ```text
-GitHub Actions -> Publish Docker images
+GitHub Actions -> TAMIAS CI
 Docker Hub -> Repositories
 ```
 
-Expected repositories:
+Expected Docker Hub repositories:
 
 ```text
 tamias-backend
@@ -275,7 +263,7 @@ sha-...
 
 ## Troubleshooting
 
-### Unauthorized
+### Docker Hub login fails
 
 Check:
 
@@ -284,34 +272,27 @@ DOCKERHUB_USERNAME
 DOCKERHUB_TOKEN
 ```
 
-Make sure the token has write permission.
+Make sure the token has read/write permission.
 
-### Repository name issues
+### Publishing runs on PR
 
-Docker Hub repository names must be lowercase.
+It should not.
 
-The workflow uses:
-
-```text
-tamias-backend
-tamias-frontend
-```
-
-which are valid lowercase names.
-
-### Frontend build arg missing
-
-The workflow passes:
+The publish steps have this condition:
 
 ```text
-FRONTEND_API_BASE_URL=/api/v1
+github.event_name == 'push' && github.ref == 'refs/heads/main'
 ```
 
-This is required by:
+### Separate docker-publish workflow still runs
 
-```text
-frontend/scripts/write-prod-env.js
+Delete it:
+
+```bash
+git rm .github/workflows/docker-publish.yml
 ```
+
+The Docker Hub publishing flow now belongs to the main CI workflow.
 
 ---
 

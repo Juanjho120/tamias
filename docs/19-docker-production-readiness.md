@@ -147,7 +147,7 @@ docker compose -f docker-compose.prod-like.yml down -v
 
 ---
 
-## CI Docker validation
+## CI Docker validation and publishing
 
 The CI workflow validates both images:
 
@@ -156,18 +156,7 @@ docker build -t tamias-backend:ci ./backend
 docker build --build-arg FRONTEND_API_BASE_URL=/api/v1 -t tamias-frontend:ci ./frontend
 ```
 
-This keeps the frontend dockerized even though Vercel deploys the frontend from source.
-
----
-
-## Docker Hub publishing
-
-Image publishing is handled separately in:
-
-```text
-docs/20-docker-hub-image-publishing.md
-.github/workflows/docker-publish.yml
-```
+After those builds succeed, the same CI workflow publishes images to Docker Hub on `push` to `main`.
 
 Published images:
 
@@ -183,11 +172,10 @@ latest
 sha-<short-git-sha>
 ```
 
-Docker Hub publishing is useful for:
+The publishing steps are documented in:
 
 ```text
-portfolio credibility
-portable releases
-future hosting options
-manual rollback to SHA images
+docs/20-docker-hub-image-publishing.md
 ```
+
+There should not be a separate Docker publishing workflow.

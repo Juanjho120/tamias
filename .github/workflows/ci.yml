@@ -89,7 +89,7 @@ jobs:
         run: npm run build
 
   docker-build:
-    name: Docker image build
+    name: Docker image build and publish
     runs-on: ubuntu-latest
     needs:
       - backend-build
@@ -104,3 +104,37 @@ jobs:
 
       - name: Build frontend Docker image
         run: docker build --build-arg FRONTEND_API_BASE_URL=/api/v1 -t tamias-frontend:ci ./frontend
+
+      - name: Login to Docker Hub
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Tag Docker images
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
+
+          docker tag tamias-backend:ci "${{ secrets.DOCKERHUB_USERNAME }}/tamias-backend:latest"
+          docker tag tamias-backend:ci "${{ secrets.DOCKERHUB_USERNAME }}/tamias-backend:sha-${SHORT_SHA}"
+
+          docker tag tamias-frontend:ci "${{ secrets.DOCKERHUB_USERNAME }}/tamias-frontend:latest"
+          docker tag tamias-frontend:ci "${{ secrets.DOCKERHUB_USERNAME }}/tamias-frontend:sha-${SHORT_SHA}"
+
+      - name: Push backend Docker image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
+
+          docker push "${{ secrets.DOCKERHUB_USERNAME }}/tamias-backend:latest"
+          docker push "${{ secrets.DOCKERHUB_USERNAME }}/tamias-backend:sha-${SHORT_SHA}"
+
+      - name: Push frontend Docker image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
+
+          docker push "${{ secrets.DOCKERHUB_USERNAME }}/tamias-frontend:latest"
+          docker push "${{ secrets.DOCKERHUB_USERNAME }}/tamias-frontend:sha-${SHORT_SHA}"
