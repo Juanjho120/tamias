@@ -30,6 +30,9 @@ docs/21-deployment-dual-environments.md
 docs/22-deployment-runbook.md
 docs/23-environment-variables-checklist.md
 docs/24-actual-deployment-preparation.md
+docs/25-first-deployment-execution-checklist.md
+docs/26-deployment-log.md
+docs/27-first-deployment-troubleshooting.md
 ```
 
 ## Deployment preparation kit
