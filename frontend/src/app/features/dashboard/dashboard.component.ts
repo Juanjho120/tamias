@@ -965,10 +965,11 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
       const element = elementRef.nativeElement;
       const tooltip = new Tooltip(element, {
         html: true,
-        placement: 'top',
-        trigger: 'hover focus',
+        placement: 'auto',
+        trigger: 'click hover focus',
         container: 'body',
-        customClass: 'reservation-calendar-bootstrap-tooltip'
+        customClass: 'reservation-calendar-bootstrap-tooltip',
+        fallbackPlacements: ['top', 'bottom', 'right', 'left']
       });
 
       this.tooltipInstances.set(element, tooltip);
