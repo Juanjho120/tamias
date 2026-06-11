@@ -17,6 +17,6 @@ RUN npm run build:prod
 FROM nginx:1.27-alpine
 
 COPY nginx/templates/default.conf.template /etc/nginx/templates/default.conf.template
-COPY --from=build /app/dist/frontend/browser /usr/share/nginx/html
+COPY --from=build /app/dist/tamias-frontend/browser /usr/share/nginx/html
 
 EXPOSE 80
