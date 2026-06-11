@@ -61,7 +61,7 @@ services:
       OPENAI_EMBEDDING_MODEL: text-embedding-3-small
       OPENAI_TEMPERATURE: 0.2
 
-      CHROMA_HOST: chroma
+      CHROMA_HOST: http://chroma
       CHROMA_PORT: 8000
       CHROMA_BASE_URL: http://chroma:8000
       CHROMA_COLLECTION_NAME: tamias_prod_like_documents

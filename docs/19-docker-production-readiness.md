@@ -1,6 +1,46 @@
 # TAMIAS — Bloque 8B: Docker Production Readiness
 
-## Fix note: frontend Docker relative API URL
+## Chroma host fix
+
+For Spring AI Chroma, the backend configuration uses:
+
+```yaml
+spring:
+  ai:
+    vectorstore:
+      chroma:
+        client:
+          host: ${CHROMA_HOST}
+          port: ${CHROMA_PORT:8000}
+```
+
+`CHROMA_HOST` must include the protocol but not the port.
+
+Correct:
+
+```text
+CHROMA_HOST=http://chroma
+CHROMA_PORT=8000
+```
+
+Incorrect:
+
+```text
+CHROMA_HOST=chroma
+CHROMA_PORT=8000
+```
+
+The incorrect value can produce:
+
+```text
+invalid URI scheme chroma
+```
+
+because Java/Spring tries to use `chroma` as the URI scheme.
+
+---
+
+## Frontend Docker relative API URL
 
 The frontend Docker image builds with:
 
@@ -34,15 +74,21 @@ In `docker-compose.prod-like.yml`:
 BACKEND_API_URL=http://backend:8080
 ```
 
-Therefore, `write-prod-env.js` must accept both:
+---
+
+## Angular output path
+
+The frontend Dockerfile copies:
 
 ```text
-https://tamias-api-testing.onrender.com/api/v1
-/api/v1
+/app/dist/tamias-frontend/browser
 ```
 
-Absolute URLs are used by Vercel builds.
-Relative `/api/v1` is used by the Docker/Nginx prod-like setup.
+because the Angular project output is:
+
+```text
+dist/tamias-frontend/browser
+```
 
 ---
 
@@ -92,3 +138,22 @@ http://localhost:8088
 ```bash
 docker compose -f docker-compose.prod-like.yml down
 ```
+
+### Clean volumes
+
+```bash
+docker compose -f docker-compose.prod-like.yml down -v
+```
+
+---
+
+## CI Docker validation
+
+The CI workflow validates both images:
+
+```bash
+docker build -t tamias-backend:ci ./backend
+docker build --build-arg FRONTEND_API_BASE_URL=/api/v1 -t tamias-frontend:ci ./frontend
+```
+
+This keeps the frontend dockerized even though Vercel deploys the frontend from source.
