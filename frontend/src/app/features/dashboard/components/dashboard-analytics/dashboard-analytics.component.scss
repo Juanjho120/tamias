@@ -1,3 +1,30 @@
+.dashboard-analytics-section {
+  display: block;
+}
+
+.dashboard-analytics-shell {
+  //background: var(--bs-tertiary-bg);
+  background: rgb(249, 249, 182);
+  border-radius: 1.25rem;
+}
+
+.dashboard-analytics-inner-card {
+  background: var(--bs-body-bg);
+  border-radius: 1rem;
+}
+
+.dashboard-analytics-title-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bs-primary-bg-subtle);
+  color: var(--bs-primary);
+  flex: 0 0 auto;
+}
+
 .dashboard-analytics-icon {
   width: 2.75rem;
   height: 2.75rem;
@@ -11,4 +38,10 @@
 
 .dashboard-analytics-progress {
   height: 0.45rem;
+  background: var(--bs-secondary-bg);
+}
+
+.dashboard-analytics-loading {
+  background: var(--bs-body-bg);
+  border-radius: 1rem;
 }

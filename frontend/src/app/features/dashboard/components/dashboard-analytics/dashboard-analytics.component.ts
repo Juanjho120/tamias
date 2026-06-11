@@ -12,7 +12,8 @@ import { DashboardAnalyticsService } from '../../services/dashboard-analytics.se
   selector: 'app-dashboard-analytics',
   standalone: true,
   imports: [DecimalPipe, NgClass, TranslatePipe, QuetzalCurrencyPipe],
-  templateUrl: './dashboard-analytics.component.html'
+  templateUrl: './dashboard-analytics.component.html',
+  styleUrl: './dashboard-analytics.component.scss'
 })
 export class DashboardAnalyticsComponent implements OnInit {
   private readonly dashboardAnalyticsService = inject(DashboardAnalyticsService);

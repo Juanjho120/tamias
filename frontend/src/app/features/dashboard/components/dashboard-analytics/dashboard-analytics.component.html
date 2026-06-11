@@ -1,256 +1,263 @@
-<section class="dashboard-analytics mb-4">
-  <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-lg-center mb-3">
-    <div>
-      <h2 class="h5 mb-1">{{ 'dashboard.analytics.title' | translate }}</h2>
-      <p class="text-body-secondary mb-0">{{ 'dashboard.analytics.subtitle' | translate }}</p>
-    </div>
+<section class="dashboard-analytics-section my-4">
+  <div class="dashboard-analytics-shell card border-0 shadow-sm">
+    <div class="card-body p-3 p-lg-4">
+      <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-lg-center mb-4">
+        <div>
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="dashboard-analytics-title-icon">
+              <i class="bi bi-graph-up-arrow"></i>
+            </span>
+            <h2 class="h5 mb-0">{{ 'dashboard.analytics.title' | translate }}</h2>
+          </div>
+          <p class="text-body-secondary mb-0">{{ 'dashboard.analytics.subtitle' | translate }}</p>
+        </div>
 
-    <button type="button" class="btn btn-outline-secondary btn-sm" (click)="loadAnalytics()" [disabled]="loading()">
-      @if (loading()) {
-        <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
-      } @else {
-        <i class="bi bi-arrow-clockwise me-1"></i>
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="loadAnalytics()" [disabled]="loading()">
+          @if (loading()) {
+            <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+          } @else {
+            <i class="bi bi-arrow-clockwise me-1"></i>
+          }
+          {{ 'dashboard.analytics.refresh' | translate }}
+        </button>
+      </div>
+
+      @if (loading() && !analytics()) {
+        <div class="dashboard-analytics-loading text-center py-4">
+          <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+          {{ 'dashboard.analytics.loading' | translate }}
+        </div>
+      } @else if (analytics()) {
+        <div class="row g-3 mb-3">
+          <div class="col-12 col-md-6 col-xl-4">
+            <div class="card dashboard-analytics-inner-card border-0 shadow-sm h-100">
+              <div class="card-body">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="dashboard-analytics-icon bg-primary-subtle text-primary">
+                    <i class="bi bi-calendar2-check"></i>
+                  </div>
+                  <div>
+                    <p class="text-body-secondary small mb-1">{{ 'dashboard.analytics.kpis.activeReservationsToday' | translate }}</p>
+                    <h3 class="h4 mb-0">{{ analytics()?.kpis?.activeReservationsToday | number }}</h3>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6 col-xl-4">
+            <div class="card dashboard-analytics-inner-card border-0 shadow-sm h-100">
+              <div class="card-body">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="dashboard-analytics-icon bg-warning-subtle text-warning">
+                    <i class="bi bi-tools"></i>
+                  </div>
+                  <div>
+                    <p class="text-body-secondary small mb-1">{{ 'dashboard.analytics.kpis.pendingMaintenanceRecords' | translate }}</p>
+                    <h3 class="h4 mb-0">{{ analytics()?.kpis?.pendingMaintenanceRecords | number }}</h3>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6 col-xl-4">
+            <div class="card dashboard-analytics-inner-card border-0 shadow-sm h-100">
+              <div class="card-body">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="dashboard-analytics-icon bg-danger-subtle text-danger">
+                    <i class="bi bi-exclamation-triangle"></i>
+                  </div>
+                  <div>
+                    <p class="text-body-secondary small mb-1">{{ 'dashboard.analytics.kpis.overdueTaskLists' | translate }}</p>
+                    <h3 class="h4 mb-0">{{ analytics()?.kpis?.overdueTaskLists | number }}</h3>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6 col-xl-4">
+            <div class="card dashboard-analytics-inner-card border-0 shadow-sm h-100">
+              <div class="card-body">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="dashboard-analytics-icon bg-info-subtle text-info">
+                    <i class="bi bi-calendar-event"></i>
+                  </div>
+                  <div>
+                    <p class="text-body-secondary small mb-1">{{ 'dashboard.analytics.kpis.upcomingScheduledMaintenance' | translate }}</p>
+                    <h3 class="h4 mb-0">{{ analytics()?.kpis?.upcomingScheduledMaintenance | number }}</h3>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6 col-xl-4">
+            <div class="card dashboard-analytics-inner-card border-0 shadow-sm h-100">
+              <div class="card-body">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="dashboard-analytics-icon bg-success-subtle text-success">
+                    <i class="bi bi-cart-check"></i>
+                  </div>
+                  <div>
+                    <p class="text-body-secondary small mb-1">{{ 'dashboard.analytics.kpis.openPurchaseLists' | translate }}</p>
+                    <h3 class="h4 mb-0">{{ analytics()?.kpis?.openPurchaseLists | number }}</h3>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6 col-xl-4">
+            <div class="card dashboard-analytics-inner-card border-0 shadow-sm h-100">
+              <div class="card-body">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="dashboard-analytics-icon bg-secondary-subtle text-secondary">
+                    <i class="bi bi-cash-stack"></i>
+                  </div>
+                  <div>
+                    <p class="text-body-secondary small mb-1">{{ 'dashboard.analytics.kpis.estimatedOpenPurchaseTotal' | translate }}</p>
+                    <h3 class="h4 mb-0">{{ analytics()?.kpis?.estimatedOpenPurchaseTotal | quetzalCurrency }}</h3>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-12 col-xl-4">
+            <div class="card dashboard-analytics-inner-card border-0 shadow-sm h-100">
+              <div class="card-body">
+                <h3 class="h6 mb-3">{{ 'dashboard.analytics.charts.maintenanceCostByMonth' | translate }}</h3>
+
+                @if (!analytics()?.maintenanceCostByMonth?.length) {
+                  <p class="text-body-secondary mb-0">{{ 'dashboard.analytics.empty.monthlyMaintenance' | translate }}</p>
+                } @else {
+                  <div class="d-flex flex-column gap-2">
+                    @for (row of analytics()?.maintenanceCostByMonth || []; track trackByMonth($index, row)) {
+                      <div>
+                        <div class="d-flex justify-content-between small mb-1">
+                          <span>{{ row.month }}</span>
+                          <span>{{ row.amount | quetzalCurrency }}</span>
+                        </div>
+                        <div class="progress dashboard-analytics-progress" role="progressbar">
+                          <div class="progress-bar" [style.width]="barWidth(row.amount, maxMaintenanceCost())"></div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12 col-xl-4">
+            <div class="card dashboard-analytics-inner-card border-0 shadow-sm h-100">
+              <div class="card-body">
+                <h3 class="h6 mb-3">{{ 'dashboard.analytics.charts.purchaseCostByMonth' | translate }}</h3>
+
+                @if (!analytics()?.purchaseCostByMonth?.length) {
+                  <p class="text-body-secondary mb-0">{{ 'dashboard.analytics.empty.monthlyPurchases' | translate }}</p>
+                } @else {
+                  <div class="d-flex flex-column gap-2">
+                    @for (row of analytics()?.purchaseCostByMonth || []; track trackByMonth($index, row)) {
+                      <div>
+                        <div class="d-flex justify-content-between small mb-1">
+                          <span>{{ row.month }}</span>
+                          <span>{{ row.amount | quetzalCurrency }}</span>
+                        </div>
+                        <div class="progress dashboard-analytics-progress" role="progressbar">
+                          <div class="progress-bar" [style.width]="barWidth(row.amount, maxPurchaseCost())"></div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12 col-xl-4">
+            <div class="card dashboard-analytics-inner-card border-0 shadow-sm h-100">
+              <div class="card-body">
+                <h3 class="h6 mb-3">{{ 'dashboard.analytics.charts.reservationsByMonth' | translate }}</h3>
+
+                @if (!analytics()?.reservationsByMonth?.length) {
+                  <p class="text-body-secondary mb-0">{{ 'dashboard.analytics.empty.monthlyReservations' | translate }}</p>
+                } @else {
+                  <div class="d-flex flex-column gap-2">
+                    @for (row of analytics()?.reservationsByMonth || []; track trackByMonth($index, row)) {
+                      <div>
+                        <div class="d-flex justify-content-between small mb-1">
+                          <span>{{ row.month }}</span>
+                          <span>{{ row.count | number }} · {{ row.amount | quetzalCurrency }}</span>
+                        </div>
+                        <div class="progress dashboard-analytics-progress" role="progressbar">
+                          <div class="progress-bar" [style.width]="barWidth(row.count, maxReservationsCount())"></div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12 col-xl-6">
+            <div class="card dashboard-analytics-inner-card border-0 shadow-sm h-100">
+              <div class="card-body">
+                <h3 class="h6 mb-3">{{ 'dashboard.analytics.charts.topReservationSupplies' | translate }}</h3>
+
+                @if (!analytics()?.topReservationSupplies?.length) {
+                  <p class="text-body-secondary mb-0">{{ 'dashboard.analytics.empty.reservationSupplies' | translate }}</p>
+                } @else {
+                  <div class="d-flex flex-column gap-3">
+                    @for (row of analytics()?.topReservationSupplies || []; track trackByName($index, row)) {
+                      <div>
+                        <div class="d-flex justify-content-between small mb-1">
+                          <span class="text-truncate">{{ row.name }}</span>
+                          <span>{{ row.quantity | number }}</span>
+                        </div>
+                        <div class="progress dashboard-analytics-progress" role="progressbar">
+                          <div class="progress-bar" [style.width]="barWidth(row.quantity, maxReservationSupplyQuantity())"></div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12 col-xl-6">
+            <div class="card dashboard-analytics-inner-card border-0 shadow-sm h-100">
+              <div class="card-body">
+                <h3 class="h6 mb-3">{{ 'dashboard.analytics.charts.topPurchasedItems' | translate }}</h3>
+
+                @if (!analytics()?.topPurchasedItems?.length) {
+                  <p class="text-body-secondary mb-0">{{ 'dashboard.analytics.empty.purchasedItems' | translate }}</p>
+                } @else {
+                  <div class="d-flex flex-column gap-3">
+                    @for (row of analytics()?.topPurchasedItems || []; track trackByName($index, row)) {
+                      <div>
+                        <div class="d-flex justify-content-between small mb-1">
+                          <span class="text-truncate">{{ row.name }}</span>
+                          <span>{{ row.quantity | number }} · {{ row.amount | quetzalCurrency }}</span>
+                        </div>
+                        <div class="progress dashboard-analytics-progress" role="progressbar">
+                          <div class="progress-bar" [style.width]="barWidth(row.quantity, maxPurchasedItemQuantity())"></div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
       }
-      {{ 'dashboard.analytics.refresh' | translate }}
-    </button>
+    </div>
   </div>
-
-  @if (loading() && !analytics()) {
-    <div class="card border-0 shadow-sm">
-      <div class="card-body text-center py-4">
-        <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
-        {{ 'dashboard.analytics.loading' | translate }}
-      </div>
-    </div>
-  } @else if (analytics()) {
-    <div class="row g-3 mb-3">
-      <div class="col-12 col-md-6 col-xl-4">
-        <div class="card border-0 shadow-sm h-100">
-          <div class="card-body">
-            <div class="d-flex align-items-center gap-3">
-              <div class="dashboard-analytics-icon bg-primary-subtle text-primary">
-                <i class="bi bi-calendar2-check"></i>
-              </div>
-              <div>
-                <p class="text-body-secondary small mb-1">{{ 'dashboard.analytics.kpis.activeReservationsToday' | translate }}</p>
-                <h3 class="h4 mb-0">{{ analytics()?.kpis?.activeReservationsToday | number }}</h3>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-12 col-md-6 col-xl-4">
-        <div class="card border-0 shadow-sm h-100">
-          <div class="card-body">
-            <div class="d-flex align-items-center gap-3">
-              <div class="dashboard-analytics-icon bg-warning-subtle text-warning">
-                <i class="bi bi-tools"></i>
-              </div>
-              <div>
-                <p class="text-body-secondary small mb-1">{{ 'dashboard.analytics.kpis.pendingMaintenanceRecords' | translate }}</p>
-                <h3 class="h4 mb-0">{{ analytics()?.kpis?.pendingMaintenanceRecords | number }}</h3>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-12 col-md-6 col-xl-4">
-        <div class="card border-0 shadow-sm h-100">
-          <div class="card-body">
-            <div class="d-flex align-items-center gap-3">
-              <div class="dashboard-analytics-icon bg-danger-subtle text-danger">
-                <i class="bi bi-exclamation-triangle"></i>
-              </div>
-              <div>
-                <p class="text-body-secondary small mb-1">{{ 'dashboard.analytics.kpis.overdueTaskLists' | translate }}</p>
-                <h3 class="h4 mb-0">{{ analytics()?.kpis?.overdueTaskLists | number }}</h3>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-12 col-md-6 col-xl-4">
-        <div class="card border-0 shadow-sm h-100">
-          <div class="card-body">
-            <div class="d-flex align-items-center gap-3">
-              <div class="dashboard-analytics-icon bg-info-subtle text-info">
-                <i class="bi bi-calendar-event"></i>
-              </div>
-              <div>
-                <p class="text-body-secondary small mb-1">{{ 'dashboard.analytics.kpis.upcomingScheduledMaintenance' | translate }}</p>
-                <h3 class="h4 mb-0">{{ analytics()?.kpis?.upcomingScheduledMaintenance | number }}</h3>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-12 col-md-6 col-xl-4">
-        <div class="card border-0 shadow-sm h-100">
-          <div class="card-body">
-            <div class="d-flex align-items-center gap-3">
-              <div class="dashboard-analytics-icon bg-success-subtle text-success">
-                <i class="bi bi-cart-check"></i>
-              </div>
-              <div>
-                <p class="text-body-secondary small mb-1">{{ 'dashboard.analytics.kpis.openPurchaseLists' | translate }}</p>
-                <h3 class="h4 mb-0">{{ analytics()?.kpis?.openPurchaseLists | number }}</h3>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-12 col-md-6 col-xl-4">
-        <div class="card border-0 shadow-sm h-100">
-          <div class="card-body">
-            <div class="d-flex align-items-center gap-3">
-              <div class="dashboard-analytics-icon bg-secondary-subtle text-secondary">
-                <i class="bi bi-cash-stack"></i>
-              </div>
-              <div>
-                <p class="text-body-secondary small mb-1">{{ 'dashboard.analytics.kpis.estimatedOpenPurchaseTotal' | translate }}</p>
-                <h3 class="h4 mb-0">{{ analytics()?.kpis?.estimatedOpenPurchaseTotal | quetzalCurrency }}</h3>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="row g-3">
-      <div class="col-12 col-xl-4">
-        <div class="card border-0 shadow-sm h-100">
-          <div class="card-body">
-            <h3 class="h6 mb-3">{{ 'dashboard.analytics.charts.maintenanceCostByMonth' | translate }}</h3>
-
-            @if (!analytics()?.maintenanceCostByMonth?.length) {
-              <p class="text-body-secondary mb-0">{{ 'dashboard.analytics.empty.monthlyMaintenance' | translate }}</p>
-            } @else {
-              <div class="d-flex flex-column gap-2">
-                @for (row of analytics()?.maintenanceCostByMonth || []; track trackByMonth($index, row)) {
-                  <div>
-                    <div class="d-flex justify-content-between small mb-1">
-                      <span>{{ row.month }}</span>
-                      <span>{{ row.amount | quetzalCurrency }}</span>
-                    </div>
-                    <div class="progress dashboard-analytics-progress" role="progressbar">
-                      <div class="progress-bar" [style.width]="barWidth(row.amount, maxMaintenanceCost())"></div>
-                    </div>
-                  </div>
-                }
-              </div>
-            }
-          </div>
-        </div>
-      </div>
-
-      <div class="col-12 col-xl-4">
-        <div class="card border-0 shadow-sm h-100">
-          <div class="card-body">
-            <h3 class="h6 mb-3">{{ 'dashboard.analytics.charts.purchaseCostByMonth' | translate }}</h3>
-
-            @if (!analytics()?.purchaseCostByMonth?.length) {
-              <p class="text-body-secondary mb-0">{{ 'dashboard.analytics.empty.monthlyPurchases' | translate }}</p>
-            } @else {
-              <div class="d-flex flex-column gap-2">
-                @for (row of analytics()?.purchaseCostByMonth || []; track trackByMonth($index, row)) {
-                  <div>
-                    <div class="d-flex justify-content-between small mb-1">
-                      <span>{{ row.month }}</span>
-                      <span>{{ row.amount | quetzalCurrency }}</span>
-                    </div>
-                    <div class="progress dashboard-analytics-progress" role="progressbar">
-                      <div class="progress-bar" [style.width]="barWidth(row.amount, maxPurchaseCost())"></div>
-                    </div>
-                  </div>
-                }
-              </div>
-            }
-          </div>
-        </div>
-      </div>
-
-      <div class="col-12 col-xl-4">
-        <div class="card border-0 shadow-sm h-100">
-          <div class="card-body">
-            <h3 class="h6 mb-3">{{ 'dashboard.analytics.charts.reservationsByMonth' | translate }}</h3>
-
-            @if (!analytics()?.reservationsByMonth?.length) {
-              <p class="text-body-secondary mb-0">{{ 'dashboard.analytics.empty.monthlyReservations' | translate }}</p>
-            } @else {
-              <div class="d-flex flex-column gap-2">
-                @for (row of analytics()?.reservationsByMonth || []; track trackByMonth($index, row)) {
-                  <div>
-                    <div class="d-flex justify-content-between small mb-1">
-                      <span>{{ row.month }}</span>
-                      <span>{{ row.count | number }} · {{ row.amount | quetzalCurrency }}</span>
-                    </div>
-                    <div class="progress dashboard-analytics-progress" role="progressbar">
-                      <div class="progress-bar" [style.width]="barWidth(row.count, maxReservationsCount())"></div>
-                    </div>
-                  </div>
-                }
-              </div>
-            }
-          </div>
-        </div>
-      </div>
-
-      <div class="col-12 col-xl-6">
-        <div class="card border-0 shadow-sm h-100">
-          <div class="card-body">
-            <h3 class="h6 mb-3">{{ 'dashboard.analytics.charts.topReservationSupplies' | translate }}</h3>
-
-            @if (!analytics()?.topReservationSupplies?.length) {
-              <p class="text-body-secondary mb-0">{{ 'dashboard.analytics.empty.reservationSupplies' | translate }}</p>
-            } @else {
-              <div class="d-flex flex-column gap-3">
-                @for (row of analytics()?.topReservationSupplies || []; track trackByName($index, row)) {
-                  <div>
-                    <div class="d-flex justify-content-between small mb-1">
-                      <span class="text-truncate">{{ row.name }}</span>
-                      <span>{{ row.quantity | number }}</span>
-                    </div>
-                    <div class="progress dashboard-analytics-progress" role="progressbar">
-                      <div class="progress-bar" [style.width]="barWidth(row.quantity, maxReservationSupplyQuantity())"></div>
-                    </div>
-                  </div>
-                }
-              </div>
-            }
-          </div>
-        </div>
-      </div>
-
-      <div class="col-12 col-xl-6">
-        <div class="card border-0 shadow-sm h-100">
-          <div class="card-body">
-            <h3 class="h6 mb-3">{{ 'dashboard.analytics.charts.topPurchasedItems' | translate }}</h3>
-
-            @if (!analytics()?.topPurchasedItems?.length) {
-              <p class="text-body-secondary mb-0">{{ 'dashboard.analytics.empty.purchasedItems' | translate }}</p>
-            } @else {
-              <div class="d-flex flex-column gap-3">
-                @for (row of analytics()?.topPurchasedItems || []; track trackByName($index, row)) {
-                  <div>
-                    <div class="d-flex justify-content-between small mb-1">
-                      <span class="text-truncate">{{ row.name }}</span>
-                      <span>{{ row.quantity | number }} · {{ row.amount | quetzalCurrency }}</span>
-                    </div>
-                    <div class="progress dashboard-analytics-progress" role="progressbar">
-                      <div class="progress-bar" [style.width]="barWidth(row.quantity, maxPurchasedItemQuantity())"></div>
-                    </div>
-                  </div>
-                }
-              </div>
-            }
-          </div>
-        </div>
-      </div>
-    </div>
-  }
 </section>
