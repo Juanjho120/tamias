@@ -34,6 +34,11 @@ public class AiToolCallingService {
             return Optional.of(readOnlyToolService.currentOrganizationSummary());
         }
 
+        Optional<AiToolAnswer> fileImageDashboardAnswer = tryHandleFileImageDashboardQuestion(question, normalized);
+        if (fileImageDashboardAnswer.isPresent()) {
+            return fileImageDashboardAnswer;
+        }
+
         Optional<AiToolAnswer> priorityMaintenanceAnalyticsAnswer = tryHandlePriorityMaintenanceAnalyticsQuestion(question, normalized);
         if (priorityMaintenanceAnalyticsAnswer.isPresent()) {
             return priorityMaintenanceAnalyticsAnswer;
@@ -47,11 +52,6 @@ public class AiToolCallingService {
         Optional<AiToolAnswer> purchaseAnalyticsAnswer = tryHandlePurchaseAnalyticsQuestion(question, normalized);
         if (purchaseAnalyticsAnswer.isPresent()) {
             return purchaseAnalyticsAnswer;
-        }
-
-        Optional<AiToolAnswer> fileImageDashboardAnswer = tryHandleFileImageDashboardQuestion(question, normalized);
-        if (fileImageDashboardAnswer.isPresent()) {
-            return fileImageDashboardAnswer;
         }
 
         Optional<AiToolAnswer> documentRagAnswer = tryHandleDocumentAndRagQuestion(question, normalized);

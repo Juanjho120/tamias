@@ -4285,6 +4285,7 @@ public class AiReadOnlyToolService {
 
     public AiToolAnswer maintenanceImagesSummary(boolean withoutImages) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
+        String havingClause = withoutImages ? "HAVING COUNT(mri.id) = 0\n" : "HAVING COUNT(mri.id) > 0\n";
         List<Map<String, Object>> rows = query("""
                 SELECT mr.id,
                        p.name AS property_name,
@@ -4301,24 +4302,23 @@ public class AiReadOnlyToolService {
                 WHERE mr.organization_id = :organizationId
                   AND mr.deleted_at IS NULL
                 GROUP BY mr.id, p.name, mr.title, mr.status, COALESCE(mr.performed_at, mr.scheduled_at, mr.created_at)
-                HAVING CAST(:withoutImages AS BOOLEAN) = FALSE OR COUNT(mri.id) = 0
+                """ + havingClause + """
                 ORDER BY image_count DESC, maintenance_date DESC NULLS LAST
                 LIMIT :limit
                 """, q -> {
                     q.setParameter("organizationId", organizationId);
-                    q.setParameter("withoutImages", withoutImages);
                     q.setParameter("limit", DEFAULT_LIMIT);
                 }, "id", "propertyName", "title", "status", "maintenanceDate", "imageCount");
         if (rows.isEmpty()) {
             return AiToolAnswer.of(
-                    withoutImages ? "No encontré mantenimientos sin evidencia fotográfica." : "No encontré metadata de imágenes en mantenimientos.",
+                    withoutImages ? "No encontré mantenimientos sin evidencia fotográfica." : "No encontré mantenimientos con imágenes activas.",
                     withoutImages ? "maintenance.withoutImages" : "maintenance.withImages",
                     withoutImages ? "Maintenance without images" : "Maintenance with images",
                     "No maintenance image metadata rows found.",
                     List.of()
             );
         }
-        StringBuilder answer = new StringBuilder(withoutImages ? "Estos mantenimientos no tienen imágenes activas:" : "Estos mantenimientos tienen metadata de imágenes:");
+        StringBuilder answer = new StringBuilder(withoutImages ? "Estos mantenimientos no tienen imágenes activas:" : "Estos mantenimientos sí tienen imágenes activas:");
         for (Map<String, Object> row : rows) {
             answer.append(System.lineSeparator())
                     .append("- ").append(blankToDash(value(row.get("title"))))
@@ -4975,7 +4975,8 @@ public class AiReadOnlyToolService {
     public AiToolAnswer filesByMaintenance(String userQuestion) {
         String search = nullableSearch(extractSearchText(
                 userQuestion,
-                "archivo", "archivos", "imagen", "imagenes", "foto", "fotos", "mantenimiento", "mantenimientos", "evidencia"
+                "archivo", "archivos", "imagen", "imagenes", "foto", "fotos", "mantenimiento", "mantenimientos", "evidencia",
+                "asociado", "asociados", "asociada", "asociadas", "relacionado", "relacionados"
         ));
         List<Map<String, Object>> rows = maintenanceImageRows(search, false, DEFAULT_LIMIT);
         if (rows.isEmpty()) {
@@ -4997,7 +4998,8 @@ public class AiReadOnlyToolService {
     public AiToolAnswer filesByDocument(String userQuestion) {
         String search = nullableSearch(extractSearchText(
                 userQuestion,
-                "archivo", "archivos", "documento", "documentos", "file", "metadata", "metadatos"
+                "archivo", "archivos", "documento", "documentos", "file", "metadata", "metadatos",
+                "asociado", "asociados", "asociada", "asociadas", "relacionado", "relacionados"
         ));
         List<Map<String, Object>> rows = documentRows(search, "", q -> {}, DEFAULT_LIMIT, "d.created_at DESC");
         if (rows.isEmpty()) {
@@ -5381,27 +5383,146 @@ public class AiReadOnlyToolService {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         LocalDate today = LocalDate.now();
         LocalDate tomorrow = today.plusDays(1);
-        List<Map<String, Object>> rows = query("""
-                SELECT (SELECT COUNT(*) FROM scheduled_maintenance sm WHERE sm.organization_id = :organizationId AND sm.deleted_at IS NULL AND sm.status = 'ACTIVE' AND sm.next_due_date < :today) AS overdue_scheduled_maintenance,
-                       (SELECT COUNT(*) FROM task_lists tl WHERE tl.organization_id = :organizationId AND tl.deleted_at IS NULL AND tl.status IN ('OPEN', 'IN_PROGRESS') AND tl.due_date < :today) AS overdue_task_lists,
-                       (SELECT COUNT(*) FROM task_items ti JOIN task_lists tl ON tl.id = ti.task_list_id AND tl.organization_id = ti.organization_id WHERE ti.organization_id = :organizationId AND tl.deleted_at IS NULL AND ti.completed = FALSE AND tl.due_date < :today) AS overdue_task_items,
-                       (SELECT COUNT(*) FROM documents d WHERE d.organization_id = :organizationId AND d.deleted_at IS NULL AND d.processing_status = 'FAILED') AS failed_documents,
-                       (SELECT COUNT(*) FROM documents d WHERE d.organization_id = :organizationId AND d.deleted_at IS NULL AND d.processing_status = 'PROCESSED' AND NOT EXISTS (SELECT 1 FROM document_chunks dc WHERE dc.document_id = d.id AND dc.organization_id = d.organization_id AND dc.vector_store_id IS NOT NULL)) AS processed_not_indexed_documents,
-                       (SELECT COUNT(*) FROM reservations r WHERE r.organization_id = :organizationId AND r.deleted_at IS NULL AND r.status = 'ACTIVE' AND r.check_in BETWEEN :today AND :tomorrow) AS checkins_next_24h
+
+        List<Map<String, Object>> overdueScheduled = query("""
+                SELECT sm.title,
+                       p.name AS property_name,
+                       sm.next_due_date
+                FROM scheduled_maintenance sm
+                JOIN properties p ON p.id = sm.property_id AND p.organization_id = sm.organization_id
+                WHERE sm.organization_id = :organizationId
+                  AND sm.deleted_at IS NULL
+                  AND sm.status = 'ACTIVE'
+                  AND sm.next_due_date < :today
+                ORDER BY sm.next_due_date ASC, sm.title ASC
+                LIMIT :limit
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("today", Date.valueOf(today));
+                    q.setParameter("limit", DEFAULT_LIMIT);
+                }, "title", "propertyName", "nextDueDate");
+
+        List<Map<String, Object>> overdueTaskLists = query("""
+                SELECT tl.title,
+                       p.name AS property_name,
+                       tl.due_date
+                FROM task_lists tl
+                JOIN properties p ON p.id = tl.property_id AND p.organization_id = tl.organization_id
+                WHERE tl.organization_id = :organizationId
+                  AND tl.deleted_at IS NULL
+                  AND tl.status IN ('OPEN', 'IN_PROGRESS')
+                  AND tl.due_date < :today
+                ORDER BY tl.due_date ASC, tl.title ASC
+                LIMIT :limit
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("today", Date.valueOf(today));
+                    q.setParameter("limit", DEFAULT_LIMIT);
+                }, "title", "propertyName", "dueDate");
+
+        List<Map<String, Object>> overdueTaskItems = query("""
+                SELECT ti.task_name,
+                       tl.title AS task_list_title,
+                       p.name AS property_name,
+                       tl.due_date
+                FROM task_items ti
+                JOIN task_lists tl ON tl.id = ti.task_list_id AND tl.organization_id = ti.organization_id
+                JOIN properties p ON p.id = tl.property_id AND p.organization_id = tl.organization_id
+                WHERE ti.organization_id = :organizationId
+                  AND tl.deleted_at IS NULL
+                  AND ti.completed = FALSE
+                  AND tl.status IN ('OPEN', 'IN_PROGRESS')
+                  AND tl.due_date < :today
+                ORDER BY tl.due_date ASC, ti.sort_order ASC, ti.task_name ASC
+                LIMIT :limit
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("today", Date.valueOf(today));
+                    q.setParameter("limit", DEFAULT_LIMIT);
+                }, "taskName", "taskListTitle", "propertyName", "dueDate");
+
+        List<Map<String, Object>> failedDocuments = query("""
+                SELECT d.title,
+                       d.document_type,
+                       COALESCE(p.name, 'Sin propiedad') AS property_name
+                FROM documents d
+                LEFT JOIN properties p ON p.id = d.property_id AND p.organization_id = d.organization_id
+                WHERE d.organization_id = :organizationId
+                  AND d.deleted_at IS NULL
+                  AND d.processing_status = 'FAILED'
+                ORDER BY d.created_at DESC
+                LIMIT :limit
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("limit", DEFAULT_LIMIT);
+                }, "title", "documentType", "propertyName");
+
+        List<Map<String, Object>> processedNotIndexed = query("""
+                SELECT d.title,
+                       d.document_type,
+                       COALESCE(p.name, 'Sin propiedad') AS property_name
+                FROM documents d
+                LEFT JOIN properties p ON p.id = d.property_id AND p.organization_id = d.organization_id
+                WHERE d.organization_id = :organizationId
+                  AND d.deleted_at IS NULL
+                  AND d.processing_status = 'PROCESSED'
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM document_chunks dc
+                      WHERE dc.document_id = d.id
+                        AND dc.organization_id = d.organization_id
+                        AND dc.vector_store_id IS NOT NULL
+                  )
+                ORDER BY d.created_at DESC
+                LIMIT :limit
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("limit", DEFAULT_LIMIT);
+                }, "title", "documentType", "propertyName");
+
+        List<Map<String, Object>> checkinsNext24h = query("""
+                SELECT r.reservation_code,
+                       p.name AS property_name,
+                       r.check_in,
+                       r.check_out
+                FROM reservations r
+                JOIN properties p ON p.id = r.property_id AND p.organization_id = r.organization_id
+                WHERE r.organization_id = :organizationId
+                  AND r.deleted_at IS NULL
+                  AND r.status = 'ACTIVE'
+                  AND r.check_in BETWEEN :today AND :tomorrow
+                ORDER BY r.check_in ASC, p.name ASC
+                LIMIT :limit
                 """, q -> {
                     q.setParameter("organizationId", organizationId);
                     q.setParameter("today", Date.valueOf(today));
                     q.setParameter("tomorrow", Date.valueOf(tomorrow));
-                }, "overdueScheduledMaintenance", "overdueTaskLists", "overdueTaskItems", "failedDocuments", "processedNotIndexedDocuments", "checkinsNext24h");
-        Map<String, Object> row = rows.get(0);
-        String answer = "Alertas operativas actuales:" + System.lineSeparator()
-                + "- Mantenimientos programados vencidos: " + blankToDash(value(row.get("overdueScheduledMaintenance"))) + System.lineSeparator()
-                + "- Listas de tareas vencidas: " + blankToDash(value(row.get("overdueTaskLists"))) + System.lineSeparator()
-                + "- Tareas específicas vencidas: " + blankToDash(value(row.get("overdueTaskItems"))) + System.lineSeparator()
-                + "- Documentos con procesamiento fallido: " + blankToDash(value(row.get("failedDocuments"))) + System.lineSeparator()
-                + "- Documentos procesados sin indexación IA: " + blankToDash(value(row.get("processedNotIndexedDocuments"))) + System.lineSeparator()
-                + "- Check-ins en las próximas 24 horas: " + blankToDash(value(row.get("checkinsNext24h")));
-        return AiToolAnswer.of(answer, "dashboard.alertSummary", "Dashboard alert summary", "Operational alert counters were calculated.", rows);
+                    q.setParameter("limit", DEFAULT_LIMIT);
+                }, "reservationCode", "propertyName", "checkIn", "checkOut");
+
+        StringBuilder answer = new StringBuilder("Alertas operativas actuales:");
+        appendAlertGroup(answer, "Mantenimientos programados vencidos", overdueScheduled, row ->
+                blankToDash(value(row.get("title"))) + " | propiedad: " + blankToDash(value(row.get("propertyName"))) + " | vencía: " + blankToDash(value(row.get("nextDueDate"))));
+        appendAlertGroup(answer, "Listas de tareas vencidas", overdueTaskLists, row ->
+                blankToDash(value(row.get("title"))) + " | propiedad: " + blankToDash(value(row.get("propertyName"))) + " | vencía: " + blankToDash(value(row.get("dueDate"))));
+        appendAlertGroup(answer, "Tareas específicas vencidas", overdueTaskItems, row ->
+                blankToDash(value(row.get("taskName"))) + " | lista: " + blankToDash(value(row.get("taskListTitle"))) + " | propiedad: " + blankToDash(value(row.get("propertyName"))) + " | vencía: " + blankToDash(value(row.get("dueDate"))));
+        appendAlertGroup(answer, "Documentos con procesamiento fallido", failedDocuments, row ->
+                blankToDash(value(row.get("title"))) + " | tipo: " + blankToDash(value(row.get("documentType"))) + " | propiedad: " + blankToDash(value(row.get("propertyName"))));
+        appendAlertGroup(answer, "Documentos procesados sin indexación IA", processedNotIndexed, row ->
+                blankToDash(value(row.get("title"))) + " | tipo: " + blankToDash(value(row.get("documentType"))) + " | propiedad: " + blankToDash(value(row.get("propertyName"))));
+        appendAlertGroup(answer, "Check-ins en las próximas 24 horas", checkinsNext24h, row ->
+                blankToDash(value(row.get("reservationCode"))) + " | propiedad: " + blankToDash(value(row.get("propertyName"))) + " | check-in: " + blankToDash(value(row.get("checkIn"))) + " | check-out: " + blankToDash(value(row.get("checkOut"))));
+
+        List<Map<String, Object>> evidenceRows = new ArrayList<>();
+        evidenceRows.add(Map.of("alertType", "overdueScheduledMaintenance", "count", overdueScheduled.size()));
+        evidenceRows.add(Map.of("alertType", "overdueTaskLists", "count", overdueTaskLists.size()));
+        evidenceRows.add(Map.of("alertType", "overdueTaskItems", "count", overdueTaskItems.size()));
+        evidenceRows.add(Map.of("alertType", "failedDocuments", "count", failedDocuments.size()));
+        evidenceRows.add(Map.of("alertType", "processedNotIndexedDocuments", "count", processedNotIndexed.size()));
+        evidenceRows.add(Map.of("alertType", "checkinsNext24h", "count", checkinsNext24h.size()));
+
+        return AiToolAnswer.of(answer.toString(), "dashboard.alertSummary", "Dashboard alert summary", "Operational alert counters and details were calculated.", evidenceRows);
     }
 
     private List<Map<String, Object>> fileMetadataRows(String search, String propertySearch, String sourceType, int limit) {
@@ -5531,6 +5652,19 @@ public class AiReadOnlyToolService {
             if (search != null) q.setParameter("search", search);
             q.setParameter("limit", limit);
         }, "id", "title", "propertyName", "maintenanceDate", "imageCount", "filenames");
+    }
+
+    private interface AlertRowFormatter {
+        String format(Map<String, Object> row);
+    }
+
+    private void appendAlertGroup(StringBuilder answer, String title, List<Map<String, Object>> rows, AlertRowFormatter formatter) {
+        answer.append(System.lineSeparator())
+                .append("- ").append(title).append(": ").append(rows.size());
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("  - ").append(formatter.format(row));
+        }
     }
 
     private void appendFileMetadataRows(StringBuilder answer, List<Map<String, Object>> rows) {
