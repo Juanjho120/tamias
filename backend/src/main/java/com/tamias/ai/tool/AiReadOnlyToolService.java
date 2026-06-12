@@ -2133,7 +2133,7 @@ public class AiReadOnlyToolService {
     }
 
     public AiToolAnswer purchaseItemMostPurchased() {
-        List<Map<String, Object>> rows = query(purchaseItemAggregateSql(null, "purchase_count", "DESC"), q -> {
+        List<Map<String, Object>> rows = query(purchaseItemAggregateSql(null, "total_quantity", "DESC"), q -> {
             q.setParameter("organizationId", currentUserService.getCurrentOrganizationId());
             q.setParameter("limit", 1);
         }, "itemName", "purchaseCount", "totalQuantity", "unit", "totalCost", "averageLineCost", "averageUnitCost", "firstPurchaseDate", "lastPurchaseDate");
@@ -2142,14 +2142,14 @@ public class AiReadOnlyToolService {
         }
         Map<String, Object> row = rows.getFirst();
         String answer = "El item que compras más seguido es " + blankToDash(value(row.get("itemName")))
-                + ", con " + blankToDash(value(row.get("purchaseCount"))) + " compras registradas"
-                + ", cantidad total " + blankToDash(value(row.get("totalQuantity"))) + " " + blankToDash(value(row.get("unit")))
+                + ", con cantidad total comprada de " + blankToDash(value(row.get("totalQuantity"))) + " " + blankToDash(value(row.get("unit")))
+                + " en " + blankToDash(value(row.get("purchaseCount"))) + " compra(s) registradas"
                 + " y gasto total " + formatMoney(row.get("totalCost")) + ".";
         return AiToolAnswer.of(answer, "purchaseItem.mostPurchased", "Most purchased item", "1 most purchased row found.", rows);
     }
 
     public AiToolAnswer purchaseItemLeastPurchased() {
-        List<Map<String, Object>> rows = query(purchaseItemAggregateSql(null, "purchase_count", "ASC"), q -> {
+        List<Map<String, Object>> rows = query(purchaseItemAggregateSql(null, "total_quantity", "ASC"), q -> {
             q.setParameter("organizationId", currentUserService.getCurrentOrganizationId());
             q.setParameter("limit", 1);
         }, "itemName", "purchaseCount", "totalQuantity", "unit", "totalCost", "averageLineCost", "averageUnitCost", "firstPurchaseDate", "lastPurchaseDate");
@@ -2158,8 +2158,8 @@ public class AiReadOnlyToolService {
         }
         Map<String, Object> row = rows.getFirst();
         String answer = "El item que compras menos seguido es " + blankToDash(value(row.get("itemName")))
-                + ", con " + blankToDash(value(row.get("purchaseCount"))) + " compra(s) registradas"
-                + ", cantidad total " + blankToDash(value(row.get("totalQuantity"))) + " " + blankToDash(value(row.get("unit")))
+                + ", con cantidad total comprada de " + blankToDash(value(row.get("totalQuantity"))) + " " + blankToDash(value(row.get("unit")))
+                + " en " + blankToDash(value(row.get("purchaseCount"))) + " compra(s) registradas"
                 + " y gasto total " + formatMoney(row.get("totalCost")) + ".";
         return AiToolAnswer.of(answer, "purchaseItem.leastPurchased", "Least purchased item", "1 least purchased row found.", rows);
     }
@@ -4519,7 +4519,14 @@ public class AiReadOnlyToolService {
         sql.append("""
                 GROUP BY pi.item_name_snapshot
                 """);
-        sql.append("ORDER BY ").append(safeMetric).append(' ').append(safeDirection).append(", pi.item_name_snapshot ASC\n");
+        sql.append("ORDER BY ").append(safeMetric).append(' ').append(safeDirection);
+        if (!"purchase_count".equals(safeMetric)) {
+            sql.append(", purchase_count ").append(safeDirection);
+        }
+        if (!"total_quantity".equals(safeMetric)) {
+            sql.append(", total_quantity ").append(safeDirection);
+        }
+        sql.append(", pi.item_name_snapshot ASC\n");
         sql.append("LIMIT :limit\n");
         return sql.toString();
     }
