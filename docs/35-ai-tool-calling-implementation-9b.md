@@ -1,15 +1,28 @@
-# TAMIAS — AI Tool Calling Implementation 9B
+# TAMIAS — AI Tool Calling Implementation 9B–9D
 
 ## Scope
 
-This phase adds the first backend implementation of controlled read-only AI tools.
+This document summarizes the implemented AI Tool Calling work from phases 9B, 9C and 9D.
 
-No frontend changes are required in this phase.
+The broader catalog is tracked in:
 
-## Implemented tools
+```text
+docs/36-ai-tool-calling-expanded-catalog-coverage.md
+```
+
+## Current implementation status
+
+The current implementation is not the full expanded catalog. It is the first stable read-only tool foundation plus assistant integration and frontend evidence UX.
+
+## Implemented backend tools
 
 ```text
 assistant.capabilities
+assistant.readOnlyGuard
+assistant.operationalPreparation
+assistant.operationalPlanning
+assistant.documentOverview
+assistant.propertyOperations
 user.currentProfile
 organization.currentSummary
 property.search
@@ -21,10 +34,13 @@ purchaseItem.lastPurchased
 taskList.pending
 document.searchMetadata
 rag.documentIndexStatus
-assistant.readOnlyGuard
 ```
 
-## Security model
+## Phase 9B — Backend read-only AI tools
+
+Implemented controlled backend tools for safe operational queries.
+
+Security model:
 
 ```text
 [✓] Read-only only
@@ -34,18 +50,44 @@ assistant.readOnlyGuard
 [✓] user_id resolved from CurrentUserService
 [✓] Native queries are backend-owned
 [✓] Results are scoped to the authenticated organization
-[✓] Passwords/tokens/secrets are not returned
+[✓] Passwords, tokens and secrets are not returned
 ```
 
-## Main backend changes
+## Phase 9C — AI Assistant integration
+
+Implemented assistant-level orchestration on top of the read-only tools.
+
+Current assistant-level combined answers:
 
 ```text
-AiChatResponse now supports toolEvidence.
-AiRagService checks read-only tools before running RAG.
-AiToolCallingService routes natural-language questions to known tools.
-AiReadOnlyToolService executes backend-owned read-only queries.
-RAG fallback no longer exposes similarityThreshold to end users.
+assistant.operationalPreparation
+assistant.operationalPlanning
+assistant.documentOverview
+assistant.propertyOperations
 ```
+
+The assistant can now combine existing tools for operational planning questions while preserving the normal RAG fallback for document-content questions.
+
+## Phase 9D — Frontend UX for system data responses
+
+The frontend now supports tool evidence from backend responses.
+
+User-visible behavior:
+
+```text
+[✓] Operational tool answers are visually distinguished from RAG-only answers.
+[✓] Tool evidence can be shown as structured cards.
+[✓] Document sources still work for RAG answers.
+[✓] Ctrl + Enter / Cmd + Enter sends the prompt.
+```
+
+## Known limitation
+
+This implementation still uses deterministic routing with keyword and synonym groups.
+
+It does not implement the entire expanded catalog yet and does not use model-native function calling.
+
+That is intentional for the current phase because the system is still validating backend-owned, read-only behavior before expanding the number of tools.
 
 ## Smoke test questions
 
@@ -64,28 +106,28 @@ Dame un resumen operativo.
 ¿Qué tareas tengo pendientes?
 ¿Qué documentos tengo procesados?
 ¿Qué documentos tienen chunks sin vector_store_id?
+¿Tengo algo pendiente para preparar la casa antes de la próxima reserva?
+¿Qué documentos tengo cargados y cómo está el índice RAG?
 Crea una reservación para mañana.
 ```
 
 Expected behavior:
 
 ```text
-Capability/profile/organization questions do not go to RAG.
-Operational questions return database-backed answers.
-Write requests are rejected by the read-only guard.
-Document content questions still use RAG.
+- Capability/profile/organization questions do not go to RAG.
+- Operational questions return database-backed answers.
+- Combined operational questions can call multiple read-only tools.
+- Write requests are rejected by the read-only guard.
+- Document content questions still use RAG.
+- Frontend displays operational evidence when toolEvidence is present.
 ```
 
-## Known limitation
+## Next catalog expansion
 
-This phase uses deterministic routing with keyword/synonym groups.
-
-It does not yet use model-native function calling.
-
-That is intentional for the first backend implementation because it is easier to validate and safer before giving the model tool-selection power.
-
-## Next phase
+The next recommended phase is:
 
 ```text
-Fase 9C — Integrate tools with AI Assistant using richer prompts and optional model-assisted tool selection.
+9G — Property and catalog read-only tools
 ```
+
+This should add the first expanded-catalog tools without turning the current service into an unmaintainable mega-class.
