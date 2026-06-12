@@ -3499,16 +3499,23 @@ public class AiReadOnlyToolService {
 
     public AiToolAnswer indexedDocuments() {
         List<Map<String, Object>> rows = documentRows(null,
-                " AND EXISTS (SELECT 1 FROM document_chunks dcx WHERE dcx.document_id = d.id AND dcx.organization_id = d.organization_id AND dcx.vector_store_id IS NOT NULL) ",
+                " AND d.processing_status = 'PROCESSED' AND EXISTS (SELECT 1 FROM document_chunks dcx WHERE dcx.document_id = d.id AND dcx.organization_id = d.organization_id AND dcx.vector_store_id IS NOT NULL) ",
                 null, DEFAULT_LIMIT, "d.created_at DESC");
-        return documentRowsAnswer(rows, "document.indexed", "Estos documentos tienen evidencia de indexación IA:", "No encontré documentos indexados para IA.");
+        return documentRowsAnswer(rows, "document.indexed", "Estos documentos están listos para IA:", "No encontré documentos listos para IA.");
     }
 
     public AiToolAnswer notIndexedDocuments() {
         List<Map<String, Object>> rows = documentRows(null,
                 " AND NOT EXISTS (SELECT 1 FROM document_chunks dcx WHERE dcx.document_id = d.id AND dcx.organization_id = d.organization_id AND dcx.vector_store_id IS NOT NULL) ",
                 null, DEFAULT_LIMIT, "d.created_at DESC");
-        return documentRowsAnswer(rows, "document.notIndexed", "Estos documentos todavía no tienen evidencia de indexación IA:", "No encontré documentos pendientes de indexación IA.");
+        return documentRowsAnswer(rows, "document.notIndexed", "Estos documentos todavía no están indexados para IA:", "No encontré documentos pendientes de indexación IA.");
+    }
+
+    public AiToolAnswer processedNotIndexedDocuments() {
+        List<Map<String, Object>> rows = documentRows(null,
+                " AND d.processing_status = 'PROCESSED' AND NOT EXISTS (SELECT 1 FROM document_chunks dcx WHERE dcx.document_id = d.id AND dcx.organization_id = d.organization_id AND dcx.vector_store_id IS NOT NULL) ",
+                null, DEFAULT_LIMIT, "d.created_at DESC");
+        return documentRowsAnswer(rows, "document.processedNotIndexed", "Estos documentos ya están procesados, pero todavía no están indexados para IA:", "No encontré documentos procesados pendientes de indexación IA.");
     }
 
     public AiToolAnswer documentCountByType() {
@@ -3522,7 +3529,8 @@ public class AiReadOnlyToolService {
                            WHERE dc.document_id = d.id
                              AND dc.organization_id = d.organization_id
                              AND dc.vector_store_id IS NOT NULL
-                       ) THEN 1 ELSE 0 END), 0) AS indexed_count
+                       ) THEN 1 ELSE 0 END), 0) AS indexed_count,
+                       COALESCE(STRING_AGG(d.title, ', ' ORDER BY d.title), '') AS document_titles
                 FROM documents d
                 WHERE d.organization_id = :organizationId
                   AND d.deleted_at IS NULL
@@ -3532,17 +3540,20 @@ public class AiReadOnlyToolService {
                 """, q -> {
                     q.setParameter("organizationId", organizationId);
                     q.setParameter("limit", DEFAULT_LIMIT);
-                }, "documentType", "documentCount", "processedCount", "indexedCount");
+                }, "documentType", "documentCount", "processedCount", "indexedCount", "documentTitles");
         if (rows.isEmpty()) {
             return AiToolAnswer.of("No encontré documentos para agrupar por tipo.", "document.countByType", "Document count by type", "No documents found.", List.of());
         }
-        StringBuilder answer = new StringBuilder("Este es el conteo de documentos por tipo:");
+        long totalDocuments = rows.stream().mapToLong(row -> toLong(row.get("documentCount"))).sum();
+        StringBuilder answer = new StringBuilder("Tienes ").append(totalDocuments).append(" documentos cargados en total. Así se agrupan por tipo:");
         for (Map<String, Object> row : rows) {
             answer.append(System.lineSeparator())
                     .append("- ").append(blankToDash(value(row.get("documentType"))))
                     .append(" | documentos: ").append(blankToDash(value(row.get("documentCount"))))
                     .append(" | procesados: ").append(blankToDash(value(row.get("processedCount"))))
-                    .append(" | indexados: ").append(blankToDash(value(row.get("indexedCount"))));
+                    .append(" | listos para IA: ").append(blankToDash(value(row.get("indexedCount"))))
+                    .append(System.lineSeparator())
+                    .append("  Documentos: ").append(blankToDash(value(row.get("documentTitles"))));
         }
         return AiToolAnswer.of(answer.toString(), "document.countByType", "Document count by type", "%d document type rows found.".formatted(rows.size()), rows);
     }
@@ -3558,7 +3569,8 @@ public class AiReadOnlyToolService {
                            WHERE dc.document_id = d.id
                              AND dc.organization_id = d.organization_id
                              AND dc.vector_store_id IS NOT NULL
-                       ) THEN 1 ELSE 0 END), 0) AS indexed_count
+                       ) THEN 1 ELSE 0 END), 0) AS indexed_count,
+                       COALESCE(STRING_AGG(d.title, ', ' ORDER BY d.title), '') AS document_titles
                 FROM documents d
                 LEFT JOIN properties p ON p.id = d.property_id AND p.organization_id = d.organization_id
                 WHERE d.organization_id = :organizationId
@@ -3569,17 +3581,20 @@ public class AiReadOnlyToolService {
                 """, q -> {
                     q.setParameter("organizationId", organizationId);
                     q.setParameter("limit", DEFAULT_LIMIT);
-                }, "propertyName", "documentCount", "processedCount", "indexedCount");
+                }, "propertyName", "documentCount", "processedCount", "indexedCount", "documentTitles");
         if (rows.isEmpty()) {
             return AiToolAnswer.of("No encontré documentos para agrupar por propiedad.", "document.countByProperty", "Document count by property", "No documents found.", List.of());
         }
-        StringBuilder answer = new StringBuilder("Este es el conteo de documentos por propiedad:");
+        long totalDocuments = rows.stream().mapToLong(row -> toLong(row.get("documentCount"))).sum();
+        StringBuilder answer = new StringBuilder("Tienes ").append(totalDocuments).append(" documentos cargados en total. Así se agrupan por propiedad:");
         for (Map<String, Object> row : rows) {
             answer.append(System.lineSeparator())
                     .append("- ").append(blankToDash(value(row.get("propertyName"))))
                     .append(" | documentos: ").append(blankToDash(value(row.get("documentCount"))))
                     .append(" | procesados: ").append(blankToDash(value(row.get("processedCount"))))
-                    .append(" | indexados: ").append(blankToDash(value(row.get("indexedCount"))));
+                    .append(" | listos para IA: ").append(blankToDash(value(row.get("indexedCount"))))
+                    .append(System.lineSeparator())
+                    .append("  Documentos: ").append(blankToDash(value(row.get("documentTitles"))));
         }
         return AiToolAnswer.of(answer.toString(), "document.countByProperty", "Document count by property", "%d property document rows found.".formatted(rows.size()), rows);
     }
@@ -5030,8 +5045,25 @@ public class AiReadOnlyToolService {
         return (value(firstName) + " " + value(lastName)).trim();
     }
 
+
+    private long toLong(Object value) {
+        if (value instanceof Number number) {
+            return number.longValue();
+        }
+        String text = value(value);
+        if (text.isBlank()) {
+            return 0L;
+        }
+        try {
+            return Long.parseLong(text);
+        } catch (NumberFormatException ex) {
+            return 0L;
+        }
+    }
+
     @FunctionalInterface
     private interface QueryConfigurer {
         void configure(Query query);
     }
+
 }

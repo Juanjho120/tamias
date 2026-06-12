@@ -148,6 +148,9 @@ public class AiToolCallingService {
         if (isDocumentCountByPropertyQuestion(normalized)) {
             return Optional.of(readOnlyToolService.documentCountByProperty());
         }
+        if (isDocumentProcessedNotIndexedQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.processedNotIndexedDocuments());
+        }
         if (isDocumentNotIndexedQuestion(normalized)) {
             return Optional.of(readOnlyToolService.notIndexedDocuments());
         }
@@ -1378,19 +1381,35 @@ public class AiToolCallingService {
     }
 
     private boolean isDocumentIndexedQuestion(String value) {
-        return isDocumentToolQuestion(value) && containsAny(value, "indexados", "indexado", "listos para ia", "listos para ai") && !isDocumentNotIndexedQuestion(value);
+        return isDocumentToolQuestion(value)
+                && containsAny(value, "indexados", "indexado", "listos para ia", "listos para ai", "listos para inteligencia artificial")
+                && !isDocumentNotIndexedQuestion(value);
+    }
+
+    private boolean isDocumentProcessedNotIndexedQuestion(String value) {
+        return isDocumentToolQuestion(value)
+                && containsAny(value, "procesados", "procesado", "processed")
+                && containsAny(value,
+                "no indexados", "sin indexar", "no estan indexados", "no están indexados", "no esten indexados", "no estén indexados", "not indexed"
+        );
     }
 
     private boolean isDocumentNotIndexedQuestion(String value) {
-        return isDocumentToolQuestion(value) && containsAny(value, "no indexados", "sin indexar", "no estan indexados", "no están indexados", "not indexed");
+        return isDocumentToolQuestion(value) && containsAny(value,
+                "no indexados", "sin indexar", "no estan indexados", "no están indexados", "no esten indexados", "no estén indexados", "not indexed"
+        );
     }
 
     private boolean isDocumentCountByTypeQuestion(String value) {
-        return isDocumentToolQuestion(value) && containsAny(value, "cuantos por tipo", "conteo por tipo", "count by type", "agrupados por tipo");
+        return isDocumentToolQuestion(value) && containsAny(value,
+                "cuantos por tipo", "cuántos por tipo", "documentos por tipo", "conteo por tipo", "count by type", "agrupados por tipo"
+        );
     }
 
     private boolean isDocumentCountByPropertyQuestion(String value) {
-        return isDocumentToolQuestion(value) && containsAny(value, "cuantos por propiedad", "conteo por propiedad", "count by property", "agrupados por propiedad");
+        return isDocumentToolQuestion(value) && containsAny(value,
+                "cuantos por propiedad", "cuántos por propiedad", "documentos por propiedad", "conteo por propiedad", "count by property", "agrupados por propiedad"
+        );
     }
 
     private boolean isDocumentBlueprintQuestion(String value) {
@@ -1429,7 +1448,7 @@ public class AiToolCallingService {
 
     private boolean isRagHealthQuestion(String value) {
         return containsAny(value,
-                "indice rag", "index rag", "rag de mis documentos", "estado rag", "estado del rag", "indexacion ia", "indexacion de documentos", "estado de indexacion", "documentos indexados", "chunks indexados", "vector store", "vector_store", "chroma", "listos para ia", "documentos listos para ia"
+                "indice rag", "índice rag", "index rag", "rag de mis documentos", "estado rag", "estado del rag", "salud del rag", "estado del indice", "estado del índice", "indexacion de documentos", "estado de indexacion", "chunks indexados", "vector store", "vector_store", "chroma"
         );
     }
 
