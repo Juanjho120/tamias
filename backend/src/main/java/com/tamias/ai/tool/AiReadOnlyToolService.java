@@ -1809,6 +1809,441 @@ public class AiReadOnlyToolService {
         );
     }
 
+    public AiToolAnswer purchaseListSearch(String userQuestion) {
+        PurchaseDateRange range = purchaseDateRange(userQuestion);
+        String search = nullableSearch(extractSearchText(
+                userQuestion,
+                "compra", "compras", "hice", "realice", "realizadas", "lista", "listas", "pendiente", "pendientes", "completada", "completadas", "mes", "semana", "ano", "year"
+        ));
+        List<Map<String, Object>> rows = purchaseListRows(search, null, range, DEFAULT_LIMIT);
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    range == null
+                            ? "No encontré listas de compras que coincidan con tu pregunta."
+                            : "No encontré listas de compras para " + range.label() + ".",
+                    "purchaseList.search",
+                    "Purchase lists",
+                    "No purchase lists found.",
+                    List.of()
+            );
+        }
+        StringBuilder answer = new StringBuilder(range == null ? "Estas son las listas de compras que encontré:" : "Estas son las compras que encontré para " + range.label() + ":");
+        appendPurchaseListRows(answer, rows);
+        return AiToolAnswer.of(answer.toString(), "purchaseList.search", "Purchase lists", "%d purchase lists found.".formatted(rows.size()), rows);
+    }
+
+    public AiToolAnswer purchaseListsByProperty(String userQuestion) {
+        String search = nullableSearch(extractSearchText(userQuestion, "compras", "compra", "propiedad", "casa", "bungalow", "alojamiento", "de", "por"));
+        List<Map<String, Object>> rows = purchaseListRows(search, null, null, DEFAULT_LIMIT);
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    search == null ? "No encontré listas de compras asociadas a propiedades." : "No encontré listas de compras relacionadas con “" + search + "”.",
+                    "purchaseList.byProperty",
+                    "Purchase lists by property",
+                    "No purchase lists found by property.",
+                    List.of()
+            );
+        }
+        StringBuilder answer = new StringBuilder(search == null ? "Estas compras están asociadas a propiedades:" : "Estas compras están relacionadas con “" + search + "”:");
+        appendPurchaseListRows(answer, rows);
+        return AiToolAnswer.of(answer.toString(), "purchaseList.byProperty", "Purchase lists by property", "%d purchase lists found by property.".formatted(rows.size()), rows);
+    }
+
+    public AiToolAnswer recentPurchaseLists() {
+        List<Map<String, Object>> rows = purchaseListRows(null, null, null, DEFAULT_LIMIT);
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of("No encontré listas de compras recientes.", "purchaseList.recent", "Recent purchase lists", "No recent purchase lists found.", List.of());
+        }
+        StringBuilder answer = new StringBuilder("Estas son tus listas de compras más recientes:");
+        appendPurchaseListRows(answer, rows);
+        return AiToolAnswer.of(answer.toString(), "purchaseList.recent", "Recent purchase lists", "%d recent purchase lists found.".formatted(rows.size()), rows);
+    }
+
+    public AiToolAnswer pendingPurchaseLists() {
+        List<Map<String, Object>> rows = purchaseListRows(null, List.of("OPEN", "PARTIALLY_PURCHASED"), null, DEFAULT_LIMIT);
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of("No encontré listas de compras pendientes.", "purchaseList.pending", "Pending purchase lists", "No pending purchase lists found.", List.of());
+        }
+        StringBuilder answer = new StringBuilder("Estas listas de compras siguen pendientes o parcialmente compradas:");
+        appendPurchaseListRows(answer, rows);
+        return AiToolAnswer.of(answer.toString(), "purchaseList.pending", "Pending purchase lists", "%d pending purchase lists found.".formatted(rows.size()), rows);
+    }
+
+    public AiToolAnswer completedPurchaseLists() {
+        List<Map<String, Object>> rows = purchaseListRows(null, List.of("COMPLETED"), null, DEFAULT_LIMIT);
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of("No encontré listas de compras completadas.", "purchaseList.completed", "Completed purchase lists", "No completed purchase lists found.", List.of());
+        }
+        StringBuilder answer = new StringBuilder("Estas listas de compras están completadas:");
+        appendPurchaseListRows(answer, rows);
+        return AiToolAnswer.of(answer.toString(), "purchaseList.completed", "Completed purchase lists", "%d completed purchase lists found.".formatted(rows.size()), rows);
+    }
+
+    public AiToolAnswer purchaseCostSummary(String userQuestion) {
+        PurchaseDateRange range = purchaseDateRange(userQuestion);
+        boolean supplyOnly = containsAny(normalize(userQuestion), "supply", "supplies", "suministro", "suministros");
+        StringBuilder sql = new StringBuilder("""
+                SELECT COUNT(DISTINCT pl.id) AS list_count,
+                       COUNT(pi.id) AS purchased_item_count,
+                       COALESCE(SUM(pi.quantity), 0) AS total_quantity,
+                       COALESCE(SUM(pi.estimated_price), 0) AS total_cost,
+                       COALESCE(AVG(pi.estimated_price), 0) AS avg_line_cost,
+                       MIN(pl.purchase_date) AS first_purchase_date,
+                       MAX(pl.purchase_date) AS last_purchase_date
+                FROM purchase_lists pl
+                JOIN purchase_items pi ON pi.purchase_list_id = pl.id
+                                      AND pi.organization_id = pl.organization_id
+                                      AND pi.purchased = TRUE
+                """);
+        if (supplyOnly) {
+            sql.append("""
+                JOIN inventory_items ii ON ii.id = pi.inventory_item_id
+                                       AND ii.organization_id = pi.organization_id
+                                       AND ii.item_type = 'SUPPLY'
+                """);
+        }
+        sql.append("""
+                WHERE pl.organization_id = :organizationId
+                  AND pl.deleted_at IS NULL
+                """);
+        if (range != null) {
+            sql.append("  AND pl.purchase_date >= :fromDate\n");
+            sql.append("  AND pl.purchase_date <= :toDate\n");
+        }
+        List<Map<String, Object>> rows = query(sql.toString(), q -> {
+            setPurchaseCostCommonParams(q, range);
+        }, "listCount", "purchasedItemCount", "totalQuantity", "totalCost", "avgLineCost", "firstPurchaseDate", "lastPurchaseDate");
+        Map<String, Object> row = rows.isEmpty() ? Map.of() : rows.get(0);
+        String scope = supplyOnly ? " de supplies" : "";
+        String label = range == null ? "en tus compras" + scope : "en " + range.label() + scope;
+        String answer = "Resumen de gastos " + label + ":\n"
+                + "- Listas consideradas: " + blankToDash(value(row.get("listCount"))) + "\n"
+                + "- Items marcados como comprados: " + blankToDash(value(row.get("purchasedItemCount"))) + "\n"
+                + "- Cantidad total comprada: " + blankToDash(value(row.get("totalQuantity"))) + "\n"
+                + "- Gasto estimado total: " + formatMoney(row.get("totalCost")) + "\n"
+                + "- Costo promedio por línea: " + formatMoney(row.get("avgLineCost"));
+        return AiToolAnswer.of(answer, "purchaseList.costSummary", "Purchase cost summary", "Purchase cost summary was calculated.", rows);
+    }
+
+    public AiToolAnswer purchaseCostByProperty() {
+        List<Map<String, Object>> rows = query("""
+                SELECT COALESCE(p.name, 'Sin propiedad') AS property_name,
+                       COUNT(DISTINCT pl.id) AS list_count,
+                       COUNT(pi.id) AS purchased_item_count,
+                       COALESCE(SUM(pi.quantity), 0) AS total_quantity,
+                       COALESCE(SUM(pi.estimated_price), 0) AS total_cost
+                FROM purchase_lists pl
+                JOIN purchase_items pi ON pi.purchase_list_id = pl.id
+                                      AND pi.organization_id = pl.organization_id
+                                      AND pi.purchased = TRUE
+                LEFT JOIN properties p ON p.id = pl.property_id
+                                      AND p.organization_id = pl.organization_id
+                WHERE pl.organization_id = :organizationId
+                  AND pl.deleted_at IS NULL
+                GROUP BY COALESCE(p.name, 'Sin propiedad')
+                ORDER BY total_cost DESC, purchased_item_count DESC, property_name ASC
+                LIMIT :limit
+                """, q -> {
+            q.setParameter("organizationId", currentUserService.getCurrentOrganizationId());
+            q.setParameter("limit", DEFAULT_LIMIT);
+        }, "propertyName", "listCount", "purchasedItemCount", "totalQuantity", "totalCost");
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of("No encontré compras marcadas como compradas para calcular gasto por propiedad.", "purchaseList.costByProperty", "Purchase cost by property", "No purchase cost rows by property found.", List.of());
+        }
+        StringBuilder answer = new StringBuilder("Gasto estimado de compras por propiedad:");
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("propertyName"))))
+                    .append(" | gasto: ").append(formatMoney(row.get("totalCost")))
+                    .append(" | items comprados: ").append(blankToDash(value(row.get("purchasedItemCount"))))
+                    .append(" | listas: ").append(blankToDash(value(row.get("listCount"))));
+        }
+        return AiToolAnswer.of(answer.toString(), "purchaseList.costByProperty", "Purchase cost by property", "%d purchase cost rows by property found.".formatted(rows.size()), rows);
+    }
+
+    public AiToolAnswer purchaseCostByCategory() {
+        List<Map<String, Object>> rows = query("""
+                SELECT COALESCE(ii.item_type, 'SNAPSHOT_ONLY') AS category,
+                       COUNT(pi.id) AS purchased_item_count,
+                       COALESCE(SUM(pi.quantity), 0) AS total_quantity,
+                       COALESCE(SUM(pi.estimated_price), 0) AS total_cost,
+                       COALESCE(STRING_AGG(DISTINCT pi.item_name_snapshot, ', ' ORDER BY pi.item_name_snapshot), '') AS sample_items
+                FROM purchase_items pi
+                JOIN purchase_lists pl ON pl.id = pi.purchase_list_id
+                                      AND pl.organization_id = pi.organization_id
+                LEFT JOIN inventory_items ii ON ii.id = pi.inventory_item_id
+                                            AND ii.organization_id = pi.organization_id
+                WHERE pi.organization_id = :organizationId
+                  AND pl.deleted_at IS NULL
+                  AND pi.purchased = TRUE
+                GROUP BY COALESCE(ii.item_type, 'SNAPSHOT_ONLY')
+                ORDER BY total_cost DESC, purchased_item_count DESC, category ASC
+                LIMIT :limit
+                """, q -> {
+            q.setParameter("organizationId", currentUserService.getCurrentOrganizationId());
+            q.setParameter("limit", DEFAULT_LIMIT);
+        }, "category", "purchasedItemCount", "totalQuantity", "totalCost", "sampleItems");
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of("No encontré compras marcadas como compradas para calcular gasto por categoría.", "purchaseList.costByCategory", "Purchase cost by category", "No purchase cost rows by category found.", List.of());
+        }
+        StringBuilder answer = new StringBuilder("Gasto estimado de compras por categoría/tipo de item:");
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("category"))))
+                    .append(" | gasto: ").append(formatMoney(row.get("totalCost")))
+                    .append(" | items comprados: ").append(blankToDash(value(row.get("purchasedItemCount"))))
+                    .append(" | ejemplos: ").append(blankToDash(value(row.get("sampleItems"))));
+        }
+        return AiToolAnswer.of(answer.toString(), "purchaseList.costByCategory", "Purchase cost by category", "%d purchase cost rows by category found.".formatted(rows.size()), rows);
+    }
+
+    public AiToolAnswer purchaseCostByMonth() {
+        List<Map<String, Object>> rows = query("""
+                SELECT TO_CHAR(DATE_TRUNC('month', pl.purchase_date), 'YYYY-MM') AS purchase_month,
+                       COUNT(DISTINCT pl.id) AS list_count,
+                       COUNT(pi.id) AS purchased_item_count,
+                       COALESCE(SUM(pi.quantity), 0) AS total_quantity,
+                       COALESCE(SUM(pi.estimated_price), 0) AS total_cost
+                FROM purchase_lists pl
+                JOIN purchase_items pi ON pi.purchase_list_id = pl.id
+                                      AND pi.organization_id = pl.organization_id
+                                      AND pi.purchased = TRUE
+                WHERE pl.organization_id = :organizationId
+                  AND pl.deleted_at IS NULL
+                GROUP BY DATE_TRUNC('month', pl.purchase_date)
+                ORDER BY DATE_TRUNC('month', pl.purchase_date) DESC
+                LIMIT :limit
+                """, q -> {
+            q.setParameter("organizationId", currentUserService.getCurrentOrganizationId());
+            q.setParameter("limit", 12);
+        }, "purchaseMonth", "listCount", "purchasedItemCount", "totalQuantity", "totalCost");
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of("No encontré compras marcadas como compradas para calcular gasto por mes.", "purchaseList.costByMonth", "Purchase cost by month", "No purchase cost rows by month found.", List.of());
+        }
+        StringBuilder answer = new StringBuilder("Gasto estimado de compras por mes:");
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("purchaseMonth"))))
+                    .append(" | gasto: ").append(formatMoney(row.get("totalCost")))
+                    .append(" | items comprados: ").append(blankToDash(value(row.get("purchasedItemCount"))))
+                    .append(" | listas: ").append(blankToDash(value(row.get("listCount"))));
+        }
+        return AiToolAnswer.of(answer.toString(), "purchaseList.costByMonth", "Purchase cost by month", "%d purchase cost rows by month found.".formatted(rows.size()), rows);
+    }
+
+    public AiToolAnswer purchaseItemSearch(String userQuestion) {
+        String search = nullableSearch(extractSearchText(userQuestion, "item", "items", "producto", "productos", "compra", "compras", "comprado", "comprados", "buscar", "busca"));
+        List<Map<String, Object>> rows = purchaseItemRows(search, null, null, DEFAULT_LIMIT);
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(search == null ? "No encontré items de compras." : "No encontré items de compras relacionados con “" + search + "”.", "purchaseItem.search", "Purchase items", "No purchase items found.", List.of());
+        }
+        StringBuilder answer = new StringBuilder(search == null ? "Estos son los items de compras que encontré:" : "Estos items de compras coinciden con “" + search + "”:");
+        appendPurchaseItemRows(answer, rows);
+        return AiToolAnswer.of(answer.toString(), "purchaseItem.search", "Purchase items", "%d purchase items found.".formatted(rows.size()), rows);
+    }
+
+    public AiToolAnswer purchaseItemsByPurchaseList(String userQuestion) {
+        String search = nullableSearch(extractSearchText(userQuestion, "items", "item", "lista", "compra", "compras", "de", "la"));
+        List<Map<String, Object>> rows = purchaseItemRows(search, null, null, DEFAULT_LIMIT);
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(search == null ? "No encontré items asociados a listas de compras." : "No encontré items asociados a una lista de compras relacionada con “" + search + "”.", "purchaseItem.byPurchaseList", "Purchase items by purchase list", "No purchase items found by list.", List.of());
+        }
+        StringBuilder answer = new StringBuilder("Estos items aparecen en listas de compras:");
+        appendPurchaseItemRows(answer, rows);
+        return AiToolAnswer.of(answer.toString(), "purchaseItem.byPurchaseList", "Purchase items by purchase list", "%d purchase items found by list.".formatted(rows.size()), rows);
+    }
+
+    public AiToolAnswer purchaseItemsByInventoryItem(String userQuestion) {
+        String search = nullableSearch(extractSearchText(userQuestion, "inventario", "inventory", "item", "items", "producto", "productos", "compras", "compra"));
+        List<Map<String, Object>> rows = purchaseItemRows(search, null, null, DEFAULT_LIMIT);
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(search == null ? "No encontré compras vinculadas a items de inventario." : "No encontré compras vinculadas al item “" + search + "”.", "purchaseItem.byInventoryItem", "Purchase items by inventory item", "No purchase items found by inventory item.", List.of());
+        }
+        StringBuilder answer = new StringBuilder(search == null ? "Estas compras están vinculadas a items de inventario:" : "Estas compras están vinculadas a “" + search + "”:");
+        appendPurchaseItemRows(answer, rows);
+        return AiToolAnswer.of(answer.toString(), "purchaseItem.byInventoryItem", "Purchase items by inventory item", "%d purchase items found by inventory item.".formatted(rows.size()), rows);
+    }
+
+    public AiToolAnswer purchaseItemPriceHistory(String userQuestion) {
+        String search = nullableSearch(extractSearchText(userQuestion, "precio", "precios", "historial", "cuesta", "normalmente", "costo", "costos", "compra", "compras", "item", "producto"));
+        if (search == null) {
+            return AiToolAnswer.of("Dime el nombre del producto para revisar su historial de precios. Por ejemplo: “¿Cuánto cuesta normalmente el papel higiénico?”.", "purchaseItem.priceHistory", "Purchase item price history", "No item name provided for price history.", List.of());
+        }
+        List<Map<String, Object>> rows = purchaseItemRows(search, List.of("purchasedOnly"), null, DEFAULT_LIMIT);
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of("No encontré compras marcadas como compradas para “" + search + "”.", "purchaseItem.priceHistory", "Purchase item price history", "No purchased items found for price history.", List.of());
+        }
+        StringBuilder answer = new StringBuilder("Historial de precios encontrado para “" + search + "”:");
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("purchaseDate"))))
+                    .append(" | ").append(blankToDash(value(row.get("itemName"))))
+                    .append(" | cantidad: ").append(blankToDash(value(row.get("quantity")))).append(" ").append(blankToDash(value(row.get("unit"))))
+                    .append(" | precio: ").append(formatMoney(row.get("estimatedPrice")))
+                    .append(" | proveedor: ").append(blankToDash(value(row.get("supplierName"))));
+        }
+        return AiToolAnswer.of(answer.toString(), "purchaseItem.priceHistory", "Purchase item price history", "%d purchase price history rows found.".formatted(rows.size()), rows);
+    }
+
+    public AiToolAnswer purchaseItemAverageUnitCost(String userQuestion) {
+        String search = nullableSearch(extractSearchText(userQuestion, "cuanto", "cuesta", "normalmente", "promedio", "precio", "costo", "unitario", "compra", "compras", "item", "producto"));
+        List<Map<String, Object>> rows = query(purchaseItemAggregateSql(search, "item_name", "DESC"), q -> {
+            q.setParameter("organizationId", currentUserService.getCurrentOrganizationId());
+            if (search != null) {
+                q.setParameter("search", search);
+            }
+            q.setParameter("limit", DEFAULT_LIMIT);
+        }, "itemName", "purchaseCount", "totalQuantity", "unit", "totalCost", "averageLineCost", "averageUnitCost", "firstPurchaseDate", "lastPurchaseDate");
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(search == null ? "No encontré compras para calcular costos promedio." : "No encontré compras para calcular el costo promedio de “" + search + "”.", "purchaseItem.averageUnitCost", "Average unit cost", "No average unit cost rows found.", List.of());
+        }
+        StringBuilder answer = new StringBuilder(search == null ? "Estos son los costos promedio de items comprados:" : "Costo promedio encontrado para “" + search + "”:");
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("itemName"))))
+                    .append(" | costo unitario promedio: ").append(formatMoney(row.get("averageUnitCost")))
+                    .append(" | costo promedio por línea: ").append(formatMoney(row.get("averageLineCost")))
+                    .append(" | compras: ").append(blankToDash(value(row.get("purchaseCount"))))
+                    .append(" | última compra: ").append(blankToDash(value(row.get("lastPurchaseDate"))));
+        }
+        return AiToolAnswer.of(answer.toString(), "purchaseItem.averageUnitCost", "Average unit cost", "%d average unit cost rows found.".formatted(rows.size()), rows);
+    }
+
+    public AiToolAnswer purchaseItemQuantitySummary(String userQuestion) {
+        String search = nullableSearch(extractSearchText(userQuestion, "cantidad", "cantidades", "cuanto", "cuantos", "compre", "comprado", "comprados", "item", "items", "producto", "productos"));
+        List<Map<String, Object>> rows = query(purchaseItemAggregateSql(search, "total_quantity", "DESC"), q -> {
+            q.setParameter("organizationId", currentUserService.getCurrentOrganizationId());
+            if (search != null) {
+                q.setParameter("search", search);
+            }
+            q.setParameter("limit", DEFAULT_LIMIT);
+        }, "itemName", "purchaseCount", "totalQuantity", "unit", "totalCost", "averageLineCost", "averageUnitCost", "firstPurchaseDate", "lastPurchaseDate");
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(search == null ? "No encontré compras para resumir cantidades." : "No encontré compras para resumir cantidades de “" + search + "”.", "purchaseItem.quantitySummary", "Purchase item quantity summary", "No quantity summary rows found.", List.of());
+        }
+        StringBuilder answer = new StringBuilder(search == null ? "Resumen de cantidades compradas por item:" : "Resumen de cantidades para “" + search + "”:");
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("itemName"))))
+                    .append(" | cantidad total: ").append(blankToDash(value(row.get("totalQuantity")))).append(" ").append(blankToDash(value(row.get("unit"))))
+                    .append(" | compras: ").append(blankToDash(value(row.get("purchaseCount"))))
+                    .append(" | gasto: ").append(formatMoney(row.get("totalCost")));
+        }
+        return AiToolAnswer.of(answer.toString(), "purchaseItem.quantitySummary", "Purchase item quantity summary", "%d quantity summary rows found.".formatted(rows.size()), rows);
+    }
+
+    public AiToolAnswer purchaseItemMostPurchased() {
+        List<Map<String, Object>> rows = query(purchaseItemAggregateSql(null, "purchase_count", "DESC"), q -> {
+            q.setParameter("organizationId", currentUserService.getCurrentOrganizationId());
+            q.setParameter("limit", DEFAULT_LIMIT);
+        }, "itemName", "purchaseCount", "totalQuantity", "unit", "totalCost", "averageLineCost", "averageUnitCost", "firstPurchaseDate", "lastPurchaseDate");
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of("No encontré compras marcadas como compradas para identificar los items más comprados.", "purchaseItem.mostPurchased", "Most purchased items", "No most purchased rows found.", List.of());
+        }
+        StringBuilder answer = new StringBuilder("Estos son los items que compras más seguido:");
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("itemName"))))
+                    .append(" | compras: ").append(blankToDash(value(row.get("purchaseCount"))))
+                    .append(" | cantidad total: ").append(blankToDash(value(row.get("totalQuantity")))).append(" ").append(blankToDash(value(row.get("unit"))))
+                    .append(" | gasto: ").append(formatMoney(row.get("totalCost")));
+        }
+        return AiToolAnswer.of(answer.toString(), "purchaseItem.mostPurchased", "Most purchased items", "%d most purchased rows found.".formatted(rows.size()), rows);
+    }
+
+    public AiToolAnswer purchaseItemLeastPurchased() {
+        List<Map<String, Object>> rows = query(purchaseItemAggregateSql(null, "purchase_count", "ASC"), q -> {
+            q.setParameter("organizationId", currentUserService.getCurrentOrganizationId());
+            q.setParameter("limit", DEFAULT_LIMIT);
+        }, "itemName", "purchaseCount", "totalQuantity", "unit", "totalCost", "averageLineCost", "averageUnitCost", "firstPurchaseDate", "lastPurchaseDate");
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of("No encontré compras marcadas como compradas para identificar los items menos comprados.", "purchaseItem.leastPurchased", "Least purchased items", "No least purchased rows found.", List.of());
+        }
+        StringBuilder answer = new StringBuilder("Estos son los items que compras con menor frecuencia:");
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("itemName"))))
+                    .append(" | compras: ").append(blankToDash(value(row.get("purchaseCount"))))
+                    .append(" | cantidad total: ").append(blankToDash(value(row.get("totalQuantity")))).append(" ").append(blankToDash(value(row.get("unit"))));
+        }
+        return AiToolAnswer.of(answer.toString(), "purchaseItem.leastPurchased", "Least purchased items", "%d least purchased rows found.".formatted(rows.size()), rows);
+    }
+
+    public AiToolAnswer purchaseItemCostTrend(String userQuestion) {
+        String search = nullableSearch(extractSearchText(userQuestion, "ha", "subido", "bajado", "precio", "precios", "producto", "productos", "item", "items", "costo", "costos", "alguno", "algun"));
+        String sql = """
+                WITH priced_items AS (
+                    SELECT pi.item_name_snapshot,
+                           pl.purchase_date,
+                           CASE WHEN pi.quantity IS NOT NULL AND pi.quantity > 0
+                                THEN pi.estimated_price / pi.quantity
+                                ELSE pi.estimated_price
+                           END AS unit_price,
+                           LAG(CASE WHEN pi.quantity IS NOT NULL AND pi.quantity > 0
+                                    THEN pi.estimated_price / pi.quantity
+                                    ELSE pi.estimated_price
+                               END) OVER (PARTITION BY translate(LOWER(pi.item_name_snapshot), 'áéíóúüñ', 'aeiouun') ORDER BY pl.purchase_date, pi.created_at) AS previous_unit_price
+                    FROM purchase_items pi
+                    JOIN purchase_lists pl ON pl.id = pi.purchase_list_id
+                                          AND pl.organization_id = pi.organization_id
+                    WHERE pi.organization_id = :organizationId
+                      AND pl.deleted_at IS NULL
+                      AND pi.purchased = TRUE
+                      AND pi.estimated_price IS NOT NULL
+                """;
+        if (search != null) {
+            sql += """
+                      AND NOT EXISTS (
+                          SELECT 1 FROM unnest(string_to_array(CAST(:search AS TEXT), ' ')) AS token(value)
+                          WHERE token.value <> ''
+                            AND translate(LOWER(CONCAT_WS(' ', pi.item_name_snapshot, pi.notes)), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
+                      )
+                    """;
+        }
+        sql += """
+                ), latest_changes AS (
+                    SELECT item_name_snapshot,
+                           purchase_date,
+                           unit_price,
+                           previous_unit_price,
+                           unit_price - previous_unit_price AS price_change,
+                           ROW_NUMBER() OVER (PARTITION BY translate(LOWER(item_name_snapshot), 'áéíóúüñ', 'aeiouun') ORDER BY purchase_date DESC) AS rn
+                    FROM priced_items
+                    WHERE previous_unit_price IS NOT NULL
+                )
+                SELECT item_name_snapshot,
+                       purchase_date,
+                       previous_unit_price,
+                       unit_price,
+                       price_change
+                FROM latest_changes
+                WHERE rn = 1
+                ORDER BY price_change DESC, purchase_date DESC, item_name_snapshot ASC
+                LIMIT :limit
+                """;
+        List<Map<String, Object>> rows = query(sql, q -> {
+            q.setParameter("organizationId", currentUserService.getCurrentOrganizationId());
+            if (search != null) {
+                q.setParameter("search", search);
+            }
+            q.setParameter("limit", DEFAULT_LIMIT);
+        }, "itemName", "purchaseDate", "previousUnitPrice", "unitPrice", "priceChange");
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(search == null ? "No encontré suficientes compras repetidas con precio para calcular tendencias." : "No encontré suficientes compras repetidas de “" + search + "” para calcular tendencia de precio.", "purchaseItem.costTrend", "Purchase item cost trend", "No cost trend rows found.", List.of());
+        }
+        StringBuilder answer = new StringBuilder(search == null ? "Estas son las últimas variaciones de precio que encontré:" : "Tendencia de precio encontrada para “" + search + "”:");
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("itemName"))))
+                    .append(" | anterior: ").append(formatMoney(row.get("previousUnitPrice")))
+                    .append(" | último: ").append(formatMoney(row.get("unitPrice")))
+                    .append(" | cambio: ").append(formatMoney(row.get("priceChange")))
+                    .append(" | fecha: ").append(blankToDash(value(row.get("purchaseDate"))));
+        }
+        return AiToolAnswer.of(answer.toString(), "purchaseItem.costTrend", "Purchase item cost trend", "%d cost trend rows found.".formatted(rows.size()), rows);
+    }
+
+
     public AiToolAnswer pendingTaskLists() {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         List<Map<String, Object>> rows = query("""
@@ -2440,7 +2875,7 @@ public class AiReadOnlyToolService {
                     List.of()
             );
         }
-        return taskItemRowsAnswer(rows, "taskItem.prioritySummary", "Estas tareas específicas tienen prioridad alta:");
+        return taskItemRowsAnswer(rows, "taskItem.prioritySummary", "Estas tareas específicas tienen prioridad alta según sort_order 0 o 1:");
     }
 
 
@@ -3900,6 +4335,254 @@ public class AiReadOnlyToolService {
                 .filter(line -> line.trim().startsWith("-"))
                 .map(line -> "   " + line.trim())
                 .collect(Collectors.joining(System.lineSeparator()));
+    }
+
+    private List<Map<String, Object>> purchaseListRows(String search, List<String> statuses, PurchaseDateRange range, int limit) {
+        StringBuilder sql = new StringBuilder("""
+                SELECT pl.id,
+                       p.name AS property_name,
+                       s.name AS supplier_name,
+                       pl.purchase_date,
+                       pl.status,
+                       pl.notes,
+                       COUNT(pi.id) AS item_count,
+                       COALESCE(SUM(CASE WHEN pi.purchased = TRUE THEN 1 ELSE 0 END), 0) AS purchased_item_count,
+                       COALESCE(SUM(CASE WHEN pi.purchased = TRUE THEN pi.estimated_price ELSE 0 END), 0) AS purchased_total_cost
+                FROM purchase_lists pl
+                LEFT JOIN properties p ON p.id = pl.property_id
+                                      AND p.organization_id = pl.organization_id
+                LEFT JOIN suppliers s ON s.id = pl.supplier_id
+                                     AND s.organization_id = pl.organization_id
+                                     AND s.deleted_at IS NULL
+                LEFT JOIN purchase_items pi ON pi.purchase_list_id = pl.id
+                                           AND pi.organization_id = pl.organization_id
+                WHERE pl.organization_id = :organizationId
+                  AND pl.deleted_at IS NULL
+                """);
+        if (statuses != null && !statuses.isEmpty()) {
+            sql.append("  AND pl.status IN (:statuses)\n");
+        }
+        if (range != null) {
+            sql.append("  AND pl.purchase_date >= :fromDate\n");
+            sql.append("  AND pl.purchase_date <= :toDate\n");
+        }
+        if (search != null) {
+            sql.append("""
+                  AND NOT EXISTS (
+                      SELECT 1 FROM unnest(string_to_array(CAST(:search AS TEXT), ' ')) AS token(value)
+                      WHERE token.value <> ''
+                        AND translate(LOWER(CONCAT_WS(' ', p.name, s.name, pl.notes, pl.status)), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
+                  )
+                """);
+        }
+        sql.append("""
+                GROUP BY pl.id, p.name, s.name, pl.purchase_date, pl.status, pl.notes
+                ORDER BY pl.purchase_date DESC, pl.created_at DESC
+                LIMIT :limit
+                """);
+        return query(sql.toString(), q -> {
+            q.setParameter("organizationId", currentUserService.getCurrentOrganizationId());
+            if (statuses != null && !statuses.isEmpty()) {
+                q.setParameter("statuses", statuses);
+            }
+            if (range != null) {
+                q.setParameter("fromDate", Date.valueOf(range.fromDate()));
+                q.setParameter("toDate", Date.valueOf(range.toDate()));
+            }
+            if (search != null) {
+                q.setParameter("search", search);
+            }
+            q.setParameter("limit", limit);
+        }, "id", "propertyName", "supplierName", "purchaseDate", "status", "notes", "itemCount", "purchasedItemCount", "purchasedTotalCost");
+    }
+
+    private List<Map<String, Object>> purchaseItemRows(String search, List<String> flags, PurchaseDateRange range, int limit) {
+        boolean purchasedOnly = flags != null && flags.contains("purchasedOnly");
+        StringBuilder sql = new StringBuilder("""
+                SELECT pi.id,
+                       pi.item_name_snapshot,
+                       ii.item_type,
+                       pi.quantity,
+                       pi.unit,
+                       pi.estimated_price,
+                       pi.purchased,
+                       pl.purchase_date,
+                       pl.status AS purchase_list_status,
+                       p.name AS property_name,
+                       s.name AS supplier_name
+                FROM purchase_items pi
+                JOIN purchase_lists pl ON pl.id = pi.purchase_list_id
+                                      AND pl.organization_id = pi.organization_id
+                LEFT JOIN inventory_items ii ON ii.id = pi.inventory_item_id
+                                            AND ii.organization_id = pi.organization_id
+                LEFT JOIN properties p ON p.id = pl.property_id
+                                      AND p.organization_id = pl.organization_id
+                LEFT JOIN suppliers s ON s.id = pl.supplier_id
+                                     AND s.organization_id = pl.organization_id
+                                     AND s.deleted_at IS NULL
+                WHERE pi.organization_id = :organizationId
+                  AND pl.deleted_at IS NULL
+                """);
+        if (purchasedOnly) {
+            sql.append("  AND pi.purchased = TRUE\n");
+        }
+        if (range != null) {
+            sql.append("  AND pl.purchase_date >= :fromDate\n");
+            sql.append("  AND pl.purchase_date <= :toDate\n");
+        }
+        if (search != null) {
+            sql.append("""
+                  AND NOT EXISTS (
+                      SELECT 1 FROM unnest(string_to_array(CAST(:search AS TEXT), ' ')) AS token(value)
+                      WHERE token.value <> ''
+                        AND translate(LOWER(CONCAT_WS(' ', pi.item_name_snapshot, pi.notes, ii.name, ii.item_type, p.name, s.name)), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
+                  )
+                """);
+        }
+        sql.append("""
+                ORDER BY pl.purchase_date DESC, pi.created_at DESC
+                LIMIT :limit
+                """);
+        return query(sql.toString(), q -> {
+            q.setParameter("organizationId", currentUserService.getCurrentOrganizationId());
+            if (range != null) {
+                q.setParameter("fromDate", Date.valueOf(range.fromDate()));
+                q.setParameter("toDate", Date.valueOf(range.toDate()));
+            }
+            if (search != null) {
+                q.setParameter("search", search);
+            }
+            q.setParameter("limit", limit);
+        }, "id", "itemName", "itemType", "quantity", "unit", "estimatedPrice", "purchased", "purchaseDate", "purchaseListStatus", "propertyName", "supplierName");
+    }
+
+    private String purchaseCostBaseSql(PurchaseDateRange range, String groupBy, String orderBy) {
+        StringBuilder sql = new StringBuilder("""
+                SELECT COUNT(DISTINCT pl.id) AS list_count,
+                       COUNT(pi.id) AS purchased_item_count,
+                       COALESCE(SUM(pi.quantity), 0) AS total_quantity,
+                       COALESCE(SUM(pi.estimated_price), 0) AS total_cost,
+                       COALESCE(AVG(pi.estimated_price), 0) AS avg_line_cost,
+                       MIN(pl.purchase_date) AS first_purchase_date,
+                       MAX(pl.purchase_date) AS last_purchase_date
+                FROM purchase_lists pl
+                JOIN purchase_items pi ON pi.purchase_list_id = pl.id
+                                      AND pi.organization_id = pl.organization_id
+                                      AND pi.purchased = TRUE
+                WHERE pl.organization_id = :organizationId
+                  AND pl.deleted_at IS NULL
+                """);
+        if (range != null) {
+            sql.append("  AND pl.purchase_date >= :fromDate\n");
+            sql.append("  AND pl.purchase_date <= :toDate\n");
+        }
+        return sql.toString();
+    }
+
+    private void setPurchaseCostCommonParams(Query query, PurchaseDateRange range) {
+        query.setParameter("organizationId", currentUserService.getCurrentOrganizationId());
+        if (range != null) {
+            query.setParameter("fromDate", Date.valueOf(range.fromDate()));
+            query.setParameter("toDate", Date.valueOf(range.toDate()));
+        }
+    }
+
+    private String purchaseItemAggregateSql(String search, String orderMetric, String direction) {
+        String safeMetric = switch (orderMetric) {
+            case "purchase_count" -> "purchase_count";
+            case "total_quantity" -> "total_quantity";
+            case "item_name" -> "item_name_snapshot";
+            default -> "purchase_count";
+        };
+        String safeDirection = "ASC".equalsIgnoreCase(direction) ? "ASC" : "DESC";
+        StringBuilder sql = new StringBuilder("""
+                SELECT pi.item_name_snapshot,
+                       COUNT(*) AS purchase_count,
+                       COALESCE(SUM(pi.quantity), 0) AS total_quantity,
+                       COALESCE(MAX(pi.unit), '') AS unit,
+                       COALESCE(SUM(pi.estimated_price), 0) AS total_cost,
+                       COALESCE(AVG(pi.estimated_price), 0) AS average_line_cost,
+                       COALESCE(AVG(CASE WHEN pi.quantity IS NOT NULL AND pi.quantity > 0 THEN pi.estimated_price / pi.quantity ELSE pi.estimated_price END), 0) AS average_unit_cost,
+                       MIN(pl.purchase_date) AS first_purchase_date,
+                       MAX(pl.purchase_date) AS last_purchase_date
+                FROM purchase_items pi
+                JOIN purchase_lists pl ON pl.id = pi.purchase_list_id
+                                      AND pl.organization_id = pi.organization_id
+                WHERE pi.organization_id = :organizationId
+                  AND pl.deleted_at IS NULL
+                  AND pi.purchased = TRUE
+                """);
+        if (search != null) {
+            sql.append("""
+                  AND NOT EXISTS (
+                      SELECT 1 FROM unnest(string_to_array(CAST(:search AS TEXT), ' ')) AS token(value)
+                      WHERE token.value <> ''
+                        AND translate(LOWER(CONCAT_WS(' ', pi.item_name_snapshot, pi.notes)), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
+                  )
+                """);
+        }
+        sql.append("""
+                GROUP BY pi.item_name_snapshot
+                """);
+        sql.append("ORDER BY ").append(safeMetric).append(' ').append(safeDirection).append(", pi.item_name_snapshot ASC\n");
+        sql.append("LIMIT :limit\n");
+        return sql.toString();
+    }
+
+    private PurchaseDateRange purchaseDateRange(String userQuestion) {
+        String normalized = normalize(userQuestion);
+        LocalDate today = LocalDate.now();
+        if (containsAny(normalized, "este mes", "mes actual", "this month")) {
+            LocalDate from = today.withDayOfMonth(1);
+            LocalDate to = from.plusMonths(1).minusDays(1);
+            return new PurchaseDateRange(from, to, "este mes");
+        }
+        if (containsAny(normalized, "mes pasado", "ultimo mes", "último mes", "last month")) {
+            LocalDate from = today.minusMonths(1).withDayOfMonth(1);
+            LocalDate to = from.plusMonths(1).minusDays(1);
+            return new PurchaseDateRange(from, to, "el mes pasado");
+        }
+        if (containsAny(normalized, "esta semana", "semana actual", "this week")) {
+            LocalDate from = today.minusDays(today.getDayOfWeek().getValue() - 1L);
+            return new PurchaseDateRange(from, from.plusDays(6), "esta semana");
+        }
+        if (containsAny(normalized, "hoy", "today")) {
+            return new PurchaseDateRange(today, today, "hoy");
+        }
+        if (containsAny(normalized, "este ano", "este año", "year to date", "este anio")) {
+            LocalDate from = today.withDayOfYear(1);
+            return new PurchaseDateRange(from, today, "este año");
+        }
+        return null;
+    }
+
+    private void appendPurchaseListRows(StringBuilder answer, List<Map<String, Object>> rows) {
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("purchaseDate"))))
+                    .append(" | estado: ").append(blankToDash(value(row.get("status"))))
+                    .append(" | propiedad: ").append(blankToDash(value(row.get("propertyName"))))
+                    .append(" | proveedor: ").append(blankToDash(value(row.get("supplierName"))))
+                    .append(" | items: ").append(blankToDash(value(row.get("itemCount"))))
+                    .append(" | comprados: ").append(blankToDash(value(row.get("purchasedItemCount"))))
+                    .append(" | gasto comprado: ").append(formatMoney(row.get("purchasedTotalCost")));
+        }
+    }
+
+    private void appendPurchaseItemRows(StringBuilder answer, List<Map<String, Object>> rows) {
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("itemName"))))
+                    .append(" | fecha: ").append(blankToDash(value(row.get("purchaseDate"))))
+                    .append(" | cantidad: ").append(blankToDash(value(row.get("quantity")))).append(" ").append(blankToDash(value(row.get("unit"))))
+                    .append(" | precio: ").append(formatMoney(row.get("estimatedPrice")))
+                    .append(" | comprado: ").append(blankToDash(value(row.get("purchased"))))
+                    .append(" | proveedor: ").append(blankToDash(value(row.get("supplierName"))))
+                    .append(" | propiedad: ").append(blankToDash(value(row.get("propertyName"))));
+        }
+    }
+
+    private record PurchaseDateRange(LocalDate fromDate, LocalDate toDate, String label) {
     }
 
     private Object scalar(String sql, QueryConfigurer configurer) {

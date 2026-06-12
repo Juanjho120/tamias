@@ -44,6 +44,11 @@ public class AiToolCallingService {
             return reservationSupplyTaskAnswer;
         }
 
+        Optional<AiToolAnswer> purchaseAnalyticsAnswer = tryHandlePurchaseAnalyticsQuestion(question, normalized);
+        if (purchaseAnalyticsAnswer.isPresent()) {
+            return purchaseAnalyticsAnswer;
+        }
+
         Optional<AiToolAnswer> inventoryAnswer = tryHandleInventoryQuestion(question, normalized);
         if (inventoryAnswer.isPresent()) {
             return inventoryAnswer;
@@ -218,6 +223,62 @@ public class AiToolCallingService {
         return Optional.empty();
     }
 
+
+
+    private Optional<AiToolAnswer> tryHandlePurchaseAnalyticsQuestion(String question, String normalized) {
+        if (!isPurchaseAnalyticsQuestion(normalized)) {
+            return Optional.empty();
+        }
+        if (isLastPurchaseQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.lastPurchasedItem(question));
+        }
+        if (isPurchaseItemCostTrendQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.purchaseItemCostTrend(question));
+        }
+        if (isPurchaseItemAverageUnitCostQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.purchaseItemAverageUnitCost(question));
+        }
+        if (isPurchaseItemPriceHistoryQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.purchaseItemPriceHistory(question));
+        }
+        if (isPurchaseItemMostPurchasedQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.purchaseItemMostPurchased());
+        }
+        if (isPurchaseItemLeastPurchasedQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.purchaseItemLeastPurchased());
+        }
+        if (isPurchaseItemQuantitySummaryQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.purchaseItemQuantitySummary(question));
+        }
+        if (isPurchaseCostByPropertyQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.purchaseCostByProperty());
+        }
+        if (isPurchaseCostByCategoryQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.purchaseCostByCategory());
+        }
+        if (isPurchaseCostByMonthQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.purchaseCostByMonth());
+        }
+        if (isPurchaseCostSummaryQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.purchaseCostSummary(question));
+        }
+        if (isPurchaseListPendingQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.pendingPurchaseLists());
+        }
+        if (isPurchaseListCompletedQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.completedPurchaseLists());
+        }
+        if (isPurchaseListByPropertyQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.purchaseListsByProperty(question));
+        }
+        if (isPurchaseListRecentQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.recentPurchaseLists());
+        }
+        if (isPurchaseItemListQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.purchaseItemSearch(question));
+        }
+        return Optional.of(readOnlyToolService.purchaseListSearch(question));
+    }
 
     private Optional<AiToolAnswer> tryHandleReservationSupplyAndTaskQuestion(String question, String normalized) {
         if (isReservationSupplyToolQuestion(normalized)) {
@@ -544,6 +605,7 @@ public class AiToolCallingService {
                     .append(answer.answer())
                     .append("\n\n");
         }
+        builder.append("No hice cambios en tus datos; esta respuesta solo consulta información existente en TAMIAS.");
         evidence.add(new AiToolEvidenceResponse(toolName, label, summary, List.of()));
         return new AiToolAnswer(builder.toString().trim(), true, evidence);
     }
@@ -1072,6 +1134,100 @@ public class AiToolCallingService {
 
     private boolean isTaskItemPrioritySummaryQuestion(String value) {
         return isTaskItemToolQuestion(value) && containsAny(value, "prioridad", "prioridades", "priority");
+    }
+
+
+    private boolean isPurchaseAnalyticsQuestion(String value) {
+        return containsAny(value,
+                "compra", "compras", "compre", "comprado", "comprados", "producto", "productos", "proveedor", "proveedores", "precio", "precios", "costo", "costos", "gasto", "gastos", "gaste", "gastado", "supplies", "supply", "suministro", "suministros", "papel higienico"
+        ) || (containsAny(value, "item", "items") && containsAny(value, "compro", "compras", "compre", "comprado", "precio", "costo", "gasto"));
+    }
+
+    private boolean isPurchaseListPendingQuestion(String value) {
+        return isPurchaseAnalyticsQuestion(value)
+                && containsAny(value, "lista", "listas", "compra", "compras")
+                && containsAny(value, "pendiente", "pendientes", "abierta", "abiertas", "open", "partially");
+    }
+
+    private boolean isPurchaseListCompletedQuestion(String value) {
+        return isPurchaseAnalyticsQuestion(value)
+                && containsAny(value, "lista", "listas", "compra", "compras")
+                && containsAny(value, "completada", "completadas", "completado", "completados", "finalizada", "finalizadas");
+    }
+
+    private boolean isPurchaseListRecentQuestion(String value) {
+        return isPurchaseAnalyticsQuestion(value) && containsAny(value, "reciente", "recientes", "ultimas compras", "ultimas listas");
+    }
+
+    private boolean isPurchaseListByPropertyQuestion(String value) {
+        return isPurchaseAnalyticsQuestion(value)
+                && containsAny(value, "propiedad", "propiedades", "casa", "bungalow", "alojamiento")
+                && !containsAny(value, "gasto", "gastos", "costo", "costos", "genero mas", "mas compras");
+    }
+
+    private boolean isPurchaseCostSummaryQuestion(String value) {
+        return isPurchaseAnalyticsQuestion(value)
+                && containsAny(value, "cuanto", "gaste", "gasté", "gasto", "gastos", "costo", "costos", "monto", "total")
+                && !isPurchaseItemAverageUnitCostQuestion(value)
+                && !isPurchaseItemPriceHistoryQuestion(value);
+    }
+
+    private boolean isPurchaseCostByPropertyQuestion(String value) {
+        return isPurchaseAnalyticsQuestion(value)
+                && containsAny(value, "propiedad", "propiedades", "genero mas", "generó mas", "mas compras", "más compras")
+                && containsAny(value, "gasto", "gastos", "costo", "costos", "compra", "compras", "genero", "generó");
+    }
+
+    private boolean isPurchaseCostByCategoryQuestion(String value) {
+        return isPurchaseAnalyticsQuestion(value)
+                && containsAny(value, "categoria", "categorias", "tipo", "tipos")
+                && containsAny(value, "gasto", "gastos", "costo", "costos", "compra", "compras", "supplies", "suministros");
+    }
+
+    private boolean isPurchaseCostByMonthQuestion(String value) {
+        return isPurchaseAnalyticsQuestion(value)
+                && containsAny(value, "por mes", "mensual", "mes a mes", "meses", "tendencia mensual");
+    }
+
+    private boolean isPurchaseItemListQuestion(String value) {
+        return isPurchaseAnalyticsQuestion(value)
+                && containsAny(value, "item", "items", "producto", "productos")
+                && !isPurchaseItemMostPurchasedQuestion(value)
+                && !isPurchaseItemLeastPurchasedQuestion(value)
+                && !isPurchaseItemAverageUnitCostQuestion(value)
+                && !isPurchaseItemPriceHistoryQuestion(value)
+                && !isPurchaseItemCostTrendQuestion(value);
+    }
+
+    private boolean isPurchaseItemPriceHistoryQuestion(String value) {
+        return isPurchaseAnalyticsQuestion(value)
+                && containsAny(value, "historial de precio", "historial de precios", "precios", "precio")
+                && containsAny(value, "historial", "ultimos", "ultimas", "evolucion", "evolución");
+    }
+
+    private boolean isPurchaseItemAverageUnitCostQuestion(String value) {
+        return isPurchaseAnalyticsQuestion(value)
+                && containsAny(value, "cuanto cuesta", "cuánto cuesta", "cuesta normalmente", "normalmente", "promedio", "costo promedio", "precio promedio", "unitario");
+    }
+
+    private boolean isPurchaseItemQuantitySummaryQuestion(String value) {
+        return isPurchaseAnalyticsQuestion(value)
+                && containsAny(value, "cantidad", "cantidades", "cuanto compre", "cuánto compré", "cuantos compre", "cuántos compré");
+    }
+
+    private boolean isPurchaseItemMostPurchasedQuestion(String value) {
+        return isPurchaseAnalyticsQuestion(value)
+                && containsAny(value, "compro mas", "compro más", "mas seguido", "más seguido", "mas comprado", "más comprado", "compro con mas frecuencia", "top compras", "item compro mas");
+    }
+
+    private boolean isPurchaseItemLeastPurchasedQuestion(String value) {
+        return isPurchaseAnalyticsQuestion(value)
+                && containsAny(value, "menos comprado", "menos compro", "menor frecuencia", "compro menos", "menos seguido");
+    }
+
+    private boolean isPurchaseItemCostTrendQuestion(String value) {
+        return isPurchaseAnalyticsQuestion(value)
+                && containsAny(value, "ha subido", "subio", "subió", "bajado", "bajo", "bajó", "tendencia", "variacion", "variación", "cambio de precio");
     }
 
     private boolean isOperationalSummaryQuestion(String value) {
