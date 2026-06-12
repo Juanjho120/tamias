@@ -122,6 +122,9 @@ public class AiToolCallingService {
 
     private Optional<AiToolAnswer> tryHandleFileImageDashboardQuestion(String question, String normalized) {
         if (isDashboardAnalyticsQuestion(normalized)) {
+            if (isDashboardAttentionTodayQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.dashboardAttentionToday());
+            }
             if (isDashboardAlertQuestion(normalized)) {
                 return Optional.of(readOnlyToolService.dashboardAlertSummary());
             }
@@ -943,8 +946,13 @@ public class AiToolCallingService {
         return isDashboardAnalyticsQuestion(value) && containsAny(value, "calendario", "calendar", "eventos", "agenda", "proximos eventos", "próximos eventos");
     }
 
+    private boolean isDashboardAttentionTodayQuestion(String value) {
+        return isDashboardAnalyticsQuestion(value)
+                && containsAny(value, "necesita atencion hoy", "necesita atención hoy", "que necesita atencion", "qué necesita atención", "atencion hoy", "atención hoy");
+    }
+
     private boolean isDashboardAlertQuestion(String value) {
-        return isDashboardAnalyticsQuestion(value) && containsAny(value, "alerta", "alertas", "atencion", "atención", "vencido", "vencidos", "fallido", "fallidos", "riesgo", "riesgos");
+        return isDashboardAnalyticsQuestion(value) && containsAny(value, "alerta", "alertas", "vencido", "vencidos", "fallido", "fallidos", "riesgo", "riesgos");
     }
 
     private boolean isCapabilitiesQuestion(String value) {

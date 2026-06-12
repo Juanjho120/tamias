@@ -5384,6 +5384,113 @@ public class AiReadOnlyToolService {
         LocalDate today = LocalDate.now();
         LocalDate tomorrow = today.plusDays(1);
 
+        Object overdueScheduledCount = scalar("""
+                SELECT COUNT(*)
+                FROM scheduled_maintenance sm
+                WHERE sm.organization_id = :organizationId
+                  AND sm.deleted_at IS NULL
+                  AND sm.status = 'ACTIVE'
+                  AND sm.next_due_date < :today
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("today", Date.valueOf(today));
+                });
+
+        Object overdueTaskListCount = scalar("""
+                SELECT COUNT(*)
+                FROM task_lists tl
+                WHERE tl.organization_id = :organizationId
+                  AND tl.deleted_at IS NULL
+                  AND tl.status IN ('OPEN', 'IN_PROGRESS')
+                  AND tl.due_date < :today
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("today", Date.valueOf(today));
+                });
+
+        Object overdueTaskItemCount = scalar("""
+                SELECT COUNT(*)
+                FROM task_items ti
+                JOIN task_lists tl ON tl.id = ti.task_list_id AND tl.organization_id = ti.organization_id
+                WHERE ti.organization_id = :organizationId
+                  AND tl.deleted_at IS NULL
+                  AND ti.completed = FALSE
+                  AND tl.status IN ('OPEN', 'IN_PROGRESS')
+                  AND tl.due_date < :today
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("today", Date.valueOf(today));
+                });
+
+        Object failedDocumentCount = scalar("""
+                SELECT COUNT(*)
+                FROM documents d
+                WHERE d.organization_id = :organizationId
+                  AND d.deleted_at IS NULL
+                  AND d.processing_status = 'FAILED'
+                """, q -> q.setParameter("organizationId", organizationId));
+
+        Object processedNotIndexedCount = scalar("""
+                SELECT COUNT(*)
+                FROM documents d
+                WHERE d.organization_id = :organizationId
+                  AND d.deleted_at IS NULL
+                  AND d.processing_status = 'PROCESSED'
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM document_chunks dc
+                      WHERE dc.document_id = d.id
+                        AND dc.organization_id = d.organization_id
+                        AND dc.vector_store_id IS NOT NULL
+                  )
+                """, q -> q.setParameter("organizationId", organizationId));
+
+        Object checkinsNext24hCount = scalar("""
+                SELECT COUNT(*)
+                FROM reservations r
+                WHERE r.organization_id = :organizationId
+                  AND r.deleted_at IS NULL
+                  AND r.status = 'ACTIVE'
+                  AND r.check_in BETWEEN :today AND :tomorrow
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("today", Date.valueOf(today));
+                    q.setParameter("tomorrow", Date.valueOf(tomorrow));
+                });
+
+        String answer = """
+                Alertas operativas actuales:
+                - Mantenimientos programados vencidos: %s
+                - Listas de tareas vencidas: %s
+                - Tareas específicas vencidas: %s
+                - Documentos con procesamiento fallido: %s
+                - Documentos procesados sin indexación IA: %s
+                - Check-ins en las próximas 24 horas: %s
+                """.formatted(
+                blankToDash(value(overdueScheduledCount)),
+                blankToDash(value(overdueTaskListCount)),
+                blankToDash(value(overdueTaskItemCount)),
+                blankToDash(value(failedDocumentCount)),
+                blankToDash(value(processedNotIndexedCount)),
+                blankToDash(value(checkinsNext24hCount))
+        ).trim();
+
+        List<Map<String, Object>> evidenceRows = new ArrayList<>();
+        evidenceRows.add(Map.of("alertType", "overdueScheduledMaintenance", "count", value(overdueScheduledCount)));
+        evidenceRows.add(Map.of("alertType", "overdueTaskLists", "count", value(overdueTaskListCount)));
+        evidenceRows.add(Map.of("alertType", "overdueTaskItems", "count", value(overdueTaskItemCount)));
+        evidenceRows.add(Map.of("alertType", "failedDocuments", "count", value(failedDocumentCount)));
+        evidenceRows.add(Map.of("alertType", "processedNotIndexedDocuments", "count", value(processedNotIndexedCount)));
+        evidenceRows.add(Map.of("alertType", "checkinsNext24h", "count", value(checkinsNext24hCount)));
+
+        return AiToolAnswer.of(answer, "dashboard.alertSummary", "Dashboard alert summary", "Operational alert counters were calculated without detail rows.", evidenceRows);
+    }
+
+    public AiToolAnswer dashboardAttentionToday() {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        LocalDate today = LocalDate.now();
+        LocalDate tomorrow = today.plusDays(1);
+
         List<Map<String, Object>> overdueScheduled = query("""
                 SELECT sm.title,
                        p.name AS property_name,
@@ -5522,7 +5629,7 @@ public class AiReadOnlyToolService {
         evidenceRows.add(Map.of("alertType", "processedNotIndexedDocuments", "count", processedNotIndexed.size()));
         evidenceRows.add(Map.of("alertType", "checkinsNext24h", "count", checkinsNext24h.size()));
 
-        return AiToolAnswer.of(answer.toString(), "dashboard.alertSummary", "Dashboard alert summary", "Operational alert counters and details were calculated.", evidenceRows);
+        return AiToolAnswer.of(answer.toString(), "dashboard.attentionToday", "Dashboard attention today", "Operational alert counters and details were calculated for attention today.", evidenceRows);
     }
 
     private List<Map<String, Object>> fileMetadataRows(String search, String propertySearch, String sourceType, int limit) {
