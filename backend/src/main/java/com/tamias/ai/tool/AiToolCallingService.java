@@ -251,6 +251,15 @@ public class AiToolCallingService {
         if (isInventoryUnusedQuestion(normalized)) {
             return Optional.of(readOnlyToolService.inventoryUnusedItems());
         }
+        if (isInventoryReservationUsageQuestion(normalized) && isInventoryFrequentlyUsedQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.inventoryReservationUsage(""));
+        }
+        if (isInventoryMaintenanceUsageQuestion(normalized) && isInventoryFrequentlyUsedQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.inventoryMaintenanceUsage(""));
+        }
+        if (isInventoryPurchaseUsageQuestion(normalized) && isInventoryFrequentlyUsedQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.inventoryPurchaseUsage(""));
+        }
         if (isInventoryReservationUsageQuestion(normalized)) {
             return Optional.of(readOnlyToolService.inventoryReservationUsage(question));
         }

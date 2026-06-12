@@ -925,14 +925,14 @@ public class AiReadOnlyToolService {
                            SELECT 1
                            FROM unnest(string_to_array(CAST(:search AS TEXT), ' ')) AS token(value)
                            WHERE token.value <> ''
-                             AND LOWER(CONCAT_WS(' ', pi.item_name_snapshot, pi.notes)) NOT LIKE CONCAT('%', token.value, '%')
+                             AND translate(LOWER(CONCAT_WS(' ', pi.item_name_snapshot, pi.notes)), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
                        )
                   )
                 ORDER BY CASE
                          WHEN CAST(:search AS TEXT) IS NOT NULL
-                              AND LOWER(CONCAT_WS(' ', pi.item_name_snapshot, pi.notes)) = CAST(:search AS TEXT) THEN 0
+                              AND translate(LOWER(CONCAT_WS(' ', pi.item_name_snapshot, pi.notes)), 'áéíóúüñ', 'aeiouun') = CAST(:search AS TEXT) THEN 0
                          WHEN CAST(:search AS TEXT) IS NOT NULL
-                              AND LOWER(CONCAT_WS(' ', pi.item_name_snapshot, pi.notes)) LIKE CONCAT('%', CAST(:search AS TEXT), '%') THEN 1
+                              AND translate(LOWER(CONCAT_WS(' ', pi.item_name_snapshot, pi.notes)), 'áéíóúüñ', 'aeiouun') LIKE CONCAT('%', CAST(:search AS TEXT), '%') THEN 1
                          ELSE 2
                          END,
                          pl.purchase_date DESC,
@@ -1175,7 +1175,7 @@ public class AiReadOnlyToolService {
                            SELECT 1
                            FROM unnest(string_to_array(CAST(:search AS TEXT), ' ')) AS token(value)
                            WHERE token.value <> ''
-                             AND LOWER(CONCAT_WS(' ', ii.name, ii.description, ii.internal_code, ii.barcode, ii.item_type)) NOT LIKE CONCAT('%', token.value, '%')
+                             AND translate(LOWER(CONCAT_WS(' ', ii.name, ii.description, ii.internal_code, ii.barcode, ii.item_type)), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
                        )
                   )
                 ORDER BY ii.status ASC, ii.name ASC
@@ -1391,7 +1391,7 @@ public class AiReadOnlyToolService {
                            SELECT 1
                            FROM unnest(string_to_array(CAST(:search AS TEXT), ' ')) AS token(value)
                            WHERE token.value <> ''
-                             AND LOWER(CONCAT_WS(' ', rs.item_name_snapshot, rs.notes)) NOT LIKE CONCAT('%', token.value, '%')
+                             AND translate(LOWER(CONCAT_WS(' ', rs.item_name_snapshot, rs.notes)), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
                        )
                   )
                 GROUP BY rs.item_name_snapshot
@@ -1457,7 +1457,7 @@ public class AiReadOnlyToolService {
                            SELECT 1
                            FROM unnest(string_to_array(CAST(:search AS TEXT), ' ')) AS token(value)
                            WHERE token.value <> ''
-                             AND LOWER(CONCAT_WS(' ', pi.item_name_snapshot, pi.notes)) NOT LIKE CONCAT('%', token.value, '%')
+                             AND translate(LOWER(CONCAT_WS(' ', pi.item_name_snapshot, pi.notes)), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
                        )
                   )
                 GROUP BY pi.item_name_snapshot
@@ -1522,7 +1522,7 @@ public class AiReadOnlyToolService {
                            SELECT 1
                            FROM unnest(string_to_array(CAST(:search AS TEXT), ' ')) AS token(value)
                            WHERE token.value <> ''
-                             AND LOWER(CONCAT_WS(' ', mri.item_name_snapshot, mri.notes, mr.title, mr.description)) NOT LIKE CONCAT('%', token.value, '%')
+                             AND translate(LOWER(CONCAT_WS(' ', mri.item_name_snapshot, mri.notes, mr.title, mr.description)), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
                        )
                   )
                 GROUP BY mri.item_name_snapshot
