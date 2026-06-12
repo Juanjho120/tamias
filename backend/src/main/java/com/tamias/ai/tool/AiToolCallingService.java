@@ -39,6 +39,11 @@ public class AiToolCallingService {
             return priorityMaintenanceAnalyticsAnswer;
         }
 
+        Optional<AiToolAnswer> reservationSupplyTaskAnswer = tryHandleReservationSupplyAndTaskQuestion(question, normalized);
+        if (reservationSupplyTaskAnswer.isPresent()) {
+            return reservationSupplyTaskAnswer;
+        }
+
         Optional<AiToolAnswer> inventoryAnswer = tryHandleInventoryQuestion(question, normalized);
         if (inventoryAnswer.isPresent()) {
             return inventoryAnswer;
@@ -47,11 +52,6 @@ public class AiToolCallingService {
         Optional<AiToolAnswer> scheduledReservationGuestAnswer = tryHandleScheduledReservationGuestQuestion(question, normalized);
         if (scheduledReservationGuestAnswer.isPresent()) {
             return scheduledReservationGuestAnswer;
-        }
-
-        Optional<AiToolAnswer> reservationSupplyTaskAnswer = tryHandleReservationSupplyAndTaskQuestion(question, normalized);
-        if (reservationSupplyTaskAnswer.isPresent()) {
-            return reservationSupplyTaskAnswer;
         }
 
         Optional<AiToolAnswer> assistantAnswer = tryHandleAssistantLevelQuestion(question, normalized);
@@ -967,7 +967,7 @@ public class AiToolCallingService {
     }
 
     private boolean isReservationSupplyUpcomingQuestion(String value) {
-        return isReservationSupplyToolQuestion(value) && containsAny(value, "proxima", "proximas", "siguiente", "siguientes", "upcoming", "check in", "check-in", "necesito", "necesarios");
+        return isReservationSupplyToolQuestion(value) && containsAny(value, "proxima", "proximas", "proximo", "proximos", "siguiente", "siguientes", "upcoming", "check in", "check-in", "necesito", "necesarios", "necesarias", "preparar");
     }
 
     private boolean isReservationSupplySummaryQuestion(String value) {
@@ -983,11 +983,11 @@ public class AiToolCallingService {
     }
 
     private boolean isReservationSupplyMostUsedQuestion(String value) {
-        return isReservationSupplyToolQuestion(value) && containsAny(value, "mas usados", "mas usado", "usan mas", "usa mas", "most used", "frecuentes");
+        return isReservationSupplyToolQuestion(value) && containsAny(value, "mas usados", "más usados", "mas usado", "más usado", "usan mas", "usan más", "usa mas", "usa más", "se usan mas", "se usan más", "most used", "frecuentes");
     }
 
     private boolean isReservationSupplyMissingQuestion(String value) {
-        return isReservationSupplyToolQuestion(value) && containsAny(value, "no tienen", "sin supplies", "sin supply", "faltan", "faltantes", "no tiene", "missing");
+        return isReservationSupplyToolQuestion(value) && containsAny(value, "no tienen", "no tiene", "sin supplies", "sin supply", "sin insumos", "sin asignar", "no asignados", "no asignadas", "no tienen supplies", "faltan", "faltantes", "missing");
     }
 
     private boolean isTaskListToolQuestion(String value) {

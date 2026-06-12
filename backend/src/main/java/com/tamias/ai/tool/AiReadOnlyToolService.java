@@ -1868,7 +1868,8 @@ public class AiReadOnlyToolService {
         String search = nullableSearch(extractSearchText(
                 userQuestion,
                 "supply", "supplies", "insumo", "insumos", "suministro", "suministros",
-                "reservacion", "reservaciones", "reserva", "reservas", "asignado", "asignados", "usado", "usados"
+                "reservacion", "reservaciones", "reserva", "reservas", "asignado", "asignados", "usado", "usados",
+                "necesito", "necesarios", "necesarias", "proxima", "proximas", "proximo", "proximos", "ultima", "ultimo", "mas", "más", "tienen"
         ));
         List<Map<String, Object>> rows = reservationSupplyRows(search, null, null, null, null, null, DEFAULT_LIMIT, "r.check_in DESC NULLS LAST, rs.item_name_snapshot ASC");
         if (rows.isEmpty()) {
@@ -1997,7 +1998,7 @@ public class AiReadOnlyToolService {
     public AiToolAnswer reservationSupplyLastUsed(String userQuestion) {
         String search = nullableSearch(extractSearchText(
                 userQuestion,
-                "ultimo", "ultima", "vez", "cuando", "uso", "usado", "usaron", "supply", "supplies", "insumo", "insumos", "reservacion", "reservaciones", "reserva", "reservas"
+                "ultimo", "ultima", "ultimos", "ultimas", "vez", "cuando", "uso", "usado", "usaron", "se", "supply", "supplies", "insumo", "insumos", "reservacion", "reservaciones", "reserva", "reservas"
         ));
         List<Map<String, Object>> rows = reservationSupplyRows(search, null, null, null, null, null, 1, "r.check_in DESC NULLS LAST, r.created_at DESC, rs.item_name_snapshot ASC");
         if (rows.isEmpty()) {
@@ -2335,7 +2336,7 @@ public class AiReadOnlyToolService {
                       )
                     """);
         }
-        sql.append("ORDER BY ").append(orderBy).append("\nLIMIT :limit\n");
+        sql.append(" ORDER BY ").append(orderBy).append("\n LIMIT :limit\n");
         return query(sql.toString(), q -> {
             q.setParameter("organizationId", organizationId);
             if (fromDate != null) {
@@ -2494,9 +2495,8 @@ public class AiReadOnlyToolService {
         if (statuses != null && !statuses.isEmpty()) {
             sql.append("  AND tl.status IN (:statuses)\n");
         }
-        sql.append("""
-                GROUP BY tl.id, p.name, r.reservation_code, r.check_in, tl.title, tl.creation_date, tl.due_date, tl.status
-                ORDER BY """).append(orderBy).append("\nLIMIT :limit\n");
+        sql.append(" GROUP BY tl.id, p.name, r.reservation_code, r.check_in, tl.title, tl.creation_date, tl.due_date, tl.status\n");
+        sql.append(" ORDER BY ").append(orderBy).append("\n LIMIT :limit\n");
         return query(sql.toString(), q -> {
             q.setParameter("organizationId", organizationId);
             if (search != null) {
@@ -2588,7 +2588,7 @@ public class AiReadOnlyToolService {
         if (overdueBefore != null) {
             sql.append("  AND tl.due_date <= :overdueBefore\n");
         }
-        sql.append("ORDER BY ").append(orderBy).append("\nLIMIT :limit\n");
+        sql.append(" ORDER BY ").append(orderBy).append("\n LIMIT :limit\n");
         return query(sql.toString(), q -> {
             q.setParameter("organizationId", organizationId);
             if (search != null) {
