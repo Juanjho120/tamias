@@ -44,6 +44,11 @@ public class AiToolCallingService {
             return inventoryAnswer;
         }
 
+        Optional<AiToolAnswer> scheduledReservationGuestAnswer = tryHandleScheduledReservationGuestQuestion(question, normalized);
+        if (scheduledReservationGuestAnswer.isPresent()) {
+            return scheduledReservationGuestAnswer;
+        }
+
         Optional<AiToolAnswer> assistantAnswer = tryHandleAssistantLevelQuestion(question, normalized);
         if (assistantAnswer.isPresent()) {
             return assistantAnswer;
@@ -92,6 +97,121 @@ public class AiToolCallingService {
         return Optional.empty();
     }
 
+
+    private Optional<AiToolAnswer> tryHandleScheduledReservationGuestQuestion(String question, String normalized) {
+        if (isGuestToolQuestion(normalized)) {
+            if (isReturningGuestQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.returningGuests());
+            }
+            if (isUpcomingGuestQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.upcomingGuests());
+            }
+            if (isGuestCountQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.guestCountByDateRange(question));
+            }
+            if (isGuestByReservationQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.guestsByReservation(question));
+            }
+            if (isRecentGuestQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.recentGuests());
+            }
+            return Optional.of(readOnlyToolService.guestSearch(question));
+        }
+
+        if (isReservationToolQuestion(normalized)) {
+            if (isReservationGapQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.reservationGapsBetweenReservations());
+            }
+            if (isNextCheckOutQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.nextCheckOut());
+            }
+            if (isNextCheckInQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.nextCheckIn());
+            }
+            if (isReservationRevenueQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.reservationRevenueSummary(question));
+            }
+            if (isReservationNightsQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.reservationNightsSummary(question));
+            }
+            if (isReservationGuestCountQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.reservationGuestCountSummary(question));
+            }
+            if (isReservationOccupancyQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.reservationOccupancySummary(question));
+            }
+            if (isCurrentReservationToolQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.currentReservations());
+            }
+            if (isReservationTodayQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.reservationsToday());
+            }
+            if (isReservationThisWeekQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.reservationsThisWeek());
+            }
+            if (isReservationThisMonthQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.reservationsThisMonth());
+            }
+            if (isReservationByGuestQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.reservationsByGuest(question));
+            }
+            if (isReservationByPlatformQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.reservationsByPlatform(question));
+            }
+            if (isReservationByStatusQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.reservationsByStatus(question));
+            }
+            if (isReservationByPropertyQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.reservationsByProperty(question));
+            }
+            if (isReservationCalendarQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.reservationCalendarEvents());
+            }
+            if (isUpcomingReservationQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.upcomingReservations());
+            }
+            return Optional.of(readOnlyToolService.reservationSearch(question));
+        }
+
+        if (isScheduledMaintenanceToolQuestion(normalized)) {
+            if (isScheduledMaintenanceComplianceQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.scheduledMaintenanceComplianceSummary());
+            }
+            if (isScheduledMaintenanceFrequencyQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.scheduledMaintenanceFrequencySummary());
+            }
+            if (isScheduledMaintenanceHistoryQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.scheduledMaintenanceHistory(question));
+            }
+            if (isScheduledMaintenanceDueTodayQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.dueTodayScheduledMaintenance());
+            }
+            if (isScheduledMaintenanceDueThisWeekQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.dueThisWeekScheduledMaintenance());
+            }
+            if (isOverdueScheduledMaintenanceQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.overdueScheduledMaintenance());
+            }
+            if (isScheduledMaintenanceNextDueQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.nextDueScheduledMaintenance(question));
+            }
+            if (isScheduledMaintenanceByStatusQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.scheduledMaintenanceByStatus(question));
+            }
+            if (isScheduledMaintenanceByPropertyQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.scheduledMaintenanceByProperty(question));
+            }
+            if (isScheduledMaintenanceByTypeQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.scheduledMaintenanceByType(question));
+            }
+            if (isScheduledMaintenanceUpcomingQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.upcomingScheduledMaintenance());
+            }
+            return Optional.of(readOnlyToolService.scheduledMaintenanceSearch(question));
+        }
+
+        return Optional.empty();
+    }
 
     private Optional<AiToolAnswer> tryHandlePriorityMaintenanceAnalyticsQuestion(String question, String normalized) {
         if (!isMaintenanceAnalyticsQuestion(normalized)) {
@@ -340,6 +460,40 @@ public class AiToolCallingService {
         return switch (toolName) {
             case "dashboard.operationalSummary" -> "Resumen operativo";
             case "reservation.upcoming" -> "Reservaciones próximas";
+            case "scheduledMaintenance.search" -> "Mantenimientos programados";
+            case "scheduledMaintenance.upcoming" -> "Mantenimientos programados próximos";
+            case "scheduledMaintenance.dueToday" -> "Mantenimientos programados de hoy";
+            case "scheduledMaintenance.dueThisWeek" -> "Mantenimientos programados de esta semana";
+            case "scheduledMaintenance.byProperty" -> "Mantenimientos programados por propiedad";
+            case "scheduledMaintenance.byType" -> "Mantenimientos programados por tipo";
+            case "scheduledMaintenance.byStatus" -> "Mantenimientos programados por estado";
+            case "scheduledMaintenance.nextDue" -> "Próximo mantenimiento programado";
+            case "scheduledMaintenance.frequencySummary" -> "Frecuencias de mantenimiento programado";
+            case "scheduledMaintenance.history" -> "Historial de mantenimiento programado";
+            case "scheduledMaintenance.complianceSummary" -> "Cumplimiento de mantenimiento programado";
+            case "reservation.search" -> "Reservaciones";
+            case "reservation.current" -> "Reservaciones actuales";
+            case "reservation.today" -> "Reservaciones de hoy";
+            case "reservation.thisWeek" -> "Reservaciones de esta semana";
+            case "reservation.thisMonth" -> "Reservaciones de este mes";
+            case "reservation.byProperty" -> "Reservaciones por propiedad";
+            case "reservation.byGuest" -> "Reservaciones por huésped";
+            case "reservation.byStatus" -> "Reservaciones por estado";
+            case "reservation.byPlatform" -> "Reservaciones por plataforma";
+            case "reservation.occupancySummary" -> "Ocupación de reservaciones";
+            case "reservation.revenueSummary" -> "Ingresos de reservaciones";
+            case "reservation.nightsSummary" -> "Noches reservadas";
+            case "reservation.guestCountSummary" -> "Conteo de huéspedes";
+            case "reservation.calendarEvents" -> "Calendario de reservaciones";
+            case "reservation.nextCheckIn" -> "Próxima llegada";
+            case "reservation.nextCheckOut" -> "Próxima salida";
+            case "reservation.gapsBetweenReservations" -> "Espacios entre reservaciones";
+            case "guest.search" -> "Huéspedes";
+            case "guest.byReservation" -> "Huéspedes por reservación";
+            case "guest.recent" -> "Huéspedes recientes";
+            case "guest.returningGuests" -> "Huéspedes recurrentes";
+            case "guest.upcomingGuests" -> "Próximos huéspedes";
+            case "guest.countByDateRange" -> "Conteo de huéspedes";
             case "scheduledMaintenance.overdue" -> "Mantenimientos programados vencidos";
             case "taskList.pending" -> "Tareas pendientes";
             case "document.searchMetadata" -> "Documentos cargados";
@@ -566,6 +720,145 @@ public class AiToolCallingService {
 
     private boolean isMaintenanceItemUsageQuestion(String value) {
         return isMaintenanceAnalyticsQuestion(value) && containsAny(value, "item", "items", "repuesto", "repuestos", "material", "materiales", "supply", "supplies", "usaron", "usado", "uso");
+    }
+
+    private boolean isScheduledMaintenanceToolQuestion(String value) {
+        return containsAny(value, "mantenimiento programado", "mantenimientos programados", "scheduled maintenance", "programado", "programados")
+                || (containsAny(value, "mantenimiento", "mantenimientos")
+                && containsAny(value, "toca", "vencido", "vencidos", "vence", "vencen", "proximo", "proxima", "proximos", "proximas", "frecuencia", "historial", "cumplimiento"));
+    }
+
+    private boolean isScheduledMaintenanceUpcomingQuestion(String value) {
+        return isScheduledMaintenanceToolQuestion(value) && containsAny(value, "proximo", "proximos", "proxima", "proximas", "upcoming", "siguiente", "siguientes");
+    }
+
+    private boolean isScheduledMaintenanceDueTodayQuestion(String value) {
+        return isScheduledMaintenanceToolQuestion(value) && containsAny(value, "hoy", "today");
+    }
+
+    private boolean isScheduledMaintenanceDueThisWeekQuestion(String value) {
+        return isScheduledMaintenanceToolQuestion(value) && containsAny(value, "semana", "week", "esta semana");
+    }
+
+    private boolean isScheduledMaintenanceNextDueQuestion(String value) {
+        return isScheduledMaintenanceToolQuestion(value) && containsAny(value, "cual es el proximo", "proximo mantenimiento", "toca", "vence", "siguiente");
+    }
+
+    private boolean isScheduledMaintenanceByPropertyQuestion(String value) {
+        return isScheduledMaintenanceToolQuestion(value) && containsAny(value, "propiedad", "casa", "bungalow", "alojamiento");
+    }
+
+    private boolean isScheduledMaintenanceByTypeQuestion(String value) {
+        return isScheduledMaintenanceToolQuestion(value) && containsAny(value, "tipo", "categoria", "pozo", "cisterna", "filtro", "bomba");
+    }
+
+    private boolean isScheduledMaintenanceByStatusQuestion(String value) {
+        return isScheduledMaintenanceToolQuestion(value) && containsAny(value, "estado", "activo", "activos", "pausado", "pausados", "completado", "completados", "cancelado", "cancelados");
+    }
+
+    private boolean isScheduledMaintenanceFrequencyQuestion(String value) {
+        return isScheduledMaintenanceToolQuestion(value) && containsAny(value, "frecuencia", "frecuencias", "cada cuanto", "periodicidad");
+    }
+
+    private boolean isScheduledMaintenanceHistoryQuestion(String value) {
+        return isScheduledMaintenanceToolQuestion(value) && containsAny(value, "historial", "historia", "historico", "registro", "registros");
+    }
+
+    private boolean isScheduledMaintenanceComplianceQuestion(String value) {
+        return isScheduledMaintenanceToolQuestion(value) && containsAny(value, "cumplimiento", "compliance", "estado general", "resumen", "salud", "situacion");
+    }
+
+    private boolean isReservationToolQuestion(String value) {
+        return containsAny(value, "reservacion", "reservaciones", "reserva", "reservas", "check in", "check-in", "check out", "check-out", "llegada", "llegan", "llega", "salida", "salen", "sale", "ocupacion", "noches reservadas", "dias libres");
+    }
+
+    private boolean isReservationTodayQuestion(String value) {
+        return isReservationToolQuestion(value) && containsAny(value, "hoy", "today");
+    }
+
+    private boolean isReservationThisWeekQuestion(String value) {
+        return isReservationToolQuestion(value) && containsAny(value, "semana", "esta semana", "week");
+    }
+
+    private boolean isReservationThisMonthQuestion(String value) {
+        return isReservationToolQuestion(value) && containsAny(value, "mes", "este mes", "month");
+    }
+
+    private boolean isCurrentReservationToolQuestion(String value) {
+        return isReservationToolQuestion(value) && containsAny(value, "actual", "actuales", "en curso", "hoy hospedados", "ocupado actualmente");
+    }
+
+    private boolean isReservationByPropertyQuestion(String value) {
+        return isReservationToolQuestion(value) && containsAny(value, "propiedad", "casa", "bungalow", "alojamiento");
+    }
+
+    private boolean isReservationByGuestQuestion(String value) {
+        return isReservationToolQuestion(value) && containsAny(value, "huesped", "huespedes", "cliente", "clientes", "guest", "guests");
+    }
+
+    private boolean isReservationByStatusQuestion(String value) {
+        return isReservationToolQuestion(value) && containsAny(value, "estado", "activas", "canceladas", "cancelados", "cancelada", "cancelado");
+    }
+
+    private boolean isReservationByPlatformQuestion(String value) {
+        return isReservationToolQuestion(value) && containsAny(value, "plataforma", "platform", "airbnb", "booking");
+    }
+
+    private boolean isReservationOccupancyQuestion(String value) {
+        return isReservationToolQuestion(value) && containsAny(value, "ocupacion", "ocupada", "ocupadas", "mas ocupacion", "reserved nights", "noches por propiedad");
+    }
+
+    private boolean isReservationRevenueQuestion(String value) {
+        return isReservationToolQuestion(value) && containsAny(value, "ingreso", "ingresos", "revenue", "valor", "dinero", "monto", "total", "cuanto", "gane", "ganado");
+    }
+
+    private boolean isReservationNightsQuestion(String value) {
+        return isReservationToolQuestion(value) && containsAny(value, "noches", "nights", "noches reservadas");
+    }
+
+    private boolean isReservationGuestCountQuestion(String value) {
+        return isReservationToolQuestion(value) && containsAny(value, "cuantos huespedes", "cantidad de huespedes", "huespedes tendre", "guest count");
+    }
+
+    private boolean isReservationCalendarQuestion(String value) {
+        return isReservationToolQuestion(value) && containsAny(value, "calendario", "calendar", "eventos");
+    }
+
+    private boolean isNextCheckInQuestion(String value) {
+        return isReservationToolQuestion(value) && containsAny(value, "proximo check in", "proximo check-in", "proxima llegada", "quien llega", "llega manana", "llega mañana", "siguiente llegada");
+    }
+
+    private boolean isNextCheckOutQuestion(String value) {
+        return isReservationToolQuestion(value) && containsAny(value, "proximo check out", "proximo check-out", "proxima salida", "quien sale", "sale manana", "sale mañana", "siguiente salida");
+    }
+
+    private boolean isReservationGapQuestion(String value) {
+        return isReservationToolQuestion(value) && containsAny(value, "dias libres", "espacios libres", "huecos", "gaps", "entre reservas", "entre reservaciones");
+    }
+
+    private boolean isGuestToolQuestion(String value) {
+        return containsAny(value, "huesped", "huespedes", "guest", "guests", "cliente", "clientes")
+                && !containsAny(value, "supplies", "supply", "suministro", "suministros");
+    }
+
+    private boolean isGuestByReservationQuestion(String value) {
+        return isGuestToolQuestion(value) && containsAny(value, "reservacion", "reservaciones", "reserva", "reservas", "asociado", "asociados");
+    }
+
+    private boolean isRecentGuestQuestion(String value) {
+        return isGuestToolQuestion(value) && containsAny(value, "recientes", "reciente", "ultimos", "ultimas");
+    }
+
+    private boolean isReturningGuestQuestion(String value) {
+        return isGuestToolQuestion(value) && containsAny(value, "recurrente", "recurrentes", "regreso", "volvio", "ya se habia", "returning");
+    }
+
+    private boolean isUpcomingGuestQuestion(String value) {
+        return isGuestToolQuestion(value) && containsAny(value, "llegan", "llega", "proximos", "proximas", "esta semana", "upcoming");
+    }
+
+    private boolean isGuestCountQuestion(String value) {
+        return isGuestToolQuestion(value) && containsAny(value, "cuantos", "cantidad", "conteo", "count", "tendre", "tengo este mes");
     }
 
     private boolean isOperationalSummaryQuestion(String value) {

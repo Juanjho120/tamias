@@ -757,6 +757,754 @@ public class AiReadOnlyToolService {
         );
     }
 
+    public AiToolAnswer scheduledMaintenanceSearch(String userQuestion) {
+        return scheduledMaintenanceList("scheduledMaintenance.search", "Scheduled maintenance search", "Mantenimientos programados encontrados:", null, null, extractSearchText(userQuestion, "mantenimiento", "mantenimientos", "programado", "programados", "buscar", "busca", "lista", "listar"));
+    }
+
+    public AiToolAnswer upcomingScheduledMaintenance() {
+        return scheduledMaintenanceList("scheduledMaintenance.upcoming", "Upcoming scheduled maintenance", "Estos son los próximos mantenimientos programados:", LocalDate.now(), LocalDate.now().plusDays(14), null);
+    }
+
+    public AiToolAnswer dueTodayScheduledMaintenance() {
+        return scheduledMaintenanceList("scheduledMaintenance.dueToday", "Scheduled maintenance due today", "Estos mantenimientos programados vencen hoy:", LocalDate.now(), LocalDate.now(), null);
+    }
+
+    public AiToolAnswer dueThisWeekScheduledMaintenance() {
+        return scheduledMaintenanceList("scheduledMaintenance.dueThisWeek", "Scheduled maintenance due this week", "Estos mantenimientos programados vencen esta semana:", LocalDate.now(), LocalDate.now().plusDays(7), null);
+    }
+
+    public AiToolAnswer scheduledMaintenanceByProperty(String userQuestion) {
+        String search = extractSearchText(userQuestion, "mantenimiento", "mantenimientos", "programado", "programados", "propiedad", "casa", "bungalow", "alojamiento");
+        return scheduledMaintenanceList("scheduledMaintenance.byProperty", "Scheduled maintenance by property", "Estos son los mantenimientos programados que encontré por propiedad:", null, null, search);
+    }
+
+    public AiToolAnswer scheduledMaintenanceByType(String userQuestion) {
+        String search = extractSearchText(userQuestion, "mantenimiento", "mantenimientos", "programado", "programados", "tipo", "categoria", "categorias");
+        return scheduledMaintenanceList("scheduledMaintenance.byType", "Scheduled maintenance by type", "Estos son los mantenimientos programados que encontré por tipo/categoría:", null, null, search);
+    }
+
+    public AiToolAnswer scheduledMaintenanceByStatus(String userQuestion) {
+        String status = resolveScheduledMaintenanceStatus(userQuestion);
+        return scheduledMaintenanceList("scheduledMaintenance.byStatus", "Scheduled maintenance by status", "Estos son los mantenimientos programados con estado " + status + ":", null, null, status);
+    }
+
+    public AiToolAnswer nextDueScheduledMaintenance(String userQuestion) {
+        String search = extractSearchText(userQuestion, "proximo", "proxima", "mantenimiento", "mantenimientos", "programado", "programados", "toca", "vence");
+        return scheduledMaintenanceList("scheduledMaintenance.nextDue", "Next due scheduled maintenance", "El próximo mantenimiento programado que encontré es:", LocalDate.now(), null, search, 1);
+    }
+
+    public AiToolAnswer scheduledMaintenanceFrequencySummary() {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        List<Map<String, Object>> rows = query("""
+                SELECT sm.frequency,
+                       COUNT(*) AS total,
+                       COUNT(CASE WHEN sm.status = 'ACTIVE' THEN 1 END) AS active_count,
+                       MIN(sm.next_due_date) AS next_due_date
+                FROM scheduled_maintenance sm
+                WHERE sm.organization_id = :organizationId
+                  AND sm.deleted_at IS NULL
+                GROUP BY sm.frequency
+                ORDER BY total DESC, sm.frequency ASC
+                """, q -> q.setParameter("organizationId", organizationId),
+                "frequency", "total", "activeCount", "nextDueDate");
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of("No encontré mantenimientos programados para resumir frecuencias.", "scheduledMaintenance.frequencySummary", "Scheduled maintenance frequency summary", "No scheduled maintenance frequencies found.", List.of());
+        }
+        StringBuilder answer = new StringBuilder("Este es el resumen de frecuencias de mantenimiento programado:");
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("frequency"))))
+                    .append(" | total: ").append(blankToDash(value(row.get("total"))))
+                    .append(" | activos: ").append(blankToDash(value(row.get("activeCount"))))
+                    .append(" | próximo vencimiento: ").append(blankToDash(value(row.get("nextDueDate"))));
+        }
+        return AiToolAnswer.of(answer.toString(), "scheduledMaintenance.frequencySummary", "Scheduled maintenance frequency summary", "%d scheduled maintenance frequency rows found.".formatted(rows.size()), rows);
+    }
+
+    public AiToolAnswer scheduledMaintenanceHistory(String userQuestion) {
+        String search = extractSearchText(userQuestion, "historial", "historia", "mantenimiento", "mantenimientos", "programado", "programados");
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        List<Map<String, Object>> rows = query("""
+                SELECT mr.id,
+                       p.name AS property_name,
+                       mr.title,
+                       COALESCE(mc.name, '') AS category_name,
+                       COALESCE(mt.name, '') AS type_name,
+                       mr.performed_at,
+                       mr.scheduled_at,
+                       mr.cost,
+                       mr.status
+                FROM maintenance_records mr
+                JOIN properties p ON p.id = mr.property_id
+                LEFT JOIN maintenance_categories mc ON mc.id = mr.maintenance_category_id
+                LEFT JOIN maintenance_types mt ON mt.id = mr.maintenance_type_id
+                WHERE mr.organization_id = :organizationId
+                  AND mr.deleted_at IS NULL
+                  AND (:search IS NULL OR NOT EXISTS (
+                      SELECT 1 FROM regexp_split_to_table(CAST(:search AS TEXT), '\\s+') token(value)
+                      WHERE translate(LOWER(CONCAT_WS(' ', mr.title, mr.description, p.name, mc.name, mt.name)), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
+                  ))
+                ORDER BY COALESCE(mr.performed_at, mr.scheduled_at, mr.created_at) DESC
+                LIMIT :limit
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("search", nullableSearch(search));
+                    q.setParameter("limit", DEFAULT_LIMIT);
+                }, "id", "propertyName", "title", "categoryName", "typeName", "performedAt", "scheduledAt", "cost", "status");
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of("No encontré historial de mantenimientos relacionado con tu pregunta.", "scheduledMaintenance.history", "Scheduled maintenance history", "No scheduled maintenance history found.", List.of());
+        }
+        StringBuilder answer = new StringBuilder("Este es el historial de mantenimientos relacionado:");
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("propertyName"))))
+                    .append(" | ").append(blankToDash(value(row.get("title"))))
+                    .append(" | estado: ").append(blankToDash(value(row.get("status"))))
+                    .append(" | fecha: ").append(firstNonBlank(value(row.get("performedAt")), value(row.get("scheduledAt"))))
+                    .append(" | costo: ").append(formatMoney(row.get("cost")));
+        }
+        return AiToolAnswer.of(answer.toString(), "scheduledMaintenance.history", "Scheduled maintenance history", "%d scheduled maintenance history rows found.".formatted(rows.size()), rows);
+    }
+
+    public AiToolAnswer scheduledMaintenanceComplianceSummary() {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        LocalDate today = LocalDate.now();
+        List<Map<String, Object>> rows = query("""
+                SELECT COUNT(*) AS total,
+                       COUNT(CASE WHEN sm.status = 'ACTIVE' THEN 1 END) AS active_count,
+                       COUNT(CASE WHEN sm.status = 'ACTIVE' AND sm.next_due_date < :today THEN 1 END) AS overdue_count,
+                       COUNT(CASE WHEN sm.status = 'ACTIVE' AND sm.next_due_date = :today THEN 1 END) AS due_today_count,
+                       COUNT(CASE WHEN sm.status = 'ACTIVE' AND sm.next_due_date BETWEEN :today AND :weekEnd THEN 1 END) AS due_this_week_count,
+                       COUNT(CASE WHEN sm.status = 'PAUSED' THEN 1 END) AS paused_count,
+                       COUNT(CASE WHEN sm.status = 'COMPLETED' THEN 1 END) AS completed_count
+                FROM scheduled_maintenance sm
+                WHERE sm.organization_id = :organizationId
+                  AND sm.deleted_at IS NULL
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("today", Date.valueOf(today));
+                    q.setParameter("weekEnd", Date.valueOf(today.plusDays(7)));
+                }, "total", "activeCount", "overdueCount", "dueTodayCount", "dueThisWeekCount", "pausedCount", "completedCount");
+        Map<String, Object> row = rows.isEmpty() ? Map.of() : rows.get(0);
+        String answer = "Así está el cumplimiento de mantenimientos programados:"
+                + System.lineSeparator() + "- Total: " + blankToDash(value(row.get("total")))
+                + System.lineSeparator() + "- Activos: " + blankToDash(value(row.get("activeCount")))
+                + System.lineSeparator() + "- Vencidos: " + blankToDash(value(row.get("overdueCount")))
+                + System.lineSeparator() + "- Vencen hoy: " + blankToDash(value(row.get("dueTodayCount")))
+                + System.lineSeparator() + "- Vencen esta semana: " + blankToDash(value(row.get("dueThisWeekCount")))
+                + System.lineSeparator() + "- Pausados: " + blankToDash(value(row.get("pausedCount")))
+                + System.lineSeparator() + "- Completados: " + blankToDash(value(row.get("completedCount")));
+        return AiToolAnswer.of(answer, "scheduledMaintenance.complianceSummary", "Scheduled maintenance compliance summary", "Scheduled maintenance compliance counters were calculated.", rows);
+    }
+
+    private AiToolAnswer scheduledMaintenanceList(String toolName, String label, String emptyOrIntro, LocalDate from, LocalDate to, String search) {
+        return scheduledMaintenanceList(toolName, label, emptyOrIntro, from, to, search, DEFAULT_LIMIT);
+    }
+
+    private AiToolAnswer scheduledMaintenanceList(String toolName, String label, String intro, LocalDate from, LocalDate to, String search, int limit) {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        List<Map<String, Object>> rows = query("""
+                SELECT sm.id,
+                       p.name AS property_name,
+                       sm.title,
+                       COALESCE(mc.name, '') AS category_name,
+                       COALESCE(mt.name, '') AS type_name,
+                       sm.frequency,
+                       sm.interval_value,
+                       sm.next_due_date,
+                       sm.estimated_cost,
+                       sm.status
+                FROM scheduled_maintenance sm
+                JOIN properties p ON p.id = sm.property_id
+                LEFT JOIN maintenance_categories mc ON mc.id = sm.maintenance_category_id
+                LEFT JOIN maintenance_types mt ON mt.id = sm.maintenance_type_id
+                WHERE sm.organization_id = :organizationId
+                  AND sm.deleted_at IS NULL
+                  AND (:fromDate IS NULL OR sm.next_due_date >= CAST(:fromDate AS DATE))
+                  AND (:toDate IS NULL OR sm.next_due_date <= CAST(:toDate AS DATE))
+                  AND (:search IS NULL OR sm.status = CAST(:search AS TEXT) OR NOT EXISTS (
+                      SELECT 1 FROM regexp_split_to_table(CAST(:search AS TEXT), '\\s+') token(value)
+                      WHERE translate(LOWER(CONCAT_WS(' ', sm.title, sm.description, p.name, mc.name, mt.name, sm.frequency, sm.status)), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
+                  ))
+                ORDER BY sm.next_due_date ASC, sm.title ASC
+                LIMIT :limit
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("fromDate", from == null ? null : Date.valueOf(from));
+                    q.setParameter("toDate", to == null ? null : Date.valueOf(to));
+                    q.setParameter("search", nullableSearch(search));
+                    q.setParameter("limit", limit);
+                }, "id", "propertyName", "title", "categoryName", "typeName", "frequency", "intervalValue", "nextDueDate", "estimatedCost", "status");
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of("No encontré mantenimientos programados que coincidan con tu pregunta.", toolName, label, "No scheduled maintenance rows found.", List.of());
+        }
+        StringBuilder answer = new StringBuilder(intro);
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("propertyName"))))
+                    .append(" | ").append(blankToDash(value(row.get("title"))))
+                    .append(" | vence: ").append(blankToDash(value(row.get("nextDueDate"))))
+                    .append(" | frecuencia: ").append(blankToDash(value(row.get("frequency"))))
+                    .append(" cada ").append(blankToDash(value(row.get("intervalValue"))))
+                    .append(" | estado: ").append(blankToDash(value(row.get("status"))));
+            String category = value(row.get("categoryName"));
+            String type = value(row.get("typeName"));
+            if (!category.isBlank() || !type.isBlank()) {
+                answer.append(" | ").append(blankToDash(category));
+                if (!type.isBlank()) {
+                    answer.append(" / ").append(type);
+                }
+            }
+        }
+        return AiToolAnswer.of(answer.toString(), toolName, label, "%d scheduled maintenance rows found.".formatted(rows.size()), rows);
+    }
+
+    public AiToolAnswer reservationsToday() {
+        return reservationList("reservation.today", "Reservations today", "Estas son las reservaciones con movimiento hoy:", LocalDate.now(), LocalDate.now(), null);
+    }
+
+    public AiToolAnswer currentReservations() {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        LocalDate today = LocalDate.now();
+        return reservationList("reservation.current", "Current reservations", "Estas son las reservaciones actualmente en curso:", today, today, null, DEFAULT_LIMIT, true);
+    }
+
+    public AiToolAnswer reservationsThisWeek() {
+        return reservationList("reservation.thisWeek", "Reservations this week", "Estas son las reservaciones de esta semana:", LocalDate.now(), LocalDate.now().plusDays(7), null);
+    }
+
+    public AiToolAnswer reservationsThisMonth() {
+        LocalDate today = LocalDate.now();
+        LocalDate start = today.withDayOfMonth(1);
+        LocalDate end = start.plusMonths(1).minusDays(1);
+        return reservationList("reservation.thisMonth", "Reservations this month", "Estas son las reservaciones de este mes:", start, end, null);
+    }
+
+    public AiToolAnswer reservationsByProperty(String userQuestion) {
+        String search = extractSearchText(userQuestion, "reservacion", "reservaciones", "reserva", "reservas", "propiedad", "casa", "bungalow", "alojamiento");
+        return reservationList("reservation.byProperty", "Reservations by property", "Estas son las reservaciones que encontré por propiedad:", null, null, search);
+    }
+
+    public AiToolAnswer reservationsByGuest(String userQuestion) {
+        String search = extractSearchText(userQuestion, "reservacion", "reservaciones", "reserva", "reservas", "huesped", "huespedes", "cliente", "clientes");
+        return reservationList("reservation.byGuest", "Reservations by guest", "Estas son las reservaciones que encontré por huésped:", null, null, search);
+    }
+
+    public AiToolAnswer reservationsByStatus(String userQuestion) {
+        String status = resolveReservationStatus(userQuestion);
+        return reservationList("reservation.byStatus", "Reservations by status", "Estas son las reservaciones con estado " + status + ":", null, null, status);
+    }
+
+    public AiToolAnswer reservationsByPlatform(String userQuestion) {
+        String search = extractSearchText(userQuestion, "reservacion", "reservaciones", "reserva", "reservas", "plataforma", "platform", "airbnb", "booking");
+        return reservationList("reservation.byPlatform", "Reservations by platform", "Estas son las reservaciones que encontré por plataforma:", null, null, search);
+    }
+
+    public AiToolAnswer reservationSearch(String userQuestion) {
+        String search = extractSearchText(userQuestion, "reservacion", "reservaciones", "reserva", "reservas", "buscar", "busca", "lista", "listar");
+        return reservationList("reservation.search", "Reservation search", "Estas son las reservaciones que encontré:", null, null, search);
+    }
+
+    public AiToolAnswer nextCheckIn() {
+        return reservationList("reservation.nextCheckIn", "Next check-in", "La próxima llegada registrada es:", LocalDate.now(), null, null, 1, false);
+    }
+
+    public AiToolAnswer nextCheckOut() {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        LocalDate today = LocalDate.now();
+        List<Map<String, Object>> rows = query(reservationBaseSql("r.check_out >= :fromDate", "r.check_out ASC", 1), q -> {
+            q.setParameter("organizationId", organizationId);
+            q.setParameter("fromDate", Date.valueOf(today));
+            q.setParameter("limit", 1);
+        }, reservationColumns());
+        return reservationRowsAnswer(rows, "reservation.nextCheckOut", "Next check-out", "La próxima salida registrada es:", "No encontré próximas salidas registradas.");
+    }
+
+    public AiToolAnswer reservationCalendarEvents() {
+        return reservationList("reservation.calendarEvents", "Reservation calendar events", "Estos son eventos de calendario de reservaciones para esta semana:", LocalDate.now(), LocalDate.now().plusDays(7), null);
+    }
+
+    public AiToolAnswer reservationRevenueSummary(String userQuestion) {
+        LocalDate[] range = resolveDateRange(userQuestion);
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        List<Map<String, Object>> rows = query("""
+                SELECT COUNT(*) AS reservation_count,
+                       COALESCE(SUM(r.reservation_value), 0) AS total_revenue,
+                       COALESCE(AVG(r.reservation_value), 0) AS average_revenue,
+                       COALESCE(SUM(r.check_out - r.check_in), 0) AS total_nights
+                FROM reservations r
+                WHERE r.organization_id = :organizationId
+                  AND r.deleted_at IS NULL
+                  AND r.status = 'ACTIVE'
+                  AND (:fromDate IS NULL OR r.check_in >= CAST(:fromDate AS DATE))
+                  AND (:toDate IS NULL OR r.check_in <= CAST(:toDate AS DATE))
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("fromDate", range[0] == null ? null : Date.valueOf(range[0]));
+                    q.setParameter("toDate", range[1] == null ? null : Date.valueOf(range[1]));
+                }, "reservationCount", "totalRevenue", "averageRevenue", "totalNights");
+        Map<String, Object> row = rows.isEmpty() ? Map.of() : rows.get(0);
+        String answer = "Resumen de ingresos de reservaciones:"
+                + System.lineSeparator() + "- Reservaciones: " + blankToDash(value(row.get("reservationCount")))
+                + System.lineSeparator() + "- Ingresos totales: " + formatMoney(row.get("totalRevenue"))
+                + System.lineSeparator() + "- Promedio por reservación: " + formatMoney(row.get("averageRevenue"))
+                + System.lineSeparator() + "- Noches reservadas: " + blankToDash(value(row.get("totalNights")));
+        return AiToolAnswer.of(answer, "reservation.revenueSummary", "Reservation revenue summary", "Reservation revenue counters were calculated.", rows);
+    }
+
+    public AiToolAnswer reservationNightsSummary(String userQuestion) {
+        LocalDate[] range = resolveDateRange(userQuestion);
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        List<Map<String, Object>> rows = query("""
+                SELECT COALESCE(SUM(r.check_out - r.check_in), 0) AS total_nights,
+                       COUNT(*) AS reservation_count
+                FROM reservations r
+                WHERE r.organization_id = :organizationId
+                  AND r.deleted_at IS NULL
+                  AND r.status = 'ACTIVE'
+                  AND (:fromDate IS NULL OR r.check_in >= CAST(:fromDate AS DATE))
+                  AND (:toDate IS NULL OR r.check_in <= CAST(:toDate AS DATE))
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("fromDate", range[0] == null ? null : Date.valueOf(range[0]));
+                    q.setParameter("toDate", range[1] == null ? null : Date.valueOf(range[1]));
+                }, "totalNights", "reservationCount");
+        Map<String, Object> row = rows.isEmpty() ? Map.of() : rows.get(0);
+        String answer = "Resumen de noches reservadas:"
+                + System.lineSeparator() + "- Noches reservadas: " + blankToDash(value(row.get("totalNights")))
+                + System.lineSeparator() + "- Reservaciones consideradas: " + blankToDash(value(row.get("reservationCount")));
+        return AiToolAnswer.of(answer, "reservation.nightsSummary", "Reservation nights summary", "Reservation nights summary was calculated.", rows);
+    }
+
+    public AiToolAnswer reservationGuestCountSummary(String userQuestion) {
+        LocalDate[] range = resolveDateRange(userQuestion);
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        List<Map<String, Object>> rows = query("""
+                SELECT COUNT(DISTINCT rg.guest_id) AS unique_guests,
+                       COUNT(rg.id) AS guest_reservation_links,
+                       COUNT(DISTINCT r.id) AS reservation_count
+                FROM reservations r
+                LEFT JOIN reservation_guests rg ON rg.reservation_id = r.id AND rg.organization_id = r.organization_id
+                WHERE r.organization_id = :organizationId
+                  AND r.deleted_at IS NULL
+                  AND r.status = 'ACTIVE'
+                  AND (:fromDate IS NULL OR r.check_in >= CAST(:fromDate AS DATE))
+                  AND (:toDate IS NULL OR r.check_in <= CAST(:toDate AS DATE))
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("fromDate", range[0] == null ? null : Date.valueOf(range[0]));
+                    q.setParameter("toDate", range[1] == null ? null : Date.valueOf(range[1]));
+                }, "uniqueGuests", "guestReservationLinks", "reservationCount");
+        Map<String, Object> row = rows.isEmpty() ? Map.of() : rows.get(0);
+        String answer = "Resumen de huéspedes en reservaciones:"
+                + System.lineSeparator() + "- Huéspedes únicos: " + blankToDash(value(row.get("uniqueGuests")))
+                + System.lineSeparator() + "- Asignaciones de huéspedes a reservas: " + blankToDash(value(row.get("guestReservationLinks")))
+                + System.lineSeparator() + "- Reservaciones consideradas: " + blankToDash(value(row.get("reservationCount")));
+        return AiToolAnswer.of(answer, "reservation.guestCountSummary", "Reservation guest count summary", "Guest counts for reservations were calculated.", rows);
+    }
+
+    public AiToolAnswer reservationOccupancySummary(String userQuestion) {
+        LocalDate[] range = resolveDateRange(userQuestion);
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        List<Map<String, Object>> rows = query("""
+                SELECT p.name AS property_name,
+                       COUNT(r.id) AS reservation_count,
+                       COALESCE(SUM(r.check_out - r.check_in), 0) AS reserved_nights
+                FROM properties p
+                LEFT JOIN reservations r ON r.property_id = p.id
+                                       AND r.organization_id = p.organization_id
+                                       AND r.deleted_at IS NULL
+                                       AND r.status = 'ACTIVE'
+                                       AND (:fromDate IS NULL OR r.check_in >= CAST(:fromDate AS DATE))
+                                       AND (:toDate IS NULL OR r.check_in <= CAST(:toDate AS DATE))
+                WHERE p.organization_id = :organizationId
+                  AND p.deleted_at IS NULL
+                GROUP BY p.id, p.name
+                ORDER BY reserved_nights DESC, reservation_count DESC, p.name ASC
+                LIMIT :limit
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("fromDate", range[0] == null ? null : Date.valueOf(range[0]));
+                    q.setParameter("toDate", range[1] == null ? null : Date.valueOf(range[1]));
+                    q.setParameter("limit", DEFAULT_LIMIT);
+                }, "propertyName", "reservationCount", "reservedNights");
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of("No encontré propiedades para calcular ocupación.", "reservation.occupancySummary", "Reservation occupancy summary", "No occupancy rows found.", List.of());
+        }
+        StringBuilder answer = new StringBuilder("Resumen de ocupación por propiedad:");
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("propertyName"))))
+                    .append(" | reservaciones: ").append(blankToDash(value(row.get("reservationCount"))))
+                    .append(" | noches: ").append(blankToDash(value(row.get("reservedNights"))));
+        }
+        return AiToolAnswer.of(answer.toString(), "reservation.occupancySummary", "Reservation occupancy summary", "%d occupancy rows calculated.".formatted(rows.size()), rows);
+    }
+
+    public AiToolAnswer reservationGapsBetweenReservations() {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        List<Map<String, Object>> rows = query("""
+                WITH ordered AS (
+                    SELECT r.id,
+                           p.name AS property_name,
+                           r.check_in,
+                           r.check_out,
+                           LEAD(r.check_in) OVER (PARTITION BY r.property_id ORDER BY r.check_in) AS next_check_in
+                    FROM reservations r
+                    JOIN properties p ON p.id = r.property_id
+                    WHERE r.organization_id = :organizationId
+                      AND r.deleted_at IS NULL
+                      AND r.status = 'ACTIVE'
+                      AND r.check_out >= CURRENT_DATE
+                )
+                SELECT property_name,
+                       check_out,
+                       next_check_in,
+                       (next_check_in - check_out) AS gap_days
+                FROM ordered
+                WHERE next_check_in IS NOT NULL
+                  AND next_check_in > check_out
+                ORDER BY check_out ASC
+                LIMIT :limit
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("limit", DEFAULT_LIMIT);
+                }, "propertyName", "checkOut", "nextCheckIn", "gapDays");
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of("No encontré espacios libres entre reservaciones próximas.", "reservation.gapsBetweenReservations", "Reservation gaps between reservations", "No future reservation gaps found.", List.of());
+        }
+        StringBuilder answer = new StringBuilder("Estos son espacios libres entre reservaciones próximas:");
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("propertyName"))))
+                    .append(" | salida: ").append(blankToDash(value(row.get("checkOut"))))
+                    .append(" | próxima llegada: ").append(blankToDash(value(row.get("nextCheckIn"))))
+                    .append(" | días libres: ").append(blankToDash(value(row.get("gapDays"))));
+        }
+        return AiToolAnswer.of(answer.toString(), "reservation.gapsBetweenReservations", "Reservation gaps between reservations", "%d reservation gap rows found.".formatted(rows.size()), rows);
+    }
+
+    private AiToolAnswer reservationList(String toolName, String label, String intro, LocalDate from, LocalDate to, String search) {
+        return reservationList(toolName, label, intro, from, to, search, DEFAULT_LIMIT, false);
+    }
+
+    private AiToolAnswer reservationList(String toolName, String label, String intro, LocalDate from, LocalDate to, String search, int limit, boolean currentOnly) {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        String dateFilter = currentOnly
+                ? "r.check_in <= :fromDate AND r.check_out > :fromDate"
+                : "(:fromDate IS NULL OR r.check_in >= CAST(:fromDate AS DATE)) AND (:toDate IS NULL OR r.check_in <= CAST(:toDate AS DATE))";
+        List<Map<String, Object>> rows = query("""
+                SELECT r.id,
+                       p.name AS property_name,
+                       COALESCE(pl.name, '') AS platform_name,
+                       r.reservation_code,
+                       r.check_in,
+                       r.check_out,
+                       r.reservation_value,
+                       r.status,
+                       COALESCE(STRING_AGG(g.full_name, ', ' ORDER BY rg.is_primary DESC, g.full_name), '') AS guests,
+                       COALESCE(COUNT(g.id), 0) AS guest_count
+                FROM reservations r
+                JOIN properties p ON p.id = r.property_id
+                LEFT JOIN platforms pl ON pl.id = r.platform_id
+                LEFT JOIN reservation_guests rg ON rg.reservation_id = r.id AND rg.organization_id = r.organization_id
+                LEFT JOIN guests g ON g.id = rg.guest_id AND g.organization_id = r.organization_id AND g.deleted_at IS NULL
+                WHERE r.organization_id = :organizationId
+                  AND r.deleted_at IS NULL
+                  AND r.status = 'ACTIVE'
+                  AND """ + dateFilter + """
+                  AND (:search IS NULL OR r.status = CAST(:search AS TEXT) OR NOT EXISTS (
+                      SELECT 1 FROM regexp_split_to_table(CAST(:search AS TEXT), '\\s+') token(value)
+                      WHERE translate(LOWER(CONCAT_WS(' ', p.name, pl.name, r.reservation_code, r.observations, r.status, g.full_name)), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
+                  ))
+                GROUP BY r.id, p.name, pl.name, r.reservation_code, r.check_in, r.check_out, r.reservation_value, r.status
+                ORDER BY r.check_in ASC
+                LIMIT :limit
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("fromDate", from == null ? null : Date.valueOf(from));
+                    q.setParameter("toDate", to == null ? null : Date.valueOf(to));
+                    q.setParameter("search", nullableSearch(search));
+                    q.setParameter("limit", limit);
+                }, reservationColumns());
+        return reservationRowsAnswer(rows, toolName, label, intro, "No encontré reservaciones que coincidan con tu pregunta.");
+    }
+
+    private AiToolAnswer reservationList(String toolName, String label, String intro, LocalDate from, LocalDate to, String search, int limit) {
+        return reservationList(toolName, label, intro, from, to, search, limit, false);
+    }
+
+    private String reservationBaseSql(String whereClause, String orderBy, int limit) {
+        return """
+                SELECT r.id,
+                       p.name AS property_name,
+                       COALESCE(pl.name, '') AS platform_name,
+                       r.reservation_code,
+                       r.check_in,
+                       r.check_out,
+                       r.reservation_value,
+                       r.status,
+                       COALESCE(STRING_AGG(g.full_name, ', ' ORDER BY rg.is_primary DESC, g.full_name), '') AS guests,
+                       COALESCE(COUNT(g.id), 0) AS guest_count
+                FROM reservations r
+                JOIN properties p ON p.id = r.property_id
+                LEFT JOIN platforms pl ON pl.id = r.platform_id
+                LEFT JOIN reservation_guests rg ON rg.reservation_id = r.id AND rg.organization_id = r.organization_id
+                LEFT JOIN guests g ON g.id = rg.guest_id AND g.organization_id = r.organization_id AND g.deleted_at IS NULL
+                WHERE r.organization_id = :organizationId
+                  AND r.deleted_at IS NULL
+                  AND r.status = 'ACTIVE'
+                  AND """ + whereClause + """
+                GROUP BY r.id, p.name, pl.name, r.reservation_code, r.check_in, r.check_out, r.reservation_value, r.status
+                ORDER BY """ + orderBy + """
+                LIMIT :limit
+                """;
+    }
+
+    private String[] reservationColumns() {
+        return new String[]{"id", "propertyName", "platformName", "reservationCode", "checkIn", "checkOut", "reservationValue", "status", "guests", "guestCount"};
+    }
+
+    private AiToolAnswer reservationRowsAnswer(List<Map<String, Object>> rows, String toolName, String label, String intro, String emptyMessage) {
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(emptyMessage, toolName, label, "No reservation rows found.", List.of());
+        }
+        StringBuilder answer = new StringBuilder(intro);
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("propertyName"))))
+                    .append(" | ").append(blankToDash(value(row.get("checkIn"))))
+                    .append(" a ").append(blankToDash(value(row.get("checkOut"))))
+                    .append(" | estado: ").append(blankToDash(value(row.get("status"))))
+                    .append(" | valor: ").append(formatMoney(row.get("reservationValue")));
+            String platform = value(row.get("platformName"));
+            if (!platform.isBlank()) {
+                answer.append(" | plataforma: ").append(platform);
+            }
+            String guests = value(row.get("guests"));
+            if (!guests.isBlank()) {
+                answer.append(" | huéspedes: ").append(guests);
+            }
+        }
+        return AiToolAnswer.of(answer.toString(), toolName, label, "%d reservation rows found.".formatted(rows.size()), rows);
+    }
+
+    public AiToolAnswer guestSearch(String userQuestion) {
+        String search = extractSearchText(userQuestion, "huesped", "huespedes", "cliente", "clientes", "buscar", "busca", "lista", "listar");
+        return guestList("guest.search", "Guest search", "Estos son los huéspedes que encontré:", search, false, false);
+    }
+
+    public AiToolAnswer guestsByReservation(String userQuestion) {
+        String search = extractSearchText(userQuestion, "huesped", "huespedes", "reservacion", "reservaciones", "reserva", "reservas");
+        return guestReservationList("guest.byReservation", "Guests by reservation", "Estos son los huéspedes asociados a reservaciones:", search, false);
+    }
+
+    public AiToolAnswer recentGuests() {
+        return guestReservationList("guest.recent", "Recent guests", "Estos son los huéspedes recientes:", null, false);
+    }
+
+    public AiToolAnswer returningGuests() {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        List<Map<String, Object>> rows = query("""
+                SELECT g.id,
+                       g.full_name,
+                       COUNT(DISTINCT rg.reservation_id) AS reservation_count,
+                       MAX(r.check_in) AS last_check_in
+                FROM guests g
+                JOIN reservation_guests rg ON rg.guest_id = g.id AND rg.organization_id = g.organization_id
+                JOIN reservations r ON r.id = rg.reservation_id AND r.organization_id = g.organization_id
+                WHERE g.organization_id = :organizationId
+                  AND g.deleted_at IS NULL
+                  AND r.deleted_at IS NULL
+                GROUP BY g.id, g.full_name
+                HAVING COUNT(DISTINCT rg.reservation_id) > 1
+                ORDER BY reservation_count DESC, last_check_in DESC
+                LIMIT :limit
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("limit", DEFAULT_LIMIT);
+                }, "id", "fullName", "reservationCount", "lastCheckIn");
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of("No encontré huéspedes recurrentes todavía.", "guest.returningGuests", "Returning guests", "No returning guests found.", List.of());
+        }
+        StringBuilder answer = new StringBuilder("Estos huéspedes aparecen en más de una reservación:");
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("fullName"))))
+                    .append(" | reservaciones: ").append(blankToDash(value(row.get("reservationCount"))))
+                    .append(" | última llegada: ").append(blankToDash(value(row.get("lastCheckIn"))));
+        }
+        return AiToolAnswer.of(answer.toString(), "guest.returningGuests", "Returning guests", "%d returning guests found.".formatted(rows.size()), rows);
+    }
+
+    public AiToolAnswer upcomingGuests() {
+        return guestReservationList("guest.upcomingGuests", "Upcoming guests", "Estos huéspedes tienen llegada próxima:", null, true);
+    }
+
+    public AiToolAnswer guestCountByDateRange(String userQuestion) {
+        LocalDate[] range = resolveDateRange(userQuestion);
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        List<Map<String, Object>> rows = query("""
+                SELECT COUNT(DISTINCT g.id) AS unique_guests,
+                       COUNT(rg.id) AS guest_links
+                FROM reservation_guests rg
+                JOIN guests g ON g.id = rg.guest_id
+                JOIN reservations r ON r.id = rg.reservation_id
+                WHERE rg.organization_id = :organizationId
+                  AND g.organization_id = :organizationId
+                  AND r.organization_id = :organizationId
+                  AND g.deleted_at IS NULL
+                  AND r.deleted_at IS NULL
+                  AND (:fromDate IS NULL OR r.check_in >= CAST(:fromDate AS DATE))
+                  AND (:toDate IS NULL OR r.check_in <= CAST(:toDate AS DATE))
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("fromDate", range[0] == null ? null : Date.valueOf(range[0]));
+                    q.setParameter("toDate", range[1] == null ? null : Date.valueOf(range[1]));
+                }, "uniqueGuests", "guestLinks");
+        Map<String, Object> row = rows.isEmpty() ? Map.of() : rows.get(0);
+        String answer = "Conteo de huéspedes:"
+                + System.lineSeparator() + "- Huéspedes únicos: " + blankToDash(value(row.get("uniqueGuests")))
+                + System.lineSeparator() + "- Asignaciones a reservaciones: " + blankToDash(value(row.get("guestLinks")));
+        return AiToolAnswer.of(answer, "guest.countByDateRange", "Guest count by date range", "Guest count by date range was calculated.", rows);
+    }
+
+    private AiToolAnswer guestList(String toolName, String label, String intro, String search, boolean upcomingOnly, boolean recentOnly) {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        List<Map<String, Object>> rows = query("""
+                SELECT g.id,
+                       g.full_name,
+                       g.status,
+                       COUNT(DISTINCT rg.reservation_id) AS reservation_count,
+                       MAX(r.check_in) AS last_check_in
+                FROM guests g
+                LEFT JOIN reservation_guests rg ON rg.guest_id = g.id AND rg.organization_id = g.organization_id
+                LEFT JOIN reservations r ON r.id = rg.reservation_id AND r.organization_id = g.organization_id AND r.deleted_at IS NULL
+                WHERE g.organization_id = :organizationId
+                  AND g.deleted_at IS NULL
+                  AND (:search IS NULL OR NOT EXISTS (
+                      SELECT 1 FROM regexp_split_to_table(CAST(:search AS TEXT), '\\s+') token(value)
+                      WHERE translate(LOWER(CONCAT_WS(' ', g.full_name, g.notes, g.status)), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
+                  ))
+                  AND (:upcomingOnly = FALSE OR r.check_in >= CURRENT_DATE)
+                GROUP BY g.id, g.full_name, g.status
+                ORDER BY MAX(r.check_in) DESC NULLS LAST, g.full_name ASC
+                LIMIT :limit
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("search", nullableSearch(search));
+                    q.setParameter("upcomingOnly", upcomingOnly);
+                    q.setParameter("limit", DEFAULT_LIMIT);
+                }, "id", "fullName", "status", "reservationCount", "lastCheckIn");
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of("No encontré huéspedes que coincidan con tu pregunta.", toolName, label, "No guests found.", List.of());
+        }
+        StringBuilder answer = new StringBuilder(intro);
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("fullName"))))
+                    .append(" | estado: ").append(blankToDash(value(row.get("status"))))
+                    .append(" | reservaciones: ").append(blankToDash(value(row.get("reservationCount"))))
+                    .append(" | última llegada: ").append(blankToDash(value(row.get("lastCheckIn"))));
+        }
+        return AiToolAnswer.of(answer.toString(), toolName, label, "%d guest rows found.".formatted(rows.size()), rows);
+    }
+
+    private AiToolAnswer guestReservationList(String toolName, String label, String intro, String search, boolean upcomingOnly) {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        List<Map<String, Object>> rows = query("""
+                SELECT g.id,
+                       g.full_name,
+                       p.name AS property_name,
+                       r.reservation_code,
+                       r.check_in,
+                       r.check_out,
+                       rg.is_primary
+                FROM reservation_guests rg
+                JOIN guests g ON g.id = rg.guest_id
+                JOIN reservations r ON r.id = rg.reservation_id
+                JOIN properties p ON p.id = r.property_id
+                WHERE rg.organization_id = :organizationId
+                  AND g.organization_id = :organizationId
+                  AND r.organization_id = :organizationId
+                  AND g.deleted_at IS NULL
+                  AND r.deleted_at IS NULL
+                  AND (:upcomingOnly = FALSE OR r.check_in >= CURRENT_DATE)
+                  AND (:search IS NULL OR NOT EXISTS (
+                      SELECT 1 FROM regexp_split_to_table(CAST(:search AS TEXT), '\\s+') token(value)
+                      WHERE translate(LOWER(CONCAT_WS(' ', g.full_name, p.name, r.reservation_code)), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
+                  ))
+                ORDER BY r.check_in DESC, rg.is_primary DESC, g.full_name ASC
+                LIMIT :limit
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("upcomingOnly", upcomingOnly);
+                    q.setParameter("search", nullableSearch(search));
+                    q.setParameter("limit", DEFAULT_LIMIT);
+                }, "id", "fullName", "propertyName", "reservationCode", "checkIn", "checkOut", "isPrimary");
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of("No encontré huéspedes asociados a reservaciones que coincidan con tu pregunta.", toolName, label, "No reservation guest rows found.", List.of());
+        }
+        StringBuilder answer = new StringBuilder(intro);
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("fullName"))))
+                    .append(" | ").append(blankToDash(value(row.get("propertyName"))))
+                    .append(" | ").append(blankToDash(value(row.get("checkIn"))))
+                    .append(" a ").append(blankToDash(value(row.get("checkOut"))));
+            String code = value(row.get("reservationCode"));
+            if (!code.isBlank()) {
+                answer.append(" | código: ").append(code);
+            }
+        }
+        return AiToolAnswer.of(answer.toString(), toolName, label, "%d reservation guest rows found.".formatted(rows.size()), rows);
+    }
+
+    private String resolveScheduledMaintenanceStatus(String userQuestion) {
+        String normalized = normalize(userQuestion);
+        if (containsAny(normalized, "pausado", "pausados", "pausada", "pausadas", "paused")) {
+            return "PAUSED";
+        }
+        if (containsAny(normalized, "completado", "completados", "completada", "completadas", "completed")) {
+            return "COMPLETED";
+        }
+        if (containsAny(normalized, "cancelado", "cancelados", "cancelada", "canceladas", "cancelled", "canceled")) {
+            return "CANCELLED";
+        }
+        return "ACTIVE";
+    }
+
+    private String resolveReservationStatus(String userQuestion) {
+        String normalized = normalize(userQuestion);
+        if (containsAny(normalized, "cancelado", "cancelados", "cancelada", "canceladas", "cancelled", "canceled")) {
+            return "CANCELLED";
+        }
+        if (containsAny(normalized, "eliminado", "eliminados", "deleted")) {
+            return "DELETED";
+        }
+        return "ACTIVE";
+    }
+
+    private LocalDate[] resolveDateRange(String userQuestion) {
+        String normalized = normalize(userQuestion);
+        LocalDate today = LocalDate.now();
+        if (containsAny(normalized, "hoy")) {
+            return new LocalDate[]{today, today};
+        }
+        if (containsAny(normalized, "semana")) {
+            return new LocalDate[]{today, today.plusDays(7)};
+        }
+        if (containsAny(normalized, "mes")) {
+            LocalDate start = today.withDayOfMonth(1);
+            return new LocalDate[]{start, start.plusMonths(1).minusDays(1)};
+        }
+        return new LocalDate[]{null, null};
+    }
+
+    private String firstNonBlank(String first, String second) {
+        return first == null || first.isBlank() ? blankToDash(second) : first;
+    }
+
     public AiToolAnswer lastPerformedMaintenance(String userQuestion) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         String search = nullableSearch(extractSearchText(
