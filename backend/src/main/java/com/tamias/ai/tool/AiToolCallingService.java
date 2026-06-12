@@ -1139,8 +1139,10 @@ public class AiToolCallingService {
 
     private boolean isPurchaseAnalyticsQuestion(String value) {
         return containsAny(value,
-                "compra", "compras", "compre", "comprado", "comprados", "producto", "productos", "proveedor", "proveedores", "precio", "precios", "costo", "costos", "gasto", "gastos", "gaste", "gastado", "supplies", "supply", "suministro", "suministros", "papel higienico"
-        ) || (containsAny(value, "item", "items") && containsAny(value, "compro", "compras", "compre", "comprado", "precio", "costo", "gasto"));
+                "compra", "compras", "compre", "comprado", "comprados", "producto", "productos", "proveedor", "proveedores", "precio", "precios", "costo", "costos", "cuesta", "normalmente", "gasto", "gastos", "gaste", "gastado", "supplies", "supply", "suministro", "suministros", "papel higienico"
+        )
+                || containsAny(value, "cuanto cuesta", "cuánto cuesta", "cuesta normalmente", "costo promedio", "precio promedio")
+                || (containsAny(value, "item", "items") && containsAny(value, "compro", "compras", "compre", "comprado", "precio", "costo", "gasto"));
     }
 
     private boolean isPurchaseListPendingQuestion(String value) {
@@ -1206,8 +1208,7 @@ public class AiToolCallingService {
     }
 
     private boolean isPurchaseItemAverageUnitCostQuestion(String value) {
-        return isPurchaseAnalyticsQuestion(value)
-                && containsAny(value, "cuanto cuesta", "cuánto cuesta", "cuesta normalmente", "normalmente", "promedio", "costo promedio", "precio promedio", "unitario");
+        return containsAny(value, "cuanto cuesta", "cuánto cuesta", "cuesta normalmente", "normalmente", "promedio", "costo promedio", "precio promedio", "unitario");
     }
 
     private boolean isPurchaseItemQuantitySummaryQuestion(String value) {
