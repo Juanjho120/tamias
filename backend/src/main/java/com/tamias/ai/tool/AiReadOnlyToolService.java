@@ -1,5 +1,6 @@
 package com.tamias.ai.tool;
 
+import com.tamias.ai.dto.AiToolEvidenceResponse;
 import com.tamias.security.service.CurrentUserService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
@@ -213,7 +214,7 @@ public class AiReadOnlyToolService {
                 "resumen", "resume", "dame", "propiedad", "propiedades", "alojamiento", "alojamientos"
         ));
 
-        List<Map<String, Object>> rows = query("""
+        List<Map<String, Object>> candidates = query("""
                 SELECT p.id,
                        p.name,
                        p.status,
@@ -236,23 +237,17 @@ public class AiReadOnlyToolService {
                                        AND tl.organization_id = p.organization_id
                 WHERE p.organization_id = :organizationId
                   AND p.deleted_at IS NULL
-                  AND (
-                       CAST(:search AS TEXT) IS NULL
-                       OR LOWER(p.name) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
-                       OR LOWER(COALESCE(p.address, '')) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
-                       OR LOWER(COALESCE(p.description, '')) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
-                  )
                 GROUP BY p.id, p.name, p.status, p.address, p.description
-                ORDER BY CASE WHEN CAST(:search AS TEXT) IS NOT NULL AND LOWER(p.name) = LOWER(CAST(:search AS TEXT)) THEN 0 ELSE 1 END,
-                         p.name ASC
-                LIMIT 1
+                ORDER BY p.name ASC
+                LIMIT :limit
                 """, q -> {
                     q.setParameter("organizationId", organizationId);
-                    q.setParameter("search", search);
+                    q.setParameter("limit", 50);
                 }, "id", "name", "status", "address", "description", "imageCount", "activeReservationCount",
                 "completedMaintenanceCount", "openTaskListCount");
 
-        if (rows.isEmpty()) {
+        Map<String, Object> row = bestPropertyMatch(candidates, search);
+        if (row == null) {
             return AiToolAnswer.of(
                     search == null
                             ? "No encontré propiedades para resumir."
@@ -264,7 +259,7 @@ public class AiReadOnlyToolService {
             );
         }
 
-        Map<String, Object> row = rows.get(0);
+        List<Map<String, Object>> rows = List.of(row);
         String answer = """
                 Este es el resumen de %s:
                 - Estado: %s
@@ -432,6 +427,41 @@ public class AiReadOnlyToolService {
 
     public AiToolAnswer maintenanceTypes() {
         return baseCatalog("maintenance_types", "catalog.maintenanceTypes", "Maintenance types", "tipos de mantenimiento");
+    }
+
+    public AiToolAnswer maintenanceCatalogOverview() {
+        AiToolAnswer categories = maintenanceCategories();
+        AiToolAnswer types = maintenanceTypes();
+        AiToolAnswer itemTypes = inventoryItemTypes();
+
+        String answer = """
+                Para mantenimiento puedes apoyarte principalmente en estos catálogos:
+
+                1. Categorías de mantenimiento: agrupan el área general del trabajo, por ejemplo agua, bombas, cisterna o filtros.
+                %s
+
+                2. Tipos de mantenimiento: describen la acción concreta, por ejemplo limpieza, revisión, reparación o cambio.
+                %s
+
+                3. Tipos de items de inventario: te ayudan a clasificar supplies/repuestos que luego pueden usarse en mantenimientos.
+                %s
+                """.formatted(
+                indentCatalogAnswer(categories.answer()),
+                indentCatalogAnswer(types.answer()),
+                indentCatalogAnswer(itemTypes.answer())
+        ).trim();
+
+        List<AiToolEvidenceResponse> evidence = new ArrayList<>();
+        evidence.addAll(categories.evidence());
+        evidence.addAll(types.evidence());
+        evidence.addAll(itemTypes.evidence());
+        evidence.add(new AiToolEvidenceResponse(
+                "catalog.maintenanceOverview",
+                "Maintenance catalog overview",
+                "Maintenance categories, maintenance types and inventory item types were consulted together.",
+                List.of()
+        ));
+        return new AiToolAnswer(answer, true, evidence);
     }
 
     public AiToolAnswer reservationPlatforms() {
@@ -1143,26 +1173,29 @@ public class AiReadOnlyToolService {
     }
 
     private List<Map<String, Object>> propertySearchRows(UUID organizationId, String search, String status, int limit) {
-        return query("""
+        List<Map<String, Object>> candidates = query("""
                 SELECT p.id, p.name, p.status, p.address, p.description
                 FROM properties p
                 WHERE p.organization_id = :organizationId
                   AND p.deleted_at IS NULL
                   AND (CAST(:status AS TEXT) IS NULL OR p.status = CAST(:status AS TEXT))
-                  AND (
-                       CAST(:search AS TEXT) IS NULL
-                       OR LOWER(p.name) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
-                       OR LOWER(COALESCE(p.address, '')) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
-                       OR LOWER(COALESCE(p.description, '')) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
-                  )
                 ORDER BY p.name ASC
                 LIMIT :limit
                 """, q -> {
                     q.setParameter("organizationId", organizationId);
-                    q.setParameter("search", search);
                     q.setParameter("status", status);
-                    q.setParameter("limit", limit);
+                    q.setParameter("limit", Math.max(limit, 50));
                 }, "id", "name", "status", "address", "description");
+
+        if (search == null || search.isBlank()) {
+            return candidates.stream().limit(limit).toList();
+        }
+
+        return candidates.stream()
+                .filter(row -> propertyMatchScore(row, search) > 0)
+                .sorted((left, right) -> Integer.compare(propertyMatchScore(right, search), propertyMatchScore(left, search)))
+                .limit(limit)
+                .toList();
     }
 
     private void appendPropertyList(StringBuilder answer, List<Map<String, Object>> rows) {
@@ -1220,6 +1253,112 @@ public class AiReadOnlyToolService {
                 "%d catalog rows found.".formatted(rows.size()),
                 rows
         );
+    }
+
+    private Map<String, Object> bestPropertyMatch(List<Map<String, Object>> candidates, String search) {
+        if (candidates.isEmpty()) {
+            return null;
+        }
+        if (search == null || search.isBlank()) {
+            return candidates.get(0);
+        }
+
+        Map<String, Object> best = null;
+        int bestScore = 0;
+        for (Map<String, Object> row : candidates) {
+            int score = propertyMatchScore(row, search);
+            if (score > bestScore) {
+                bestScore = score;
+                best = row;
+            }
+        }
+        return bestScore > 0 ? best : null;
+    }
+
+    private int propertyMatchScore(Map<String, Object> row, String search) {
+        String propertyName = value(row.get("name"));
+        String haystack = normalize(String.join(" ",
+                propertyName,
+                value(row.get("address")),
+                value(row.get("description"))
+        ));
+        String normalizedSearch = normalize(search);
+        if (haystack.isBlank() || normalizedSearch.isBlank()) {
+            return 0;
+        }
+        if (haystack.contains(normalizedSearch)) {
+            return 100 + normalizedSearch.length();
+        }
+
+        List<String> searchTokens = searchTokens(normalizedSearch);
+        List<String> haystackTokens = searchTokens(haystack);
+        if (searchTokens.isEmpty() || haystackTokens.isEmpty()) {
+            return 0;
+        }
+
+        int score = 0;
+        for (String searchToken : searchTokens) {
+            if (haystackTokens.stream().anyMatch(haystackToken -> tokenMatches(searchToken, haystackToken))) {
+                score++;
+            }
+        }
+
+        int requiredMatches = searchTokens.size() <= 2 ? searchTokens.size() : Math.max(2, searchTokens.size() - 1);
+        return score >= requiredMatches ? score : 0;
+    }
+
+    private List<String> searchTokens(String value) {
+        return Arrays.stream(normalize(value).split("\\s+"))
+                .map(String::trim)
+                .filter(token -> !token.isBlank())
+                .filter(token -> !SEARCH_STOP_WORDS.contains(token))
+                .toList();
+    }
+
+    private boolean tokenMatches(String needle, String candidate) {
+        if (candidate.equals(needle) || candidate.contains(needle) || needle.contains(candidate)) {
+            return true;
+        }
+        return needle.length() >= 5 && candidate.length() >= 5 && levenshteinDistanceAtMostOne(needle, candidate);
+    }
+
+    private boolean levenshteinDistanceAtMostOne(String left, String right) {
+        if (Math.abs(left.length() - right.length()) > 1) {
+            return false;
+        }
+        int i = 0;
+        int j = 0;
+        int edits = 0;
+        while (i < left.length() && j < right.length()) {
+            if (left.charAt(i) == right.charAt(j)) {
+                i++;
+                j++;
+                continue;
+            }
+            edits++;
+            if (edits > 1) {
+                return false;
+            }
+            if (left.length() > right.length()) {
+                i++;
+            } else if (right.length() > left.length()) {
+                j++;
+            } else {
+                i++;
+                j++;
+            }
+        }
+        return edits + (left.length() - i) + (right.length() - j) <= 1;
+    }
+
+    private String indentCatalogAnswer(String answer) {
+        if (answer == null || answer.isBlank()) {
+            return "- Sin datos configurados.";
+        }
+        return Arrays.stream(answer.split("\\R"))
+                .filter(line -> line.trim().startsWith("-"))
+                .map(line -> "   " + line.trim())
+                .collect(Collectors.joining(System.lineSeparator()));
     }
 
     private Object scalar(String sql, QueryConfigurer configurer) {

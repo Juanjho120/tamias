@@ -164,6 +164,9 @@ public class AiToolCallingService {
         if (!isCatalogQuestion(normalized)) {
             return Optional.empty();
         }
+        if (isMaintenanceCatalogOverviewQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.maintenanceCatalogOverview());
+        }
         if (isMaintenanceCategoryQuestion(normalized)) {
             return Optional.of(readOnlyToolService.maintenanceCategories());
         }
@@ -229,6 +232,7 @@ public class AiToolCallingService {
             case "catalog.taskCategories" -> "Plantillas/categorías de tareas";
             case "catalog.purchaseCategories" -> "Categorías de compras";
             case "catalog.inventoryItemTypes" -> "Tipos de items de inventario";
+            case "catalog.maintenanceOverview" -> "Catálogos para mantenimiento";
             case "catalog.search" -> "Catálogos";
             case "maintenance.lastPerformed" -> "Último mantenimiento";
             case "purchaseItem.lastPurchased" -> "Última compra";
@@ -306,9 +310,16 @@ public class AiToolCallingService {
         );
     }
 
+    private boolean isMaintenanceCatalogOverviewQuestion(String value) {
+        return containsAny(value, "catalogos puedo usar", "catalogo puedo usar", "catalogos para mantenimiento", "catalogo para mantenimiento", "catalogos de mantenimiento", "catalogo de mantenimiento")
+                || (containsAny(value, "catalogo", "catalogos")
+                && containsAny(value, "usar", "puedo usar", "disponible", "disponibles")
+                && containsAny(value, "mantenimiento", "mantenimientos"));
+    }
+
     private boolean isMaintenanceCategoryQuestion(String value) {
         return containsAny(value, "categorias de mantenimiento", "categoria de mantenimiento", "maintenance categories", "maintenance category")
-                || (containsAny(value, "categoria", "categorias", "catalogo", "catalogos") && containsAny(value, "mantenimiento", "mantenimientos"));
+                || (containsAny(value, "categoria", "categorias") && containsAny(value, "mantenimiento", "mantenimientos"));
     }
 
     private boolean isMaintenanceTypeQuestion(String value) {
