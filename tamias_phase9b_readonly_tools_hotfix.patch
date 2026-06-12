@@ -1,0 +1,188 @@
+diff --git a/backend/src/main/java/com/tamias/ai/tool/AiToolCallingService.java b/backend/src/main/java/com/tamias/ai/tool/AiToolCallingService.java
+--- a/backend/src/main/java/com/tamias/ai/tool/AiToolCallingService.java
++++ b/backend/src/main/java/com/tamias/ai/tool/AiToolCallingService.java
+@@
+-        if (isCurrentUserProfileQuestion(normalized)) {
+-            return Optional.of(readOnlyToolService.currentUserProfile());
+-        }
++        if (isCurrentUserProfileQuestion(normalized)) {
++            return Optional.of(readOnlyToolService.currentUserProfile(question));
++        }
+diff --git a/backend/src/main/java/com/tamias/ai/tool/AiReadOnlyToolService.java b/backend/src/main/java/com/tamias/ai/tool/AiReadOnlyToolService.java
+--- a/backend/src/main/java/com/tamias/ai/tool/AiReadOnlyToolService.java
++++ b/backend/src/main/java/com/tamias/ai/tool/AiReadOnlyToolService.java
+@@
+-    public AiToolAnswer currentUserProfile() {
++    public AiToolAnswer currentUserProfile(String userQuestion) {
+@@
+-        String answer = """
+-            Tu perfil actual en TAMIAS es:
+-
+-            - Nombre: %s
+-            - Correo/usuario: %s
+-            - Rol: %s
+-            - Organización: %s
+-
+-            No voy a mostrar datos sensibles como contraseñas, tokens o información interna de seguridad.
+-            """.formatted(
+-            blankToDash(fullName),
+-            blankToDash(value(profile.get("email"))),
+-            blankToDash(value(profile.get("role"))),
+-            blankToDash(value(profile.get("organizationName")))
+-        ).trim();
++        String normalizedQuestion = normalizeQuestion(userQuestion);
++        String email = value(profile.get("email"));
++        String role = value(profile.get("role"));
++        String organizationName = value(profile.get("organizationName"));
++
++        String answer;
++        if (containsAnySimple(normalizedQuestion, "como me llamo", "cual es mi nombre", "mi nombre", "nombre")) {
++            answer = "Te llamas %s.".formatted(blankToDash(fullName));
++        } else if (containsAnySimple(normalizedQuestion, "cual es mi correo", "mi correo", "mi email", "correo", "email")) {
++            answer = "El correo actual que estás usando es %s.".formatted(blankToDash(email));
++        } else if (containsAnySimple(normalizedQuestion, "que usuario estoy usando", "usuario actual", "mi usuario", "usuario")) {
++            answer = "Estás usando el usuario %s.".formatted(blankToDash(email));
++        } else if (containsAnySimple(normalizedQuestion, "cual es mi rol", "mi rol", "rol")) {
++            answer = "Tu rol actual en TAMIAS es %s.".formatted(blankToDash(role));
++        } else if (containsAnySimple(normalizedQuestion, "mi telefono", "numero de telefono", "recuerdame mi telefono", "telefono")) {
++            answer = "No encontré un número de teléfono registrado en tu perfil de TAMIAS.";
++        } else {
++            answer = """
++                Tu perfil actual en TAMIAS es:
++
++                - Nombre: %s
++                - Correo/usuario: %s
++                - Rol: %s
++                - Organización: %s
++
++                No voy a mostrar datos sensibles como contraseñas, tokens o información interna de seguridad.
++                """.formatted(
++                blankToDash(fullName),
++                blankToDash(email),
++                blankToDash(role),
++                blankToDash(organizationName)
++            ).trim();
++        }
+@@
+-        summary.put("overdueScheduledMaintenance", scalar("""
++        summary.put("overdueScheduledMaintenance", scalar("""
+             SELECT COUNT(*)
+             FROM scheduled_maintenance
+             WHERE organization_id = :organizationId
+               AND deleted_at IS NULL
+               AND status = 'ACTIVE'
+               AND next_due_date < :today
+-            """, organizationId, today, nextSevenDays));
++            """, organizationId, today));
+@@
+     private Object scalar(String sql, UUID organizationId) {
+         Query query = entityManager.createNativeQuery(sql);
+         query.setParameter("organizationId", organizationId);
+         return normalizeValue(query.getSingleResult());
+     }
++
++    private Object scalar(String sql, UUID organizationId, LocalDate today) {
++        Query query = entityManager.createNativeQuery(sql);
++        query.setParameter("organizationId", organizationId);
++        query.setParameter("today", Date.valueOf(today));
++        return normalizeValue(query.getSingleResult());
++    }
+ 
+     private Object scalar(String sql, UUID organizationId, LocalDate today, LocalDate until) {
+         Query query = entityManager.createNativeQuery(sql);
+         query.setParameter("organizationId", organizationId);
+         query.setParameter("today", Date.valueOf(today));
+@@
+-        String cleaned = userQuestion
++        String cleaned = userQuestion
++            .toLowerCase()
+             .replace("¿", " ")
+             .replace("?", " ")
+             .replace(",", " ")
+             .replace(".", " ")
++            .replace("qué", " ")
++            .replace("que", " ")
++            .replace("cuál", " ")
++            .replace("cual", " ")
++            .replace("cuáles", " ")
++            .replace("cuales", " ")
++            .replace("dame", " ")
++            .replace("muestra", " ")
++            .replace("muéstrame", " ")
++            .replace("muestrame", " ")
++            .replace("lista", " ")
++            .replace("listar", " ")
++            .replace("tengo", " ")
++            .replace("tienes", " ")
++            .replace("hay", " ")
++            .replace("mi", " ")
++            .replace("mis", " ")
++            .replace("el", " ")
++            .replace("la", " ")
++            .replace("los", " ")
++            .replace("las", " ")
++            .replace("de", " ")
++            .replace("del", " ")
++            .replace("en", " ")
++            .replace("registrada", " ")
++            .replace("registradas", " ")
++            .replace("registrado", " ")
++            .replace("registrados", " ")
++            .replace("activa", " ")
++            .replace("activas", " ")
++            .replace("activo", " ")
++            .replace("activos", " ")
++            .replace("cargado", " ")
++            .replace("cargados", " ")
++            .replace("subido", " ")
++            .replace("subidos", " ")
++            .replace("realizado", " ")
++            .replace("realizada", " ")
++            .replace("fue", " ")
++            .replace("fueron", " ")
+             .replace("último", " ")
+             .replace("ultimo", " ")
+             .replace("última", " ")
+@@
+-        String cleaned = userQuestion
++        String cleaned = userQuestion
++            .toLowerCase()
+             .replace("¿", " ")
+             .replace("?", " ")
+@@
+     private String joinName(Object firstName, Object lastName) {
+         return (value(firstName) + " " + value(lastName)).trim();
+     }
++
++    private boolean containsAnySimple(String value, String... candidates) {
++        for (String candidate : candidates) {
++            if (value.contains(normalizeQuestion(candidate))) {
++                return true;
++            }
++        }
++        return false;
++    }
++
++    private String normalizeQuestion(String value) {
++        if (value == null) {
++            return "";
++        }
++        return value
++            .toLowerCase()
++            .replace("á", "a")
++            .replace("é", "e")
++            .replace("í", "i")
++            .replace("ó", "o")
++            .replace("ú", "u")
++            .replace("ü", "u")
++            .replace("ñ", "n")
++            .replace("¿", " ")
++            .replace("?", " ")
++            .replaceAll("\\s+", " ")
++            .trim();
++    }
+ 
+     @FunctionalInterface
+     private interface QueryConfigurer {
+         void configure(Query query);
+     }
