@@ -4895,9 +4895,7 @@ public class AiReadOnlyToolService {
     }
 
     private List<String> searchTokens(String value) {
-        return Arrays.stream(normalize(value).split("\\s+"))
-                .map(String::trim)
-                .filter(token -> !token.isBlank())
+        return splitWords(normalize(value)).stream()
                 .filter(token -> !SEARCH_STOP_WORDS.contains(token))
                 .toList();
     }
@@ -4942,7 +4940,7 @@ public class AiReadOnlyToolService {
         if (answer == null || answer.isBlank()) {
             return "- Sin datos configurados.";
         }
-        return Arrays.stream(answer.split("\\R"))
+        return splitLines(answer).stream()
                 .filter(line -> line.trim().startsWith("-"))
                 .map(line -> "   " + line.trim())
                 .collect(Collectors.joining(System.lineSeparator()));
@@ -6314,18 +6312,15 @@ public class AiReadOnlyToolService {
         Set<String> extra = Arrays.stream(extraStopWords)
                 .map(this::normalize)
                 .collect(Collectors.toSet());
-        String cleaned = normalize(userQuestion)
-                .replaceAll("[^a-z0-9\\s-]", " ");
-        return trimSearch(Arrays.stream(cleaned.split("\\s+"))
-                .map(String::trim)
-                .filter(word -> !word.isBlank())
+        String cleaned = keepSearchCharacters(normalize(userQuestion));
+        return trimSearch(splitWords(cleaned).stream()
                 .filter(word -> !SEARCH_STOP_WORDS.contains(word))
                 .filter(word -> !extra.contains(word))
                 .collect(Collectors.joining(" ")));
     }
 
     private String trimSearch(String value) {
-        String cleaned = value.replaceAll("\\s+", " ").trim();
+        String cleaned = collapseWhitespace(value);
         return cleaned.length() > 60 ? cleaned.substring(0, 60).trim() : cleaned;
     }
 
@@ -6346,16 +6341,120 @@ public class AiReadOnlyToolService {
         if (value == null) {
             return "";
         }
-        String normalized = Normalizer.normalize(value, Normalizer.Form.NFD)
-                .replaceAll("\\p{M}", "");
-        return normalized
+
+        String normalized = Normalizer.normalize(value, Normalizer.Form.NFD);
+        StringBuilder withoutAccents = new StringBuilder(normalized.length());
+        for (int i = 0; i < normalized.length(); i++) {
+            char current = normalized.charAt(i);
+            if (Character.getType(current) != Character.NON_SPACING_MARK) {
+                withoutAccents.append(current);
+            }
+        }
+
+        String lowered = withoutAccents.toString()
                 .toLowerCase(Locale.ROOT)
                 .replace("¿", " ")
                 .replace("?", " ")
                 .replace(",", " ")
-                .replace(".", " ")
-                .replaceAll("\\s+", " ")
-                .trim();
+                .replace(".", " ");
+        return collapseWhitespace(lowered);
+    }
+
+    private String keepSearchCharacters(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+
+        StringBuilder builder = new StringBuilder(value.length());
+        for (int i = 0; i < value.length(); i++) {
+            char current = value.charAt(i);
+            if ((current >= 'a' && current <= 'z') || (current >= '0' && current <= '9') || current == '-') {
+                builder.append(current);
+            } else if (Character.isWhitespace(current)) {
+                builder.append(' ');
+            } else {
+                builder.append(' ');
+            }
+        }
+        return collapseWhitespace(builder.toString());
+    }
+
+    private String collapseWhitespace(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+
+        StringBuilder builder = new StringBuilder(value.length());
+        boolean previousWasWhitespace = true;
+        for (int i = 0; i < value.length(); i++) {
+            char current = value.charAt(i);
+            if (Character.isWhitespace(current)) {
+                if (!previousWasWhitespace) {
+                    builder.append(' ');
+                    previousWasWhitespace = true;
+                }
+            } else {
+                builder.append(current);
+                previousWasWhitespace = false;
+            }
+        }
+
+        int length = builder.length();
+        if (length > 0 && builder.charAt(length - 1) == ' ') {
+            builder.deleteCharAt(length - 1);
+        }
+        return builder.toString();
+    }
+
+    private List<String> splitWords(String value) {
+        List<String> words = new ArrayList<>();
+        String normalizedValue = collapseWhitespace(value);
+        if (normalizedValue.isBlank()) {
+            return words;
+        }
+
+        StringBuilder currentWord = new StringBuilder();
+        for (int i = 0; i < normalizedValue.length(); i++) {
+            char current = normalizedValue.charAt(i);
+            if (Character.isWhitespace(current)) {
+                if (!currentWord.isEmpty()) {
+                    words.add(currentWord.toString());
+                    currentWord.setLength(0);
+                }
+            } else {
+                currentWord.append(current);
+            }
+        }
+
+        if (!currentWord.isEmpty()) {
+            words.add(currentWord.toString());
+        }
+        return words;
+    }
+
+    private List<String> splitLines(String value) {
+        List<String> lines = new ArrayList<>();
+        if (value == null || value.isBlank()) {
+            return lines;
+        }
+
+        StringBuilder currentLine = new StringBuilder();
+        for (int i = 0; i < value.length(); i++) {
+            char current = value.charAt(i);
+            if (current == '\n' || current == '\r') {
+                if (!currentLine.isEmpty()) {
+                    lines.add(currentLine.toString());
+                    currentLine.setLength(0);
+                }
+            } else {
+                currentLine.append(current);
+            }
+        }
+
+        if (!currentLine.isEmpty()) {
+            lines.add(currentLine.toString());
+        }
+        return lines;
     }
 
     private String value(Object value) {

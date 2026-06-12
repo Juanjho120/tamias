@@ -1792,17 +1792,51 @@ public class AiToolCallingService {
         if (value == null) {
             return "";
         }
-        String normalized = Normalizer.normalize(value, Normalizer.Form.NFD)
-                .replaceAll("\\p{M}", "");
-        return normalized
+
+        String normalized = Normalizer.normalize(value, Normalizer.Form.NFD);
+        StringBuilder withoutAccents = new StringBuilder(normalized.length());
+        for (int i = 0; i < normalized.length(); i++) {
+            char current = normalized.charAt(i);
+            if (Character.getType(current) != Character.NON_SPACING_MARK) {
+                withoutAccents.append(current);
+            }
+        }
+
+        String lowered = withoutAccents.toString()
                 .toLowerCase()
                 .replace("¿", " ")
                 .replace("?", " ")
                 .replace(",", " ")
                 .replace(".", " ")
                 .replace(":", " ")
-                .replace(";", " ")
-                .replaceAll("\\s+", " ")
-                .trim();
+                .replace(";", " ");
+        return collapseWhitespace(lowered);
+    }
+
+    private String collapseWhitespace(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+
+        StringBuilder builder = new StringBuilder(value.length());
+        boolean previousWasWhitespace = true;
+        for (int i = 0; i < value.length(); i++) {
+            char current = value.charAt(i);
+            if (Character.isWhitespace(current)) {
+                if (!previousWasWhitespace) {
+                    builder.append(' ');
+                    previousWasWhitespace = true;
+                }
+            } else {
+                builder.append(current);
+                previousWasWhitespace = false;
+            }
+        }
+
+        int length = builder.length();
+        if (length > 0 && builder.charAt(length - 1) == ' ') {
+            builder.deleteCharAt(length - 1);
+        }
+        return builder.toString();
     }
 }
