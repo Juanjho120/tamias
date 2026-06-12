@@ -822,9 +822,9 @@ public class AiReadOnlyToolService {
     }
 
     public AiToolAnswer scheduledMaintenanceHistory(String userQuestion) {
-        String search = extractSearchText(userQuestion, "historial", "historia", "mantenimiento", "mantenimientos", "programado", "programados");
+        String search = nullableSearch(extractSearchText(userQuestion, "historial", "historia", "mantenimiento", "mantenimientos", "programado", "programados"));
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-        List<Map<String, Object>> rows = query("""
+        StringBuilder sql = new StringBuilder("""
                 SELECT mr.id,
                        p.name AS property_name,
                        mr.title,
@@ -840,15 +840,24 @@ public class AiReadOnlyToolService {
                 LEFT JOIN maintenance_types mt ON mt.id = mr.maintenance_type_id
                 WHERE mr.organization_id = :organizationId
                   AND mr.deleted_at IS NULL
-                  AND (:search IS NULL OR NOT EXISTS (
-                      SELECT 1 FROM regexp_split_to_table(CAST(:search AS TEXT), '\\s+') token(value)
-                      WHERE translate(LOWER(CONCAT_WS(' ', mr.title, mr.description, p.name, mc.name, mt.name)), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
-                  ))
+                """);
+        if (search != null) {
+            sql.append("""
+                      AND NOT EXISTS (
+                          SELECT 1 FROM regexp_split_to_table(CAST(:search AS TEXT), '\s+') token(value)
+                          WHERE translate(LOWER(CONCAT_WS(' ', mr.title, mr.description, p.name, mc.name, mt.name)), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
+                      )
+                    """);
+        }
+        sql.append("""
                 ORDER BY COALESCE(mr.performed_at, mr.scheduled_at, mr.created_at) DESC
                 LIMIT :limit
-                """, q -> {
+                """);
+        List<Map<String, Object>> rows = query(sql.toString(), q -> {
                     q.setParameter("organizationId", organizationId);
-                    q.setParameter("search", nullableSearch(search));
+                    if (search != null) {
+                        q.setParameter("search", search);
+                    }
                     q.setParameter("limit", DEFAULT_LIMIT);
                 }, "id", "propertyName", "title", "categoryName", "typeName", "performedAt", "scheduledAt", "cost", "status");
         if (rows.isEmpty()) {
@@ -1295,12 +1304,11 @@ public class AiReadOnlyToolService {
                 WHERE r.organization_id = :organizationId
                   AND r.deleted_at IS NULL
                   AND r.status = 'ACTIVE'
-                  AND """ + whereClause + """
-                
-                GROUP BY r.id, p.name, pl.name, r.reservation_code, r.check_in, r.check_out, r.reservation_value, r.status
-                ORDER BY """ + orderBy + """
-                LIMIT :limit
-                """;
+                """
+                + "  AND " + whereClause + System.lineSeparator()
+                + "GROUP BY r.id, p.name, pl.name, r.reservation_code, r.check_in, r.check_out, r.reservation_value, r.status" + System.lineSeparator()
+                + "ORDER BY " + orderBy + System.lineSeparator()
+                + "LIMIT :limit" + System.lineSeparator();
     }
 
     private void appendOptionalReservationDateFilters(StringBuilder sql, LocalDate[] range) {
@@ -1430,7 +1438,8 @@ public class AiReadOnlyToolService {
 
     private AiToolAnswer guestList(String toolName, String label, String intro, String search, boolean upcomingOnly, boolean recentOnly) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-        List<Map<String, Object>> rows = query("""
+        String normalizedSearch = nullableSearch(search);
+        StringBuilder sql = new StringBuilder("""
                 SELECT g.id,
                        g.full_name,
                        g.status,
@@ -1441,18 +1450,28 @@ public class AiReadOnlyToolService {
                 LEFT JOIN reservations r ON r.id = rg.reservation_id AND r.organization_id = g.organization_id AND r.deleted_at IS NULL
                 WHERE g.organization_id = :organizationId
                   AND g.deleted_at IS NULL
-                  AND (:search IS NULL OR NOT EXISTS (
-                      SELECT 1 FROM regexp_split_to_table(CAST(:search AS TEXT), '\\s+') token(value)
-                      WHERE translate(LOWER(CONCAT_WS(' ', g.full_name, g.notes, g.status)), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
-                  ))
-                  AND (:upcomingOnly = FALSE OR r.check_in >= CURRENT_DATE)
+                """);
+        if (normalizedSearch != null) {
+            sql.append("""
+                      AND NOT EXISTS (
+                          SELECT 1 FROM regexp_split_to_table(CAST(:search AS TEXT), '\s+') token(value)
+                          WHERE translate(LOWER(CONCAT_WS(' ', g.full_name, g.notes, g.status)), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
+                      )
+                    """);
+        }
+        if (upcomingOnly) {
+            sql.append("  AND r.check_in >= CURRENT_DATE\n");
+        }
+        sql.append("""
                 GROUP BY g.id, g.full_name, g.status
                 ORDER BY MAX(r.check_in) DESC NULLS LAST, g.full_name ASC
                 LIMIT :limit
-                """, q -> {
+                """);
+        List<Map<String, Object>> rows = query(sql.toString(), q -> {
                     q.setParameter("organizationId", organizationId);
-                    q.setParameter("search", nullableSearch(search));
-                    q.setParameter("upcomingOnly", upcomingOnly);
+                    if (normalizedSearch != null) {
+                        q.setParameter("search", normalizedSearch);
+                    }
                     q.setParameter("limit", DEFAULT_LIMIT);
                 }, "id", "fullName", "status", "reservationCount", "lastCheckIn");
         if (rows.isEmpty()) {
@@ -1471,7 +1490,8 @@ public class AiReadOnlyToolService {
 
     private AiToolAnswer guestReservationList(String toolName, String label, String intro, String search, boolean upcomingOnly) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-        List<Map<String, Object>> rows = query("""
+        String normalizedSearch = nullableSearch(search);
+        StringBuilder sql = new StringBuilder("""
                 SELECT g.id,
                        g.full_name,
                        p.name AS property_name,
@@ -1488,17 +1508,27 @@ public class AiReadOnlyToolService {
                   AND r.organization_id = :organizationId
                   AND g.deleted_at IS NULL
                   AND r.deleted_at IS NULL
-                  AND (:upcomingOnly = FALSE OR r.check_in >= CURRENT_DATE)
-                  AND (:search IS NULL OR NOT EXISTS (
-                      SELECT 1 FROM regexp_split_to_table(CAST(:search AS TEXT), '\\s+') token(value)
-                      WHERE translate(LOWER(CONCAT_WS(' ', g.full_name, p.name, r.reservation_code)), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
-                  ))
+                """);
+        if (upcomingOnly) {
+            sql.append("  AND r.check_in >= CURRENT_DATE\n");
+        }
+        if (normalizedSearch != null) {
+            sql.append("""
+                      AND NOT EXISTS (
+                          SELECT 1 FROM regexp_split_to_table(CAST(:search AS TEXT), '\s+') token(value)
+                          WHERE translate(LOWER(CONCAT_WS(' ', g.full_name, p.name, r.reservation_code)), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
+                      )
+                    """);
+        }
+        sql.append("""
                 ORDER BY r.check_in DESC, rg.is_primary DESC, g.full_name ASC
                 LIMIT :limit
-                """, q -> {
+                """);
+        List<Map<String, Object>> rows = query(sql.toString(), q -> {
                     q.setParameter("organizationId", organizationId);
-                    q.setParameter("upcomingOnly", upcomingOnly);
-                    q.setParameter("search", nullableSearch(search));
+                    if (normalizedSearch != null) {
+                        q.setParameter("search", normalizedSearch);
+                    }
                     q.setParameter("limit", DEFAULT_LIMIT);
                 }, "id", "fullName", "propertyName", "reservationCode", "checkIn", "checkOut", "isPrimary");
         if (rows.isEmpty()) {
