@@ -35,8 +35,8 @@ public class AiReadOnlyToolService {
             "este", "estos", "fue", "hay", "indexado", "indexados", "la", "las", "le",
             "lista", "listar", "lo", "los", "me", "mi", "mis", "muestra", "nombre", "o",
             "para", "por", "procesado", "procesados", "que", "quiero", "reciente", "registrada",
-            "registradas", "registrado", "registrados", "son", "subido", "subidos", "tengo",
-            "tienes", "tipo", "tu", "un", "una", "ver", "vez", "y"
+            "registradas", "registrado", "registrados", "se", "son", "subido", "subidos", "tengo",
+            "tienes", "tipo", "tu", "un", "una", "usado", "usados", "usaron", "usan", "usa", "uso", "ver", "vez", "y"
     );
 
     private final EntityManager entityManager;
@@ -1370,7 +1370,7 @@ public class AiReadOnlyToolService {
 
     public AiToolAnswer inventoryReservationUsage(String userQuestion) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-        String search = nullableSearch(extractSearchText(userQuestion, "donde", "usado", "usaron", "usa", "usan", "reservacion", "reservaciones", "reserva", "reservas", "supply", "supplies", "item", "items"));
+        String search = nullableSearch(extractSearchText(userQuestion, "donde", "se", "ha", "han", "usado", "usados", "usaron", "usa", "usan", "uso", "reservacion", "reservaciones", "reserva", "reservas", "supply", "supplies", "item", "items"));
         List<Map<String, Object>> rows = query("""
                 SELECT rs.item_name_snapshot,
                        COUNT(*) AS usage_count,
@@ -1435,7 +1435,7 @@ public class AiReadOnlyToolService {
 
     public AiToolAnswer inventoryPurchaseUsage(String userQuestion) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-        String search = nullableSearch(extractSearchText(userQuestion, "donde", "comprado", "compre", "compras", "compra", "historial", "item", "items", "producto", "productos"));
+        String search = nullableSearch(extractSearchText(userQuestion, "donde", "se", "ha", "han", "usado", "usados", "uso", "comprado", "compre", "compras", "compra", "historial", "item", "items", "producto", "productos"));
         List<Map<String, Object>> rows = query("""
                 SELECT pi.item_name_snapshot,
                        COUNT(*) AS purchase_count,
@@ -1501,7 +1501,7 @@ public class AiReadOnlyToolService {
 
     public AiToolAnswer inventoryMaintenanceUsage(String userQuestion) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-        String search = nullableSearch(extractSearchText(userQuestion, "donde", "usado", "usaron", "usa", "usan", "mantenimiento", "mantenimientos", "item", "items", "repuesto", "repuestos", "material", "materiales"));
+        String search = nullableSearch(extractSearchText(userQuestion, "donde", "se", "ha", "han", "usado", "usados", "usaron", "usa", "usan", "uso", "mantenimiento", "mantenimientos", "item", "items", "repuesto", "repuestos", "material", "materiales"));
         List<Map<String, Object>> rows = query("""
                 SELECT mri.item_name_snapshot,
                        COUNT(*) AS usage_count,
