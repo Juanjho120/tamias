@@ -677,3 +677,40 @@ a {
   width: 2.25rem;
   height: 2.25rem;
 }
+
+.ai-evidence-status-badge {
+  --bs-badge-font-weight: 600;
+}
+
+.ai-tool-evidence {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.ai-tool-evidence-card {
+  border: 1px solid var(--bs-info-border-subtle);
+  border-radius: 0.9rem;
+  background: var(--bs-info-bg-subtle);
+  padding: 0.85rem;
+}
+
+.ai-tool-evidence-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+  border: 1px solid rgba(var(--bs-info-rgb), 0.16);
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 0.65rem;
+}
+
+.ai-tool-evidence-field {
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: baseline;
+  font-size: 0.84rem;
+}
+
+.ai-tool-evidence-field strong {
+  font-weight: 600;
+}

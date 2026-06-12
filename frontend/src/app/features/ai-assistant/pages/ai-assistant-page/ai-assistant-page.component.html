@@ -15,12 +15,14 @@
     <div class="card page-card h-100">
       <div class="card-body">
         <label for="ai-property" class="form-label">{{ 'aiAssistant.properties.label' | translate }}</label>
+
         <select
           id="ai-property"
           class="form-select mb-3"
           [ngModel]="propertyId()"
           (ngModelChange)="propertyId.set($event); refreshByProperty()">
           <option value="">{{ 'aiAssistant.properties.all' | translate }}</option>
+
           @for (property of properties(); track property.id) {
             <option [value]="property.id">{{ property.name }}</option>
           }
@@ -28,6 +30,7 @@
 
         <div class="d-flex justify-content-between align-items-center mb-2">
           <h2 class="h6 mb-0">{{ 'aiAssistant.sessions.title' | translate }}</h2>
+
           @if (loadingSessions()) {
             <span class="spinner-border spinner-border-sm text-primary"></span>
           }
@@ -111,7 +114,6 @@
 
             <label class="small text-muted">{{ 'aiAssistant.settings.topK' | translate }}</label>
             <input type="number" class="form-control form-control-sm ai-number-input" min="1" max="20" [ngModel]="topK()" (ngModelChange)="topK.set(+$event)">
-
             <label class="small text-muted">{{ 'aiAssistant.settings.threshold' | translate }}</label>
             <input type="number" class="form-control form-control-sm ai-number-input" min="0" max="1" step="0.05" [ngModel]="similarityThreshold()" (ngModelChange)="similarityThreshold.set(+$event)">
           </div>
@@ -146,18 +148,66 @@
             @for (message of messages(); track trackByMessage($index, message)) {
               <div class="ai-message" [class.ai-message-user]="message.role === 'USER'" [class.ai-message-assistant]="message.role === 'ASSISTANT'">
                 <div class="ai-message-bubble">
-                  <div class="small text-muted mb-1">
-                    {{ 'aiAssistant.role.' + message.role | translate }} · {{ message.createdAt | date:'shortTime' }}
+                  <div class="small text-muted mb-1 d-flex flex-wrap align-items-center gap-1">
+                    <span>{{ 'aiAssistant.role.' + message.role | translate }} · {{ message.createdAt | date:'shortTime' }}</span>
+
+                    @if (hasSystemEvidence(message)) {
+                      <span class="badge rounded-pill text-bg-info ai-evidence-status-badge">
+                        <i class="bi bi-database-check me-1"></i>
+                        Datos del sistema
+                      </span>
+                    }
+
                     @if (message.grounded !== undefined) {
-                      ·
                       @if (message.grounded) {
-                        <span class="text-success">{{ 'aiAssistant.chat.grounded' | translate }}</span>
+                        <span class="badge rounded-pill text-bg-success">{{ 'aiAssistant.chat.grounded' | translate }}</span>
                       } @else {
-                        <span class="text-warning">{{ 'aiAssistant.chat.notGrounded' | translate }}</span>
+                        <span class="badge rounded-pill text-bg-warning">{{ 'aiAssistant.chat.notGrounded' | translate }}</span>
                       }
                     }
                   </div>
+
                   <div class="ai-message-content">{{ message.content }}</div>
+
+                  @if (messageToolEvidence(message).length > 0) {
+                    <div class="ai-tool-evidence mt-3">
+                      @for (evidence of messageToolEvidence(message); track trackByEvidence($index, evidence)) {
+                        <div class="ai-tool-evidence-card">
+                          <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                            <div>
+                              <div class="fw-semibold small">
+                                <i class="bi me-1" [ngClass]="evidenceIcon(evidence.toolName)"></i>
+                                {{ evidence.label || evidence.toolName }}
+                              </div>
+                              @if (evidence.summary) {
+                                <div class="small text-muted">{{ evidence.summary }}</div>
+                              }
+                            </div>
+                            <span class="badge rounded-pill text-bg-light border">{{ evidence.toolName }}</span>
+                          </div>
+
+                          @if (evidencePreviewItems(evidence).length > 0) {
+                            <div class="d-flex flex-column gap-2">
+                              @for (item of evidencePreviewItems(evidence); track trackByEvidenceItem($index)) {
+                                <div class="ai-tool-evidence-item">
+                                  @for (entry of evidenceItemEntries(item); track trackByEvidenceEntry($index, entry)) {
+                                    <span class="ai-tool-evidence-field">
+                                      <span class="text-muted">{{ entry.key | titlecase }}:</span>
+                                      <strong>{{ entry.value }}</strong>
+                                    </span>
+                                  }
+                                </div>
+                              }
+                            </div>
+                          }
+
+                          @if (evidenceExtraCount(evidence) > 0) {
+                            <div class="small text-muted mt-2">+{{ evidenceExtraCount(evidence) }} registros adicionales consultados</div>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
 
                   @if (messageSources(message).length > 0) {
                     <div class="mt-3">
@@ -196,18 +246,24 @@
             [ngModel]="question()"
             (ngModelChange)="question.set($event)"
             [disabled]="sending() || searching()"
-            (keydown.enter.ctrl)="send()">
+            (keydown)="handleQuestionKeydown($event)">
           </textarea>
+
           <button type="button" class="btn btn-primary" [disabled]="!question().trim() || sending() || searching()" (click)="send()">
             @if (sending() || searching()) {
               <span class="spinner-border spinner-border-sm me-1"></span>
             } @else {
               <i class="bi bi-send me-1"></i>
             }
+
             {{ mode() === 'chat' ? ('aiAssistant.input.send' | translate) : ('aiAssistant.input.search' | translate) }}
           </button>
         </div>
-        <div class="small text-muted mt-2">{{ 'aiAssistant.input.help' | translate }}</div>
+
+        <div class="small text-muted mt-2">
+          {{ 'aiAssistant.input.help' | translate }}
+          <span class="ms-2">También puedes usar <kbd>Ctrl</kbd> + <kbd>Enter</kbd>.</span>
+        </div>
       </div>
     </div>
   </div>

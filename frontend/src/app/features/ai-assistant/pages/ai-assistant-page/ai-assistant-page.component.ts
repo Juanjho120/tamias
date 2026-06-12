@@ -1,7 +1,8 @@
-import { DatePipe, NgClass } from '@angular/common';
+import { DatePipe, NgClass, TitleCasePipe } from '@angular/common';
 import { Component, ElementRef, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '@ngx-translate/core';
+
 import { LanguageService } from '../../../../core/i18n/language.service';
 import { ApiError } from '../../../../core/models/api-error.model';
 import { PageResponse } from '../../../../core/models/page-response.model';
@@ -13,8 +14,10 @@ import {
   AiChatSession,
   AiChatSessionSummary,
   AiLocalMessage,
+  AiChatResponse,
   AiSearchResponse,
-  AiSource
+  AiSource,
+  AiToolEvidence
 } from '../../models/ai-assistant.model';
 import { AiPropertyOption } from '../../models/ai-reference.model';
 import { AiAssistantService } from '../../services/ai-assistant.service';
@@ -29,6 +32,7 @@ type AssistantMode = 'chat' | 'search';
     DatePipe,
     FormsModule,
     NgClass,
+    TitleCasePipe,
     TranslatePipe,
     AiSourceListComponent,
     AiSessionTitleModalComponent
@@ -36,7 +40,7 @@ type AssistantMode = 'chat' | 'search';
   templateUrl: './ai-assistant-page.component.html'
 })
 export class AiAssistantPageComponent implements OnInit {
-  @ViewChild('messagesContainer') messagesContainer?: ElementRef<HTMLDivElement>;
+  @ViewChild('messagesContainer') messagesContainer?: ElementRef<HTMLElement>;
 
   private readonly aiAssistantService = inject(AiAssistantService);
   private readonly referenceDataService = inject(AiReferenceDataService);
@@ -102,7 +106,7 @@ export class AiAssistantPageComponent implements OnInit {
     this.loadingReferences.set(true);
 
     this.referenceDataService.loadProperties().subscribe({
-      next: (properties) => {
+      next: (properties: AiPropertyOption[]) => {
         this.properties.set(properties);
         this.loadingReferences.set(false);
       },
@@ -194,7 +198,7 @@ export class AiAssistantPageComponent implements OnInit {
   send(): void {
     const question = this.question().trim();
 
-    if (!question) {
+    if (!question || this.sending() || this.searching()) {
       return;
     }
 
@@ -204,6 +208,15 @@ export class AiAssistantPageComponent implements OnInit {
     }
 
     this.chat(question);
+  }
+
+  handleQuestionKeydown(event: KeyboardEvent): void {
+    if (event.key !== 'Enter' || (!event.ctrlKey && !event.metaKey)) {
+      return;
+    }
+
+    event.preventDefault();
+    this.send();
   }
 
   chat(question: string): void {
@@ -229,14 +242,15 @@ export class AiAssistantPageComponent implements OnInit {
       topK: this.topK(),
       similarityThreshold: this.similarityThreshold()
     }).subscribe({
-      next: (response) => {
+      next: (response: AiChatResponse) => {
         const assistantMessage: AiLocalMessage = {
           id: response.assistantMessageId,
           role: 'ASSISTANT',
           content: response.answer,
           createdAt: new Date().toISOString(),
           sources: response.sources ?? [],
-          grounded: response.grounded
+          grounded: response.grounded,
+          toolEvidence: response.toolEvidence ?? []
         };
 
         this.messages.update((messages) => [...messages, assistantMessage]);
@@ -270,7 +284,7 @@ export class AiAssistantPageComponent implements OnInit {
       topK: this.topK(),
       similarityThreshold: this.similarityThreshold()
     }).subscribe({
-      next: (response) => {
+      next: (response: AiSearchResponse) => {
         this.searchResult.set(response);
         this.searching.set(false);
       },
@@ -313,10 +327,7 @@ export class AiAssistantPageComponent implements OnInit {
         const activeSession = this.activeSession();
 
         if (activeSession?.id === session.id) {
-          this.activeSession.set({
-            ...activeSession,
-            title
-          });
+          this.activeSession.set({ ...activeSession, title });
         }
       },
       error: (error: unknown) => {
@@ -330,12 +341,87 @@ export class AiAssistantPageComponent implements OnInit {
     return message.sources ?? [];
   }
 
+  messageToolEvidence(message: AiLocalMessage): AiToolEvidence[] {
+    return message.toolEvidence ?? [];
+  }
+
+  hasSystemEvidence(message: AiLocalMessage): boolean {
+    return this.messageToolEvidence(message).length > 0;
+  }
+
+  evidenceItems(evidence: AiToolEvidence): Record<string, unknown>[] {
+    return evidence.items ?? [];
+  }
+
+  evidencePreviewItems(evidence: AiToolEvidence): Record<string, unknown>[] {
+    return this.evidenceItems(evidence).slice(0, 3);
+  }
+
+  evidenceExtraCount(evidence: AiToolEvidence): number {
+    return Math.max(this.evidenceItems(evidence).length - this.evidencePreviewItems(evidence).length, 0);
+  }
+
+  evidenceItemEntries(item: Record<string, unknown>): Array<{ key: string; value: string }> {
+    return Object.entries(item)
+      .filter(([_, value]) => value !== null && value !== undefined && `${value}`.trim() !== '')
+      .slice(0, 6)
+      .map(([key, value]) => ({ key: this.humanizeKey(key), value: this.formatEvidenceValue(value) }));
+  }
+
+  evidenceIcon(toolName: string): string {
+    if (toolName.includes('reservation')) {
+      return 'bi-calendar-check';
+    }
+
+    if (toolName.includes('maintenance')) {
+      return 'bi-tools';
+    }
+
+    if (toolName.includes('purchase')) {
+      return 'bi-bag-check';
+    }
+
+    if (toolName.includes('task')) {
+      return 'bi-check2-square';
+    }
+
+    if (toolName.includes('document') || toolName.includes('rag')) {
+      return 'bi-file-earmark-text';
+    }
+
+    if (toolName.includes('property')) {
+      return 'bi-house-door';
+    }
+
+    if (toolName.includes('user')) {
+      return 'bi-person-circle';
+    }
+
+    if (toolName.includes('organization')) {
+      return 'bi-building';
+    }
+
+    return 'bi-database-check';
+  }
+
   trackBySession(index: number, session: AiChatSessionSummary): string {
     return session.id;
   }
 
   trackByMessage(index: number, message: AiLocalMessage): string {
     return message.id;
+  }
+
+  trackByEvidence(index: number, evidence: AiToolEvidence): string {
+    return `${evidence.toolName}-${index}`;
+  }
+
+  trackByEvidenceItem(index: number): number {
+    return index;
+  }
+
+  trackByEvidenceEntry(index: number, entry: { key: string; value: string }): string {
+    return `${entry.key}-${index}`;
   }
 
   isActiveSession(session: AiChatSessionSummary): boolean {
@@ -372,5 +458,24 @@ export class AiAssistantPageComponent implements OnInit {
   private extractErrorMessage(error: unknown, fallback: string): string {
     const maybeHttpError = error as { error?: ApiError };
     return maybeHttpError.error?.message ?? fallback;
+  }
+
+  private humanizeKey(key: string): string {
+    return key
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/_/g, ' ')
+      .trim();
+  }
+
+  private formatEvidenceValue(value: unknown): string {
+    if (value instanceof Date) {
+      return value.toLocaleString();
+    }
+
+    if (typeof value === 'boolean') {
+      return value ? 'Sí' : 'No';
+    }
+
+    return String(value);
   }
 }

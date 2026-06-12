@@ -12,6 +12,13 @@ export interface AiSource {
   content: string | null;
 }
 
+export interface AiToolEvidence {
+  toolName: string;
+  label: string;
+  summary: string;
+  items: Record<string, unknown>[];
+}
+
 export interface AiSearchRequest {
   question: string;
   propertyId: string | null;
@@ -43,6 +50,7 @@ export interface AiChatResponse {
   grounded: boolean;
   sourceCount: number;
   sources: AiSource[];
+  toolEvidence: AiToolEvidence[];
 }
 
 export interface AiChatSessionSummary {
@@ -93,6 +101,7 @@ export interface AiLocalMessage {
   createdAt: string;
   sources?: AiSource[];
   grounded?: boolean;
+  toolEvidence?: AiToolEvidence[];
 }
 
 export interface AiAssistantFilters {
