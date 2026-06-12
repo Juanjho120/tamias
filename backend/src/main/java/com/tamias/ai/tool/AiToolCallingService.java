@@ -1000,22 +1000,37 @@ public class AiToolCallingService {
     }
 
 
+
     private boolean isUserAdminToolQuestion(String value) {
-        return (containsAny(value, "usuario", "usuarios", "user", "users", "miembro", "miembros", "equipo", "administrador", "administradores")
-                || isUserAccessIntent(value))
+        boolean asksAboutUsers = containsAny(
+                value,
+                "usuario", "usuarios", "user", "users", "miembro", "miembros", "equipo",
+                "administrador", "administradores"
+        );
+
+        return (asksAboutUsers || isUserAccessIntent(value))
                 && !isCurrentUserProfileQuestion(value)
-                && !isOrganizationUserCountQuestion(value);
+                && !isOrganizationUserCountQuestion(value)
+                && !isRolePermissionSummaryQuestion(value);
     }
+
+
 
     private boolean isUserAccessIntent(String value) {
-        if (isRolePermissionSummaryQuestion(value)) {
-            return false;
-        }
+        boolean accessWords = containsAny(
+                value,
+                "acceso", "accesos", "access summary", "resumen de acceso", "resumen de accesos"
+        );
+        boolean permissionWords = containsAny(value, "permiso", "permisos");
+        boolean userScope = containsAny(
+                value,
+                "usuario", "usuarios", "este usuario", "mi usuario", "mi cuenta",
+                "tengo", "mis permisos", "mis accesos", "accesos tengo", "acceso tengo"
+        );
 
-        return containsAny(value, "acceso", "accesos", "access summary", "resumen de acceso", "resumen de accesos")
-                || (containsAny(value, "permiso", "permisos")
-                    && containsAny(value, "usuario", "usuarios", "este usuario", "mi usuario", "mi cuenta", "tengo", "mis permisos", "mis accesos"));
+        return accessWords || (permissionWords && userScope);
     }
+
 
     private boolean isActiveUsersQuestion(String value) {
         return isUserAdminToolQuestion(value)
@@ -1028,25 +1043,61 @@ public class AiToolCallingService {
                 && containsAny(value, "inactivos", "inactivas", "no activos", "inactive", "bloqueados", "locked", "invited", "invitados");
     }
 
+
     private boolean isUsersByRoleQuestion(String value) {
-        return isUserAdminToolQuestion(value)
-                && containsAny(value, "rol", "roles", "administrador", "administradores", "administrator", "property manager", "maintenance staff", "read only", "solo lectura");
+        boolean asksAboutUsers = containsAny(value, "usuario", "usuarios", "user", "users", "miembro", "miembros", "equipo");
+        boolean mentionsRole = containsAny(
+                value,
+                "rol", "roles", "administrador", "administradores", "administrator",
+                "property manager", "maintenance staff", "read only", "solo lectura"
+        );
+
+        return asksAboutUsers
+                && mentionsRole
+                && !isCurrentUserProfileQuestion(value)
+                && !isOrganizationUserCountQuestion(value);
     }
+
 
     private boolean isUserAccessSummaryQuestion(String value) {
         return isUserAdminToolQuestion(value) && isUserAccessIntent(value);
     }
 
+
     private boolean isRoleAdminToolQuestion(String value) {
-        return containsAny(value, "rol", "roles", "role", "roles existentes", "lista de roles", "permisos tiene", "permisos del rol", "permission summary")
-                && !isCurrentUserProfileQuestion(value)
-                && !isUsersByRoleQuestion(value);
+        boolean asksForRoles = containsAny(
+                value,
+                "roles", "roles existentes", "lista de roles", "rol", "role"
+        );
+        boolean asksForPermissions = containsAny(value, "permiso", "permisos", "permission", "permissions", "que puede", "qué puede");
+        boolean asksAboutUsers = containsAny(value, "usuario", "usuarios", "user", "users", "miembro", "miembros", "equipo");
+
+        return asksForRoles
+                && !asksForPermissions
+                && !asksAboutUsers
+                && !isCurrentUserProfileQuestion(value);
     }
 
+
+
     private boolean isRolePermissionSummaryQuestion(String value) {
-        return isRoleAdminToolQuestion(value)
-                && containsAny(value, "permiso", "permisos", "permission", "permissions", "que puede", "qué puede");
+        boolean asksForPermissions = containsAny(
+                value,
+                "permiso", "permisos", "permission", "permissions", "que puede", "qué puede"
+        );
+        boolean mentionsRoleContext = containsAny(
+                value,
+                "rol", "roles", "role", "administrator", "administrador", "maintenance staff",
+                "mantenimiento", "property manager", "read only", "solo lectura"
+        );
+        boolean asksAboutUsers = containsAny(value, "usuario", "usuarios", "user", "users", "miembro", "miembros", "equipo");
+
+        return asksForPermissions
+                && mentionsRoleContext
+                && !asksAboutUsers
+                && !isCurrentUserProfileQuestion(value);
     }
+
 
     private boolean isOrganizationAdminToolQuestion(String value) {
         return containsAny(value, "organizacion", "organización", "empresa", "modulo", "modulos", "módulo", "módulos", "module", "modules")
