@@ -903,7 +903,8 @@ public class AiReadOnlyToolService {
 
     private AiToolAnswer scheduledMaintenanceList(String toolName, String label, String intro, LocalDate from, LocalDate to, String search, int limit) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-        List<Map<String, Object>> rows = query("""
+        String normalizedSearch = nullableSearch(search);
+        StringBuilder sql = new StringBuilder("""
                 SELECT sm.id,
                        p.name AS property_name,
                        sm.title,
@@ -920,19 +921,36 @@ public class AiReadOnlyToolService {
                 LEFT JOIN maintenance_types mt ON mt.id = sm.maintenance_type_id
                 WHERE sm.organization_id = :organizationId
                   AND sm.deleted_at IS NULL
-                  AND (:fromDate IS NULL OR sm.next_due_date >= CAST(:fromDate AS DATE))
-                  AND (:toDate IS NULL OR sm.next_due_date <= CAST(:toDate AS DATE))
-                  AND (:search IS NULL OR sm.status = CAST(:search AS TEXT) OR NOT EXISTS (
-                      SELECT 1 FROM regexp_split_to_table(CAST(:search AS TEXT), '\\s+') token(value)
-                      WHERE translate(LOWER(CONCAT_WS(' ', sm.title, sm.description, p.name, mc.name, mt.name, sm.frequency, sm.status)), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
-                  ))
+                """);
+        if (from != null) {
+            sql.append(" AND sm.next_due_date >= :fromDate\n");
+        }
+        if (to != null) {
+            sql.append(" AND sm.next_due_date <= :toDate\n");
+        }
+        if (normalizedSearch != null) {
+            sql.append("""
+                     AND (sm.status = CAST(:search AS TEXT) OR NOT EXISTS (
+                         SELECT 1 FROM regexp_split_to_table(CAST(:search AS TEXT), '\\s+') token(value)
+                         WHERE translate(LOWER(CONCAT_WS(' ', sm.title, sm.description, p.name, mc.name, mt.name, sm.frequency, sm.status)), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
+                     ))
+                    """);
+        }
+        sql.append("""
                 ORDER BY sm.next_due_date ASC, sm.title ASC
                 LIMIT :limit
-                """, q -> {
+                """);
+        List<Map<String, Object>> rows = query(sql.toString(), q -> {
                     q.setParameter("organizationId", organizationId);
-                    q.setParameter("fromDate", from == null ? null : Date.valueOf(from));
-                    q.setParameter("toDate", to == null ? null : Date.valueOf(to));
-                    q.setParameter("search", nullableSearch(search));
+                    if (from != null) {
+                        q.setParameter("fromDate", Date.valueOf(from));
+                    }
+                    if (to != null) {
+                        q.setParameter("toDate", Date.valueOf(to));
+                    }
+                    if (normalizedSearch != null) {
+                        q.setParameter("search", normalizedSearch);
+                    }
                     q.setParameter("limit", limit);
                 }, "id", "propertyName", "title", "categoryName", "typeName", "frequency", "intervalValue", "nextDueDate", "estimatedCost", "status");
         if (rows.isEmpty()) {
@@ -1027,7 +1045,7 @@ public class AiReadOnlyToolService {
     public AiToolAnswer reservationRevenueSummary(String userQuestion) {
         LocalDate[] range = resolveDateRange(userQuestion);
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-        List<Map<String, Object>> rows = query("""
+        StringBuilder sql = new StringBuilder("""
                 SELECT COUNT(*) AS reservation_count,
                        COALESCE(SUM(r.reservation_value), 0) AS total_revenue,
                        COALESCE(AVG(r.reservation_value), 0) AS average_revenue,
@@ -1036,12 +1054,11 @@ public class AiReadOnlyToolService {
                 WHERE r.organization_id = :organizationId
                   AND r.deleted_at IS NULL
                   AND r.status = 'ACTIVE'
-                  AND (:fromDate IS NULL OR r.check_in >= CAST(:fromDate AS DATE))
-                  AND (:toDate IS NULL OR r.check_in <= CAST(:toDate AS DATE))
-                """, q -> {
+                """);
+        appendOptionalReservationDateFilters(sql, range);
+        List<Map<String, Object>> rows = query(sql.toString(), q -> {
                     q.setParameter("organizationId", organizationId);
-                    q.setParameter("fromDate", range[0] == null ? null : Date.valueOf(range[0]));
-                    q.setParameter("toDate", range[1] == null ? null : Date.valueOf(range[1]));
+                    setOptionalReservationDateParameters(q, range);
                 }, "reservationCount", "totalRevenue", "averageRevenue", "totalNights");
         Map<String, Object> row = rows.isEmpty() ? Map.of() : rows.get(0);
         String answer = "Resumen de ingresos de reservaciones:"
@@ -1055,19 +1072,18 @@ public class AiReadOnlyToolService {
     public AiToolAnswer reservationNightsSummary(String userQuestion) {
         LocalDate[] range = resolveDateRange(userQuestion);
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-        List<Map<String, Object>> rows = query("""
+        StringBuilder sql = new StringBuilder("""
                 SELECT COALESCE(SUM(r.check_out - r.check_in), 0) AS total_nights,
                        COUNT(*) AS reservation_count
                 FROM reservations r
                 WHERE r.organization_id = :organizationId
                   AND r.deleted_at IS NULL
                   AND r.status = 'ACTIVE'
-                  AND (:fromDate IS NULL OR r.check_in >= CAST(:fromDate AS DATE))
-                  AND (:toDate IS NULL OR r.check_in <= CAST(:toDate AS DATE))
-                """, q -> {
+                """);
+        appendOptionalReservationDateFilters(sql, range);
+        List<Map<String, Object>> rows = query(sql.toString(), q -> {
                     q.setParameter("organizationId", organizationId);
-                    q.setParameter("fromDate", range[0] == null ? null : Date.valueOf(range[0]));
-                    q.setParameter("toDate", range[1] == null ? null : Date.valueOf(range[1]));
+                    setOptionalReservationDateParameters(q, range);
                 }, "totalNights", "reservationCount");
         Map<String, Object> row = rows.isEmpty() ? Map.of() : rows.get(0);
         String answer = "Resumen de noches reservadas:"
@@ -1079,7 +1095,7 @@ public class AiReadOnlyToolService {
     public AiToolAnswer reservationGuestCountSummary(String userQuestion) {
         LocalDate[] range = resolveDateRange(userQuestion);
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-        List<Map<String, Object>> rows = query("""
+        StringBuilder sql = new StringBuilder("""
                 SELECT COUNT(DISTINCT rg.guest_id) AS unique_guests,
                        COUNT(rg.id) AS guest_reservation_links,
                        COUNT(DISTINCT r.id) AS reservation_count
@@ -1088,12 +1104,11 @@ public class AiReadOnlyToolService {
                 WHERE r.organization_id = :organizationId
                   AND r.deleted_at IS NULL
                   AND r.status = 'ACTIVE'
-                  AND (:fromDate IS NULL OR r.check_in >= CAST(:fromDate AS DATE))
-                  AND (:toDate IS NULL OR r.check_in <= CAST(:toDate AS DATE))
-                """, q -> {
+                """);
+        appendOptionalReservationDateFilters(sql, range);
+        List<Map<String, Object>> rows = query(sql.toString(), q -> {
                     q.setParameter("organizationId", organizationId);
-                    q.setParameter("fromDate", range[0] == null ? null : Date.valueOf(range[0]));
-                    q.setParameter("toDate", range[1] == null ? null : Date.valueOf(range[1]));
+                    setOptionalReservationDateParameters(q, range);
                 }, "uniqueGuests", "guestReservationLinks", "reservationCount");
         Map<String, Object> row = rows.isEmpty() ? Map.of() : rows.get(0);
         String answer = "Resumen de huéspedes en reservaciones:"
@@ -1106,7 +1121,7 @@ public class AiReadOnlyToolService {
     public AiToolAnswer reservationOccupancySummary(String userQuestion) {
         LocalDate[] range = resolveDateRange(userQuestion);
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-        List<Map<String, Object>> rows = query("""
+        StringBuilder sql = new StringBuilder("""
                 SELECT p.name AS property_name,
                        COUNT(r.id) AS reservation_count,
                        COALESCE(SUM(r.check_out - r.check_in), 0) AS reserved_nights
@@ -1115,17 +1130,23 @@ public class AiReadOnlyToolService {
                                        AND r.organization_id = p.organization_id
                                        AND r.deleted_at IS NULL
                                        AND r.status = 'ACTIVE'
-                                       AND (:fromDate IS NULL OR r.check_in >= CAST(:fromDate AS DATE))
-                                       AND (:toDate IS NULL OR r.check_in <= CAST(:toDate AS DATE))
+                """);
+        if (range[0] != null) {
+            sql.append(" AND r.check_in >= :fromDate\n");
+        }
+        if (range[1] != null) {
+            sql.append(" AND r.check_in <= :toDate\n");
+        }
+        sql.append("""
                 WHERE p.organization_id = :organizationId
                   AND p.deleted_at IS NULL
                 GROUP BY p.id, p.name
                 ORDER BY reserved_nights DESC, reservation_count DESC, p.name ASC
                 LIMIT :limit
-                """, q -> {
+                """);
+        List<Map<String, Object>> rows = query(sql.toString(), q -> {
                     q.setParameter("organizationId", organizationId);
-                    q.setParameter("fromDate", range[0] == null ? null : Date.valueOf(range[0]));
-                    q.setParameter("toDate", range[1] == null ? null : Date.valueOf(range[1]));
+                    setOptionalReservationDateParameters(q, range);
                     q.setParameter("limit", DEFAULT_LIMIT);
                 }, "propertyName", "reservationCount", "reservedNights");
         if (rows.isEmpty()) {
@@ -1190,10 +1211,8 @@ public class AiReadOnlyToolService {
 
     private AiToolAnswer reservationList(String toolName, String label, String intro, LocalDate from, LocalDate to, String search, int limit, boolean currentOnly) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-        String dateFilter = currentOnly
-                ? "r.check_in <= :fromDate AND r.check_out > :fromDate"
-                : "(:fromDate IS NULL OR r.check_in >= CAST(:fromDate AS DATE)) AND (:toDate IS NULL OR r.check_in <= CAST(:toDate AS DATE))";
-        List<Map<String, Object>> rows = query("""
+        String normalizedSearch = nullableSearch(search);
+        StringBuilder sql = new StringBuilder("""
                 SELECT r.id,
                        p.name AS property_name,
                        COALESCE(pl.name, '') AS platform_name,
@@ -1212,19 +1231,41 @@ public class AiReadOnlyToolService {
                 WHERE r.organization_id = :organizationId
                   AND r.deleted_at IS NULL
                   AND r.status = 'ACTIVE'
-                  AND """ + dateFilter + """
-                  AND (:search IS NULL OR r.status = CAST(:search AS TEXT) OR NOT EXISTS (
-                      SELECT 1 FROM regexp_split_to_table(CAST(:search AS TEXT), '\\s+') token(value)
-                      WHERE translate(LOWER(CONCAT_WS(' ', p.name, pl.name, r.reservation_code, r.observations, r.status, g.full_name)), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
-                  ))
+                """);
+        if (currentOnly) {
+            sql.append(" AND r.check_in <= :fromDate AND r.check_out > :fromDate\n");
+        } else {
+            if (from != null) {
+                sql.append(" AND r.check_in >= :fromDate\n");
+            }
+            if (to != null) {
+                sql.append(" AND r.check_in <= :toDate\n");
+            }
+        }
+        if (normalizedSearch != null) {
+            sql.append("""
+                     AND (r.status = CAST(:search AS TEXT) OR NOT EXISTS (
+                         SELECT 1 FROM regexp_split_to_table(CAST(:search AS TEXT), '\\s+') token(value)
+                         WHERE translate(LOWER(CONCAT_WS(' ', p.name, pl.name, r.reservation_code, r.observations, r.status, g.full_name)), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
+                     ))
+                    """);
+        }
+        sql.append("""
                 GROUP BY r.id, p.name, pl.name, r.reservation_code, r.check_in, r.check_out, r.reservation_value, r.status
                 ORDER BY r.check_in ASC
                 LIMIT :limit
-                """, q -> {
+                """);
+        List<Map<String, Object>> rows = query(sql.toString(), q -> {
                     q.setParameter("organizationId", organizationId);
-                    q.setParameter("fromDate", from == null ? null : Date.valueOf(from));
-                    q.setParameter("toDate", to == null ? null : Date.valueOf(to));
-                    q.setParameter("search", nullableSearch(search));
+                    if (currentOnly || from != null) {
+                        q.setParameter("fromDate", Date.valueOf(from));
+                    }
+                    if (!currentOnly && to != null) {
+                        q.setParameter("toDate", Date.valueOf(to));
+                    }
+                    if (normalizedSearch != null) {
+                        q.setParameter("search", normalizedSearch);
+                    }
                     q.setParameter("limit", limit);
                 }, reservationColumns());
         return reservationRowsAnswer(rows, toolName, label, intro, "No encontré reservaciones que coincidan con tu pregunta.");
@@ -1255,10 +1296,29 @@ public class AiReadOnlyToolService {
                   AND r.deleted_at IS NULL
                   AND r.status = 'ACTIVE'
                   AND """ + whereClause + """
+                
                 GROUP BY r.id, p.name, pl.name, r.reservation_code, r.check_in, r.check_out, r.reservation_value, r.status
                 ORDER BY """ + orderBy + """
                 LIMIT :limit
                 """;
+    }
+
+    private void appendOptionalReservationDateFilters(StringBuilder sql, LocalDate[] range) {
+        if (range[0] != null) {
+            sql.append(" AND r.check_in >= :fromDate\n");
+        }
+        if (range[1] != null) {
+            sql.append(" AND r.check_in <= :toDate\n");
+        }
+    }
+
+    private void setOptionalReservationDateParameters(Query query, LocalDate[] range) {
+        if (range[0] != null) {
+            query.setParameter("fromDate", Date.valueOf(range[0]));
+        }
+        if (range[1] != null) {
+            query.setParameter("toDate", Date.valueOf(range[1]));
+        }
     }
 
     private String[] reservationColumns() {
@@ -1344,7 +1404,7 @@ public class AiReadOnlyToolService {
     public AiToolAnswer guestCountByDateRange(String userQuestion) {
         LocalDate[] range = resolveDateRange(userQuestion);
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-        List<Map<String, Object>> rows = query("""
+        StringBuilder sql = new StringBuilder("""
                 SELECT COUNT(DISTINCT g.id) AS unique_guests,
                        COUNT(rg.id) AS guest_links
                 FROM reservation_guests rg
@@ -1355,12 +1415,11 @@ public class AiReadOnlyToolService {
                   AND r.organization_id = :organizationId
                   AND g.deleted_at IS NULL
                   AND r.deleted_at IS NULL
-                  AND (:fromDate IS NULL OR r.check_in >= CAST(:fromDate AS DATE))
-                  AND (:toDate IS NULL OR r.check_in <= CAST(:toDate AS DATE))
-                """, q -> {
+                """);
+        appendOptionalReservationDateFilters(sql, range);
+        List<Map<String, Object>> rows = query(sql.toString(), q -> {
                     q.setParameter("organizationId", organizationId);
-                    q.setParameter("fromDate", range[0] == null ? null : Date.valueOf(range[0]));
-                    q.setParameter("toDate", range[1] == null ? null : Date.valueOf(range[1]));
+                    setOptionalReservationDateParameters(q, range);
                 }, "uniqueGuests", "guestLinks");
         Map<String, Object> row = rows.isEmpty() ? Map.of() : rows.get(0);
         String answer = "Conteo de huéspedes:"
