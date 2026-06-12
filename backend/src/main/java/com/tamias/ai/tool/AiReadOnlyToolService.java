@@ -4924,6 +4924,642 @@ public class AiReadOnlyToolService {
         }
     }
 
+
+
+    public AiToolAnswer fileMetadata(String userQuestion) {
+        String search = nullableSearch(extractSearchText(
+                userQuestion,
+                "archivo", "archivos", "file", "files", "metadata", "metadatos", "cargado", "cargados", "almacenado", "almacenados"
+        ));
+        List<Map<String, Object>> rows = fileMetadataRows(search, null, null, DEFAULT_LIMIT);
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    search == null ? "No encontré archivos registrados en TAMIAS." : "No encontré archivos relacionados con “" + search + "”.",
+                    "file.searchMetadata",
+                    "File metadata",
+                    "No file metadata found.",
+                    List.of()
+            );
+        }
+        StringBuilder answer = new StringBuilder(search == null
+                ? "Estos son los archivos que encontré en TAMIAS:"
+                : "Estos son los archivos que encontré relacionados con “" + search + "”:");
+        appendFileMetadataRows(answer, rows);
+        return AiToolAnswer.of(answer.toString(), "file.searchMetadata", "File metadata", "%d file metadata rows found.".formatted(rows.size()), rows);
+    }
+
+    public AiToolAnswer filesByProperty(String userQuestion) {
+        String propertySearch = nullableSearch(extractSearchText(
+                userQuestion,
+                "archivo", "archivos", "asociado", "asociados", "propiedad", "propiedades", "para", "esta", "este"
+        ));
+        List<Map<String, Object>> rows = fileMetadataRows(null, propertySearch, null, DEFAULT_LIMIT);
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    propertySearch == null
+                            ? "No encontré archivos asociados a propiedades."
+                            : "No encontré archivos asociados a una propiedad que coincida con “" + propertySearch + "”.",
+                    "file.byProperty",
+                    "Files by property",
+                    "No files found for the requested property.",
+                    List.of()
+            );
+        }
+        StringBuilder answer = new StringBuilder(propertySearch == null
+                ? "Estos archivos están asociados a propiedades:"
+                : "Estos archivos están asociados a propiedades relacionadas con “" + propertySearch + "”:");
+        appendFileMetadataRows(answer, rows);
+        return AiToolAnswer.of(answer.toString(), "file.byProperty", "Files by property", "%d property file rows found.".formatted(rows.size()), rows);
+    }
+
+    public AiToolAnswer filesByMaintenance(String userQuestion) {
+        String search = nullableSearch(extractSearchText(
+                userQuestion,
+                "archivo", "archivos", "imagen", "imagenes", "foto", "fotos", "mantenimiento", "mantenimientos", "evidencia"
+        ));
+        List<Map<String, Object>> rows = maintenanceImageRows(search, false, DEFAULT_LIMIT);
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    search == null ? "No encontré archivos o imágenes asociados a mantenimientos." : "No encontré archivos de mantenimiento relacionados con “" + search + "”.",
+                    "file.byMaintenance",
+                    "Files by maintenance",
+                    "No maintenance files found.",
+                    List.of()
+            );
+        }
+        StringBuilder answer = new StringBuilder(search == null
+                ? "Estos archivos están asociados a mantenimientos:"
+                : "Estos archivos de mantenimiento están relacionados con “" + search + "”:");
+        appendMaintenanceImageRows(answer, rows);
+        return AiToolAnswer.of(answer.toString(), "file.byMaintenance", "Files by maintenance", "%d maintenance file rows found.".formatted(rows.size()), rows);
+    }
+
+    public AiToolAnswer filesByDocument(String userQuestion) {
+        String search = nullableSearch(extractSearchText(
+                userQuestion,
+                "archivo", "archivos", "documento", "documentos", "file", "metadata", "metadatos"
+        ));
+        List<Map<String, Object>> rows = documentRows(search, "", q -> {}, DEFAULT_LIMIT, "d.created_at DESC");
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    search == null ? "No encontré archivos de documentos registrados." : "No encontré documentos relacionados con “" + search + "”.",
+                    "file.byDocument",
+                    "Files by document",
+                    "No document files found.",
+                    List.of()
+            );
+        }
+        StringBuilder answer = new StringBuilder(search == null
+                ? "Estos son los archivos de documentos registrados:"
+                : "Estos son los documentos relacionados con “" + search + "”:");
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("title"))))
+                    .append(" | archivo: ").append(blankToDash(value(row.get("originalFilename"))))
+                    .append(" | tipo: ").append(blankToDash(value(row.get("documentType"))))
+                    .append(" | procesamiento: ").append(blankToDash(value(row.get("processingStatus"))))
+                    .append(" | propiedad: ").append(blankToDash(value(row.get("propertyName"))));
+        }
+        return AiToolAnswer.of(answer.toString(), "file.byDocument", "Files by document", "%d document files found.".formatted(rows.size()), rows);
+    }
+
+    public AiToolAnswer fileStorageSummary() {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        List<Map<String, Object>> rows = query("""
+                SELECT source_type,
+                       COUNT(*) AS file_count,
+                       COALESCE(SUM(size_bytes), 0) AS total_size_bytes
+                FROM (
+                    SELECT 'DOCUMENT' AS source_type, d.size_bytes
+                    FROM documents d
+                    WHERE d.organization_id = :organizationId
+                      AND d.deleted_at IS NULL
+                    UNION ALL
+                    SELECT 'PROPERTY_IMAGE' AS source_type, pi.size_bytes
+                    FROM property_images pi
+                    WHERE pi.organization_id = :organizationId
+                      AND pi.deleted_at IS NULL
+                      AND pi.status = 'ACTIVE'
+                    UNION ALL
+                    SELECT 'MAINTENANCE_IMAGE' AS source_type, mri.size_bytes
+                    FROM maintenance_record_images mri
+                    WHERE mri.organization_id = :organizationId
+                      AND mri.deleted_at IS NULL
+                      AND mri.status = 'ACTIVE'
+                ) files
+                GROUP BY source_type
+                ORDER BY source_type ASC
+                """, q -> q.setParameter("organizationId", organizationId),
+                "sourceType", "fileCount", "totalSizeBytes");
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of("No encontré archivos almacenados en TAMIAS.", "file.storageSummary", "File storage summary", "No file metadata found.", List.of());
+        }
+        long totalFiles = rows.stream().mapToLong(row -> toLong(row.get("fileCount"))).sum();
+        long totalBytes = rows.stream().mapToLong(row -> toLong(row.get("totalSizeBytes"))).sum();
+        StringBuilder answer = new StringBuilder("Tienes ").append(totalFiles).append(" archivos registrados en metadata, con ").append(formatBytes(totalBytes)).append(" aproximados:");
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("sourceType"))))
+                    .append(" | archivos: ").append(blankToDash(value(row.get("fileCount"))))
+                    .append(" | tamaño: ").append(formatBytes(toLong(row.get("totalSizeBytes"))));
+        }
+        return AiToolAnswer.of(answer.toString(), "file.storageSummary", "File storage summary", "File metadata storage totals were calculated.", rows);
+    }
+
+    public AiToolAnswer orphanFileCandidates() {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        List<Map<String, Object>> rows = query("""
+                SELECT 'DOCUMENT_WITHOUT_PROPERTY' AS source_type,
+                       d.title AS display_name,
+                       d.original_filename,
+                       d.content_type,
+                       d.size_bytes,
+                       d.status,
+                       d.processing_status AS detail_status,
+                       COALESCE(p.name, 'Sin propiedad') AS property_name,
+                       d.created_at
+                FROM documents d
+                LEFT JOIN properties p ON p.id = d.property_id
+                                  AND p.organization_id = d.organization_id
+                                  AND p.deleted_at IS NULL
+                WHERE d.organization_id = :organizationId
+                  AND d.deleted_at IS NULL
+                  AND d.property_id IS NULL
+                ORDER BY d.created_at DESC
+                LIMIT :limit
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("limit", DEFAULT_LIMIT);
+                }, "sourceType", "displayName", "originalFilename", "contentType", "sizeBytes", "status", "detailStatus", "propertyName", "createdAt");
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    "No encontré candidatos obvios de archivos huérfanos en la metadata actual. En esta fase solo reviso metadata registrada en documentos e imágenes; no hago auditoría directa del bucket S3.",
+                    "file.orphanFileCandidates",
+                    "Orphan file candidates",
+                    "No obvious orphan file candidates found from metadata.",
+                    List.of()
+            );
+        }
+        StringBuilder answer = new StringBuilder("Estos archivos podrían requerir revisión porque no están asociados a una propiedad:");
+        appendFileMetadataRows(answer, rows);
+        return AiToolAnswer.of(answer.toString(), "file.orphanFileCandidates", "Orphan file candidates", "%d candidate rows found.".formatted(rows.size()), rows);
+    }
+
+    public AiToolAnswer propertyImageMetadataSummary() {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        List<Map<String, Object>> rows = query("""
+                SELECT p.name AS property_name,
+                       COUNT(pi.id) AS image_count,
+                       COALESCE(SUM(CASE WHEN pi.is_cover = TRUE THEN 1 ELSE 0 END), 0) AS cover_count,
+                       COALESCE(SUM(pi.size_bytes), 0) AS total_size_bytes,
+                       COALESCE(STRING_AGG(pi.original_filename, ', ' ORDER BY pi.is_cover DESC, pi.created_at DESC), '') AS filenames
+                FROM properties p
+                LEFT JOIN property_images pi ON pi.property_id = p.id
+                                            AND pi.organization_id = p.organization_id
+                                            AND pi.deleted_at IS NULL
+                                            AND pi.status = 'ACTIVE'
+                WHERE p.organization_id = :organizationId
+                  AND p.deleted_at IS NULL
+                GROUP BY p.id, p.name
+                ORDER BY image_count DESC, p.name ASC
+                LIMIT :limit
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("limit", DEFAULT_LIMIT);
+                }, "propertyName", "imageCount", "coverCount", "totalSizeBytes", "filenames");
+        StringBuilder answer = new StringBuilder("Resumen de imágenes por propiedad:");
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("propertyName"))))
+                    .append(" | imágenes: ").append(blankToDash(value(row.get("imageCount"))))
+                    .append(" | portadas: ").append(blankToDash(value(row.get("coverCount"))))
+                    .append(" | tamaño: ").append(formatBytes(toLong(row.get("totalSizeBytes"))));
+            String filenames = value(row.get("filenames"));
+            if (!filenames.isBlank()) {
+                answer.append(" | archivos: ").append(filenames);
+            }
+        }
+        return AiToolAnswer.of(answer.toString(), "image.propertyImagesSummary", "Property image metadata", "Property image metadata was summarized.", rows);
+    }
+
+    public AiToolAnswer maintenanceImageMetadataSummary() {
+        List<Map<String, Object>> rows = maintenanceImageRows(null, false, DEFAULT_LIMIT);
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of("No encontré imágenes asociadas a mantenimientos.", "image.maintenanceImagesSummary", "Maintenance image metadata", "No maintenance images found.", List.of());
+        }
+        StringBuilder answer = new StringBuilder("Estas son las imágenes asociadas a mantenimientos:");
+        appendMaintenanceImageRows(answer, rows);
+        return AiToolAnswer.of(answer.toString(), "image.maintenanceImagesSummary", "Maintenance image metadata", "%d maintenance image rows found.".formatted(rows.size()), rows);
+    }
+
+    public AiToolAnswer dashboardReservationSummary() {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        LocalDate today = LocalDate.now();
+        LocalDate weekEnd = today.plusDays(7);
+        LocalDate monthStart = today.withDayOfMonth(1);
+        LocalDate monthEnd = monthStart.plusMonths(1).minusDays(1);
+        List<Map<String, Object>> rows = query("""
+                SELECT COUNT(*) FILTER (WHERE r.status = 'ACTIVE') AS active_count,
+                       COUNT(*) FILTER (WHERE r.status = 'ACTIVE' AND CURRENT_DATE BETWEEN r.check_in AND r.check_out) AS current_count,
+                       COUNT(*) FILTER (WHERE r.status = 'ACTIVE' AND r.check_in BETWEEN :today AND :weekEnd) AS next_7_days_count,
+                       COUNT(*) FILTER (WHERE r.status = 'ACTIVE' AND r.check_in BETWEEN :monthStart AND :monthEnd) AS this_month_count,
+                       COALESCE(SUM(CASE WHEN r.status = 'ACTIVE' AND r.check_in BETWEEN :monthStart AND :monthEnd THEN r.reservation_value ELSE 0 END), 0) AS this_month_value
+                FROM reservations r
+                WHERE r.organization_id = :organizationId
+                  AND r.deleted_at IS NULL
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("today", Date.valueOf(today));
+                    q.setParameter("weekEnd", Date.valueOf(weekEnd));
+                    q.setParameter("monthStart", Date.valueOf(monthStart));
+                    q.setParameter("monthEnd", Date.valueOf(monthEnd));
+                }, "activeCount", "currentCount", "next7DaysCount", "thisMonthCount", "thisMonthValue");
+        Map<String, Object> row = rows.get(0);
+        String answer = "Resumen de reservaciones:" + System.lineSeparator()
+                + "- Reservaciones activas: " + blankToDash(value(row.get("activeCount"))) + System.lineSeparator()
+                + "- Reservaciones en curso hoy: " + blankToDash(value(row.get("currentCount"))) + System.lineSeparator()
+                + "- Check-ins en los próximos 7 días: " + blankToDash(value(row.get("next7DaysCount"))) + System.lineSeparator()
+                + "- Check-ins este mes: " + blankToDash(value(row.get("thisMonthCount"))) + System.lineSeparator()
+                + "- Valor de reservaciones con check-in este mes: " + formatMoney(row.get("thisMonthValue"));
+        return AiToolAnswer.of(answer, "dashboard.reservationSummary", "Reservation dashboard summary", "Reservation dashboard counters were calculated.", rows);
+    }
+
+    public AiToolAnswer dashboardMaintenanceSummary() {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        LocalDate today = LocalDate.now();
+        List<Map<String, Object>> rows = query("""
+                SELECT COUNT(*) AS maintenance_count,
+                       COUNT(*) FILTER (WHERE mr.status = 'COMPLETED') AS completed_count,
+                       COUNT(*) FILTER (WHERE mr.status <> 'COMPLETED') AS open_count,
+                       COALESCE(SUM(COALESCE(mr.cost, 0)), 0) AS total_cost,
+                       COUNT(*) FILTER (WHERE EXISTS (
+                           SELECT 1 FROM maintenance_record_images mri
+                           WHERE mri.maintenance_record_id = mr.id
+                             AND mri.organization_id = mr.organization_id
+                             AND mri.deleted_at IS NULL
+                             AND mri.status = 'ACTIVE'
+                       )) AS with_images_count,
+                       COUNT(*) FILTER (WHERE mr.status = 'COMPLETED' AND mr.performed_at >= :monthStart) AS completed_this_month
+                FROM maintenance_records mr
+                WHERE mr.organization_id = :organizationId
+                  AND mr.deleted_at IS NULL
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("monthStart", Date.valueOf(today.withDayOfMonth(1)));
+                }, "maintenanceCount", "completedCount", "openCount", "totalCost", "withImagesCount", "completedThisMonth");
+        Map<String, Object> row = rows.get(0);
+        String answer = "Resumen de mantenimiento:" + System.lineSeparator()
+                + "- Registros totales: " + blankToDash(value(row.get("maintenanceCount"))) + System.lineSeparator()
+                + "- Completados: " + blankToDash(value(row.get("completedCount"))) + System.lineSeparator()
+                + "- Abiertos/no completados: " + blankToDash(value(row.get("openCount"))) + System.lineSeparator()
+                + "- Completados este mes: " + blankToDash(value(row.get("completedThisMonth"))) + System.lineSeparator()
+                + "- Con evidencia fotográfica: " + blankToDash(value(row.get("withImagesCount"))) + System.lineSeparator()
+                + "- Costo total registrado: " + formatMoney(row.get("totalCost"));
+        return AiToolAnswer.of(answer, "dashboard.maintenanceSummary", "Maintenance dashboard summary", "Maintenance dashboard counters were calculated.", rows);
+    }
+
+    public AiToolAnswer dashboardPurchaseSummary() {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        LocalDate monthStart = LocalDate.now().withDayOfMonth(1);
+        List<Map<String, Object>> rows = query("""
+                SELECT COUNT(DISTINCT pl.id) AS purchase_list_count,
+                       COUNT(DISTINCT pl.id) FILTER (WHERE pl.status = 'COMPLETED') AS completed_list_count,
+                       COUNT(pi.id) AS item_count,
+                       COUNT(pi.id) FILTER (WHERE pi.purchased = TRUE) AS purchased_item_count,
+                       COALESCE(SUM(CASE WHEN pi.purchased = TRUE THEN pi.estimated_price ELSE 0 END), 0) AS purchased_total_cost,
+                       COALESCE(SUM(CASE WHEN pi.purchased = TRUE AND pl.purchase_date >= :monthStart THEN pi.estimated_price ELSE 0 END), 0) AS purchased_this_month_cost
+                FROM purchase_lists pl
+                LEFT JOIN purchase_items pi ON pi.purchase_list_id = pl.id
+                                           AND pi.organization_id = pl.organization_id
+                WHERE pl.organization_id = :organizationId
+                  AND pl.deleted_at IS NULL
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("monthStart", Date.valueOf(monthStart));
+                }, "purchaseListCount", "completedListCount", "itemCount", "purchasedItemCount", "purchasedTotalCost", "purchasedThisMonthCost");
+        Map<String, Object> row = rows.get(0);
+        String answer = "Resumen de compras:" + System.lineSeparator()
+                + "- Listas de compras: " + blankToDash(value(row.get("purchaseListCount"))) + System.lineSeparator()
+                + "- Listas completadas: " + blankToDash(value(row.get("completedListCount"))) + System.lineSeparator()
+                + "- Items registrados: " + blankToDash(value(row.get("itemCount"))) + System.lineSeparator()
+                + "- Items marcados como comprados: " + blankToDash(value(row.get("purchasedItemCount"))) + System.lineSeparator()
+                + "- Gasto comprado total: " + formatMoney(row.get("purchasedTotalCost")) + System.lineSeparator()
+                + "- Gasto comprado este mes: " + formatMoney(row.get("purchasedThisMonthCost"));
+        return AiToolAnswer.of(answer, "dashboard.purchaseSummary", "Purchase dashboard summary", "Purchase dashboard counters were calculated.", rows);
+    }
+
+    public AiToolAnswer dashboardTaskSummary() {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        LocalDate today = LocalDate.now();
+        List<Map<String, Object>> rows = query("""
+                SELECT COUNT(DISTINCT tl.id) AS task_list_count,
+                       COUNT(DISTINCT tl.id) FILTER (WHERE tl.status IN ('OPEN', 'IN_PROGRESS')) AS active_list_count,
+                       COUNT(DISTINCT tl.id) FILTER (WHERE tl.status = 'COMPLETED') AS completed_list_count,
+                       COUNT(DISTINCT tl.id) FILTER (WHERE tl.due_date < :today AND tl.status IN ('OPEN', 'IN_PROGRESS')) AS overdue_list_count,
+                       COUNT(ti.id) AS task_item_count,
+                       COUNT(ti.id) FILTER (WHERE ti.completed = TRUE) AS completed_item_count,
+                       COUNT(ti.id) FILTER (WHERE ti.completed = FALSE) AS pending_item_count
+                FROM task_lists tl
+                LEFT JOIN task_items ti ON ti.task_list_id = tl.id
+                                       AND ti.organization_id = tl.organization_id
+                WHERE tl.organization_id = :organizationId
+                  AND tl.deleted_at IS NULL
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("today", Date.valueOf(today));
+                }, "taskListCount", "activeListCount", "completedListCount", "overdueListCount", "taskItemCount", "completedItemCount", "pendingItemCount");
+        Map<String, Object> row = rows.get(0);
+        String answer = "Resumen de tareas:" + System.lineSeparator()
+                + "- Listas de tareas: " + blankToDash(value(row.get("taskListCount"))) + System.lineSeparator()
+                + "- Listas activas: " + blankToDash(value(row.get("activeListCount"))) + System.lineSeparator()
+                + "- Listas completadas: " + blankToDash(value(row.get("completedListCount"))) + System.lineSeparator()
+                + "- Listas vencidas: " + blankToDash(value(row.get("overdueListCount"))) + System.lineSeparator()
+                + "- Tareas específicas: " + blankToDash(value(row.get("taskItemCount"))) + System.lineSeparator()
+                + "- Tareas completadas: " + blankToDash(value(row.get("completedItemCount"))) + System.lineSeparator()
+                + "- Tareas pendientes: " + blankToDash(value(row.get("pendingItemCount")));
+        return AiToolAnswer.of(answer, "dashboard.taskSummary", "Task dashboard summary", "Task dashboard counters were calculated.", rows);
+    }
+
+    public AiToolAnswer dashboardDocumentSummary() {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        List<Map<String, Object>> rows = query("""
+                SELECT COUNT(DISTINCT d.id) AS document_count,
+                       COUNT(DISTINCT d.id) FILTER (WHERE d.processing_status = 'PROCESSED') AS processed_count,
+                       COUNT(DISTINCT d.id) FILTER (WHERE d.processing_status = 'FAILED') AS failed_count,
+                       COUNT(DISTINCT d.id) FILTER (WHERE d.processing_status IN ('PENDING', 'PROCESSING')) AS pending_count,
+                       COUNT(dc.id) AS chunk_count,
+                       COUNT(dc.id) FILTER (WHERE dc.vector_store_id IS NOT NULL) AS indexed_chunk_count
+                FROM documents d
+                LEFT JOIN document_chunks dc ON dc.document_id = d.id
+                                            AND dc.organization_id = d.organization_id
+                WHERE d.organization_id = :organizationId
+                  AND d.deleted_at IS NULL
+                """, q -> q.setParameter("organizationId", organizationId),
+                "documentCount", "processedCount", "failedCount", "pendingCount", "chunkCount", "indexedChunkCount");
+        Map<String, Object> row = rows.get(0);
+        String answer = "Resumen de documentos:" + System.lineSeparator()
+                + "- Documentos cargados: " + blankToDash(value(row.get("documentCount"))) + System.lineSeparator()
+                + "- Procesados: " + blankToDash(value(row.get("processedCount"))) + System.lineSeparator()
+                + "- Fallidos: " + blankToDash(value(row.get("failedCount"))) + System.lineSeparator()
+                + "- Pendientes/en proceso: " + blankToDash(value(row.get("pendingCount"))) + System.lineSeparator()
+                + "- Chunks generados: " + blankToDash(value(row.get("chunkCount"))) + System.lineSeparator()
+                + "- Chunks con vector_store_id: " + blankToDash(value(row.get("indexedChunkCount")));
+        return AiToolAnswer.of(answer, "dashboard.documentSummary", "Document dashboard summary", "Document dashboard counters were calculated.", rows);
+    }
+
+    public AiToolAnswer dashboardCalendarEvents() {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        LocalDate today = LocalDate.now();
+        LocalDate until = today.plusDays(14);
+        List<Map<String, Object>> rows = query("""
+                SELECT 'CHECK_IN' AS event_type,
+                       r.check_in AS event_date,
+                       CONCAT('Check-in ', COALESCE(r.reservation_code, 'sin código')) AS title,
+                       p.name AS property_name
+                FROM reservations r
+                JOIN properties p ON p.id = r.property_id AND p.organization_id = r.organization_id
+                WHERE r.organization_id = :organizationId
+                  AND r.deleted_at IS NULL
+                  AND r.status = 'ACTIVE'
+                  AND r.check_in BETWEEN :today AND :until
+                UNION ALL
+                SELECT 'CHECK_OUT' AS event_type,
+                       r.check_out AS event_date,
+                       CONCAT('Check-out ', COALESCE(r.reservation_code, 'sin código')) AS title,
+                       p.name AS property_name
+                FROM reservations r
+                JOIN properties p ON p.id = r.property_id AND p.organization_id = r.organization_id
+                WHERE r.organization_id = :organizationId
+                  AND r.deleted_at IS NULL
+                  AND r.status = 'ACTIVE'
+                  AND r.check_out BETWEEN :today AND :until
+                UNION ALL
+                SELECT 'SCHEDULED_MAINTENANCE' AS event_type,
+                       sm.next_due_date AS event_date,
+                       sm.title,
+                       p.name AS property_name
+                FROM scheduled_maintenance sm
+                JOIN properties p ON p.id = sm.property_id AND p.organization_id = sm.organization_id
+                WHERE sm.organization_id = :organizationId
+                  AND sm.deleted_at IS NULL
+                  AND sm.status = 'ACTIVE'
+                  AND sm.next_due_date BETWEEN :today AND :until
+                UNION ALL
+                SELECT 'TASK_LIST' AS event_type,
+                       tl.due_date AS event_date,
+                       tl.title,
+                       p.name AS property_name
+                FROM task_lists tl
+                JOIN properties p ON p.id = tl.property_id AND p.organization_id = tl.organization_id
+                WHERE tl.organization_id = :organizationId
+                  AND tl.deleted_at IS NULL
+                  AND tl.status IN ('OPEN', 'IN_PROGRESS')
+                  AND tl.due_date BETWEEN :today AND :until
+                ORDER BY event_date ASC, event_type ASC
+                LIMIT :limit
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("today", Date.valueOf(today));
+                    q.setParameter("until", Date.valueOf(until));
+                    q.setParameter("limit", DEFAULT_LIMIT);
+                }, "eventType", "eventDate", "title", "propertyName");
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of("No encontré eventos operativos en los próximos 14 días.", "dashboard.calendarEvents", "Dashboard calendar events", "No dashboard calendar events found.", List.of());
+        }
+        StringBuilder answer = new StringBuilder("Estos son los próximos eventos operativos del calendario:");
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("eventDate"))))
+                    .append(" | ").append(blankToDash(value(row.get("eventType"))))
+                    .append(" | ").append(blankToDash(value(row.get("title"))))
+                    .append(" | propiedad: ").append(blankToDash(value(row.get("propertyName"))));
+        }
+        return AiToolAnswer.of(answer.toString(), "dashboard.calendarEvents", "Dashboard calendar events", "%d calendar events found.".formatted(rows.size()), rows);
+    }
+
+    public AiToolAnswer dashboardAlertSummary() {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        LocalDate today = LocalDate.now();
+        LocalDate tomorrow = today.plusDays(1);
+        List<Map<String, Object>> rows = query("""
+                SELECT (SELECT COUNT(*) FROM scheduled_maintenance sm WHERE sm.organization_id = :organizationId AND sm.deleted_at IS NULL AND sm.status = 'ACTIVE' AND sm.next_due_date < :today) AS overdue_scheduled_maintenance,
+                       (SELECT COUNT(*) FROM task_lists tl WHERE tl.organization_id = :organizationId AND tl.deleted_at IS NULL AND tl.status IN ('OPEN', 'IN_PROGRESS') AND tl.due_date < :today) AS overdue_task_lists,
+                       (SELECT COUNT(*) FROM task_items ti JOIN task_lists tl ON tl.id = ti.task_list_id AND tl.organization_id = ti.organization_id WHERE ti.organization_id = :organizationId AND tl.deleted_at IS NULL AND ti.completed = FALSE AND tl.due_date < :today) AS overdue_task_items,
+                       (SELECT COUNT(*) FROM documents d WHERE d.organization_id = :organizationId AND d.deleted_at IS NULL AND d.processing_status = 'FAILED') AS failed_documents,
+                       (SELECT COUNT(*) FROM documents d WHERE d.organization_id = :organizationId AND d.deleted_at IS NULL AND d.processing_status = 'PROCESSED' AND NOT EXISTS (SELECT 1 FROM document_chunks dc WHERE dc.document_id = d.id AND dc.organization_id = d.organization_id AND dc.vector_store_id IS NOT NULL)) AS processed_not_indexed_documents,
+                       (SELECT COUNT(*) FROM reservations r WHERE r.organization_id = :organizationId AND r.deleted_at IS NULL AND r.status = 'ACTIVE' AND r.check_in BETWEEN :today AND :tomorrow) AS checkins_next_24h
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("today", Date.valueOf(today));
+                    q.setParameter("tomorrow", Date.valueOf(tomorrow));
+                }, "overdueScheduledMaintenance", "overdueTaskLists", "overdueTaskItems", "failedDocuments", "processedNotIndexedDocuments", "checkinsNext24h");
+        Map<String, Object> row = rows.get(0);
+        String answer = "Alertas operativas actuales:" + System.lineSeparator()
+                + "- Mantenimientos programados vencidos: " + blankToDash(value(row.get("overdueScheduledMaintenance"))) + System.lineSeparator()
+                + "- Listas de tareas vencidas: " + blankToDash(value(row.get("overdueTaskLists"))) + System.lineSeparator()
+                + "- Tareas específicas vencidas: " + blankToDash(value(row.get("overdueTaskItems"))) + System.lineSeparator()
+                + "- Documentos con procesamiento fallido: " + blankToDash(value(row.get("failedDocuments"))) + System.lineSeparator()
+                + "- Documentos procesados sin indexación IA: " + blankToDash(value(row.get("processedNotIndexedDocuments"))) + System.lineSeparator()
+                + "- Check-ins en las próximas 24 horas: " + blankToDash(value(row.get("checkinsNext24h")));
+        return AiToolAnswer.of(answer, "dashboard.alertSummary", "Dashboard alert summary", "Operational alert counters were calculated.", rows);
+    }
+
+    private List<Map<String, Object>> fileMetadataRows(String search, String propertySearch, String sourceType, int limit) {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        StringBuilder sql = new StringBuilder("""
+                SELECT *
+                FROM (
+                    SELECT 'DOCUMENT' AS source_type,
+                           d.title AS display_name,
+                           d.original_filename,
+                           d.content_type,
+                           d.size_bytes,
+                           d.status,
+                           d.processing_status AS detail_status,
+                           COALESCE(p.name, 'Sin propiedad') AS property_name,
+                           d.created_at
+                    FROM documents d
+                    LEFT JOIN properties p ON p.id = d.property_id
+                                      AND p.organization_id = d.organization_id
+                                      AND p.deleted_at IS NULL
+                    WHERE d.organization_id = :organizationId
+                      AND d.deleted_at IS NULL
+                    UNION ALL
+                    SELECT 'PROPERTY_IMAGE' AS source_type,
+                           pi.original_filename AS display_name,
+                           pi.original_filename,
+                           pi.content_type,
+                           pi.size_bytes,
+                           pi.status,
+                           CASE WHEN pi.is_cover = TRUE THEN 'COVER' ELSE 'IMAGE' END AS detail_status,
+                           p.name AS property_name,
+                           pi.created_at
+                    FROM property_images pi
+                    JOIN properties p ON p.id = pi.property_id
+                                     AND p.organization_id = pi.organization_id
+                                     AND p.deleted_at IS NULL
+                    WHERE pi.organization_id = :organizationId
+                      AND pi.deleted_at IS NULL
+                      AND pi.status = 'ACTIVE'
+                    UNION ALL
+                    SELECT 'MAINTENANCE_IMAGE' AS source_type,
+                           mri.original_filename AS display_name,
+                           mri.original_filename,
+                           mri.content_type,
+                           mri.size_bytes,
+                           mri.status,
+                           mr.status AS detail_status,
+                           p.name AS property_name,
+                           mri.created_at
+                    FROM maintenance_record_images mri
+                    JOIN maintenance_records mr ON mr.id = mri.maintenance_record_id
+                                               AND mr.organization_id = mri.organization_id
+                                               AND mr.deleted_at IS NULL
+                    JOIN properties p ON p.id = mr.property_id
+                                     AND p.organization_id = mr.organization_id
+                                     AND p.deleted_at IS NULL
+                    WHERE mri.organization_id = :organizationId
+                      AND mri.deleted_at IS NULL
+                      AND mri.status = 'ACTIVE'
+                ) files
+                WHERE 1 = 1
+                """);
+        if (sourceType != null) {
+            sql.append("  AND source_type = :sourceType\n");
+        }
+        if (search != null) {
+            sql.append("""
+                      AND NOT EXISTS (
+                          SELECT 1 FROM unnest(string_to_array(CAST(:search AS TEXT), ' ')) AS token(value)
+                          WHERE token.value <> ''
+                            AND translate(LOWER(CONCAT_WS(' ', display_name, original_filename, content_type, detail_status)), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
+                      )
+                    """);
+        }
+        if (propertySearch != null) {
+            sql.append("""
+                      AND NOT EXISTS (
+                          SELECT 1 FROM unnest(string_to_array(CAST(:propertySearch AS TEXT), ' ')) AS token(value)
+                          WHERE token.value <> ''
+                            AND translate(LOWER(property_name), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
+                      )
+                    """);
+        }
+        sql.append("ORDER BY created_at DESC\nLIMIT :limit\n");
+        return query(sql.toString(), q -> {
+            q.setParameter("organizationId", organizationId);
+            if (sourceType != null) q.setParameter("sourceType", sourceType);
+            if (search != null) q.setParameter("search", search);
+            if (propertySearch != null) q.setParameter("propertySearch", propertySearch);
+            q.setParameter("limit", limit);
+        }, "sourceType", "displayName", "originalFilename", "contentType", "sizeBytes", "status", "detailStatus", "propertyName", "createdAt");
+    }
+
+    private List<Map<String, Object>> maintenanceImageRows(String search, boolean withoutImages, int limit) {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        StringBuilder sql = new StringBuilder("""
+                SELECT mr.id,
+                       mr.title,
+                       p.name AS property_name,
+                       COALESCE(mr.performed_at, mr.scheduled_at) AS maintenance_date,
+                       COUNT(mri.id) AS image_count,
+                       COALESCE(STRING_AGG(mri.original_filename, ', ' ORDER BY mri.created_at DESC), '') AS filenames
+                FROM maintenance_records mr
+                JOIN properties p ON p.id = mr.property_id
+                                 AND p.organization_id = mr.organization_id
+                LEFT JOIN maintenance_record_images mri ON mri.maintenance_record_id = mr.id
+                                                       AND mri.organization_id = mr.organization_id
+                                                       AND mri.deleted_at IS NULL
+                                                       AND mri.status = 'ACTIVE'
+                WHERE mr.organization_id = :organizationId
+                  AND mr.deleted_at IS NULL
+                """);
+        if (search != null) {
+            sql.append("""
+                  AND NOT EXISTS (
+                      SELECT 1 FROM unnest(string_to_array(CAST(:search AS TEXT), ' ')) AS token(value)
+                      WHERE token.value <> ''
+                        AND translate(LOWER(CONCAT_WS(' ', mr.title, mr.description, p.name)), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
+                  )
+                """);
+        }
+        sql.append("GROUP BY mr.id, mr.title, p.name, mr.performed_at, mr.scheduled_at\n");
+        sql.append(withoutImages ? "HAVING COUNT(mri.id) = 0\n" : "HAVING COUNT(mri.id) > 0\n");
+        sql.append("ORDER BY COALESCE(mr.performed_at, mr.scheduled_at) DESC NULLS LAST, mr.title ASC\nLIMIT :limit\n");
+        return query(sql.toString(), q -> {
+            q.setParameter("organizationId", organizationId);
+            if (search != null) q.setParameter("search", search);
+            q.setParameter("limit", limit);
+        }, "id", "title", "propertyName", "maintenanceDate", "imageCount", "filenames");
+    }
+
+    private void appendFileMetadataRows(StringBuilder answer, List<Map<String, Object>> rows) {
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("displayName"))))
+                    .append(" | origen: ").append(blankToDash(value(row.get("sourceType"))))
+                    .append(" | archivo: ").append(blankToDash(value(row.get("originalFilename"))))
+                    .append(" | propiedad: ").append(blankToDash(value(row.get("propertyName"))))
+                    .append(" | tipo: ").append(blankToDash(value(row.get("contentType"))))
+                    .append(" | tamaño: ").append(formatBytes(toLong(row.get("sizeBytes"))))
+                    .append(" | estado: ").append(blankToDash(value(row.get("status"))));
+        }
+    }
+
+    private void appendMaintenanceImageRows(StringBuilder answer, List<Map<String, Object>> rows) {
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("title"))))
+                    .append(" | propiedad: ").append(blankToDash(value(row.get("propertyName"))))
+                    .append(" | fecha: ").append(blankToDash(value(row.get("maintenanceDate"))))
+                    .append(" | imágenes: ").append(blankToDash(value(row.get("imageCount"))));
+            String filenames = value(row.get("filenames"));
+            if (!filenames.isBlank()) {
+                answer.append(" | archivos: ").append(filenames);
+            }
+        }
+    }
+
     private record PurchaseDateRange(LocalDate fromDate, LocalDate toDate, String label) {
     }
 
@@ -5031,6 +5667,23 @@ public class AiReadOnlyToolService {
             return "—";
         }
         return "Q " + value;
+    }
+
+
+    private String formatBytes(long bytes) {
+        if (bytes < 1024) {
+            return bytes + " B";
+        }
+        double kb = bytes / 1024.0;
+        if (kb < 1024) {
+            return String.format(Locale.ROOT, "%.1f KB", kb);
+        }
+        double mb = kb / 1024.0;
+        if (mb < 1024) {
+            return String.format(Locale.ROOT, "%.1f MB", mb);
+        }
+        double gb = mb / 1024.0;
+        return String.format(Locale.ROOT, "%.1f GB", gb);
     }
 
     private String joinName(Object firstName, Object lastName) {

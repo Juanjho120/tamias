@@ -49,6 +49,11 @@ public class AiToolCallingService {
             return purchaseAnalyticsAnswer;
         }
 
+        Optional<AiToolAnswer> fileImageDashboardAnswer = tryHandleFileImageDashboardQuestion(question, normalized);
+        if (fileImageDashboardAnswer.isPresent()) {
+            return fileImageDashboardAnswer;
+        }
+
         Optional<AiToolAnswer> documentRagAnswer = tryHandleDocumentAndRagQuestion(question, normalized);
         if (documentRagAnswer.isPresent()) {
             return documentRagAnswer;
@@ -113,6 +118,80 @@ public class AiToolCallingService {
     }
 
 
+
+
+    private Optional<AiToolAnswer> tryHandleFileImageDashboardQuestion(String question, String normalized) {
+        if (isDashboardAnalyticsQuestion(normalized)) {
+            if (isDashboardAlertQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.dashboardAlertSummary());
+            }
+            if (isDashboardCalendarQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.dashboardCalendarEvents());
+            }
+            if (isDashboardReservationSummaryQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.dashboardReservationSummary());
+            }
+            if (isDashboardMaintenanceSummaryQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.dashboardMaintenanceSummary());
+            }
+            if (isDashboardPurchaseSummaryQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.dashboardPurchaseSummary());
+            }
+            if (isDashboardTaskSummaryQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.dashboardTaskSummary());
+            }
+            if (isDashboardDocumentSummaryQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.dashboardDocumentSummary());
+            }
+            if (isOperationalSummaryQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.operationalSummary());
+            }
+            List<AiToolAnswer> answers = List.of(
+                    readOnlyToolService.operationalSummary(),
+                    readOnlyToolService.dashboardReservationSummary(),
+                    readOnlyToolService.dashboardMaintenanceSummary(),
+                    readOnlyToolService.dashboardTaskSummary(),
+                    readOnlyToolService.dashboardAlertSummary()
+            );
+            return Optional.of(combine(
+                    "dashboard.executiveSummary",
+                    "Executive dashboard summary",
+                    "Operational, reservation, maintenance, task and alert summaries were consulted together.",
+                    "Te dejo una vista ejecutiva de la operación con datos del sistema.",
+                    answers
+            ));
+        }
+
+        if (isImageMetadataQuestion(normalized)) {
+            if (isMaintenanceImageMetadataQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.maintenanceImageMetadataSummary());
+            }
+            if (isPropertyImageMetadataQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.propertyImageMetadataSummary());
+            }
+        }
+
+        if (isFileMetadataQuestion(normalized)) {
+            if (isFileStorageSummaryQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.fileStorageSummary());
+            }
+            if (isFileOrphanCandidateQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.orphanFileCandidates());
+            }
+            if (isFileByMaintenanceQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.filesByMaintenance(question));
+            }
+            if (isFileByDocumentQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.filesByDocument(question));
+            }
+            if (isFileByPropertyQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.filesByProperty(question));
+            }
+            return Optional.of(readOnlyToolService.fileMetadata(question));
+        }
+
+        return Optional.empty();
+    }
 
     private Optional<AiToolAnswer> tryHandleDocumentAndRagQuestion(String question, String normalized) {
         if (isRagChunkSummaryQuestion(normalized)) {
@@ -763,6 +842,22 @@ public class AiToolCallingService {
             case "maintenance.withoutImages" -> "Mantenimientos sin imágenes";
             case "purchaseItem.lastPurchased" -> "Última compra";
             case "inventory.whereUsed" -> "Dónde se ha usado";
+            case "file.searchMetadata" -> "Archivos";
+            case "file.byProperty" -> "Archivos por propiedad";
+            case "file.byMaintenance" -> "Archivos de mantenimiento";
+            case "file.byDocument" -> "Archivos de documentos";
+            case "file.storageSummary" -> "Almacenamiento de archivos";
+            case "file.orphanFileCandidates" -> "Candidatos de archivos huérfanos";
+            case "image.propertyImagesSummary" -> "Imágenes de propiedades";
+            case "image.maintenanceImagesSummary" -> "Imágenes de mantenimientos";
+            case "dashboard.reservationSummary" -> "Dashboard de reservaciones";
+            case "dashboard.maintenanceSummary" -> "Dashboard de mantenimiento";
+            case "dashboard.purchaseSummary" -> "Dashboard de compras";
+            case "dashboard.taskSummary" -> "Dashboard de tareas";
+            case "dashboard.documentSummary" -> "Dashboard de documentos";
+            case "dashboard.calendarEvents" -> "Eventos del calendario";
+            case "dashboard.alertSummary" -> "Alertas operativas";
+            case "dashboard.executiveSummary" -> "Dashboard ejecutivo";
             default -> answer.evidence().get(0).label();
         };
     }
@@ -776,6 +871,80 @@ public class AiToolCallingService {
                 "The user asked for an action that would modify data. The assistant refused autonomous writes.",
                 List.of()
         );
+    }
+
+
+    private boolean isFileMetadataQuestion(String value) {
+        return containsAny(value,
+                "archivo", "archivos", "file", "files", "metadata de archivos", "metadatos de archivos", "almacenados", "almacenamiento", "bucket", "s3"
+        ) && !isDocumentCountByTypeQuestion(value) && !isDocumentCountByPropertyQuestion(value);
+    }
+
+    private boolean isFileByPropertyQuestion(String value) {
+        return isFileMetadataQuestion(value) && containsAny(value, "propiedad", "propiedades", "alojamiento", "casa", "bungalow", "asociados a esta propiedad", "para esta propiedad");
+    }
+
+    private boolean isFileByMaintenanceQuestion(String value) {
+        return isFileMetadataQuestion(value) && containsAny(value, "mantenimiento", "mantenimientos", "evidencia", "fotos de mantenimiento", "imagenes de mantenimiento");
+    }
+
+    private boolean isFileByDocumentQuestion(String value) {
+        return isFileMetadataQuestion(value) && containsAny(value, "documento", "documentos", "pdf", "manual", "plano", "regla");
+    }
+
+    private boolean isFileStorageSummaryQuestion(String value) {
+        return isFileMetadataQuestion(value) && containsAny(value, "cuantos archivos", "cuántos archivos", "almacenados", "almacenamiento", "storage", "tamano", "tamaño", "peso", "espacio");
+    }
+
+    private boolean isFileOrphanCandidateQuestion(String value) {
+        return isFileMetadataQuestion(value) && containsAny(value, "huerfano", "huérfano", "huerfanos", "huérfanos", "orphan", "sin asociar", "no asociados");
+    }
+
+    private boolean isImageMetadataQuestion(String value) {
+        return containsAny(value, "imagen", "imagenes", "foto", "fotos", "evidencia fotografica", "evidencia fotográfica");
+    }
+
+    private boolean isPropertyImageMetadataQuestion(String value) {
+        return isImageMetadataQuestion(value) && containsAny(value, "propiedad", "propiedades", "portada", "portadas", "casas", "bungalow");
+    }
+
+    private boolean isMaintenanceImageMetadataQuestion(String value) {
+        return isImageMetadataQuestion(value) && containsAny(value, "mantenimiento", "mantenimientos", "evidencia");
+    }
+
+    private boolean isDashboardAnalyticsQuestion(String value) {
+        return containsAny(value,
+                "dashboard", "tablero", "resumen ejecutivo", "resumen operativo", "estado general", "alertas", "atencion hoy", "atención hoy",
+                "calendario operativo", "eventos operativos", "summary", "analytics", "analitica", "analítica"
+        );
+    }
+
+    private boolean isDashboardReservationSummaryQuestion(String value) {
+        return isDashboardAnalyticsQuestion(value) && containsAny(value, "reservacion", "reservaciones", "reserva", "reservas", "check in", "check-in", "ocupacion", "ocupación");
+    }
+
+    private boolean isDashboardMaintenanceSummaryQuestion(String value) {
+        return isDashboardAnalyticsQuestion(value) && containsAny(value, "mantenimiento", "mantenimientos", "reparacion", "reparaciones");
+    }
+
+    private boolean isDashboardPurchaseSummaryQuestion(String value) {
+        return isDashboardAnalyticsQuestion(value) && containsAny(value, "compra", "compras", "gasto", "gastos", "supplies");
+    }
+
+    private boolean isDashboardTaskSummaryQuestion(String value) {
+        return isDashboardAnalyticsQuestion(value) && containsAny(value, "tarea", "tareas", "task", "tasks", "pendiente", "pendientes");
+    }
+
+    private boolean isDashboardDocumentSummaryQuestion(String value) {
+        return isDashboardAnalyticsQuestion(value) && containsAny(value, "documento", "documentos", "rag", "indice", "índice", "indexacion", "indexación");
+    }
+
+    private boolean isDashboardCalendarQuestion(String value) {
+        return isDashboardAnalyticsQuestion(value) && containsAny(value, "calendario", "calendar", "eventos", "agenda", "proximos eventos", "próximos eventos");
+    }
+
+    private boolean isDashboardAlertQuestion(String value) {
+        return isDashboardAnalyticsQuestion(value) && containsAny(value, "alerta", "alertas", "atencion", "atención", "vencido", "vencidos", "fallido", "fallidos", "riesgo", "riesgos");
     }
 
     private boolean isCapabilitiesQuestion(String value) {
