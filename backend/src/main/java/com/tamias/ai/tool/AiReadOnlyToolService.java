@@ -1938,6 +1938,88 @@ public class AiReadOnlyToolService {
         return reservationSupplyRowsAnswer(rows, "reservationSupply.forUpcomingReservations", "Estos supplies están asignados a próximas reservaciones:");
     }
 
+    public AiToolAnswer reservationSuppliesForLatestPastReservation() {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        LocalDate today = LocalDate.now();
+        List<Map<String, Object>> reservations = query("""
+                SELECT r.id,
+                       p.name AS property_name,
+                       r.reservation_code,
+                       r.check_in,
+                       r.check_out
+                FROM reservations r
+                JOIN properties p ON p.id = r.property_id AND p.organization_id = r.organization_id
+                WHERE r.organization_id = :organizationId
+                  AND r.deleted_at IS NULL
+                  AND r.status = 'ACTIVE'
+                  AND r.check_in <= :today
+                ORDER BY r.check_in DESC, r.created_at DESC
+                LIMIT 1
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("today", Date.valueOf(today));
+                }, "id", "propertyName", "reservationCode", "checkIn", "checkOut");
+        if (reservations.isEmpty()) {
+            return AiToolAnswer.of(
+                    "No encontré una reservación activa pasada o de hoy para revisar supplies usados.",
+                    "reservationSupply.byReservation",
+                    "Reservation supplies for latest past reservation",
+                    "No past reservation found for supply lookup.",
+                    List.of()
+            );
+        }
+        Map<String, Object> reservation = reservations.get(0);
+        UUID reservationId = UUID.fromString(value(reservation.get("id")));
+        List<Map<String, Object>> rows = query("""
+                SELECT rs.id,
+                       rs.item_name_snapshot AS item_name,
+                       rs.quantity,
+                       COALESCE(rs.unit, '') AS unit,
+                       COALESCE(rs.notes, '') AS notes,
+                       p.name AS property_name,
+                       r.reservation_code,
+                       r.check_in,
+                       r.check_out,
+                       r.status
+                FROM reservation_supplies rs
+                JOIN reservations r ON r.id = rs.reservation_id AND r.organization_id = rs.organization_id
+                JOIN properties p ON p.id = r.property_id AND p.organization_id = r.organization_id
+                WHERE rs.organization_id = :organizationId
+                  AND rs.reservation_id = :reservationId
+                  AND r.deleted_at IS NULL
+                ORDER BY rs.item_name_snapshot ASC
+                LIMIT :limit
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("reservationId", reservationId);
+                    q.setParameter("limit", DEFAULT_LIMIT);
+                }, "id", "itemName", "quantity", "unit", "notes", "propertyName", "reservationCode", "checkIn", "checkOut", "status");
+        String reservationLabel = blankToDash(value(reservation.get("reservationCode")));
+        String propertyName = blankToDash(value(reservation.get("propertyName")));
+        String checkIn = blankToDash(value(reservation.get("checkIn")));
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    "No encontré supplies asociados a la última reservación " + reservationLabel + " de " + propertyName + " con check-in " + checkIn + ".",
+                    "reservationSupply.byReservation",
+                    "Reservation supplies for latest past reservation",
+                    "Latest past reservation found, but no supplies were assigned.",
+                    reservations
+            );
+        }
+        StringBuilder answer = new StringBuilder("Estos supplies se usaron en la última reservación que encontré: ")
+                .append(reservationLabel)
+                .append(" | ").append(propertyName)
+                .append(" | check-in: ").append(checkIn)
+                .append(".");
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("itemName"))))
+                    .append(" | cantidad: ").append(blankToDash(value(row.get("quantity"))))
+                    .append(" ").append(blankToDash(value(row.get("unit"))));
+        }
+        return AiToolAnswer.of(answer.toString(), "reservationSupply.byReservation", "Reservation supplies for latest past reservation", "%d supplies found for latest past reservation.".formatted(rows.size()), rows);
+    }
+
     public AiToolAnswer reservationSupplySummaryByItem(String userQuestion) {
         LocalDate[] range = resolveDateRange(userQuestion);
         List<Map<String, Object>> rows = reservationSupplySummaryRows(range[0], range[1], DEFAULT_LIMIT);
@@ -2111,6 +2193,80 @@ public class AiReadOnlyToolService {
         return taskListRowsAnswer(rows, "taskList.byReservation", search == null ? "Estas tareas están asociadas a reservaciones:" : "Estas tareas están asociadas a reservaciones relacionadas con “" + search + "”:");
     }
 
+    public AiToolAnswer taskListsForNextReservation() {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        LocalDate today = LocalDate.now();
+        List<Map<String, Object>> reservations = query("""
+                SELECT r.id,
+                       p.name AS property_name,
+                       r.reservation_code,
+                       r.check_in,
+                       r.check_out
+                FROM reservations r
+                JOIN properties p ON p.id = r.property_id AND p.organization_id = r.organization_id
+                WHERE r.organization_id = :organizationId
+                  AND r.deleted_at IS NULL
+                  AND r.status = 'ACTIVE'
+                  AND r.check_in >= :today
+                ORDER BY r.check_in ASC, r.created_at ASC
+                LIMIT 1
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("today", Date.valueOf(today));
+                }, "id", "propertyName", "reservationCode", "checkIn", "checkOut");
+        if (reservations.isEmpty()) {
+            return AiToolAnswer.of(
+                    "No encontré una próxima reservación activa para revisar tareas asociadas.",
+                    "taskList.byReservation",
+                    "Task lists for next reservation",
+                    "No upcoming reservation found for task lookup.",
+                    List.of()
+            );
+        }
+        Map<String, Object> reservation = reservations.get(0);
+        UUID reservationId = UUID.fromString(value(reservation.get("id")));
+        List<Map<String, Object>> rows = query("""
+                SELECT tl.id,
+                       p.name AS property_name,
+                       COALESCE(r.reservation_code, '') AS reservation_code,
+                       r.check_in,
+                       tl.title,
+                       tl.creation_date,
+                       tl.due_date,
+                       tl.status,
+                       COUNT(ti.id) AS total_items,
+                       COALESCE(SUM(CASE WHEN ti.completed = TRUE THEN 1 ELSE 0 END), 0) AS completed_items,
+                       COALESCE(SUM(CASE WHEN ti.completed = FALSE THEN 1 ELSE 0 END), 0) AS pending_items
+                FROM task_lists tl
+                JOIN properties p ON p.id = tl.property_id AND p.organization_id = tl.organization_id
+                JOIN reservations r ON r.id = tl.reservation_id AND r.organization_id = tl.organization_id AND r.deleted_at IS NULL
+                LEFT JOIN task_items ti ON ti.task_list_id = tl.id AND ti.organization_id = tl.organization_id
+                WHERE tl.organization_id = :organizationId
+                  AND tl.deleted_at IS NULL
+                  AND tl.reservation_id = :reservationId
+                GROUP BY tl.id, p.name, r.reservation_code, r.check_in, tl.title, tl.creation_date, tl.due_date, tl.status
+                ORDER BY tl.due_date ASC NULLS LAST, tl.creation_date DESC, tl.title ASC
+                LIMIT :limit
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("reservationId", reservationId);
+                    q.setParameter("limit", DEFAULT_LIMIT);
+                }, "id", "propertyName", "reservationCode", "checkIn", "title", "creationDate", "dueDate", "status", "totalItems", "completedItems", "pendingItems");
+        String reservationLabel = blankToDash(value(reservation.get("reservationCode")));
+        String propertyName = blankToDash(value(reservation.get("propertyName")));
+        String checkIn = blankToDash(value(reservation.get("checkIn")));
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    "No encontré tareas asociadas a la próxima reservación " + reservationLabel + " de " + propertyName + " con check-in " + checkIn + ".",
+                    "taskList.byReservation",
+                    "Task lists for next reservation",
+                    "Next reservation found, but no task lists were assigned.",
+                    reservations
+            );
+        }
+        return taskListRowsAnswer(rows, "taskList.byReservation", "Estas tareas están asociadas a la próxima reservación " + reservationLabel + " de " + propertyName + " con check-in " + checkIn + ":");
+    }
+
     public AiToolAnswer activeTaskLists() {
         List<Map<String, Object>> rows = taskListRows(null, null, null, null, null, List.of("OPEN", "IN_PROGRESS"), null, DEFAULT_LIMIT, "tl.due_date ASC NULLS LAST, tl.creation_date DESC");
         if (rows.isEmpty()) {
@@ -2245,7 +2401,8 @@ public class AiReadOnlyToolService {
                 SELECT COALESCE(NULLIF(ti.responsible_person, ''), 'Sin responsable') AS responsible_person,
                        COUNT(*) AS item_count,
                        COALESCE(SUM(CASE WHEN ti.completed = TRUE THEN 1 ELSE 0 END), 0) AS completed_items,
-                       COALESCE(SUM(CASE WHEN ti.completed = FALSE THEN 1 ELSE 0 END), 0) AS pending_items
+                       COALESCE(SUM(CASE WHEN ti.completed = FALSE THEN 1 ELSE 0 END), 0) AS pending_items,
+                       COALESCE(STRING_AGG(ti.task_name, ', ' ORDER BY ti.completed ASC, ti.sort_order ASC, ti.task_name ASC), '') AS task_names
                 FROM task_items ti
                 JOIN task_lists tl ON tl.id = ti.task_list_id AND tl.organization_id = ti.organization_id
                 WHERE ti.organization_id = :organizationId
@@ -2256,7 +2413,7 @@ public class AiReadOnlyToolService {
                 """, q -> {
                     q.setParameter("organizationId", organizationId);
                     q.setParameter("limit", DEFAULT_LIMIT);
-                }, "responsiblePerson", "itemCount", "completedItems", "pendingItems");
+                }, "responsiblePerson", "itemCount", "completedItems", "pendingItems", "taskNames");
         if (rows.isEmpty()) {
             return AiToolAnswer.of("No encontré responsables asignados en tareas específicas.", "taskItem.assignedSummary", "Task item assigned summary", "No task item assignment summary found.", List.of());
         }
@@ -2266,15 +2423,24 @@ public class AiReadOnlyToolService {
                     .append("- ").append(blankToDash(value(row.get("responsiblePerson"))))
                     .append(" | total: ").append(blankToDash(value(row.get("itemCount"))))
                     .append(" | completadas: ").append(blankToDash(value(row.get("completedItems"))))
-                    .append(" | pendientes: ").append(blankToDash(value(row.get("pendingItems"))));
+                    .append(" | pendientes: ").append(blankToDash(value(row.get("pendingItems"))))
+                    .append(" | tareas: ").append(blankToDash(value(row.get("taskNames"))));
         }
         return AiToolAnswer.of(answer.toString(), "taskItem.assignedSummary", "Task item assigned summary", "%d task item assignment summary rows found.".formatted(rows.size()), rows);
     }
 
     public AiToolAnswer taskItemPrioritySummary() {
-        String answer = "En el modelo actual de TAMIAS no veo una columna de prioridad para task_items.\n"
-                + "Puedo resumir tareas por estado, responsable, vencimiento o lista, pero no por prioridad hasta que exista ese dato en la base.";
-        return AiToolAnswer.of(answer, "taskItem.prioritySummary", "Task item priority summary", "Priority metadata is not available in current task_items schema.", List.of());
+        List<Map<String, Object>> rows = taskItemRows(null, null, false, null, DEFAULT_LIMIT, "ti.sort_order ASC, tl.due_date ASC NULLS LAST, ti.task_name ASC", true);
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    "No encontré tareas específicas pendientes con prioridad alta. Para esta consulta estoy considerando prioridad alta como sort_order 0 o 1.",
+                    "taskItem.prioritySummary",
+                    "Task item priority summary",
+                    "No high priority task items found using sort_order 0 or 1.",
+                    List.of()
+            );
+        }
+        return taskItemRowsAnswer(rows, "taskItem.prioritySummary", "Estas tareas específicas tienen prioridad alta:");
     }
 
 
@@ -2372,8 +2538,11 @@ public class AiReadOnlyToolService {
                 FROM reservation_supplies rs
                 JOIN reservations r ON r.id = rs.reservation_id AND r.organization_id = rs.organization_id
                 JOIN properties p ON p.id = r.property_id AND p.organization_id = rs.organization_id
+                JOIN inventory_items ii ON ii.id = rs.inventory_item_id AND ii.organization_id = rs.organization_id
                 WHERE rs.organization_id = :organizationId
                   AND r.deleted_at IS NULL
+                  AND ii.deleted_at IS NULL
+                  AND ii.item_type = 'SUPPLY'
                 """);
         if (fromDate != null) {
             sql.append("  AND r.check_in >= :fromDate\n");
@@ -2542,6 +2711,10 @@ public class AiReadOnlyToolService {
     }
 
     private List<Map<String, Object>> taskItemRows(String search, String taskListSearch, Boolean completed, LocalDate overdueBefore, int limit, String orderBy) {
+        return taskItemRows(search, taskListSearch, completed, overdueBefore, limit, orderBy, false);
+    }
+
+    private List<Map<String, Object>> taskItemRows(String search, String taskListSearch, Boolean completed, LocalDate overdueBefore, int limit, String orderBy, boolean highPriorityOnly) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         StringBuilder sql = new StringBuilder("""
                 SELECT ti.id,
@@ -2587,6 +2760,9 @@ public class AiReadOnlyToolService {
         }
         if (overdueBefore != null) {
             sql.append("  AND tl.due_date <= :overdueBefore\n");
+        }
+        if (highPriorityOnly) {
+            sql.append("  AND ti.sort_order IN (0, 1)\n");
         }
         sql.append(" ORDER BY ").append(orderBy).append("\n LIMIT :limit\n");
         return query(sql.toString(), q -> {

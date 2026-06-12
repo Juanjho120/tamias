@@ -227,6 +227,9 @@ public class AiToolCallingService {
             if (isReservationSupplyMostUsedQuestion(normalized)) {
                 return Optional.of(readOnlyToolService.reservationSupplyMostUsed());
             }
+            if (isReservationSupplyLatestReservationQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.reservationSuppliesForLatestPastReservation());
+            }
             if (isReservationSupplyLastUsedQuestion(normalized)) {
                 return Optional.of(readOnlyToolService.reservationSupplyLastUsed(question));
             }
@@ -288,6 +291,9 @@ public class AiToolCallingService {
             }
             if (isTaskListCompletedQuestion(normalized)) {
                 return Optional.of(readOnlyToolService.completedTaskLists());
+            }
+            if (isTaskListForNextReservationQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.taskListsForNextReservation());
             }
             if (isTaskListByReservationQuestion(normalized)) {
                 return Optional.of(readOnlyToolService.taskListsByReservation(question));
@@ -538,7 +544,6 @@ public class AiToolCallingService {
                     .append(answer.answer())
                     .append("\n\n");
         }
-        builder.append("No hice cambios en tus datos; esta respuesta solo consulta información existente en TAMIAS.");
         evidence.add(new AiToolEvidenceResponse(toolName, label, summary, List.of()));
         return new AiToolAnswer(builder.toString().trim(), true, evidence);
     }
@@ -955,7 +960,7 @@ public class AiToolCallingService {
 
     private boolean isReservationSupplyToolQuestion(String value) {
         return containsAny(value, "supply", "supplies", "insumo", "insumos", "suministro", "suministros")
-                && containsAny(value, "reservacion", "reservaciones", "reserva", "reservas", "check in", "check-in", "huesped", "huespedes", "proxima", "proximas", "ultima", "usaron", "usado", "asignado", "asignados", "faltan", "faltantes");
+                && containsAny(value, "reservacion", "reservaciones", "reserva", "reservas", "check in", "check-in", "huesped", "huespedes", "proxima", "proximas", "ultima", "ultimos", "ultimas", "usaron", "usado", "usan", "usa", "uso", "mas", "más", "asignado", "asignados", "faltan", "faltantes");
     }
 
     private boolean isReservationSupplyByReservationQuestion(String value) {
@@ -982,6 +987,11 @@ public class AiToolCallingService {
         return isReservationSupplyToolQuestion(value) && containsAny(value, "ultimo", "ultima", "ultima vez", "last used", "se usaron", "se uso");
     }
 
+    private boolean isReservationSupplyLatestReservationQuestion(String value) {
+        return isReservationSupplyToolQuestion(value)
+                && containsAny(value, "ultima reserva", "ultima reservacion", "ultima reservación", "ultima vez en reserva", "se usaron en la ultima", "se usaron en ultima");
+    }
+
     private boolean isReservationSupplyMostUsedQuestion(String value) {
         return isReservationSupplyToolQuestion(value) && containsAny(value, "mas usados", "más usados", "mas usado", "más usado", "usan mas", "usan más", "usa mas", "usa más", "se usan mas", "se usan más", "most used", "frecuentes");
     }
@@ -1001,6 +1011,11 @@ public class AiToolCallingService {
 
     private boolean isTaskListByReservationQuestion(String value) {
         return isTaskListToolQuestion(value) && containsAny(value, "reservacion", "reservaciones", "reserva", "reservas", "check in", "check-in");
+    }
+
+    private boolean isTaskListForNextReservationQuestion(String value) {
+        return isTaskListToolQuestion(value)
+                && containsAny(value, "proxima reservacion", "proxima reservación", "proxima reserva", "siguiente reservacion", "siguiente reserva");
     }
 
     private boolean isTaskListActiveQuestion(String value) {
@@ -1032,7 +1047,7 @@ public class AiToolCallingService {
     }
 
     private boolean isTaskItemToolQuestion(String value) {
-        return isTaskListToolQuestion(value) && containsAny(value, "especifica", "especificas", "item", "items", "faltan", "faltantes", "responsable", "responsables", "prioridad", "priority");
+        return isTaskListToolQuestion(value) && containsAny(value, "especifica", "especificas", "item", "items", "faltan", "faltantes", "responsable", "responsables", "prioridad", "priority", "completada", "completadas", "completado", "completados", "completaron", "ya se completaron", "pendiente", "pendientes", "atrasada", "atrasadas", "vencida", "vencidas");
     }
 
     private boolean isTaskItemByTaskListQuestion(String value) {
