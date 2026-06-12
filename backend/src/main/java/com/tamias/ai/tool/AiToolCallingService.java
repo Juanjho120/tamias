@@ -1401,14 +1401,18 @@ public class AiToolCallingService {
     }
 
     private boolean isDocumentCountByTypeQuestion(String value) {
-        return isDocumentToolQuestion(value) && containsAny(value,
-                "cuantos por tipo", "cuántos por tipo", "documentos por tipo", "conteo por tipo", "count by type", "agrupados por tipo"
+        return isDocumentToolQuestion(value)
+                && containsAny(value, "tipo", "por tipo", "by type")
+                && containsAny(value,
+                "cuantos", "cuántos", "cantidad", "conteo", "count", "agrupados", "agrupar", "grupo"
         );
     }
 
     private boolean isDocumentCountByPropertyQuestion(String value) {
-        return isDocumentToolQuestion(value) && containsAny(value,
-                "cuantos por propiedad", "cuántos por propiedad", "documentos por propiedad", "conteo por propiedad", "count by property", "agrupados por propiedad"
+        return isDocumentToolQuestion(value)
+                && containsAny(value, "propiedad", "por propiedad", "by property")
+                && containsAny(value,
+                "cuantos", "cuántos", "cantidad", "conteo", "count", "agrupados", "agrupar", "grupo"
         );
     }
 

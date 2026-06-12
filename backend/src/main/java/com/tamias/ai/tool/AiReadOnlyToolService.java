@@ -3522,81 +3522,54 @@ public class AiReadOnlyToolService {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         List<Map<String, Object>> rows = query("""
                 SELECT d.document_type,
-                       COUNT(d.id) AS document_count,
-                       COALESCE(SUM(CASE WHEN d.processing_status = 'PROCESSED' THEN 1 ELSE 0 END), 0) AS processed_count,
-                       COALESCE(SUM(CASE WHEN EXISTS (
+                       d.title,
+                       d.processing_status,
+                       CASE WHEN EXISTS (
                            SELECT 1 FROM document_chunks dc
                            WHERE dc.document_id = d.id
                              AND dc.organization_id = d.organization_id
                              AND dc.vector_store_id IS NOT NULL
-                       ) THEN 1 ELSE 0 END), 0) AS indexed_count,
-                       COALESCE(STRING_AGG(d.title, ', ' ORDER BY d.title), '') AS document_titles
+                       ) THEN TRUE ELSE FALSE END AS indexed
                 FROM documents d
                 WHERE d.organization_id = :organizationId
                   AND d.deleted_at IS NULL
-                GROUP BY d.document_type
-                ORDER BY document_count DESC, d.document_type ASC
-                LIMIT :limit
-                """, q -> {
-                    q.setParameter("organizationId", organizationId);
-                    q.setParameter("limit", DEFAULT_LIMIT);
-                }, "documentType", "documentCount", "processedCount", "indexedCount", "documentTitles");
+                ORDER BY d.document_type ASC, d.title ASC
+                """, q -> q.setParameter("organizationId", organizationId),
+                "documentType", "title", "processingStatus", "indexed");
         if (rows.isEmpty()) {
             return AiToolAnswer.of("No encontré documentos para agrupar por tipo.", "document.countByType", "Document count by type", "No documents found.", List.of());
         }
-        long totalDocuments = rows.stream().mapToLong(row -> toLong(row.get("documentCount"))).sum();
-        StringBuilder answer = new StringBuilder("Tienes ").append(totalDocuments).append(" documentos cargados en total. Así se agrupan por tipo:");
-        for (Map<String, Object> row : rows) {
-            answer.append(System.lineSeparator())
-                    .append("- ").append(blankToDash(value(row.get("documentType"))))
-                    .append(" | documentos: ").append(blankToDash(value(row.get("documentCount"))))
-                    .append(" | procesados: ").append(blankToDash(value(row.get("processedCount"))))
-                    .append(" | listos para IA: ").append(blankToDash(value(row.get("indexedCount"))))
-                    .append(System.lineSeparator())
-                    .append("  Documentos: ").append(blankToDash(value(row.get("documentTitles"))));
-        }
-        return AiToolAnswer.of(answer.toString(), "document.countByType", "Document count by type", "%d document type rows found.".formatted(rows.size()), rows);
+        StringBuilder answer = new StringBuilder("Tienes ").append(rows.size()).append(" documentos cargados en total. Así se agrupan por tipo:");
+        appendDocumentGroups(answer, rows, "documentType");
+        return AiToolAnswer.of(answer.toString(), "document.countByType", "Document count by type", "%d documents grouped by type.".formatted(rows.size()), rows);
     }
 
     public AiToolAnswer documentCountByProperty() {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         List<Map<String, Object>> rows = query("""
                 SELECT COALESCE(p.name, 'Sin propiedad') AS property_name,
-                       COUNT(d.id) AS document_count,
-                       COALESCE(SUM(CASE WHEN d.processing_status = 'PROCESSED' THEN 1 ELSE 0 END), 0) AS processed_count,
-                       COALESCE(SUM(CASE WHEN EXISTS (
+                       d.title,
+                       d.document_type,
+                       d.processing_status,
+                       CASE WHEN EXISTS (
                            SELECT 1 FROM document_chunks dc
                            WHERE dc.document_id = d.id
                              AND dc.organization_id = d.organization_id
                              AND dc.vector_store_id IS NOT NULL
-                       ) THEN 1 ELSE 0 END), 0) AS indexed_count,
-                       COALESCE(STRING_AGG(d.title, ', ' ORDER BY d.title), '') AS document_titles
+                       ) THEN TRUE ELSE FALSE END AS indexed
                 FROM documents d
                 LEFT JOIN properties p ON p.id = d.property_id AND p.organization_id = d.organization_id
                 WHERE d.organization_id = :organizationId
                   AND d.deleted_at IS NULL
-                GROUP BY p.name
-                ORDER BY document_count DESC, property_name ASC
-                LIMIT :limit
-                """, q -> {
-                    q.setParameter("organizationId", organizationId);
-                    q.setParameter("limit", DEFAULT_LIMIT);
-                }, "propertyName", "documentCount", "processedCount", "indexedCount", "documentTitles");
+                ORDER BY property_name ASC, d.title ASC
+                """, q -> q.setParameter("organizationId", organizationId),
+                "propertyName", "title", "documentType", "processingStatus", "indexed");
         if (rows.isEmpty()) {
             return AiToolAnswer.of("No encontré documentos para agrupar por propiedad.", "document.countByProperty", "Document count by property", "No documents found.", List.of());
         }
-        long totalDocuments = rows.stream().mapToLong(row -> toLong(row.get("documentCount"))).sum();
-        StringBuilder answer = new StringBuilder("Tienes ").append(totalDocuments).append(" documentos cargados en total. Así se agrupan por propiedad:");
-        for (Map<String, Object> row : rows) {
-            answer.append(System.lineSeparator())
-                    .append("- ").append(blankToDash(value(row.get("propertyName"))))
-                    .append(" | documentos: ").append(blankToDash(value(row.get("documentCount"))))
-                    .append(" | procesados: ").append(blankToDash(value(row.get("processedCount"))))
-                    .append(" | listos para IA: ").append(blankToDash(value(row.get("indexedCount"))))
-                    .append(System.lineSeparator())
-                    .append("  Documentos: ").append(blankToDash(value(row.get("documentTitles"))));
-        }
-        return AiToolAnswer.of(answer.toString(), "document.countByProperty", "Document count by property", "%d property document rows found.".formatted(rows.size()), rows);
+        StringBuilder answer = new StringBuilder("Tienes ").append(rows.size()).append(" documentos cargados en total. Así se agrupan por propiedad:");
+        appendDocumentGroups(answer, rows, "propertyName");
+        return AiToolAnswer.of(answer.toString(), "document.countByProperty", "Document count by property", "%d documents grouped by property.".formatted(rows.size()), rows);
     }
 
     public AiToolAnswer findBlueprintDocuments() {
@@ -4929,6 +4902,25 @@ public class AiReadOnlyToolService {
                     .append(" | comprado: ").append(blankToDash(value(row.get("purchased"))))
                     .append(" | proveedor: ").append(blankToDash(value(row.get("supplierName"))))
                     .append(" | propiedad: ").append(blankToDash(value(row.get("propertyName"))));
+        }
+    }
+
+    private void appendDocumentGroups(StringBuilder answer, List<Map<String, Object>> rows, String groupKey) {
+        Map<String, List<Map<String, Object>>> grouped = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            String groupName = blankToDash(value(row.get(groupKey)));
+            grouped.computeIfAbsent(groupName, ignored -> new ArrayList<>()).add(row);
+        }
+        for (Map.Entry<String, List<Map<String, Object>>> entry : grouped.entrySet()) {
+            answer.append(System.lineSeparator())
+                    .append(entry.getKey())
+                    .append(" | documentos: ")
+                    .append(entry.getValue().size());
+            for (Map<String, Object> row : entry.getValue()) {
+                answer.append(System.lineSeparator())
+                        .append("- ")
+                        .append(blankToDash(value(row.get("title"))));
+            }
         }
     }
 
