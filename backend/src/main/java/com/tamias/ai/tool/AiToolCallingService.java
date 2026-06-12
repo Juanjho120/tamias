@@ -49,6 +49,11 @@ public class AiToolCallingService {
             return scheduledReservationGuestAnswer;
         }
 
+        Optional<AiToolAnswer> reservationSupplyTaskAnswer = tryHandleReservationSupplyAndTaskQuestion(question, normalized);
+        if (reservationSupplyTaskAnswer.isPresent()) {
+            return reservationSupplyTaskAnswer;
+        }
+
         Optional<AiToolAnswer> assistantAnswer = tryHandleAssistantLevelQuestion(question, normalized);
         if (assistantAnswer.isPresent()) {
             return assistantAnswer;
@@ -208,6 +213,92 @@ public class AiToolCallingService {
                 return Optional.of(readOnlyToolService.upcomingScheduledMaintenance());
             }
             return Optional.of(readOnlyToolService.scheduledMaintenanceSearch(question));
+        }
+
+        return Optional.empty();
+    }
+
+
+    private Optional<AiToolAnswer> tryHandleReservationSupplyAndTaskQuestion(String question, String normalized) {
+        if (isReservationSupplyToolQuestion(normalized)) {
+            if (isReservationSupplyMissingQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.reservationSupplyMissingForUpcomingReservations());
+            }
+            if (isReservationSupplyMostUsedQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.reservationSupplyMostUsed());
+            }
+            if (isReservationSupplyLastUsedQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.reservationSupplyLastUsed(question));
+            }
+            if (isReservationSupplyUpcomingQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.reservationSuppliesForUpcomingReservations());
+            }
+            if (isReservationSupplySummaryByDateQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.reservationSupplySummaryByDateRange(question));
+            }
+            if (isReservationSupplySummaryQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.reservationSupplySummaryByItem(question));
+            }
+            if (isReservationSupplyByPropertyQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.reservationSuppliesByProperty(question));
+            }
+            if (isReservationSupplyByReservationQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.reservationSuppliesByReservation(question));
+            }
+            return Optional.of(readOnlyToolService.reservationSupplySearch(question));
+        }
+
+        if (isTaskItemToolQuestion(normalized)) {
+            if (isTaskItemAssignedSummaryQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.taskItemAssignedSummary());
+            }
+            if (isTaskItemPrioritySummaryQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.taskItemPrioritySummary());
+            }
+            if (isTaskItemOverdueQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.overdueTaskItems());
+            }
+            if (isTaskItemCompletedQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.completedTaskItems());
+            }
+            if (isTaskItemPendingQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.pendingTaskItems());
+            }
+            if (isTaskItemByTaskListQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.taskItemsByTaskList(question));
+            }
+            return Optional.of(readOnlyToolService.taskItemSearch(question));
+        }
+
+        if (isTaskListToolQuestion(normalized)) {
+            if (isTaskListProgressQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.taskListProgressSummary());
+            }
+            if (isTaskListCompletionQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.taskListCompletionSummary());
+            }
+            if (isTaskListDueTodayQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.dueTodayTaskLists());
+            }
+            if (isTaskListDueThisWeekQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.dueThisWeekTaskLists());
+            }
+            if (isTaskListOverdueQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.overdueTaskLists());
+            }
+            if (isTaskListCompletedQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.completedTaskLists());
+            }
+            if (isTaskListByReservationQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.taskListsByReservation(question));
+            }
+            if (isTaskListByPropertyQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.taskListsByProperty(question));
+            }
+            if (isTaskListActiveQuestion(normalized) || isPendingTaskQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.activeTaskLists());
+            }
+            return Optional.of(readOnlyToolService.taskListSearch(question));
         }
 
         return Optional.empty();
@@ -859,6 +950,113 @@ public class AiToolCallingService {
 
     private boolean isGuestCountQuestion(String value) {
         return isGuestToolQuestion(value) && containsAny(value, "cuantos", "cantidad", "conteo", "count", "tendre", "tengo este mes");
+    }
+
+
+    private boolean isReservationSupplyToolQuestion(String value) {
+        return containsAny(value, "supply", "supplies", "insumo", "insumos", "suministro", "suministros")
+                && containsAny(value, "reservacion", "reservaciones", "reserva", "reservas", "check in", "check-in", "huesped", "huespedes", "proxima", "proximas", "ultima", "usaron", "usado", "asignado", "asignados", "faltan", "faltantes");
+    }
+
+    private boolean isReservationSupplyByReservationQuestion(String value) {
+        return isReservationSupplyToolQuestion(value) && containsAny(value, "reservacion", "reservaciones", "reserva", "reservas", "codigo", "check in", "check-in");
+    }
+
+    private boolean isReservationSupplyByPropertyQuestion(String value) {
+        return isReservationSupplyToolQuestion(value) && containsAny(value, "propiedad", "propiedades", "casa", "bungalow", "alojamiento");
+    }
+
+    private boolean isReservationSupplyUpcomingQuestion(String value) {
+        return isReservationSupplyToolQuestion(value) && containsAny(value, "proxima", "proximas", "siguiente", "siguientes", "upcoming", "check in", "check-in", "necesito", "necesarios");
+    }
+
+    private boolean isReservationSupplySummaryQuestion(String value) {
+        return isReservationSupplyToolQuestion(value) && containsAny(value, "resumen", "summary", "total", "totales", "por item", "por producto");
+    }
+
+    private boolean isReservationSupplySummaryByDateQuestion(String value) {
+        return isReservationSupplyToolQuestion(value) && containsAny(value, "fecha", "fechas", "rango", "semana", "mes", "hoy");
+    }
+
+    private boolean isReservationSupplyLastUsedQuestion(String value) {
+        return isReservationSupplyToolQuestion(value) && containsAny(value, "ultimo", "ultima", "ultima vez", "last used", "se usaron", "se uso");
+    }
+
+    private boolean isReservationSupplyMostUsedQuestion(String value) {
+        return isReservationSupplyToolQuestion(value) && containsAny(value, "mas usados", "mas usado", "usan mas", "usa mas", "most used", "frecuentes");
+    }
+
+    private boolean isReservationSupplyMissingQuestion(String value) {
+        return isReservationSupplyToolQuestion(value) && containsAny(value, "no tienen", "sin supplies", "sin supply", "faltan", "faltantes", "no tiene", "missing");
+    }
+
+    private boolean isTaskListToolQuestion(String value) {
+        return containsAny(value, "tarea", "tareas", "task list", "task lists", "lista de tareas", "listas de tareas", "checklist")
+                && !containsAny(value, "mantenimiento programado", "supplies", "supply", "insumo", "insumos");
+    }
+
+    private boolean isTaskListByPropertyQuestion(String value) {
+        return isTaskListToolQuestion(value) && containsAny(value, "propiedad", "propiedades", "casa", "bungalow", "alojamiento");
+    }
+
+    private boolean isTaskListByReservationQuestion(String value) {
+        return isTaskListToolQuestion(value) && containsAny(value, "reservacion", "reservaciones", "reserva", "reservas", "check in", "check-in");
+    }
+
+    private boolean isTaskListActiveQuestion(String value) {
+        return isTaskListToolQuestion(value) && containsAny(value, "activas", "activa", "abiertas", "abierta", "pendientes", "pendiente", "en progreso");
+    }
+
+    private boolean isTaskListCompletedQuestion(String value) {
+        return isTaskListToolQuestion(value) && containsAny(value, "completadas", "completada", "completados", "completado", "terminadas", "cerradas");
+    }
+
+    private boolean isTaskListOverdueQuestion(String value) {
+        return isTaskListToolQuestion(value) && containsAny(value, "vencidas", "vencida", "atrasadas", "atrasada", "overdue");
+    }
+
+    private boolean isTaskListDueTodayQuestion(String value) {
+        return isTaskListToolQuestion(value) && containsAny(value, "hoy", "today");
+    }
+
+    private boolean isTaskListDueThisWeekQuestion(String value) {
+        return isTaskListToolQuestion(value) && containsAny(value, "esta semana", "semana", "week");
+    }
+
+    private boolean isTaskListProgressQuestion(String value) {
+        return isTaskListToolQuestion(value) && containsAny(value, "avance", "progreso", "porcentaje", "progress");
+    }
+
+    private boolean isTaskListCompletionQuestion(String value) {
+        return isTaskListToolQuestion(value) && containsAny(value, "completitud", "completion", "estado", "distribucion");
+    }
+
+    private boolean isTaskItemToolQuestion(String value) {
+        return isTaskListToolQuestion(value) && containsAny(value, "especifica", "especificas", "item", "items", "faltan", "faltantes", "responsable", "responsables", "prioridad", "priority");
+    }
+
+    private boolean isTaskItemByTaskListQuestion(String value) {
+        return isTaskItemToolQuestion(value) && containsAny(value, "lista", "checklist", "task list");
+    }
+
+    private boolean isTaskItemPendingQuestion(String value) {
+        return isTaskItemToolQuestion(value) && containsAny(value, "pendientes", "pendiente", "faltan", "faltantes", "no completadas");
+    }
+
+    private boolean isTaskItemCompletedQuestion(String value) {
+        return isTaskItemToolQuestion(value) && containsAny(value, "completadas", "completada", "completados", "completado", "ya se completaron");
+    }
+
+    private boolean isTaskItemOverdueQuestion(String value) {
+        return isTaskItemToolQuestion(value) && containsAny(value, "atrasadas", "atrasada", "vencidas", "vencida", "overdue");
+    }
+
+    private boolean isTaskItemAssignedSummaryQuestion(String value) {
+        return isTaskItemToolQuestion(value) && containsAny(value, "responsable", "responsables", "asignado", "asignadas", "assigned");
+    }
+
+    private boolean isTaskItemPrioritySummaryQuestion(String value) {
+        return isTaskItemToolQuestion(value) && containsAny(value, "prioridad", "prioridades", "priority");
     }
 
     private boolean isOperationalSummaryQuestion(String value) {
