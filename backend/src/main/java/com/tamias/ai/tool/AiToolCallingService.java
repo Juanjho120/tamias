@@ -49,6 +49,16 @@ public class AiToolCallingService {
             return catalogAnswer;
         }
 
+        Optional<AiToolAnswer> inventoryAnswer = tryHandleInventoryQuestion(question, normalized);
+        if (inventoryAnswer.isPresent()) {
+            return inventoryAnswer;
+        }
+
+        Optional<AiToolAnswer> maintenanceAnalyticsAnswer = tryHandleMaintenanceAnalyticsQuestion(question, normalized);
+        if (maintenanceAnalyticsAnswer.isPresent()) {
+            return maintenanceAnalyticsAnswer;
+        }
+
         if (isRagHealthQuestion(normalized)) {
             return Optional.of(readOnlyToolService.ragDocumentIndexStatus());
         }
@@ -188,6 +198,66 @@ public class AiToolCallingService {
         return Optional.of(readOnlyToolService.catalogSearch(question));
     }
 
+
+    private Optional<AiToolAnswer> tryHandleInventoryQuestion(String question, String normalized) {
+        if (!isInventoryQuestion(normalized)) {
+            return Optional.empty();
+        }
+        if (isInventoryUnusedQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.inventoryUnusedItems());
+        }
+        if (isInventoryFrequentlyUsedQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.inventoryFrequentlyUsed());
+        }
+        if (isInventoryReservationUsageQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.inventoryReservationUsage(question));
+        }
+        if (isInventoryPurchaseUsageQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.inventoryPurchaseUsage(question));
+        }
+        if (isInventoryMaintenanceUsageQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.inventoryMaintenanceUsage(question));
+        }
+        return Optional.of(readOnlyToolService.inventorySearch(question));
+    }
+
+    private Optional<AiToolAnswer> tryHandleMaintenanceAnalyticsQuestion(String question, String normalized) {
+        if (!isMaintenanceAnalyticsQuestion(normalized)) {
+            return Optional.empty();
+        }
+        if (isMaintenanceImageQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.maintenanceImagesSummary(containsAny(normalized, "sin imagen", "sin imagenes", "no tienen imagen", "no tiene imagen", "sin evidencia", "no tienen evidencia", "no tiene evidencia")));
+        }
+        if (isMaintenanceCostByPropertyQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.maintenanceCostByProperty());
+        }
+        if (isMaintenanceCostByCategoryQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.maintenanceCostByCategory());
+        }
+        if (isMaintenanceCostByMonthQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.maintenanceCostByMonth());
+        }
+        if (isMaintenanceCostQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.maintenanceCostSummary(question));
+        }
+        if (isMaintenanceStatusQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.maintenanceByStatus(question));
+        }
+        if (isMaintenancePropertyFilterQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.maintenanceByProperty(question));
+        }
+        if (isMaintenanceCategoryOrTypeFilterQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.maintenanceByCategoryOrType(question));
+        }
+        if (isMaintenanceItemUsageQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.inventoryMaintenanceUsage(question));
+        }
+        if (isMaintenanceRecentQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.recentMaintenance());
+        }
+        return Optional.of(readOnlyToolService.maintenanceSearch(question));
+    }
+
     private AiToolAnswer combine(
             String toolName,
             String label,
@@ -235,6 +305,23 @@ public class AiToolCallingService {
             case "catalog.maintenanceOverview" -> "Catálogos para mantenimiento";
             case "catalog.search" -> "Catálogos";
             case "maintenance.lastPerformed" -> "Último mantenimiento";
+            case "inventory.search" -> "Inventario";
+            case "inventory.getFrequentlyUsed" -> "Items más usados";
+            case "inventory.getUnusedItems" -> "Items sin uso";
+            case "inventory.getItemsUsedInReservations" -> "Items usados en reservaciones";
+            case "inventory.getItemsUsedInPurchases" -> "Items usados en compras";
+            case "inventory.getItemsUsedInMaintenance" -> "Items usados en mantenimientos";
+            case "maintenance.search" -> "Mantenimientos";
+            case "maintenance.recent" -> "Mantenimientos recientes";
+            case "maintenance.byStatus" -> "Mantenimientos por estado";
+            case "maintenance.byProperty" -> "Mantenimientos por propiedad";
+            case "maintenance.byCategoryOrType" -> "Mantenimientos por categoría/tipo";
+            case "maintenance.costSummary" -> "Costos de mantenimiento";
+            case "maintenance.costByProperty" -> "Costos por propiedad";
+            case "maintenance.costByCategory" -> "Costos por categoría";
+            case "maintenance.costByMonth" -> "Costos por mes";
+            case "maintenance.withImages" -> "Mantenimientos con imágenes";
+            case "maintenance.withoutImages" -> "Mantenimientos sin imágenes";
             case "purchaseItem.lastPurchased" -> "Última compra";
             default -> answer.evidence().get(0).label();
         };
@@ -344,6 +431,81 @@ public class AiToolCallingService {
 
     private boolean isInventoryItemTypeQuestion(String value) {
         return containsAny(value, "tipos de item", "tipos de inventario", "inventory item types", "item types", "tipos de supplies");
+    }
+
+
+    private boolean isInventoryQuestion(String value) {
+        return containsAny(value,
+                "inventario", "inventory", "inventory item", "inventory items", "item de inventario", "items de inventario",
+                "item registrado", "items registrados", "supplies", "supply", "suministro", "suministros", "repuesto", "repuestos", "material", "materiales"
+        ) || (containsAny(value, "item", "items") && containsAny(value, "registrado", "registrados", "usado", "usados", "uso", "nunca", "reservacion", "reservaciones", "mantenimiento", "mantenimientos", "compra", "compras"));
+    }
+
+    private boolean isInventoryUnusedQuestion(String value) {
+        return isInventoryQuestion(value) && containsAny(value, "nunca", "sin uso", "no usados", "no he usado", "nunca he usado", "unused");
+    }
+
+    private boolean isInventoryFrequentlyUsedQuestion(String value) {
+        return isInventoryQuestion(value) && containsAny(value, "mas usados", "usan mas", "uso mas", "frecuentes", "frecuentemente", "frequently", "top", "mas se usan");
+    }
+
+    private boolean isInventoryReservationUsageQuestion(String value) {
+        return isInventoryQuestion(value) && containsAny(value, "reservacion", "reservaciones", "reserva", "reservas", "huesped", "huespedes");
+    }
+
+    private boolean isInventoryPurchaseUsageQuestion(String value) {
+        return isInventoryQuestion(value) && containsAny(value, "compra", "compras", "comprado", "compre", "precio", "costo");
+    }
+
+    private boolean isInventoryMaintenanceUsageQuestion(String value) {
+        return isInventoryQuestion(value) && containsAny(value, "mantenimiento", "mantenimientos", "reparacion", "reparaciones");
+    }
+
+    private boolean isMaintenanceAnalyticsQuestion(String value) {
+        return containsAny(value, "mantenimiento", "mantenimientos", "reparacion", "reparaciones")
+                && !isLastMaintenanceQuestion(value)
+                && !isOverdueScheduledMaintenanceQuestion(value)
+                && !containsAny(value, "programado vencido", "programados vencidos", "proximo mantenimiento programado");
+    }
+
+    private boolean isMaintenanceRecentQuestion(String value) {
+        return isMaintenanceAnalyticsQuestion(value) && containsAny(value, "recientes", "reciente", "ultimos", "ultimas", "lista", "listar", "buscar", "busca");
+    }
+
+    private boolean isMaintenanceCostQuestion(String value) {
+        return isMaintenanceAnalyticsQuestion(value) && containsAny(value, "costo", "costos", "gaste", "gasto", "gastado", "cuanto", "total", "precio", "caros", "caras", "dinero");
+    }
+
+    private boolean isMaintenanceCostByPropertyQuestion(String value) {
+        return isMaintenanceCostQuestion(value) && containsAny(value, "por propiedad", "propiedad genero", "propiedad tiene", "propiedades");
+    }
+
+    private boolean isMaintenanceCostByCategoryQuestion(String value) {
+        return isMaintenanceCostQuestion(value) && containsAny(value, "por categoria", "categoria", "categorias");
+    }
+
+    private boolean isMaintenanceCostByMonthQuestion(String value) {
+        return isMaintenanceCostQuestion(value) && containsAny(value, "por mes", "mensual", "mes a mes", "tendencia", "meses");
+    }
+
+    private boolean isMaintenanceImageQuestion(String value) {
+        return isMaintenanceAnalyticsQuestion(value) && containsAny(value, "imagen", "imagenes", "foto", "fotos", "evidencia", "fotografica", "fotografica", "sin imagen", "sin evidencia");
+    }
+
+    private boolean isMaintenanceStatusQuestion(String value) {
+        return isMaintenanceAnalyticsQuestion(value) && containsAny(value, "estado", "completado", "completados", "pendiente", "pendientes", "cancelado", "cancelados", "progreso");
+    }
+
+    private boolean isMaintenancePropertyFilterQuestion(String value) {
+        return isMaintenanceAnalyticsQuestion(value) && containsAny(value, "propiedad", "casa", "bungalow", "alojamiento") && containsAny(value, "de", "del", "para", "en");
+    }
+
+    private boolean isMaintenanceCategoryOrTypeFilterQuestion(String value) {
+        return isMaintenanceAnalyticsQuestion(value) && containsAny(value, "categoria", "categorias", "tipo", "tipos", "filtro", "cisterna", "bomba", "pozo");
+    }
+
+    private boolean isMaintenanceItemUsageQuestion(String value) {
+        return isMaintenanceAnalyticsQuestion(value) && containsAny(value, "item", "items", "repuesto", "repuestos", "material", "materiales", "supply", "supplies", "usaron", "usado", "uso");
     }
 
     private boolean isOperationalSummaryQuestion(String value) {
