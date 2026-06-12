@@ -234,20 +234,18 @@ public class AiReadOnlyToolService {
         if (!isCurrentUserAdministrator()) {
             return adminOnlyDenied("user.byRole", "Users by role");
         }
+        String normalizedQuestion = normalize(userQuestion);
         String search = nullableSearch(extractSearchText(
                 userQuestion,
-                "usuario", "usuarios", "son", "con", "rol", "role", "roles", "administradores", "administrador", "activos", "inactivos"
+                "usuario", "usuarios", "son", "con", "tiene", "tienen", "rol", "role", "roles", "administradores", "administrador", "activos", "inactivos"
         ));
-        if (search == null && containsAny(normalize(userQuestion), "administrador", "administradores", "administrator", "admin")) {
+        if (containsAny(normalizedQuestion, "administrador", "administradores", "administrator", "admin")) {
             search = "administrator";
-        }
-        if (search == null && containsAny(normalize(userQuestion), "property manager", "property managers", "manager")) {
+        } else if (containsAny(normalizedQuestion, "property manager", "property managers", "manager")) {
             search = "property manager";
-        }
-        if (search == null && containsAny(normalize(userQuestion), "maintenance staff", "mantenimiento")) {
+        } else if (containsAny(normalizedQuestion, "maintenance staff", "mantenimiento")) {
             search = "maintenance staff";
-        }
-        if (search == null && containsAny(normalize(userQuestion), "read only", "solo lectura", "lectura")) {
+        } else if (containsAny(normalizedQuestion, "read only", "solo lectura", "lectura")) {
             search = "read only";
         }
 
@@ -288,7 +286,7 @@ public class AiReadOnlyToolService {
         }
         String search = nullableSearch(extractSearchText(
                 userQuestion,
-                "acceso", "accesos", "usuario", "usuarios", "permisos", "tiene", "resumen", "rol", "roles"
+                "acceso", "accesos", "usuario", "usuarios", "este", "esta", "ese", "esa", "permisos", "tiene", "tienen", "resumen", "rol", "roles"
         ));
         List<Map<String, Object>> rows = userRows(null, search, DEFAULT_LIMIT);
         if (rows.isEmpty()) {

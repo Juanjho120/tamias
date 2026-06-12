@@ -128,6 +128,15 @@ public class AiToolCallingService {
 
 
     private Optional<AiToolAnswer> tryHandleAdminRoleOrganizationQuestion(String question, String normalized) {
+        if (isOrganizationAdminToolQuestion(normalized)) {
+            if (isOrganizationModuleUsageQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.organizationModuleUsageSummary());
+            }
+            if (isOrganizationUserCountQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.organizationUserCount());
+            }
+        }
+
         if (isUserAdminToolQuestion(normalized)) {
             if (isUserAccessSummaryQuestion(normalized)) {
                 return Optional.of(readOnlyToolService.userAccessSummary(question));
@@ -149,15 +158,6 @@ public class AiToolCallingService {
                 return Optional.of(readOnlyToolService.rolePermissionSummary(question));
             }
             return Optional.of(readOnlyToolService.roleList());
-        }
-
-        if (isOrganizationAdminToolQuestion(normalized)) {
-            if (isOrganizationModuleUsageQuestion(normalized)) {
-                return Optional.of(readOnlyToolService.organizationModuleUsageSummary());
-            }
-            if (isOrganizationUserCountQuestion(normalized)) {
-                return Optional.of(readOnlyToolService.organizationUserCount());
-            }
         }
 
         return Optional.empty();
@@ -1000,8 +1000,9 @@ public class AiToolCallingService {
 
 
     private boolean isUserAdminToolQuestion(String value) {
-        return containsAny(value, "usuarios", "users", "miembros", "equipo", "administradores")
-                && !isCurrentUserProfileQuestion(value);
+        return containsAny(value, "usuario", "usuarios", "user", "users", "miembro", "miembros", "equipo", "administrador", "administradores")
+                && !isCurrentUserProfileQuestion(value)
+                && !isOrganizationUserCountQuestion(value);
     }
 
     private boolean isActiveUsersQuestion(String value) {
@@ -1037,8 +1038,8 @@ public class AiToolCallingService {
     }
 
     private boolean isOrganizationAdminToolQuestion(String value) {
-        return containsAny(value, "organizacion", "organización", "empresa")
-                && containsAny(value, "usuarios", "modulos", "módulos", "uso de modulos", "module usage", "cuantos usuarios", "cuántos usuarios");
+        return containsAny(value, "organizacion", "organización", "empresa", "modulo", "modulos", "módulo", "módulos", "module", "modules")
+                && containsAny(value, "usuarios", "usuario", "modulos", "módulos", "uso", "usando", "usamos", "module usage", "cuantos usuarios", "cuántos usuarios");
     }
 
     private boolean isOrganizationUserCountQuestion(String value) {
@@ -1048,7 +1049,7 @@ public class AiToolCallingService {
 
     private boolean isOrganizationModuleUsageQuestion(String value) {
         return isOrganizationAdminToolQuestion(value)
-                && containsAny(value, "modulos", "módulos", "uso", "module usage", "usando mas", "usamos mas");
+                && containsAny(value, "modulo", "modulos", "módulo", "módulos", "uso", "usando", "usamos", "module", "modules", "module usage", "usando mas", "usamos mas");
     }
 
     private boolean isCapabilitiesQuestion(String value) {
