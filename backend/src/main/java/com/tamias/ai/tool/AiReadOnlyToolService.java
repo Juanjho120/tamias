@@ -30,11 +30,12 @@ public class AiReadOnlyToolService {
     private static final Set<String> SEARCH_STOP_WORDS = Set.of(
             "a", "al", "algo", "actual", "actuales", "actualmente", "ahi", "aqui",
             "cargado", "cargados", "con", "cual", "cuales", "cuando", "cuanto", "cuantos",
-            "da", "dame", "de", "del", "dice", "e", "el", "en", "estado", "estan", "esta", "este", "estos",
-            "fue", "hay", "indexado", "indexados", "la", "las", "le", "lista", "listar", "lo", "los",
-            "me", "mi", "mis", "muestra", "nombre", "o", "para", "por", "procesado", "procesados",
-            "que", "quiero", "reciente", "registrada", "registradas", "registrado", "registrados",
-            "son", "subido", "subidos", "tengo", "tienes", "tipo", "tu", "un", "una", "ver", "vez", "y"
+            "da", "dame", "de", "del", "dice", "e", "el", "en", "estado", "estan", "esta",
+            "este", "estos", "fue", "hay", "indexado", "indexados", "la", "las", "le",
+            "lista", "listar", "lo", "los", "me", "mi", "mis", "muestra", "nombre", "o",
+            "para", "por", "procesado", "procesados", "que", "quiero", "reciente", "registrada",
+            "registradas", "registrado", "registrados", "son", "subido", "subidos", "tengo",
+            "tienes", "tipo", "tu", "un", "una", "ver", "vez", "y"
     );
 
     private final EntityManager entityManager;
@@ -47,17 +48,12 @@ public class AiReadOnlyToolService {
 
     public AiToolAnswer capabilities() {
         String answer = """
-                Soy el asistente IA de TAMIAS.
+                Soy el asistente IA de TAMIAS. Te ayudo a consultar información operativa de tus alojamientos sin modificar datos.
 
-                Te ayudo a consultar información operativa de tus alojamientos sin modificar datos. Puedo apoyarte con cosas como:
-                - Ver tus propiedades, reservaciones próximas y resumen operativo.
-                - Consultar mantenimientos realizados o programados vencidos.
-                - Revisar compras, tareas pendientes y documentos cargados.
-                - Responder preguntas sobre documentos indexados con IA, cuando aplique RAG.
+                Puedo apoyarte con propiedades, catálogos, reservaciones próximas, mantenimientos, compras, tareas, documentos y estado del índice RAG. También puedo combinar varias consultas para darte una visión operativa más útil.
 
-                Por seguridad, en esta fase soy read-only: no creo, edito, elimino registros ni envío notificaciones automáticamente.
+                Por seguridad, en esta fase sigo siendo read-only: no creo, edito, elimino registros ni envío notificaciones automáticamente.
                 """.trim();
-
         return AiToolAnswer.of(
                 answer,
                 "assistant.capabilities",
@@ -70,15 +66,9 @@ public class AiReadOnlyToolService {
     public AiToolAnswer currentUserProfile(String userQuestion) {
         UUID userId = currentUserService.getCurrentUserId();
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-
         List<Map<String, Object>> rows = query("""
-                SELECT u.first_name,
-                       u.last_name,
-                       u.email,
-                       u.status,
-                       u.password_change_required,
-                       r.code AS role_code,
-                       o.name AS organization_name
+                SELECT u.first_name, u.last_name, u.email, u.status, u.password_change_required,
+                       r.code AS role_code, o.name AS organization_name
                 FROM users u
                 JOIN user_organizations uo ON uo.user_id = u.id
                 JOIN organizations o ON o.id = uo.organization_id
@@ -89,9 +79,9 @@ public class AiReadOnlyToolService {
                   AND o.deleted_at IS NULL
                 LIMIT 1
                 """, q -> {
-            q.setParameter("userId", userId);
-            q.setParameter("organizationId", organizationId);
-        }, "firstName", "lastName", "email", "status", "passwordChangeRequired", "role", "organizationName");
+                    q.setParameter("userId", userId);
+                    q.setParameter("organizationId", organizationId);
+                }, "firstName", "lastName", "email", "status", "passwordChangeRequired", "role", "organizationName");
 
         if (rows.isEmpty()) {
             return AiToolAnswer.of(
@@ -139,15 +129,10 @@ public class AiReadOnlyToolService {
 
     public AiToolAnswer currentOrganizationSummary() {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-
         List<Map<String, Object>> rows = query("""
-                SELECT o.name,
-                       o.description,
-                       o.status,
-                       COUNT(DISTINCT uo.user_id) AS user_count
+                SELECT o.name, o.description, o.status, COUNT(DISTINCT uo.user_id) AS user_count
                 FROM organizations o
-                LEFT JOIN user_organizations uo ON uo.organization_id = o.id
-                     AND uo.status = 'ACTIVE'
+                LEFT JOIN user_organizations uo ON uo.organization_id = o.id AND uo.status = 'ACTIVE'
                 WHERE o.id = :organizationId
                   AND o.deleted_at IS NULL
                 GROUP BY o.id, o.name, o.description, o.status
@@ -169,7 +154,6 @@ public class AiReadOnlyToolService {
         String answer = "Estás trabajando en " + blankToDash(value(row.get("name"))) + ".\n"
                 + "Estado: " + blankToDash(value(row.get("status"))) + ".\n"
                 + "Usuarios activos asociados: " + blankToDash(value(row.get("userCount"))) + ".";
-
         return AiToolAnswer.of(
                 answer,
                 "organization.currentSummary",
@@ -186,28 +170,7 @@ public class AiReadOnlyToolService {
                 "propiedad", "propiedades", "alojamiento", "alojamientos", "casa", "casas", "bungalow", "bungalows"
         ));
 
-        List<Map<String, Object>> rows = query("""
-                SELECT p.id,
-                       p.name,
-                       p.status,
-                       p.address,
-                       p.description
-                FROM properties p
-                WHERE p.organization_id = :organizationId
-                  AND p.deleted_at IS NULL
-                  AND (
-                      CAST(:search AS TEXT) IS NULL
-                      OR LOWER(p.name) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
-                      OR LOWER(COALESCE(p.address, '')) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
-                      OR LOWER(COALESCE(p.description, '')) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
-                  )
-                ORDER BY p.name ASC
-                LIMIT :limit
-                """, q -> {
-            q.setParameter("organizationId", organizationId);
-            q.setParameter("search", search);
-            q.setParameter("limit", DEFAULT_LIMIT);
-        }, "id", "name", "status", "address", "description");
+        List<Map<String, Object>> rows = propertySearchRows(organizationId, search, null, DEFAULT_LIMIT);
 
         if (rows.isEmpty()) {
             return AiToolAnswer.of(
@@ -224,14 +187,7 @@ public class AiReadOnlyToolService {
         StringBuilder answer = new StringBuilder(search == null
                 ? "Tienes estas propiedades registradas:"
                 : "Encontré estas propiedades relacionadas con “" + search + "”:");
-
-        for (Map<String, Object> row : rows) {
-            answer.append(System.lineSeparator())
-                    .append("- ")
-                    .append(blankToDash(value(row.get("name"))))
-                    .append(" — estado: ")
-                    .append(blankToDash(value(row.get("status"))));
-        }
+        appendPropertyList(answer, rows);
 
         return AiToolAnswer.of(
                 answer.toString(),
@@ -242,11 +198,390 @@ public class AiReadOnlyToolService {
         );
     }
 
+    public AiToolAnswer activeProperties() {
+        return propertiesByStatus("ACTIVE", "property.getActiveProperties", "Active properties");
+    }
+
+    public AiToolAnswer inactiveProperties() {
+        return propertiesByStatus("INACTIVE", "property.getInactiveProperties", "Inactive properties");
+    }
+
+    public AiToolAnswer propertySummary(String userQuestion) {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        String search = nullableSearch(extractSearchText(
+                userQuestion,
+                "resumen", "resume", "dame", "propiedad", "propiedades", "alojamiento", "alojamientos"
+        ));
+
+        List<Map<String, Object>> rows = query("""
+                SELECT p.id,
+                       p.name,
+                       p.status,
+                       p.address,
+                       p.description,
+                       COUNT(DISTINCT pi.id) AS image_count,
+                       COUNT(DISTINCT CASE WHEN r.status = 'ACTIVE' AND r.deleted_at IS NULL THEN r.id END) AS active_reservation_count,
+                       COUNT(DISTINCT CASE WHEN mr.status = 'COMPLETED' AND mr.deleted_at IS NULL THEN mr.id END) AS completed_maintenance_count,
+                       COUNT(DISTINCT CASE WHEN tl.status IN ('OPEN', 'IN_PROGRESS') AND tl.deleted_at IS NULL THEN tl.id END) AS open_task_list_count
+                FROM properties p
+                LEFT JOIN property_images pi ON pi.property_id = p.id
+                                            AND pi.organization_id = p.organization_id
+                                            AND pi.deleted_at IS NULL
+                                            AND pi.status = 'ACTIVE'
+                LEFT JOIN reservations r ON r.property_id = p.id
+                                         AND r.organization_id = p.organization_id
+                LEFT JOIN maintenance_records mr ON mr.property_id = p.id
+                                                AND mr.organization_id = p.organization_id
+                LEFT JOIN task_lists tl ON tl.property_id = p.id
+                                       AND tl.organization_id = p.organization_id
+                WHERE p.organization_id = :organizationId
+                  AND p.deleted_at IS NULL
+                  AND (
+                       CAST(:search AS TEXT) IS NULL
+                       OR LOWER(p.name) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
+                       OR LOWER(COALESCE(p.address, '')) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
+                       OR LOWER(COALESCE(p.description, '')) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
+                  )
+                GROUP BY p.id, p.name, p.status, p.address, p.description
+                ORDER BY CASE WHEN CAST(:search AS TEXT) IS NOT NULL AND LOWER(p.name) = LOWER(CAST(:search AS TEXT)) THEN 0 ELSE 1 END,
+                         p.name ASC
+                LIMIT 1
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("search", search);
+                }, "id", "name", "status", "address", "description", "imageCount", "activeReservationCount",
+                "completedMaintenanceCount", "openTaskListCount");
+
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    search == null
+                            ? "No encontré propiedades para resumir."
+                            : "No encontré una propiedad que coincida con “" + search + "”.",
+                    "property.getSummary",
+                    "Property summary",
+                    "No matching property summary found.",
+                    List.of()
+            );
+        }
+
+        Map<String, Object> row = rows.get(0);
+        String answer = """
+                Este es el resumen de %s:
+                - Estado: %s
+                - Dirección: %s
+                - Imágenes activas: %s
+                - Reservaciones activas asociadas: %s
+                - Mantenimientos completados: %s
+                - Listas de tareas abiertas/en progreso: %s
+                """.formatted(
+                blankToDash(value(row.get("name"))),
+                blankToDash(value(row.get("status"))),
+                blankToDash(value(row.get("address"))),
+                blankToDash(value(row.get("imageCount"))),
+                blankToDash(value(row.get("activeReservationCount"))),
+                blankToDash(value(row.get("completedMaintenanceCount"))),
+                blankToDash(value(row.get("openTaskListCount")))
+        ).trim();
+
+        String description = value(row.get("description"));
+        if (!description.isBlank()) {
+            answer += "\n- Descripción: " + description;
+        }
+
+        return AiToolAnswer.of(
+                answer,
+                "property.getSummary",
+                "Property summary",
+                "A single property summary was consulted.",
+                rows
+        );
+    }
+
+    public AiToolAnswer propertyOperationalOverview() {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        LocalDate today = LocalDate.now();
+        LocalDate nextSevenDays = today.plusDays(7);
+        List<Map<String, Object>> rows = query("""
+                SELECT p.id,
+                       p.name,
+                       p.status,
+                       COUNT(DISTINCT CASE WHEN r.status = 'ACTIVE'
+                                             AND r.deleted_at IS NULL
+                                             AND r.check_in BETWEEN :today AND :nextSevenDays THEN r.id END) AS upcoming_reservations_7_days,
+                       COUNT(DISTINCT CASE WHEN sm.status = 'ACTIVE'
+                                             AND sm.deleted_at IS NULL
+                                             AND sm.next_due_date < :today THEN sm.id END) AS overdue_scheduled_maintenance,
+                       COUNT(DISTINCT CASE WHEN tl.status IN ('OPEN', 'IN_PROGRESS')
+                                             AND tl.deleted_at IS NULL THEN tl.id END) AS open_task_lists,
+                       COUNT(DISTINCT CASE WHEN mr.status = 'COMPLETED'
+                                             AND mr.deleted_at IS NULL THEN mr.id END) AS completed_maintenance_count
+                FROM properties p
+                LEFT JOIN reservations r ON r.property_id = p.id AND r.organization_id = p.organization_id
+                LEFT JOIN scheduled_maintenance sm ON sm.property_id = p.id AND sm.organization_id = p.organization_id
+                LEFT JOIN task_lists tl ON tl.property_id = p.id AND tl.organization_id = p.organization_id
+                LEFT JOIN maintenance_records mr ON mr.property_id = p.id AND mr.organization_id = p.organization_id
+                WHERE p.organization_id = :organizationId
+                  AND p.deleted_at IS NULL
+                GROUP BY p.id, p.name, p.status
+                ORDER BY overdue_scheduled_maintenance DESC,
+                         upcoming_reservations_7_days DESC,
+                         open_task_lists DESC,
+                         p.name ASC
+                LIMIT :limit
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("today", Date.valueOf(today));
+                    q.setParameter("nextSevenDays", Date.valueOf(nextSevenDays));
+                    q.setParameter("limit", DEFAULT_LIMIT);
+                }, "id", "name", "status", "upcomingReservations7Days", "overdueScheduledMaintenance",
+                "openTaskLists", "completedMaintenanceCount");
+
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    "No encontré propiedades para calcular el panorama operativo.",
+                    "property.getOperationalOverview",
+                    "Property operational overview",
+                    "No properties found for operational overview.",
+                    List.of()
+            );
+        }
+
+        StringBuilder answer = new StringBuilder("Este es el panorama operativo por propiedad:");
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("name"))))
+                    .append(" | estado: ").append(blankToDash(value(row.get("status"))))
+                    .append(" | reservas próximos 7 días: ").append(blankToDash(value(row.get("upcomingReservations7Days"))))
+                    .append(" | mantenimientos vencidos: ").append(blankToDash(value(row.get("overdueScheduledMaintenance"))))
+                    .append(" | tareas abiertas: ").append(blankToDash(value(row.get("openTaskLists"))))
+                    .append(" | mantenimientos completados: ").append(blankToDash(value(row.get("completedMaintenanceCount"))));
+        }
+
+        return AiToolAnswer.of(
+                answer.toString(),
+                "property.getOperationalOverview",
+                "Property operational overview",
+                "%d property operational rows found.".formatted(rows.size()),
+                rows
+        );
+    }
+
+    public AiToolAnswer propertyImagesSummary(String userQuestion) {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        boolean onlyWithoutImages = containsAny(normalize(userQuestion), "sin imagen", "sin imagenes", "no tienen imagen", "no tiene imagen");
+
+        List<Map<String, Object>> rows = query("""
+                SELECT p.id,
+                       p.name,
+                       p.status,
+                       COUNT(pi.id) AS image_count,
+                       COALESCE(SUM(CASE WHEN pi.is_cover = TRUE THEN 1 ELSE 0 END), 0) AS cover_image_count,
+                       MAX(pi.created_at) AS last_image_created_at
+                FROM properties p
+                LEFT JOIN property_images pi ON pi.property_id = p.id
+                                            AND pi.organization_id = p.organization_id
+                                            AND pi.deleted_at IS NULL
+                                            AND pi.status = 'ACTIVE'
+                WHERE p.organization_id = :organizationId
+                  AND p.deleted_at IS NULL
+                GROUP BY p.id, p.name, p.status
+                HAVING CAST(:onlyWithoutImages AS BOOLEAN) = FALSE OR COUNT(pi.id) = 0
+                ORDER BY image_count ASC, p.name ASC
+                LIMIT :limit
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("onlyWithoutImages", onlyWithoutImages);
+                    q.setParameter("limit", DEFAULT_LIMIT);
+                }, "id", "name", "status", "imageCount", "coverImageCount", "lastImageCreatedAt");
+
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    onlyWithoutImages
+                            ? "Todas las propiedades consultadas tienen al menos una imagen activa."
+                            : "No encontré metadata de imágenes para tus propiedades.",
+                    "property.getImagesSummary",
+                    "Property images summary",
+                    "No property image rows found.",
+                    List.of()
+            );
+        }
+
+        StringBuilder answer = new StringBuilder(onlyWithoutImages
+                ? "Estas propiedades no tienen imágenes activas:"
+                : "Así están las imágenes por propiedad:");
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("name"))))
+                    .append(" | imágenes: ").append(blankToDash(value(row.get("imageCount"))))
+                    .append(" | portada: ").append(blankToDash(value(row.get("coverImageCount"))))
+                    .append(" | última imagen: ").append(blankToDash(value(row.get("lastImageCreatedAt"))));
+        }
+
+        return AiToolAnswer.of(
+                answer.toString(),
+                "property.getImagesSummary",
+                "Property images summary",
+                "%d property image summary rows found.".formatted(rows.size()),
+                rows
+        );
+    }
+
+    public AiToolAnswer maintenanceCategories() {
+        return baseCatalog("maintenance_categories", "catalog.maintenanceCategories", "Maintenance categories", "categorías de mantenimiento");
+    }
+
+    public AiToolAnswer maintenanceTypes() {
+        return baseCatalog("maintenance_types", "catalog.maintenanceTypes", "Maintenance types", "tipos de mantenimiento");
+    }
+
+    public AiToolAnswer reservationPlatforms() {
+        return baseCatalog("platforms", "catalog.reservationPlatforms", "Reservation platforms", "plataformas de reservación");
+    }
+
+    public AiToolAnswer taskCategories() {
+        return baseCatalog("task_templates", "catalog.taskCategories", "Task templates", "plantillas/categorías de tareas");
+    }
+
+    public AiToolAnswer purchaseCategories() {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        List<Map<String, Object>> rows = query("""
+                SELECT ii.item_type,
+                       COUNT(ii.id) AS item_count,
+                       COALESCE(STRING_AGG(ii.name, ', ' ORDER BY ii.name), '') AS sample_items
+                FROM inventory_items ii
+                WHERE ii.organization_id = :organizationId
+                  AND ii.deleted_at IS NULL
+                  AND ii.status = 'ACTIVE'
+                  AND ii.available_for_purchases = TRUE
+                GROUP BY ii.item_type
+                ORDER BY ii.item_type ASC
+                LIMIT :limit
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("limit", DEFAULT_LIMIT);
+                }, "itemType", "itemCount", "sampleItems");
+
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    "No encontré items activos disponibles para compras. En el schema actual no hay una tabla separada de categorías de compras; TAMIAS usa los tipos de inventory items para clasificar supplies/materiales.",
+                    "catalog.purchaseCategories",
+                    "Purchase categories",
+                    "No purchase-ready inventory item groups found.",
+                    List.of()
+            );
+        }
+
+        StringBuilder answer = new StringBuilder("Para compras, TAMIAS está usando items de inventario disponibles para compras, agrupados por tipo:");
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("itemType"))))
+                    .append(" | items: ").append(blankToDash(value(row.get("itemCount"))))
+                    .append(" | ejemplos: ").append(blankToDash(value(row.get("sampleItems"))));
+        }
+        answer.append("\n\nNota: no encontré una tabla dedicada llamada purchase_categories en el schema actual; esta respuesta usa metadata real de inventory_items.");
+
+        return AiToolAnswer.of(
+                answer.toString(),
+                "catalog.purchaseCategories",
+                "Purchase categories",
+                "%d purchase category groups found from inventory item types.".formatted(rows.size()),
+                rows
+        );
+    }
+
+    public AiToolAnswer inventoryItemTypes() {
+        List<Map<String, Object>> rows = new ArrayList<>();
+        rows.add(Map.of("code", "MATERIAL", "description", "Material o repuesto"));
+        rows.add(Map.of("code", "SUPPLY", "description", "Supply operativo"));
+        rows.add(Map.of("code", "AMENITY", "description", "Amenity para huéspedes"));
+        rows.add(Map.of("code", "CLEANING_SUPPLY", "description", "Producto de limpieza"));
+        rows.add(Map.of("code", "TOOL", "description", "Herramienta"));
+        rows.add(Map.of("code", "OTHER", "description", "Otro tipo"));
+        String answer = "Estos son los tipos de inventory item configurados en el código de TAMIAS:\n"
+                + rows.stream()
+                .map(row -> "- " + row.get("code") + " — " + row.get("description"))
+                .collect(Collectors.joining(System.lineSeparator()));
+        return AiToolAnswer.of(
+                answer,
+                "catalog.inventoryItemTypes",
+                "Inventory item types",
+                "Inventory item enum values were listed.",
+                rows
+        );
+    }
+
+    public AiToolAnswer catalogSearch(String userQuestion) {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        String search = nullableSearch(extractSearchText(
+                userQuestion,
+                "catalogo", "catalogos", "mantenimiento", "mantenimientos", "compra", "compras", "tarea", "tareas",
+                "reservacion", "reservaciones", "tipo", "tipos", "categoria", "categorias", "configurado", "configurados"
+        ));
+
+        List<Map<String, Object>> rows = query("""
+                SELECT * FROM (
+                    SELECT 'maintenanceCategory' AS catalog_type, id, name, description, status FROM maintenance_categories
+                    WHERE organization_id = :organizationId AND deleted_at IS NULL
+                    UNION ALL
+                    SELECT 'maintenanceType' AS catalog_type, id, name, description, status FROM maintenance_types
+                    WHERE organization_id = :organizationId AND deleted_at IS NULL
+                    UNION ALL
+                    SELECT 'reservationPlatform' AS catalog_type, id, name, description, status FROM platforms
+                    WHERE organization_id = :organizationId AND deleted_at IS NULL
+                    UNION ALL
+                    SELECT 'taskTemplate' AS catalog_type, id, name, description, status FROM task_templates
+                    WHERE organization_id = :organizationId AND deleted_at IS NULL
+                    UNION ALL
+                    SELECT 'inventoryItem' AS catalog_type, id, name, description, status FROM inventory_items
+                    WHERE organization_id = :organizationId AND deleted_at IS NULL
+                ) catalog
+                WHERE CAST(:search AS TEXT) IS NULL
+                   OR LOWER(catalog.name) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
+                   OR LOWER(COALESCE(catalog.description, '')) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
+                   OR LOWER(catalog.catalog_type) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
+                ORDER BY catalog_type ASC, name ASC
+                LIMIT :limit
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("search", search);
+                    q.setParameter("limit", DEFAULT_LIMIT);
+                }, "catalogType", "id", "name", "description", "status");
+
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    search == null
+                            ? "No encontré catálogos configurados en tu organización."
+                            : "No encontré catálogos que coincidan con “" + search + "”.",
+                    "catalog.search",
+                    "Catalog search",
+                    "No matching catalog rows found.",
+                    List.of()
+            );
+        }
+
+        StringBuilder answer = new StringBuilder(search == null
+                ? "Encontré estos catálogos configurados:"
+                : "Encontré estos catálogos relacionados con “" + search + "”:");
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- [").append(blankToDash(value(row.get("catalogType")))).append("] ")
+                    .append(blankToDash(value(row.get("name"))))
+                    .append(" — estado: ").append(blankToDash(value(row.get("status"))));
+        }
+
+        return AiToolAnswer.of(
+                answer.toString(),
+                "catalog.search",
+                "Catalog search",
+                "%d catalog rows found.".formatted(rows.size()),
+                rows
+        );
+    }
+
     public AiToolAnswer operationalSummary() {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         LocalDate today = LocalDate.now();
         LocalDate nextSevenDays = today.plusDays(7);
-
         Map<String, Object> summary = new LinkedHashMap<>();
         summary.put("activeProperties", scalar("""
                 SELECT COUNT(*)
@@ -255,7 +590,6 @@ public class AiReadOnlyToolService {
                   AND deleted_at IS NULL
                   AND status = 'ACTIVE'
                 """, q -> q.setParameter("organizationId", organizationId)));
-
         summary.put("upcomingReservations7Days", scalar("""
                 SELECT COUNT(*)
                 FROM reservations
@@ -264,11 +598,10 @@ public class AiReadOnlyToolService {
                   AND status = 'ACTIVE'
                   AND check_in BETWEEN :today AND :nextSevenDays
                 """, q -> {
-            q.setParameter("organizationId", organizationId);
-            q.setParameter("today", Date.valueOf(today));
-            q.setParameter("nextSevenDays", Date.valueOf(nextSevenDays));
-        }));
-
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("today", Date.valueOf(today));
+                    q.setParameter("nextSevenDays", Date.valueOf(nextSevenDays));
+                }));
         summary.put("overdueScheduledMaintenance", scalar("""
                 SELECT COUNT(*)
                 FROM scheduled_maintenance
@@ -277,10 +610,9 @@ public class AiReadOnlyToolService {
                   AND status = 'ACTIVE'
                   AND next_due_date < :today
                 """, q -> {
-            q.setParameter("organizationId", organizationId);
-            q.setParameter("today", Date.valueOf(today));
-        }));
-
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("today", Date.valueOf(today));
+                }));
         summary.put("openTaskLists", scalar("""
                 SELECT COUNT(*)
                 FROM task_lists
@@ -288,7 +620,6 @@ public class AiReadOnlyToolService {
                   AND deleted_at IS NULL
                   AND status IN ('OPEN', 'IN_PROGRESS')
                 """, q -> q.setParameter("organizationId", organizationId)));
-
         summary.put("documentsNotIndexed", scalar("""
                 SELECT COUNT(*)
                 FROM documents d
@@ -318,7 +649,6 @@ public class AiReadOnlyToolService {
                 summary.get("openTaskLists"),
                 summary.get("documentsNotIndexed")
         ).trim();
-
         return AiToolAnswer.of(
                 answer,
                 "dashboard.operationalSummary",
@@ -332,7 +662,6 @@ public class AiReadOnlyToolService {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         LocalDate today = LocalDate.now();
         LocalDate until = today.plusDays(14);
-
         List<Map<String, Object>> rows = query("""
                 SELECT r.id,
                        p.name AS property_name,
@@ -345,10 +674,10 @@ public class AiReadOnlyToolService {
                 FROM reservations r
                 JOIN properties p ON p.id = r.property_id
                 LEFT JOIN reservation_guests rg ON rg.reservation_id = r.id
-                     AND rg.organization_id = r.organization_id
+                                                AND rg.organization_id = r.organization_id
                 LEFT JOIN guests g ON g.id = rg.guest_id
-                     AND g.organization_id = r.organization_id
-                     AND g.deleted_at IS NULL
+                                  AND g.organization_id = r.organization_id
+                                  AND g.deleted_at IS NULL
                 WHERE r.organization_id = :organizationId
                   AND r.deleted_at IS NULL
                   AND r.status = 'ACTIVE'
@@ -357,11 +686,11 @@ public class AiReadOnlyToolService {
                 ORDER BY r.check_in ASC
                 LIMIT :limit
                 """, q -> {
-            q.setParameter("organizationId", organizationId);
-            q.setParameter("today", Date.valueOf(today));
-            q.setParameter("until", Date.valueOf(until));
-            q.setParameter("limit", DEFAULT_LIMIT);
-        }, "id", "propertyName", "reservationCode", "checkIn", "checkOut", "reservationValue", "status", "guests");
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("today", Date.valueOf(today));
+                    q.setParameter("until", Date.valueOf(until));
+                    q.setParameter("limit", DEFAULT_LIMIT);
+                }, "id", "propertyName", "reservationCode", "checkIn", "checkOut", "reservationValue", "status", "guests");
 
         if (rows.isEmpty()) {
             return AiToolAnswer.of(
@@ -376,18 +705,13 @@ public class AiReadOnlyToolService {
         StringBuilder answer = new StringBuilder("Estas son tus próximas reservaciones activas:");
         for (Map<String, Object> row : rows) {
             answer.append(System.lineSeparator())
-                    .append("- ")
-                    .append(blankToDash(value(row.get("propertyName"))))
-                    .append(" | ")
-                    .append(blankToDash(value(row.get("checkIn"))))
-                    .append(" a ")
-                    .append(blankToDash(value(row.get("checkOut"))));
-
+                    .append("- ").append(blankToDash(value(row.get("propertyName"))))
+                    .append(" | ").append(blankToDash(value(row.get("checkIn"))))
+                    .append(" a ").append(blankToDash(value(row.get("checkOut"))));
             String reservationCode = value(row.get("reservationCode"));
             if (!reservationCode.isBlank()) {
                 answer.append(" | Código: ").append(reservationCode);
             }
-
             String guests = value(row.get("guests"));
             if (!guests.isBlank()) {
                 answer.append(" | Huéspedes: ").append(guests);
@@ -410,7 +734,6 @@ public class AiReadOnlyToolService {
                 "ultimo", "ultima", "mantenimiento", "mantenimientos", "realizado", "realizados",
                 "completado", "completados", "reciente", "recientes"
         ));
-
         List<Map<String, Object>> rows = query("""
                 SELECT mr.id,
                        p.name AS property_name,
@@ -430,19 +753,19 @@ public class AiReadOnlyToolService {
                   AND mr.deleted_at IS NULL
                   AND mr.status = 'COMPLETED'
                   AND (
-                      CAST(:search AS TEXT) IS NULL
-                      OR LOWER(mr.title) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
-                      OR LOWER(COALESCE(mr.description, '')) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
-                      OR LOWER(COALESCE(mc.name, '')) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
-                      OR LOWER(COALESCE(mt.name, '')) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
-                      OR LOWER(p.name) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
+                       CAST(:search AS TEXT) IS NULL
+                       OR LOWER(mr.title) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
+                       OR LOWER(COALESCE(mr.description, '')) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
+                       OR LOWER(COALESCE(mc.name, '')) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
+                       OR LOWER(COALESCE(mt.name, '')) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
+                       OR LOWER(p.name) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
                   )
                 ORDER BY COALESCE(mr.performed_at, mr.scheduled_at, mr.created_at) DESC
                 LIMIT 1
                 """, q -> {
-            q.setParameter("organizationId", organizationId);
-            q.setParameter("search", search);
-        }, "id", "propertyName", "title", "description", "categoryName", "typeName", "performedAt", "scheduledAt", "cost", "status");
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("search", search);
+                }, "id", "propertyName", "title", "description", "categoryName", "typeName", "performedAt", "scheduledAt", "cost", "status");
 
         if (rows.isEmpty()) {
             return AiToolAnswer.of(
@@ -475,7 +798,6 @@ public class AiReadOnlyToolService {
                 blankToDash(value(row.get("status"))),
                 formatMoney(row.get("cost"))
         ).trim();
-
         return AiToolAnswer.of(
                 answer,
                 "maintenance.lastPerformed",
@@ -488,7 +810,6 @@ public class AiReadOnlyToolService {
     public AiToolAnswer overdueScheduledMaintenance() {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         LocalDate today = LocalDate.now();
-
         List<Map<String, Object>> rows = query("""
                 SELECT sm.id,
                        p.name AS property_name,
@@ -510,10 +831,10 @@ public class AiReadOnlyToolService {
                 ORDER BY sm.next_due_date ASC
                 LIMIT :limit
                 """, q -> {
-            q.setParameter("organizationId", organizationId);
-            q.setParameter("today", Date.valueOf(today));
-            q.setParameter("limit", DEFAULT_LIMIT);
-        }, "id", "propertyName", "title", "categoryName", "typeName", "frequency", "nextDueDate", "daysOverdue", "status");
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("today", Date.valueOf(today));
+                    q.setParameter("limit", DEFAULT_LIMIT);
+                }, "id", "propertyName", "title", "categoryName", "typeName", "frequency", "nextDueDate", "daysOverdue", "status");
 
         if (rows.isEmpty()) {
             return AiToolAnswer.of(
@@ -528,16 +849,11 @@ public class AiReadOnlyToolService {
         StringBuilder answer = new StringBuilder("Estos mantenimientos programados ya están vencidos:");
         for (Map<String, Object> row : rows) {
             answer.append(System.lineSeparator())
-                    .append("- ")
-                    .append(blankToDash(value(row.get("propertyName"))))
-                    .append(" | ")
-                    .append(blankToDash(value(row.get("title"))))
-                    .append(" | vencía el ")
-                    .append(blankToDash(value(row.get("nextDueDate"))))
-                    .append(" | días vencido: ")
-                    .append(blankToDash(value(row.get("daysOverdue"))));
+                    .append("- ").append(blankToDash(value(row.get("propertyName"))))
+                    .append(" | ").append(blankToDash(value(row.get("title"))))
+                    .append(" | vencía el ").append(blankToDash(value(row.get("nextDueDate"))))
+                    .append(" | días vencido: ").append(blankToDash(value(row.get("daysOverdue"))));
         }
-
         return AiToolAnswer.of(
                 answer.toString(),
                 "scheduledMaintenance.overdue",
@@ -554,7 +870,6 @@ public class AiReadOnlyToolService {
                 "cuando", "compre", "compraste", "compro", "compra", "compras", "comprado", "comprada",
                 "ultima", "ultimo", "vez", "item", "producto"
         ));
-
         List<Map<String, Object>> rows = query("""
                 SELECT pi.id,
                        pi.item_name_snapshot,
@@ -575,35 +890,34 @@ public class AiReadOnlyToolService {
                   AND pl.deleted_at IS NULL
                   AND pi.purchased = TRUE
                   AND (
-                      CAST(:search AS TEXT) IS NULL
-                      OR NOT EXISTS (
-                          SELECT 1
-                          FROM unnest(string_to_array(CAST(:search AS TEXT), ' ')) AS token(value)
-                          WHERE token.value <> ''
-                            AND LOWER(CONCAT_WS(' ', pi.item_name_snapshot, pi.notes)) NOT LIKE CONCAT('%', token.value, '%')
-                      )
+                       CAST(:search AS TEXT) IS NULL
+                       OR NOT EXISTS (
+                           SELECT 1
+                           FROM unnest(string_to_array(CAST(:search AS TEXT), ' ')) AS token(value)
+                           WHERE token.value <> ''
+                             AND LOWER(CONCAT_WS(' ', pi.item_name_snapshot, pi.notes)) NOT LIKE CONCAT('%', token.value, '%')
+                       )
                   )
-                ORDER BY
-                  CASE
-                    WHEN CAST(:search AS TEXT) IS NOT NULL
-                     AND LOWER(CONCAT_WS(' ', pi.item_name_snapshot, pi.notes)) = CAST(:search AS TEXT) THEN 0
-                    WHEN CAST(:search AS TEXT) IS NOT NULL
-                     AND LOWER(CONCAT_WS(' ', pi.item_name_snapshot, pi.notes)) LIKE CONCAT('%', CAST(:search AS TEXT), '%') THEN 1
-                    ELSE 2
-                  END,
-                  pl.purchase_date DESC,
-                  pi.created_at DESC
+                ORDER BY CASE
+                         WHEN CAST(:search AS TEXT) IS NOT NULL
+                              AND LOWER(CONCAT_WS(' ', pi.item_name_snapshot, pi.notes)) = CAST(:search AS TEXT) THEN 0
+                         WHEN CAST(:search AS TEXT) IS NOT NULL
+                              AND LOWER(CONCAT_WS(' ', pi.item_name_snapshot, pi.notes)) LIKE CONCAT('%', CAST(:search AS TEXT), '%') THEN 1
+                         ELSE 2
+                         END,
+                         pl.purchase_date DESC,
+                         pi.created_at DESC
                 LIMIT 1
                 """, q -> {
-            q.setParameter("organizationId", organizationId);
-            q.setParameter("search", search);
-        }, "id", "itemName", "quantity", "unit", "estimatedPrice", "purchased", "purchaseDate", "purchaseListStatus", "propertyName", "supplierName");
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("search", search);
+                }, "id", "itemName", "quantity", "unit", "estimatedPrice", "purchased", "purchaseDate", "purchaseListStatus", "propertyName", "supplierName");
 
         if (rows.isEmpty()) {
             return AiToolAnswer.of(
                     search == null
                             ? "No encontré items marcados como comprados."
-                            : "No encontré una compra marcada como comprada para “" + search + "”. Revisé los items comprados usando coincidencia por palabras, no solo por frase exacta.",
+                            : "No encontré una compra marcada como comprada para “" + search + "”.\nRevisé los items comprados usando coincidencia por palabras, no solo por frase exacta.",
                     "purchaseItem.lastPurchased",
                     "Last purchased item",
                     "No matching purchased item found.",
@@ -615,11 +929,10 @@ public class AiReadOnlyToolService {
         String itemName = blankToDash(value(row.get("itemName")));
         String purchaseDate = blankToDash(value(row.get("purchaseDate")));
         String answer = "La última vez que encontré comprado “" + itemName + "” fue el " + purchaseDate + ".\n"
-                + "Cantidad: " + blankToDash(value(row.get("quantity"))) + " " + blankToDash(value(row.get("unit")))
-                + ". Precio estimado: " + formatMoney(row.get("estimatedPrice"))
-                + ". Propiedad: " + blankToDash(value(row.get("propertyName"))) + ".\n"
+                + "Cantidad: " + blankToDash(value(row.get("quantity"))) + " " + blankToDash(value(row.get("unit"))) + ".\n"
+                + "Precio estimado: " + formatMoney(row.get("estimatedPrice")) + ".\n"
+                + "Propiedad: " + blankToDash(value(row.get("propertyName"))) + ".\n"
                 + "Proveedor: " + blankToDash(value(row.get("supplierName"))) + ".";
-
         return AiToolAnswer.of(
                 answer,
                 "purchaseItem.lastPurchased",
@@ -631,7 +944,6 @@ public class AiReadOnlyToolService {
 
     public AiToolAnswer pendingTaskLists() {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-
         List<Map<String, Object>> rows = query("""
                 SELECT tl.id,
                        p.name AS property_name,
@@ -644,7 +956,7 @@ public class AiReadOnlyToolService {
                 FROM task_lists tl
                 JOIN properties p ON p.id = tl.property_id
                 LEFT JOIN task_items ti ON ti.task_list_id = tl.id
-                     AND ti.organization_id = tl.organization_id
+                                       AND ti.organization_id = tl.organization_id
                 WHERE tl.organization_id = :organizationId
                   AND tl.deleted_at IS NULL
                   AND tl.status IN ('OPEN', 'IN_PROGRESS')
@@ -652,9 +964,9 @@ public class AiReadOnlyToolService {
                 ORDER BY tl.due_date ASC NULLS LAST, tl.creation_date DESC
                 LIMIT :limit
                 """, q -> {
-            q.setParameter("organizationId", organizationId);
-            q.setParameter("limit", DEFAULT_LIMIT);
-        }, "id", "propertyName", "title", "creationDate", "dueDate", "status", "totalItems", "completedItems");
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("limit", DEFAULT_LIMIT);
+                }, "id", "propertyName", "title", "creationDate", "dueDate", "status", "totalItems", "completedItems");
 
         if (rows.isEmpty()) {
             return AiToolAnswer.of(
@@ -669,18 +981,12 @@ public class AiReadOnlyToolService {
         StringBuilder answer = new StringBuilder("Estas son tus listas de tareas pendientes o en progreso:");
         for (Map<String, Object> row : rows) {
             answer.append(System.lineSeparator())
-                    .append("- ")
-                    .append(blankToDash(value(row.get("title"))))
-                    .append(" | ")
-                    .append(blankToDash(value(row.get("propertyName"))))
-                    .append(" | estado: ")
-                    .append(blankToDash(value(row.get("status"))))
-                    .append(" | avance: ")
-                    .append(blankToDash(value(row.get("completedItems"))))
-                    .append("/")
-                    .append(blankToDash(value(row.get("totalItems"))));
+                    .append("- ").append(blankToDash(value(row.get("title"))))
+                    .append(" | ").append(blankToDash(value(row.get("propertyName"))))
+                    .append(" | estado: ").append(blankToDash(value(row.get("status"))))
+                    .append(" | avance: ").append(blankToDash(value(row.get("completedItems"))))
+                    .append("/").append(blankToDash(value(row.get("totalItems"))));
         }
-
         return AiToolAnswer.of(
                 answer.toString(),
                 "taskList.pending",
@@ -696,7 +1002,6 @@ public class AiReadOnlyToolService {
                 userQuestion,
                 "documento", "documentos", "cargado", "cargados", "subido", "subidos", "procesado", "procesados", "registrado", "registrados"
         ));
-
         List<Map<String, Object>> rows = query("""
                 SELECT d.id,
                        d.title,
@@ -711,24 +1016,24 @@ public class AiReadOnlyToolService {
                 FROM documents d
                 LEFT JOIN properties p ON p.id = d.property_id
                 LEFT JOIN document_chunks dc ON dc.document_id = d.id
-                     AND dc.organization_id = d.organization_id
+                                            AND dc.organization_id = d.organization_id
                 WHERE d.organization_id = :organizationId
                   AND d.deleted_at IS NULL
                   AND (
-                      CAST(:search AS TEXT) IS NULL
-                      OR LOWER(d.title) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
-                      OR LOWER(COALESCE(d.description, '')) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
-                      OR LOWER(d.original_filename) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
-                      OR LOWER(d.document_type) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
+                       CAST(:search AS TEXT) IS NULL
+                       OR LOWER(d.title) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
+                       OR LOWER(COALESCE(d.description, '')) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
+                       OR LOWER(d.original_filename) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
+                       OR LOWER(d.document_type) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
                   )
                 GROUP BY d.id, d.title, d.document_type, d.processing_status, d.status, d.original_filename, d.created_at, p.name
                 ORDER BY d.created_at DESC
                 LIMIT :limit
                 """, q -> {
-            q.setParameter("organizationId", organizationId);
-            q.setParameter("search", search);
-            q.setParameter("limit", DEFAULT_LIMIT);
-        }, "id", "title", "documentType", "processingStatus", "status", "originalFilename", "createdAt", "propertyName", "chunkCount", "indexedChunkCount");
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("search", search);
+                    q.setParameter("limit", DEFAULT_LIMIT);
+                }, "id", "title", "documentType", "processingStatus", "status", "originalFilename", "createdAt", "propertyName", "chunkCount", "indexedChunkCount");
 
         if (rows.isEmpty()) {
             return AiToolAnswer.of(
@@ -745,18 +1050,12 @@ public class AiReadOnlyToolService {
         StringBuilder answer = new StringBuilder("Estos son los documentos que encontré:");
         for (Map<String, Object> row : rows) {
             answer.append(System.lineSeparator())
-                    .append("- ")
-                    .append(blankToDash(value(row.get("title"))))
-                    .append(" | tipo: ")
-                    .append(blankToDash(value(row.get("documentType"))))
-                    .append(" | procesamiento: ")
-                    .append(blankToDash(value(row.get("processingStatus"))))
-                    .append(" | chunks indexados: ")
-                    .append(blankToDash(value(row.get("indexedChunkCount"))))
-                    .append("/")
-                    .append(blankToDash(value(row.get("chunkCount"))));
+                    .append("- ").append(blankToDash(value(row.get("title"))))
+                    .append(" | tipo: ").append(blankToDash(value(row.get("documentType"))))
+                    .append(" | procesamiento: ").append(blankToDash(value(row.get("processingStatus"))))
+                    .append(" | chunks indexados: ").append(blankToDash(value(row.get("indexedChunkCount"))))
+                    .append("/").append(blankToDash(value(row.get("chunkCount"))));
         }
-
         return AiToolAnswer.of(
                 answer.toString(),
                 "document.searchMetadata",
@@ -768,7 +1067,6 @@ public class AiReadOnlyToolService {
 
     public AiToolAnswer ragDocumentIndexStatus() {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-
         List<Map<String, Object>> rows = query("""
                 SELECT d.id,
                        d.title,
@@ -779,16 +1077,16 @@ public class AiReadOnlyToolService {
                        COALESCE(SUM(CASE WHEN dc.vector_store_id IS NULL AND dc.id IS NOT NULL THEN 1 ELSE 0 END), 0) AS missing_vector_id_count
                 FROM documents d
                 LEFT JOIN document_chunks dc ON dc.document_id = d.id
-                     AND dc.organization_id = d.organization_id
+                                            AND dc.organization_id = d.organization_id
                 WHERE d.organization_id = :organizationId
                   AND d.deleted_at IS NULL
                 GROUP BY d.id, d.title, d.document_type, d.processing_status
                 ORDER BY d.created_at DESC
                 LIMIT :limit
                 """, q -> {
-            q.setParameter("organizationId", organizationId);
-            q.setParameter("limit", DEFAULT_LIMIT);
-        }, "id", "title", "documentType", "processingStatus", "chunkCount", "indexedChunkCount", "missingVectorIdCount");
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("limit", DEFAULT_LIMIT);
+                }, "id", "title", "documentType", "processingStatus", "chunkCount", "indexedChunkCount", "missingVectorIdCount");
 
         if (rows.isEmpty()) {
             return AiToolAnswer.of(
@@ -803,23 +1101,123 @@ public class AiReadOnlyToolService {
         StringBuilder answer = new StringBuilder("Así está el índice IA/RAG de tus documentos:");
         for (Map<String, Object> row : rows) {
             answer.append(System.lineSeparator())
-                    .append("- ")
-                    .append(blankToDash(value(row.get("title"))))
-                    .append(" | procesamiento: ")
-                    .append(blankToDash(value(row.get("processingStatus"))))
-                    .append(" | chunks indexados: ")
-                    .append(blankToDash(value(row.get("indexedChunkCount"))))
-                    .append("/")
-                    .append(blankToDash(value(row.get("chunkCount"))))
-                    .append(" | pendientes de vector: ")
-                    .append(blankToDash(value(row.get("missingVectorIdCount"))));
+                    .append("- ").append(blankToDash(value(row.get("title"))))
+                    .append(" | procesamiento: ").append(blankToDash(value(row.get("processingStatus"))))
+                    .append(" | chunks indexados: ").append(blankToDash(value(row.get("indexedChunkCount"))))
+                    .append("/").append(blankToDash(value(row.get("chunkCount"))))
+                    .append(" | pendientes de vector: ").append(blankToDash(value(row.get("missingVectorIdCount"))));
         }
-
         return AiToolAnswer.of(
                 answer.toString(),
                 "rag.documentIndexStatus",
                 "RAG document index status",
                 "%d document index statuses found.".formatted(rows.size()),
+                rows
+        );
+    }
+
+    private AiToolAnswer propertiesByStatus(String status, String toolName, String label) {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        List<Map<String, Object>> rows = propertySearchRows(organizationId, null, status, DEFAULT_LIMIT);
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    "No encontré propiedades con estado " + status + ".",
+                    toolName,
+                    label,
+                    "No properties found for status " + status + ".",
+                    List.of()
+            );
+        }
+
+        StringBuilder answer = new StringBuilder(status.equals("ACTIVE")
+                ? "Estas son tus propiedades activas:"
+                : "Estas son tus propiedades inactivas:");
+        appendPropertyList(answer, rows);
+        return AiToolAnswer.of(
+                answer.toString(),
+                toolName,
+                label,
+                "%d properties found for status %s.".formatted(rows.size(), status),
+                rows
+        );
+    }
+
+    private List<Map<String, Object>> propertySearchRows(UUID organizationId, String search, String status, int limit) {
+        return query("""
+                SELECT p.id, p.name, p.status, p.address, p.description
+                FROM properties p
+                WHERE p.organization_id = :organizationId
+                  AND p.deleted_at IS NULL
+                  AND (CAST(:status AS TEXT) IS NULL OR p.status = CAST(:status AS TEXT))
+                  AND (
+                       CAST(:search AS TEXT) IS NULL
+                       OR LOWER(p.name) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
+                       OR LOWER(COALESCE(p.address, '')) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
+                       OR LOWER(COALESCE(p.description, '')) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
+                  )
+                ORDER BY p.name ASC
+                LIMIT :limit
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("search", search);
+                    q.setParameter("status", status);
+                    q.setParameter("limit", limit);
+                }, "id", "name", "status", "address", "description");
+    }
+
+    private void appendPropertyList(StringBuilder answer, List<Map<String, Object>> rows) {
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ")
+                    .append(blankToDash(value(row.get("name"))))
+                    .append(" — estado: ")
+                    .append(blankToDash(value(row.get("status"))));
+            String address = value(row.get("address"));
+            if (!address.isBlank()) {
+                answer.append(" | dirección: ").append(address);
+            }
+        }
+    }
+
+    private AiToolAnswer baseCatalog(String tableName, String toolName, String label, String spanishName) {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        List<Map<String, Object>> rows = query("""
+                SELECT id, name, description, status
+                FROM %s
+                WHERE organization_id = :organizationId
+                  AND deleted_at IS NULL
+                ORDER BY status ASC, name ASC
+                LIMIT :limit
+                """.formatted(tableName), q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("limit", DEFAULT_LIMIT);
+                }, "id", "name", "description", "status");
+
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    "No encontré " + spanishName + " configurados en tu organización.",
+                    toolName,
+                    label,
+                    "No catalog rows found.",
+                    List.of()
+            );
+        }
+
+        StringBuilder answer = new StringBuilder("Estos son los " + spanishName + " configurados:");
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("name"))))
+                    .append(" — estado: ").append(blankToDash(value(row.get("status"))));
+            String description = value(row.get("description"));
+            if (!description.isBlank()) {
+                answer.append(" | ").append(description);
+            }
+        }
+        return AiToolAnswer.of(
+                answer.toString(),
+                toolName,
+                label,
+                "%d catalog rows found.".formatted(rows.size()),
                 rows
         );
     }
@@ -834,10 +1232,8 @@ public class AiReadOnlyToolService {
     private List<Map<String, Object>> query(String sql, QueryConfigurer configurer, String... columns) {
         Query query = entityManager.createNativeQuery(sql);
         configurer.configure(query);
-
         List<Object> resultList = query.getResultList();
         List<Map<String, Object>> rows = new ArrayList<>();
-
         for (Object result : resultList) {
             Object[] values = result instanceof Object[] array ? array : new Object[]{result};
             Map<String, Object> row = new LinkedHashMap<>();
@@ -847,7 +1243,6 @@ public class AiReadOnlyToolService {
             }
             rows.add(row);
         }
-
         return rows;
     }
 
@@ -871,14 +1266,11 @@ public class AiReadOnlyToolService {
         if (userQuestion == null) {
             return "";
         }
-
         Set<String> extra = Arrays.stream(extraStopWords)
                 .map(this::normalize)
                 .collect(Collectors.toSet());
-
         String cleaned = normalize(userQuestion)
                 .replaceAll("[^a-z0-9\\s-]", " ");
-
         return trimSearch(Arrays.stream(cleaned.split("\\s+"))
                 .map(String::trim)
                 .filter(word -> !word.isBlank())
