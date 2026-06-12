@@ -30,6 +30,12 @@ public class AiToolCallingService {
         if (isCurrentUserProfileQuestion(normalized)) {
             return Optional.of(readOnlyToolService.currentUserProfile(question));
         }
+
+        Optional<AiToolAnswer> adminRoleOrganizationAnswer = tryHandleAdminRoleOrganizationQuestion(question, normalized);
+        if (adminRoleOrganizationAnswer.isPresent()) {
+            return adminRoleOrganizationAnswer;
+        }
+
         if (isOrganizationQuestion(normalized)) {
             return Optional.of(readOnlyToolService.currentOrganizationSummary());
         }
@@ -119,6 +125,43 @@ public class AiToolCallingService {
 
 
 
+
+
+    private Optional<AiToolAnswer> tryHandleAdminRoleOrganizationQuestion(String question, String normalized) {
+        if (isUserAdminToolQuestion(normalized)) {
+            if (isUserAccessSummaryQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.userAccessSummary(question));
+            }
+            if (isUsersByRoleQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.usersByRole(question));
+            }
+            if (isActiveUsersQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.activeUsers());
+            }
+            if (isInactiveUsersQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.inactiveUsers());
+            }
+            return Optional.of(readOnlyToolService.searchUsers(question));
+        }
+
+        if (isRoleAdminToolQuestion(normalized)) {
+            if (isRolePermissionSummaryQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.rolePermissionSummary(question));
+            }
+            return Optional.of(readOnlyToolService.roleList());
+        }
+
+        if (isOrganizationAdminToolQuestion(normalized)) {
+            if (isOrganizationModuleUsageQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.organizationModuleUsageSummary());
+            }
+            if (isOrganizationUserCountQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.organizationUserCount());
+            }
+        }
+
+        return Optional.empty();
+    }
 
     private Optional<AiToolAnswer> tryHandleFileImageDashboardQuestion(String question, String normalized) {
         if (isDashboardAnalyticsQuestion(normalized)) {
@@ -953,6 +996,59 @@ public class AiToolCallingService {
 
     private boolean isDashboardAlertQuestion(String value) {
         return isDashboardAnalyticsQuestion(value) && containsAny(value, "alerta", "alertas", "vencido", "vencidos", "fallido", "fallidos", "riesgo", "riesgos");
+    }
+
+
+    private boolean isUserAdminToolQuestion(String value) {
+        return containsAny(value, "usuarios", "users", "miembros", "equipo", "administradores")
+                && !isCurrentUserProfileQuestion(value);
+    }
+
+    private boolean isActiveUsersQuestion(String value) {
+        return isUserAdminToolQuestion(value)
+                && containsAny(value, "activos", "activas", "activo", "active")
+                && !containsAny(value, "inactivos", "inactivas", "no activos", "inactive");
+    }
+
+    private boolean isInactiveUsersQuestion(String value) {
+        return isUserAdminToolQuestion(value)
+                && containsAny(value, "inactivos", "inactivas", "no activos", "inactive", "bloqueados", "locked", "invited", "invitados");
+    }
+
+    private boolean isUsersByRoleQuestion(String value) {
+        return isUserAdminToolQuestion(value)
+                && containsAny(value, "rol", "roles", "administrador", "administradores", "administrator", "property manager", "maintenance staff", "read only", "solo lectura");
+    }
+
+    private boolean isUserAccessSummaryQuestion(String value) {
+        return isUserAdminToolQuestion(value)
+                && containsAny(value, "acceso", "accesos", "permisos", "resumen de acceso", "access summary");
+    }
+
+    private boolean isRoleAdminToolQuestion(String value) {
+        return containsAny(value, "rol", "roles", "role", "roles existentes", "lista de roles", "permisos tiene", "permisos del rol", "permission summary")
+                && !isCurrentUserProfileQuestion(value)
+                && !isUsersByRoleQuestion(value);
+    }
+
+    private boolean isRolePermissionSummaryQuestion(String value) {
+        return isRoleAdminToolQuestion(value)
+                && containsAny(value, "permiso", "permisos", "permission", "permissions", "que puede", "qué puede");
+    }
+
+    private boolean isOrganizationAdminToolQuestion(String value) {
+        return containsAny(value, "organizacion", "organización", "empresa")
+                && containsAny(value, "usuarios", "modulos", "módulos", "uso de modulos", "module usage", "cuantos usuarios", "cuántos usuarios");
+    }
+
+    private boolean isOrganizationUserCountQuestion(String value) {
+        return isOrganizationAdminToolQuestion(value)
+                && containsAny(value, "usuarios", "cuantos usuarios", "cuántos usuarios", "user count", "cantidad de usuarios");
+    }
+
+    private boolean isOrganizationModuleUsageQuestion(String value) {
+        return isOrganizationAdminToolQuestion(value)
+                && containsAny(value, "modulos", "módulos", "uso", "module usage", "usando mas", "usamos mas");
     }
 
     private boolean isCapabilitiesQuestion(String value) {

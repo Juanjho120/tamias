@@ -164,6 +164,273 @@ public class AiReadOnlyToolService {
         );
     }
 
+
+    public AiToolAnswer activeUsers() {
+        if (!isCurrentUserAdministrator()) {
+            return adminOnlyDenied("user.activeUsers", "Active users");
+        }
+        List<Map<String, Object>> rows = userRows("u.status = 'ACTIVE' AND uo.status = 'ACTIVE'", null, DEFAULT_LIMIT);
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    "No encontré usuarios activos en tu organización.",
+                    "user.activeUsers",
+                    "Active users",
+                    "No active users were found for the current organization.",
+                    List.of()
+            );
+        }
+        StringBuilder answer = new StringBuilder("Estos son los usuarios activos de tu organización:");
+        appendUserRows(answer, rows);
+        return AiToolAnswer.of(answer.toString(), "user.activeUsers", "Active users", "Active users for the current organization were consulted.", rows);
+    }
+
+    public AiToolAnswer inactiveUsers() {
+        if (!isCurrentUserAdministrator()) {
+            return adminOnlyDenied("user.inactiveUsers", "Inactive users");
+        }
+        List<Map<String, Object>> rows = userRows("(u.status <> 'ACTIVE' OR uo.status <> 'ACTIVE')", null, DEFAULT_LIMIT);
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    "No encontré usuarios inactivos, bloqueados, invitados o desactivados en tu organización.",
+                    "user.inactiveUsers",
+                    "Inactive users",
+                    "No inactive users were found for the current organization.",
+                    List.of()
+            );
+        }
+        StringBuilder answer = new StringBuilder("Estos son los usuarios no activos de tu organización:");
+        appendUserRows(answer, rows);
+        return AiToolAnswer.of(answer.toString(), "user.inactiveUsers", "Inactive users", "Inactive or non-active users for the current organization were consulted.", rows);
+    }
+
+    public AiToolAnswer searchUsers(String userQuestion) {
+        if (!isCurrentUserAdministrator()) {
+            return adminOnlyDenied("user.search", "User search");
+        }
+        String search = nullableSearch(extractSearchText(
+                userQuestion,
+                "usuario", "usuarios", "persona", "personas", "miembro", "miembros", "equipo", "organizacion", "organización"
+        ));
+        List<Map<String, Object>> rows = userRows(null, search, DEFAULT_LIMIT);
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    search == null
+                            ? "No encontré usuarios asociados a tu organización."
+                            : "No encontré usuarios que coincidan con “" + search + "” dentro de tu organización.",
+                    "user.search",
+                    "User search",
+                    "No users matched the search criteria.",
+                    List.of()
+            );
+        }
+        StringBuilder answer = new StringBuilder(search == null
+                ? "Estos son los usuarios asociados a tu organización:"
+                : "Encontré estos usuarios relacionados con “" + search + "”:");
+        appendUserRows(answer, rows);
+        return AiToolAnswer.of(answer.toString(), "user.search", "User search", "Users for the current organization were consulted.", rows);
+    }
+
+    public AiToolAnswer usersByRole(String userQuestion) {
+        if (!isCurrentUserAdministrator()) {
+            return adminOnlyDenied("user.byRole", "Users by role");
+        }
+        String search = nullableSearch(extractSearchText(
+                userQuestion,
+                "usuario", "usuarios", "son", "con", "rol", "role", "roles", "administradores", "administrador", "activos", "inactivos"
+        ));
+        if (search == null && containsAny(normalize(userQuestion), "administrador", "administradores", "administrator", "admin")) {
+            search = "administrator";
+        }
+        if (search == null && containsAny(normalize(userQuestion), "property manager", "property managers", "manager")) {
+            search = "property manager";
+        }
+        if (search == null && containsAny(normalize(userQuestion), "maintenance staff", "mantenimiento")) {
+            search = "maintenance staff";
+        }
+        if (search == null && containsAny(normalize(userQuestion), "read only", "solo lectura", "lectura")) {
+            search = "read only";
+        }
+
+        List<Map<String, Object>> rows = userRowsByRole(search, DEFAULT_LIMIT);
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    search == null
+                            ? "No encontré usuarios agrupados por rol en tu organización."
+                            : "No encontré usuarios con un rol relacionado con “" + search + "” en tu organización.",
+                    "user.byRole",
+                    "Users by role",
+                    "No users matched the requested role.",
+                    List.of()
+            );
+        }
+
+        StringBuilder answer = new StringBuilder(search == null
+                ? "Estos son los usuarios agrupados por rol:"
+                : "Estos son los usuarios con rol relacionado con “" + search + "”:");
+        String currentRole = "";
+        for (Map<String, Object> row : rows) {
+            String role = blankToDash(value(row.get("roleCode")));
+            if (!role.equals(currentRole)) {
+                currentRole = role;
+                answer.append(System.lineSeparator()).append(role).append(":");
+            }
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("fullName"))))
+                    .append(" | correo: ").append(blankToDash(value(row.get("email"))))
+                    .append(" | estado: ").append(blankToDash(value(row.get("userStatus"))));
+        }
+        return AiToolAnswer.of(answer.toString(), "user.byRole", "Users by role", "Users by role for the current organization were consulted.", rows);
+    }
+
+    public AiToolAnswer userAccessSummary(String userQuestion) {
+        if (!isCurrentUserAdministrator()) {
+            return adminOnlyDenied("user.accessSummary", "User access summary");
+        }
+        String search = nullableSearch(extractSearchText(
+                userQuestion,
+                "acceso", "accesos", "usuario", "usuarios", "permisos", "tiene", "resumen", "rol", "roles"
+        ));
+        List<Map<String, Object>> rows = userRows(null, search, DEFAULT_LIMIT);
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    search == null
+                            ? "No encontré usuarios para resumir accesos en tu organización."
+                            : "No encontré usuarios relacionados con “" + search + "” para resumir accesos.",
+                    "user.accessSummary",
+                    "User access summary",
+                    "No users matched the access summary criteria.",
+                    List.of()
+            );
+        }
+        StringBuilder answer = new StringBuilder("Resumen de accesos de usuarios en tu organización:");
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("fullName"))))
+                    .append(" | correo: ").append(blankToDash(value(row.get("email"))))
+                    .append(" | rol: ").append(blankToDash(value(row.get("roleCode"))))
+                    .append(" | usuario: ").append(blankToDash(value(row.get("userStatus"))))
+                    .append(" | membresía: ").append(blankToDash(value(row.get("membershipStatus"))))
+                    .append(" | último login: ").append(blankToDash(value(row.get("lastLoginAt"))))
+                    .append(" | cambio de contraseña requerido: ").append(blankToDash(value(row.get("passwordChangeRequired"))));
+        }
+        answer.append(System.lineSeparator())
+                .append("No muestro contraseñas, hashes, tokens ni información interna de seguridad.");
+        return AiToolAnswer.of(answer.toString(), "user.accessSummary", "User access summary", "User access metadata for the current organization was consulted.", rows);
+    }
+
+    public AiToolAnswer roleList() {
+        if (!isCurrentUserAdministrator()) {
+            return adminOnlyDenied("role.list", "Role list");
+        }
+        List<Map<String, Object>> rows = roleRows(null);
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of("No encontré roles configurados en TAMIAS.", "role.list", "Role list", "No roles found.", List.of());
+        }
+        StringBuilder answer = new StringBuilder("Estos son los roles configurados en TAMIAS:");
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("code"))))
+                    .append(" — ").append(blankToDash(value(row.get("name"))))
+                    .append(" | ").append(blankToDash(value(row.get("description"))));
+        }
+        return AiToolAnswer.of(answer.toString(), "role.list", "Role list", "Configured TAMIAS roles were consulted.", rows);
+    }
+
+    public AiToolAnswer rolePermissionSummary(String userQuestion) {
+        if (!isCurrentUserAdministrator()) {
+            return adminOnlyDenied("role.permissionSummary", "Role permission summary");
+        }
+        String search = nullableSearch(extractSearchText(
+                userQuestion,
+                "permiso", "permisos", "tiene", "rol", "role", "resumen", "que", "cuales", "cuáles"
+        ));
+        List<Map<String, Object>> rows = roleRows(search);
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    search == null
+                            ? "No encontré roles configurados para resumir permisos."
+                            : "No encontré un rol relacionado con “" + search + "”.",
+                    "role.permissionSummary",
+                    "Role permission summary",
+                    "No role matched the permission summary criteria.",
+                    List.of()
+            );
+        }
+        StringBuilder answer = new StringBuilder("Resumen de permisos por rol:");
+        for (Map<String, Object> row : rows) {
+            String code = value(row.get("code"));
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(code))
+                    .append(" — ").append(blankToDash(value(row.get("name"))))
+                    .append(": ").append(rolePermissionText(code, value(row.get("description"))));
+        }
+        answer.append(System.lineSeparator())
+                .append("Nota: el esquema actual tiene roles organizacionales, pero no una tabla separada de permisos granulares. Por eso resumo el alcance según el rol configurado.");
+        return AiToolAnswer.of(answer.toString(), "role.permissionSummary", "Role permission summary", "Role permission summary was generated from configured roles.", rows);
+    }
+
+    public AiToolAnswer organizationUserCount() {
+        if (!isCurrentUserAdministrator()) {
+            return adminOnlyDenied("organization.userCount", "Organization user count");
+        }
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        List<Map<String, Object>> rows = query("""
+                SELECT COUNT(DISTINCT u.id) AS total_users,
+                       COUNT(DISTINCT CASE WHEN u.status = 'ACTIVE' AND uo.status = 'ACTIVE' THEN u.id END) AS active_users,
+                       COUNT(DISTINCT CASE WHEN u.status <> 'ACTIVE' OR uo.status <> 'ACTIVE' THEN u.id END) AS non_active_users,
+                       COUNT(DISTINCT CASE WHEN r.code = 'ADMINISTRATOR' AND u.status = 'ACTIVE' AND uo.status = 'ACTIVE' THEN u.id END) AS administrators,
+                       COUNT(DISTINCT CASE WHEN r.code = 'PROPERTY_MANAGER' AND u.status = 'ACTIVE' AND uo.status = 'ACTIVE' THEN u.id END) AS property_managers,
+                       COUNT(DISTINCT CASE WHEN r.code = 'MAINTENANCE_STAFF' AND u.status = 'ACTIVE' AND uo.status = 'ACTIVE' THEN u.id END) AS maintenance_staff,
+                       COUNT(DISTINCT CASE WHEN r.code = 'READ_ONLY' AND u.status = 'ACTIVE' AND uo.status = 'ACTIVE' THEN u.id END) AS read_only_users
+                FROM user_organizations uo
+                JOIN users u ON u.id = uo.user_id
+                JOIN roles r ON r.id = uo.role_id
+                WHERE uo.organization_id = :organizationId
+                  AND u.deleted_at IS NULL
+                """, q -> q.setParameter("organizationId", organizationId),
+                "totalUsers", "activeUsers", "nonActiveUsers", "administrators", "propertyManagers", "maintenanceStaff", "readOnlyUsers");
+        Map<String, Object> row = rows.isEmpty() ? Map.of() : rows.get(0);
+        String answer = "Usuarios de tu organización:\n"
+                + "- Total: " + blankToDash(value(row.get("totalUsers"))) + "\n"
+                + "- Activos: " + blankToDash(value(row.get("activeUsers"))) + "\n"
+                + "- No activos: " + blankToDash(value(row.get("nonActiveUsers"))) + "\n"
+                + "- Administradores activos: " + blankToDash(value(row.get("administrators"))) + "\n"
+                + "- Property Managers activos: " + blankToDash(value(row.get("propertyManagers"))) + "\n"
+                + "- Maintenance Staff activos: " + blankToDash(value(row.get("maintenanceStaff"))) + "\n"
+                + "- Read Only activos: " + blankToDash(value(row.get("readOnlyUsers")));
+        return AiToolAnswer.of(answer, "organization.userCount", "Organization user count", "Organization user counts were consulted.", rows);
+    }
+
+    public AiToolAnswer organizationModuleUsageSummary() {
+        if (!isCurrentUserAdministrator()) {
+            return adminOnlyDenied("organization.moduleUsageSummary", "Organization module usage summary");
+        }
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        List<Map<String, Object>> rows = query("""
+                SELECT
+                  (SELECT COUNT(*) FROM properties p WHERE p.organization_id = :organizationId AND p.deleted_at IS NULL) AS properties_count,
+                  (SELECT COUNT(*) FROM reservations r WHERE r.organization_id = :organizationId AND r.deleted_at IS NULL) AS reservations_count,
+                  (SELECT COUNT(*) FROM maintenance_records mr WHERE mr.organization_id = :organizationId AND mr.deleted_at IS NULL) AS maintenance_records_count,
+                  (SELECT COUNT(*) FROM scheduled_maintenance sm WHERE sm.organization_id = :organizationId AND sm.deleted_at IS NULL) AS scheduled_maintenance_count,
+                  (SELECT COUNT(*) FROM purchase_lists pl WHERE pl.organization_id = :organizationId AND pl.deleted_at IS NULL) AS purchase_lists_count,
+                  (SELECT COUNT(*) FROM task_lists tl WHERE tl.organization_id = :organizationId AND tl.deleted_at IS NULL) AS task_lists_count,
+                  (SELECT COUNT(*) FROM documents d WHERE d.organization_id = :organizationId AND d.deleted_at IS NULL) AS documents_count,
+                  (SELECT COUNT(*) FROM ai_chat_sessions acs WHERE acs.organization_id = :organizationId) AS ai_chat_sessions_count
+                """, q -> q.setParameter("organizationId", organizationId),
+                "properties", "reservations", "maintenanceRecords", "scheduledMaintenance", "purchaseLists", "taskLists", "documents", "aiChatSessions");
+        Map<String, Object> row = rows.isEmpty() ? Map.of() : rows.get(0);
+        String answer = "Uso de módulos en tu organización:\n"
+                + "- Propiedades: " + blankToDash(value(row.get("properties"))) + "\n"
+                + "- Reservaciones: " + blankToDash(value(row.get("reservations"))) + "\n"
+                + "- Mantenimientos: " + blankToDash(value(row.get("maintenanceRecords"))) + "\n"
+                + "- Mantenimientos programados: " + blankToDash(value(row.get("scheduledMaintenance"))) + "\n"
+                + "- Listas de compras: " + blankToDash(value(row.get("purchaseLists"))) + "\n"
+                + "- Listas de tareas: " + blankToDash(value(row.get("taskLists"))) + "\n"
+                + "- Documentos: " + blankToDash(value(row.get("documents"))) + "\n"
+                + "- Sesiones del asistente IA: " + blankToDash(value(row.get("aiChatSessions")));
+        return AiToolAnswer.of(answer, "organization.moduleUsageSummary", "Organization module usage summary", "Organization module usage counts were consulted.", rows);
+    }
+
     public AiToolAnswer searchProperties(String userQuestion) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         String search = nullableSearch(extractSearchText(
@@ -5759,6 +6026,148 @@ public class AiReadOnlyToolService {
             if (search != null) q.setParameter("search", search);
             q.setParameter("limit", limit);
         }, "id", "title", "propertyName", "maintenanceDate", "imageCount", "filenames");
+    }
+
+
+    private boolean isCurrentUserAdministrator() {
+        UUID userId = currentUserService.getCurrentUserId();
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        Object count = scalar("""
+                SELECT COUNT(*)
+                FROM user_organizations uo
+                JOIN roles r ON r.id = uo.role_id
+                JOIN users u ON u.id = uo.user_id
+                WHERE uo.user_id = :userId
+                  AND uo.organization_id = :organizationId
+                  AND uo.status = 'ACTIVE'
+                  AND u.status = 'ACTIVE'
+                  AND u.deleted_at IS NULL
+                  AND r.code = 'ADMINISTRATOR'
+                """, q -> {
+                    q.setParameter("userId", userId);
+                    q.setParameter("organizationId", organizationId);
+                });
+        return toLong(count) > 0;
+    }
+
+    private AiToolAnswer adminOnlyDenied(String toolName, String displayName) {
+        String answer = "Esta consulta solo está disponible para usuarios con rol ADMINISTRATOR dentro de la organización actual. "
+                + "Por seguridad, no puedo listar usuarios, roles ni accesos si tu sesión no tiene ese rol.";
+        return AiToolAnswer.of(answer, toolName, displayName, "Admin-only AI tool blocked for the current user.", List.of());
+    }
+
+    private List<Map<String, Object>> userRows(String statusFilterSql, String search, int limit) {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        StringBuilder sql = new StringBuilder("""
+                SELECT u.id,
+                       TRIM(CONCAT(u.first_name, ' ', u.last_name)) AS full_name,
+                       u.email,
+                       u.status AS user_status,
+                       u.last_login_at,
+                       u.password_change_required,
+                       uo.status AS membership_status,
+                       r.code AS role_code,
+                       r.name AS role_name
+                FROM user_organizations uo
+                JOIN users u ON u.id = uo.user_id
+                JOIN roles r ON r.id = uo.role_id
+                WHERE uo.organization_id = :organizationId
+                  AND u.deleted_at IS NULL
+                """);
+        if (statusFilterSql != null && !statusFilterSql.isBlank()) {
+            sql.append("  AND ").append(statusFilterSql).append(System.lineSeparator());
+        }
+        if (search != null) {
+            sql.append("""
+                  AND NOT EXISTS (
+                      SELECT 1 FROM unnest(string_to_array(CAST(:search AS TEXT), ' ')) AS token(value)
+                      WHERE token.value <> ''
+                        AND translate(LOWER(CONCAT_WS(' ', u.first_name, u.last_name, u.email, u.status, uo.status, r.code, r.name)), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
+                  )
+                """);
+        }
+        sql.append("ORDER BY r.code ASC, u.first_name ASC, u.last_name ASC, u.email ASC\nLIMIT :limit\n");
+        return query(sql.toString(), q -> {
+            q.setParameter("organizationId", organizationId);
+            if (search != null) q.setParameter("search", search);
+            q.setParameter("limit", limit);
+        }, "id", "fullName", "email", "userStatus", "lastLoginAt", "passwordChangeRequired", "membershipStatus", "roleCode", "roleName");
+    }
+
+    private List<Map<String, Object>> userRowsByRole(String search, int limit) {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        StringBuilder sql = new StringBuilder("""
+                SELECT u.id,
+                       TRIM(CONCAT(u.first_name, ' ', u.last_name)) AS full_name,
+                       u.email,
+                       u.status AS user_status,
+                       uo.status AS membership_status,
+                       r.code AS role_code,
+                       r.name AS role_name
+                FROM user_organizations uo
+                JOIN users u ON u.id = uo.user_id
+                JOIN roles r ON r.id = uo.role_id
+                WHERE uo.organization_id = :organizationId
+                  AND u.deleted_at IS NULL
+                """);
+        if (search != null) {
+            sql.append("""
+                  AND NOT EXISTS (
+                      SELECT 1 FROM unnest(string_to_array(CAST(:search AS TEXT), ' ')) AS token(value)
+                      WHERE token.value <> ''
+                        AND translate(LOWER(CONCAT_WS(' ', r.code, r.name, r.description)), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
+                  )
+                """);
+        }
+        sql.append("ORDER BY r.code ASC, u.first_name ASC, u.last_name ASC, u.email ASC\nLIMIT :limit\n");
+        return query(sql.toString(), q -> {
+            q.setParameter("organizationId", organizationId);
+            if (search != null) q.setParameter("search", search);
+            q.setParameter("limit", limit);
+        }, "id", "fullName", "email", "userStatus", "membershipStatus", "roleCode", "roleName");
+    }
+
+    private List<Map<String, Object>> roleRows(String search) {
+        StringBuilder sql = new StringBuilder("""
+                SELECT r.id, r.code, r.name, r.description
+                FROM roles r
+                WHERE 1 = 1
+                """);
+        if (search != null) {
+            sql.append("""
+                  AND NOT EXISTS (
+                      SELECT 1 FROM unnest(string_to_array(CAST(:search AS TEXT), ' ')) AS token(value)
+                      WHERE token.value <> ''
+                        AND translate(LOWER(CONCAT_WS(' ', r.code, r.name, r.description)), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
+                  )
+                """);
+        }
+        sql.append("ORDER BY r.code ASC\n");
+        return query(sql.toString(), q -> {
+            if (search != null) q.setParameter("search", search);
+        }, "id", "code", "name", "description");
+    }
+
+    private void appendUserRows(StringBuilder answer, List<Map<String, Object>> rows) {
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("fullName"))))
+                    .append(" | correo: ").append(blankToDash(value(row.get("email"))))
+                    .append(" | rol: ").append(blankToDash(value(row.get("roleCode"))))
+                    .append(" | usuario: ").append(blankToDash(value(row.get("userStatus"))))
+                    .append(" | membresía: ").append(blankToDash(value(row.get("membershipStatus"))));
+        }
+    }
+
+    private String rolePermissionText(String code, String description) {
+        String normalizedCode = value(code).toUpperCase(Locale.ROOT);
+        return switch (normalizedCode) {
+            case "ADMINISTRATOR" -> "acceso completo dentro de la organización. " + blankToDash(description);
+            case "PROPERTY_MANAGER" -> "gestiona la operación diaria de propiedades. " + blankToDash(description);
+            case "MAINTENANCE_STAFF" -> "apoya con mantenimiento y tareas asignadas. " + blankToDash(description);
+            case "READ_ONLY" -> "consulta información sin modificar datos. " + blankToDash(description);
+            default -> blankToDash(description);
+        };
     }
 
     private interface AlertRowFormatter {
