@@ -49,6 +49,11 @@ public class AiToolCallingService {
             return purchaseAnalyticsAnswer;
         }
 
+        Optional<AiToolAnswer> documentRagAnswer = tryHandleDocumentAndRagQuestion(question, normalized);
+        if (documentRagAnswer.isPresent()) {
+            return documentRagAnswer;
+        }
+
         Optional<AiToolAnswer> inventoryAnswer = tryHandleInventoryQuestion(question, normalized);
         if (inventoryAnswer.isPresent()) {
             return inventoryAnswer;
@@ -107,6 +112,71 @@ public class AiToolCallingService {
         return Optional.empty();
     }
 
+
+
+    private Optional<AiToolAnswer> tryHandleDocumentAndRagQuestion(String question, String normalized) {
+        if (isRagChunkSummaryQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.ragChunkSummary());
+        }
+        if (isRagMissingChunksQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.documentsMissingChunks());
+        }
+        if (isRagMissingVectorIdsQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.documentsMissingVectorIds());
+        }
+        if (isRagCoverageSummaryQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.ragIndexCoverageSummary());
+        }
+        if (isRagHealthQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.ragDocumentIndexStatus());
+        }
+        if (!isDocumentToolQuestion(normalized)) {
+            return Optional.empty();
+        }
+        if (isDocumentBlueprintQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.findBlueprintDocuments());
+        }
+        if (isDocumentHouseRulesQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.findHouseRulesDocuments());
+        }
+        if (isDocumentManualQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.findManualDocuments());
+        }
+        if (isDocumentCountByTypeQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.documentCountByType());
+        }
+        if (isDocumentCountByPropertyQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.documentCountByProperty());
+        }
+        if (isDocumentNotIndexedQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.notIndexedDocuments());
+        }
+        if (isDocumentIndexedQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.indexedDocuments());
+        }
+        if (isDocumentFailedQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.failedDocuments());
+        }
+        if (isDocumentUnprocessedQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.unprocessedDocuments());
+        }
+        if (isDocumentProcessedQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.processedDocuments());
+        }
+        if (isDocumentRecentQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.recentDocuments());
+        }
+        if (isDocumentByPropertyQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.documentByProperty(question));
+        }
+        if (isDocumentByTypeQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.documentByType(question));
+        }
+        if (isDocumentByStatusQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.documentByStatus(question));
+        }
+        return Optional.of(readOnlyToolService.documentMetadata(question));
+    }
 
     private Optional<AiToolAnswer> tryHandleScheduledReservationGuestQuestion(String question, String normalized) {
         if (isGuestToolQuestion(normalized)) {
@@ -1272,15 +1342,94 @@ public class AiToolCallingService {
                 && containsAny(value, "pendiente", "pendientes", "abierta", "abiertas", "progreso", "hacer"));
     }
 
+
+    private boolean isDocumentToolQuestion(String value) {
+        return containsAny(value,
+                "documento", "documentos", "archivo", "archivos", "pdf", "manual", "manuales", "plano", "planos", "regla", "reglas", "house rules", "document metadata"
+        );
+    }
+
+    private boolean isDocumentByPropertyQuestion(String value) {
+        return isDocumentToolQuestion(value) && containsAny(value, "propiedad", "alojamiento", "casa", "bungalow", "para esta propiedad", "de esta propiedad");
+    }
+
+    private boolean isDocumentByTypeQuestion(String value) {
+        return isDocumentToolQuestion(value) && containsAny(value, "tipo", "plano", "planos", "manual", "manuales", "regla", "reglas", "blueprint");
+    }
+
+    private boolean isDocumentByStatusQuestion(String value) {
+        return isDocumentToolQuestion(value) && containsAny(value, "estado", "status", "procesado", "procesados", "procesar", "fallaron", "fallo", "indexado", "indexados");
+    }
+
+    private boolean isDocumentRecentQuestion(String value) {
+        return isDocumentToolQuestion(value) && containsAny(value, "reciente", "recientes", "ultimos", "ultimas", "subidos recientemente", "cargados recientemente");
+    }
+
+    private boolean isDocumentUnprocessedQuestion(String value) {
+        return isDocumentToolQuestion(value) && containsAny(value, "no han sido procesados", "no procesados", "sin procesar", "pendientes de procesar", "pendiente de procesar", "unprocessed");
+    }
+
+    private boolean isDocumentFailedQuestion(String value) {
+        return isDocumentToolQuestion(value) && containsAny(value, "fallaron", "fallo", "failed", "error al procesar", "procesamiento fallido");
+    }
+
+    private boolean isDocumentProcessedQuestion(String value) {
+        return isDocumentToolQuestion(value) && containsAny(value, "procesados", "procesado", "ya procesados", "processed") && !isDocumentUnprocessedQuestion(value);
+    }
+
+    private boolean isDocumentIndexedQuestion(String value) {
+        return isDocumentToolQuestion(value) && containsAny(value, "indexados", "indexado", "listos para ia", "listos para ai") && !isDocumentNotIndexedQuestion(value);
+    }
+
+    private boolean isDocumentNotIndexedQuestion(String value) {
+        return isDocumentToolQuestion(value) && containsAny(value, "no indexados", "sin indexar", "no estan indexados", "no están indexados", "not indexed");
+    }
+
+    private boolean isDocumentCountByTypeQuestion(String value) {
+        return isDocumentToolQuestion(value) && containsAny(value, "cuantos por tipo", "conteo por tipo", "count by type", "agrupados por tipo");
+    }
+
+    private boolean isDocumentCountByPropertyQuestion(String value) {
+        return isDocumentToolQuestion(value) && containsAny(value, "cuantos por propiedad", "conteo por propiedad", "count by property", "agrupados por propiedad");
+    }
+
+    private boolean isDocumentBlueprintQuestion(String value) {
+        return containsAny(value, "plano", "planos", "blueprint", "electrico", "eléctrico", "plomeria", "plomería", "drenaje") && isDocumentToolQuestion(value);
+    }
+
+    private boolean isDocumentHouseRulesQuestion(String value) {
+        return containsAny(value, "reglas de casa", "house rules", "reglas", "senales", "señales") && isDocumentToolQuestion(value);
+    }
+
+    private boolean isDocumentManualQuestion(String value) {
+        return containsAny(value, "manual", "manuales") && isDocumentToolQuestion(value);
+    }
+
+    private boolean isRagChunkSummaryQuestion(String value) {
+        return containsAny(value, "resumen de chunks", "chunk summary", "chunks por documento", "cuantos chunks", "cuántos chunks");
+    }
+
+    private boolean isRagMissingChunksQuestion(String value) {
+        return containsAny(value, "sin chunks", "no tienen chunks", "missing chunks", "documentos sin chunks");
+    }
+
+    private boolean isRagMissingVectorIdsQuestion(String value) {
+        return containsAny(value, "sin vector_store_id", "sin vector store id", "missing vector", "chunks pero no vector", "pendientes de vector");
+    }
+
+    private boolean isRagCoverageSummaryQuestion(String value) {
+        return containsAny(value, "cobertura del indice", "coverage", "index coverage", "cobertura rag", "coverage summary");
+    }
+
     private boolean isDocumentMetadataQuestion(String value) {
         return containsAny(value,
-                "documentos cargados", "documentos subidos", "documentos tengo", "documentos registrados", "documentos procesados", "que documentos", "mis documentos", "document metadata"
+                "documentos cargados", "documentos subidos", "documentos tengo", "documentos registrados", "documentos procesados", "que documentos", "mis documentos", "document metadata", "archivos cargados", "archivos subidos"
         );
     }
 
     private boolean isRagHealthQuestion(String value) {
         return containsAny(value,
-                "indice rag", "index rag", "rag de mis documentos", "estado rag", "estado del rag", "indexacion ia", "indexacion de documentos", "estado de indexacion", "documentos indexados", "chunks indexados", "vector store", "vector_store", "chroma"
+                "indice rag", "index rag", "rag de mis documentos", "estado rag", "estado del rag", "indexacion ia", "indexacion de documentos", "estado de indexacion", "documentos indexados", "chunks indexados", "vector store", "vector_store", "chroma", "listos para ia", "documentos listos para ia"
         );
     }
 
