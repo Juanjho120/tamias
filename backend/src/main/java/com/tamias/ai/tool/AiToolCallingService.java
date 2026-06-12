@@ -137,6 +137,10 @@ public class AiToolCallingService {
             }
         }
 
+        if (isRolePermissionSummaryQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.rolePermissionSummary(question));
+        }
+
         if (isUserAdminToolQuestion(normalized)) {
             if (isUserAccessSummaryQuestion(normalized)) {
                 return Optional.of(readOnlyToolService.userAccessSummary(question));
@@ -154,9 +158,6 @@ public class AiToolCallingService {
         }
 
         if (isRoleAdminToolQuestion(normalized)) {
-            if (isRolePermissionSummaryQuestion(normalized)) {
-                return Optional.of(readOnlyToolService.rolePermissionSummary(question));
-            }
             return Optional.of(readOnlyToolService.roleList());
         }
 
@@ -1007,9 +1008,13 @@ public class AiToolCallingService {
     }
 
     private boolean isUserAccessIntent(String value) {
+        if (isRolePermissionSummaryQuestion(value)) {
+            return false;
+        }
+
         return containsAny(value, "acceso", "accesos", "access summary", "resumen de acceso", "resumen de accesos")
                 || (containsAny(value, "permiso", "permisos")
-                    && containsAny(value, "usuario", "usuarios", "este usuario", "mi usuario", "mi cuenta", "tengo", "mis"));
+                    && containsAny(value, "usuario", "usuarios", "este usuario", "mi usuario", "mi cuenta", "tengo", "mis permisos", "mis accesos"));
     }
 
     private boolean isActiveUsersQuestion(String value) {
