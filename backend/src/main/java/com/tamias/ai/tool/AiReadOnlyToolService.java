@@ -284,15 +284,37 @@ public class AiReadOnlyToolService {
         if (!isCurrentUserAdministrator()) {
             return adminOnlyDenied("user.accessSummary", "User access summary");
         }
+
+        String normalizedQuestion = normalize(userQuestion);
+        boolean wantsOrganizationSummary = containsAny(
+                normalizedQuestion,
+                "todos", "todas", "todos los usuarios", "usuarios", "equipo", "organizacion", "organización"
+        ) && !containsAny(normalizedQuestion, "este usuario", "mi usuario", "mis accesos", "mi acceso", "mi cuenta");
+
         String search = nullableSearch(extractSearchText(
                 userQuestion,
                 "acceso", "accesos", "usuario", "usuarios", "este", "esta", "ese", "esa", "permisos", "tiene", "tienen", "resumen", "rol", "roles"
         ));
-        List<Map<String, Object>> rows = userRows(null, search, DEFAULT_LIMIT);
+
+        List<Map<String, Object>> rows;
+        String intro;
+        String evidenceSummary;
+        if (search == null && !wantsOrganizationSummary) {
+            rows = currentUserAccessRows();
+            intro = "Este es tu acceso actual en TAMIAS:";
+            evidenceSummary = "Current authenticated user access metadata was consulted.";
+        } else {
+            rows = userRows(null, search, DEFAULT_LIMIT);
+            intro = search == null
+                    ? "Resumen de accesos de usuarios en tu organización:"
+                    : "Resumen de accesos de usuarios relacionados con “" + search + "”:";
+            evidenceSummary = "User access metadata for the current organization was consulted.";
+        }
+
         if (rows.isEmpty()) {
             return AiToolAnswer.of(
                     search == null
-                            ? "No encontré usuarios para resumir accesos en tu organización."
+                            ? "No encontré información de accesos para la consulta solicitada."
                             : "No encontré usuarios relacionados con “" + search + "” para resumir accesos.",
                     "user.accessSummary",
                     "User access summary",
@@ -300,7 +322,8 @@ public class AiReadOnlyToolService {
                     List.of()
             );
         }
-        StringBuilder answer = new StringBuilder("Resumen de accesos de usuarios en tu organización:");
+
+        StringBuilder answer = new StringBuilder(intro);
         for (Map<String, Object> row : rows) {
             answer.append(System.lineSeparator())
                     .append("- ").append(blankToDash(value(row.get("fullName"))))
@@ -313,7 +336,7 @@ public class AiReadOnlyToolService {
         }
         answer.append(System.lineSeparator())
                 .append("No muestro contraseñas, hashes, tokens ni información interna de seguridad.");
-        return AiToolAnswer.of(answer.toString(), "user.accessSummary", "User access summary", "User access metadata for the current organization was consulted.", rows);
+        return AiToolAnswer.of(answer.toString(), "user.accessSummary", "User access summary", evidenceSummary, rows);
     }
 
     public AiToolAnswer roleList() {
@@ -6052,6 +6075,32 @@ public class AiReadOnlyToolService {
         String answer = "Esta consulta solo está disponible para usuarios con rol ADMINISTRATOR dentro de la organización actual. "
                 + "Por seguridad, no puedo listar usuarios, roles ni accesos si tu sesión no tiene ese rol.";
         return AiToolAnswer.of(answer, toolName, displayName, "Admin-only AI tool blocked for the current user.", List.of());
+    }
+
+    private List<Map<String, Object>> currentUserAccessRows() {
+        UUID userId = currentUserService.getCurrentUserId();
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        return query("""
+                SELECT u.id,
+                       TRIM(CONCAT(u.first_name, ' ', u.last_name)) AS full_name,
+                       u.email,
+                       u.status AS user_status,
+                       u.last_login_at,
+                       u.password_change_required,
+                       uo.status AS membership_status,
+                       r.code AS role_code,
+                       r.name AS role_name
+                FROM user_organizations uo
+                JOIN users u ON u.id = uo.user_id
+                JOIN roles r ON r.id = uo.role_id
+                WHERE uo.user_id = :userId
+                  AND uo.organization_id = :organizationId
+                  AND u.deleted_at IS NULL
+                LIMIT 1
+                """, q -> {
+                    q.setParameter("userId", userId);
+                    q.setParameter("organizationId", organizationId);
+                }, "id", "fullName", "email", "userStatus", "lastLoginAt", "passwordChangeRequired", "membershipStatus", "roleCode", "roleName");
     }
 
     private List<Map<String, Object>> userRows(String statusFilterSql, String search, int limit) {
