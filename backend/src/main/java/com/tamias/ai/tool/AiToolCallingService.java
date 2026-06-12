@@ -1000,9 +1000,16 @@ public class AiToolCallingService {
 
 
     private boolean isUserAdminToolQuestion(String value) {
-        return containsAny(value, "usuario", "usuarios", "user", "users", "miembro", "miembros", "equipo", "administrador", "administradores")
+        return (containsAny(value, "usuario", "usuarios", "user", "users", "miembro", "miembros", "equipo", "administrador", "administradores")
+                || isUserAccessIntent(value))
                 && !isCurrentUserProfileQuestion(value)
                 && !isOrganizationUserCountQuestion(value);
+    }
+
+    private boolean isUserAccessIntent(String value) {
+        return containsAny(value, "acceso", "accesos", "access summary", "resumen de acceso", "resumen de accesos")
+                || (containsAny(value, "permiso", "permisos")
+                    && containsAny(value, "usuario", "usuarios", "este usuario", "mi usuario", "mi cuenta", "tengo", "mis"));
     }
 
     private boolean isActiveUsersQuestion(String value) {
@@ -1022,8 +1029,7 @@ public class AiToolCallingService {
     }
 
     private boolean isUserAccessSummaryQuestion(String value) {
-        return isUserAdminToolQuestion(value)
-                && containsAny(value, "acceso", "accesos", "permisos", "resumen de acceso", "access summary");
+        return isUserAdminToolQuestion(value) && isUserAccessIntent(value);
     }
 
     private boolean isRoleAdminToolQuestion(String value) {

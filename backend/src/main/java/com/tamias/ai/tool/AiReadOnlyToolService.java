@@ -286,20 +286,27 @@ public class AiReadOnlyToolService {
         }
 
         String normalizedQuestion = normalize(userQuestion);
+        boolean wantsCurrentUserSummary = containsAny(
+                normalizedQuestion,
+                "este usuario", "mi usuario", "mis accesos", "mi acceso", "mi cuenta", "accesos tengo", "acceso tengo", "que accesos tengo", "qué accesos tengo"
+        ) || (containsAny(normalizedQuestion, "acceso", "accesos", "permiso", "permisos")
+                && containsAny(normalizedQuestion, "tengo", "mis", "mi"));
         boolean wantsOrganizationSummary = containsAny(
                 normalizedQuestion,
-                "todos", "todas", "todos los usuarios", "usuarios", "equipo", "organizacion", "organización"
-        ) && !containsAny(normalizedQuestion, "este usuario", "mi usuario", "mis accesos", "mi acceso", "mi cuenta");
+                "todos", "todas", "todos los usuarios", "todas las personas", "usuarios", "equipo", "organizacion", "organización"
+        ) && !wantsCurrentUserSummary;
 
-        String search = nullableSearch(extractSearchText(
-                userQuestion,
-                "acceso", "accesos", "usuario", "usuarios", "este", "esta", "ese", "esa", "permisos", "tiene", "tienen", "resumen", "rol", "roles"
-        ));
+        String search = wantsCurrentUserSummary || wantsOrganizationSummary
+                ? null
+                : nullableSearch(extractSearchText(
+                    userQuestion,
+                    "acceso", "accesos", "usuario", "usuarios", "este", "esta", "ese", "esa", "permisos", "tiene", "tienen", "tengo", "mis", "mi", "todos", "todas", "resumen", "rol", "roles"
+                ));
 
         List<Map<String, Object>> rows;
         String intro;
         String evidenceSummary;
-        if (search == null && !wantsOrganizationSummary) {
+        if (wantsCurrentUserSummary || (search == null && !wantsOrganizationSummary)) {
             rows = currentUserAccessRows();
             intro = "Este es tu acceso actual en TAMIAS:";
             evidenceSummary = "Current authenticated user access metadata was consulted.";
