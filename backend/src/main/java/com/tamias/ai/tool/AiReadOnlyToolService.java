@@ -461,8 +461,8 @@ public class AiReadOnlyToolService {
 
 
 
-    public AiToolAnswer aiChatRecentSessions() {
-        List<Map<String, Object>> rows = aiChatSessionRows(null, null, DEFAULT_LIMIT);
+    public AiToolAnswer aiChatRecentSessions(UUID excludedSessionId) {
+        List<Map<String, Object>> rows = aiChatSessionRows(null, null, excludedSessionId, DEFAULT_LIMIT);
         if (rows.isEmpty()) {
             return AiToolAnswer.of(
                     "No encontré sesiones de chat IA en tu organización.",
@@ -484,14 +484,14 @@ public class AiReadOnlyToolService {
         );
     }
 
-    public AiToolAnswer aiChatSearchHistory(String userQuestion) {
+    public AiToolAnswer aiChatSearchHistory(String userQuestion, UUID excludedSessionId) {
         String search = nullableSearch(extractSearchText(
                 userQuestion,
                 "busca", "buscar", "historial", "chat", "chats", "conversacion", "conversaciones",
                 "sesion", "sesiones", "ia", "asistente", "pregunta", "preguntas", "mensaje", "mensajes",
-                "hemos", "hablado", "antes", "sobre", "relacionado", "relacionados"
+                "hemos", "hablado", "antes", "sobre", "relacionado", "relacionados", "si"
         ));
-        List<Map<String, Object>> rows = aiChatMessageRows(search, DEFAULT_LIMIT);
+        List<Map<String, Object>> rows = aiChatMessageRows(search, null, excludedSessionId, DEFAULT_LIMIT);
         if (rows.isEmpty()) {
             return AiToolAnswer.of(
                     search == null
@@ -517,8 +517,8 @@ public class AiReadOnlyToolService {
         );
     }
 
-    public AiToolAnswer aiChatRecentMessages() {
-        List<Map<String, Object>> rows = aiChatMessageRows(null, DEFAULT_LIMIT);
+    public AiToolAnswer aiChatRecentMessages(UUID excludedSessionId) {
+        List<Map<String, Object>> rows = aiChatMessageRows(null, null, excludedSessionId, DEFAULT_LIMIT);
         if (rows.isEmpty()) {
             return AiToolAnswer.of(
                     "No encontré mensajes recientes del asistente IA en tu organización.",
@@ -539,13 +539,35 @@ public class AiReadOnlyToolService {
         );
     }
 
-    public AiToolAnswer aiChatSessionsByProperty(String userQuestion) {
+    public AiToolAnswer aiChatRecentUserQuestions(UUID excludedSessionId) {
+        List<Map<String, Object>> rows = aiChatMessageRows(null, "USER", excludedSessionId, DEFAULT_LIMIT);
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    "No encontré preguntas anteriores tuyas al asistente IA fuera de esta conversación.",
+                    "aiChat.recentMessages",
+                    "AI chat recent user questions",
+                    "No previous user questions were found outside the current session.",
+                    List.of()
+            );
+        }
+        StringBuilder answer = new StringBuilder("Estas son las preguntas recientes que le hiciste al asistente IA, excluyendo esta conversación:");
+        appendAiChatMessageRows(answer, rows);
+        return AiToolAnswer.of(
+                answer.toString(),
+                "aiChat.recentMessages",
+                "AI chat recent user questions",
+                "%d recent user questions were consulted outside the current session.".formatted(rows.size()),
+                rows
+        );
+    }
+
+    public AiToolAnswer aiChatSessionsByProperty(String userQuestion, UUID excludedSessionId) {
         String propertySearch = nullableSearch(extractSearchText(
                 userQuestion,
                 "chat", "chats", "conversacion", "conversaciones", "sesion", "sesiones", "ia", "asistente",
-                "propiedad", "propiedades", "alojamiento", "alojamientos", "casa", "casas", "bungalow", "bungalows"
+                "propiedad", "propiedades", "alojamiento", "alojamientos", "casa", "casas", "bungalow", "bungalows", "sobre", "relacionado", "relacionados"
         ));
-        List<Map<String, Object>> rows = aiChatSessionRows(propertySearch, null, DEFAULT_LIMIT);
+        List<Map<String, Object>> rows = aiChatSessionRows(propertySearch, null, excludedSessionId, DEFAULT_LIMIT);
         if (rows.isEmpty()) {
             return AiToolAnswer.of(
                     propertySearch == null
@@ -6247,6 +6269,10 @@ public class AiReadOnlyToolService {
 
 
     private List<Map<String, Object>> aiChatSessionRows(String propertySearch, UUID sessionId, int limit) {
+        return aiChatSessionRows(propertySearch, sessionId, null, limit);
+    }
+
+    private List<Map<String, Object>> aiChatSessionRows(String propertySearch, UUID sessionId, UUID excludedSessionId, int limit) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         StringBuilder sql = new StringBuilder("""
                 SELECT s.id,
@@ -6268,6 +6294,9 @@ public class AiReadOnlyToolService {
         if (sessionId != null) {
             sql.append("  AND s.id = :sessionId\n");
         }
+        if (excludedSessionId != null) {
+            sql.append("  AND s.id <> :excludedSessionId\n");
+        }
         if (propertySearch != null) {
             sql.append("""
                   AND NOT EXISTS (
@@ -6285,12 +6314,17 @@ public class AiReadOnlyToolService {
         return query(sql.toString(), q -> {
             q.setParameter("organizationId", organizationId);
             if (sessionId != null) q.setParameter("sessionId", sessionId);
+            if (excludedSessionId != null) q.setParameter("excludedSessionId", excludedSessionId);
             if (propertySearch != null) q.setParameter("propertySearch", propertySearch);
             q.setParameter("limit", limit);
         }, "id", "title", "propertyName", "createdByName", "createdAt", "updatedAt", "messageCount", "lastMessageAt");
     }
 
     private List<Map<String, Object>> aiChatMessageRows(String search, int limit) {
+        return aiChatMessageRows(search, null, null, limit);
+    }
+
+    private List<Map<String, Object>> aiChatMessageRows(String search, String role, UUID excludedSessionId, int limit) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         StringBuilder sql = new StringBuilder("""
                 SELECT m.id,
@@ -6307,6 +6341,12 @@ public class AiReadOnlyToolService {
                                       AND p.organization_id = s.organization_id
                 WHERE m.organization_id = :organizationId
                 """);
+        if (excludedSessionId != null) {
+            sql.append("  AND m.chat_session_id <> :excludedSessionId\n");
+        }
+        if (role != null) {
+            sql.append("  AND m.role = :role\n");
+        }
         if (search != null) {
             sql.append("""
                   AND NOT EXISTS (
@@ -6319,6 +6359,8 @@ public class AiReadOnlyToolService {
         sql.append("ORDER BY m.created_at DESC\nLIMIT :limit\n");
         return query(sql.toString(), q -> {
             q.setParameter("organizationId", organizationId);
+            if (excludedSessionId != null) q.setParameter("excludedSessionId", excludedSessionId);
+            if (role != null) q.setParameter("role", role);
             if (search != null) q.setParameter("search", search);
             q.setParameter("limit", limit);
         }, "id", "sessionId", "sessionTitle", "propertyName", "role", "contentExcerpt", "createdAt");

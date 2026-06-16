@@ -145,15 +145,15 @@ public class AiToolCallingService {
             return Optional.of(readOnlyToolService.aiChatCurrentSessionSummary(request.chatSessionId()));
         }
         if (isAiChatByPropertyQuestion(normalized)) {
-            return Optional.of(readOnlyToolService.aiChatSessionsByProperty(question));
+            return Optional.of(readOnlyToolService.aiChatSessionsByProperty(question, request.chatSessionId()));
         }
         if (isAiChatRecentMessagesQuestion(normalized)) {
-            return Optional.of(readOnlyToolService.aiChatRecentMessages());
+            return Optional.of(readOnlyToolService.aiChatRecentUserQuestions(request.chatSessionId()));
         }
         if (isAiChatSearchHistoryQuestion(normalized)) {
-            return Optional.of(readOnlyToolService.aiChatSearchHistory(question));
+            return Optional.of(readOnlyToolService.aiChatSearchHistory(question, request.chatSessionId()));
         }
-        return Optional.of(readOnlyToolService.aiChatRecentSessions());
+        return Optional.of(readOnlyToolService.aiChatRecentSessions(request.chatSessionId()));
     }
 
     private Optional<AiToolAnswer> tryHandleAdminRoleOrganizationQuestion(String question, String normalized) {
@@ -1157,10 +1157,10 @@ public class AiToolCallingService {
                 "chat ia", "chats ia", "chats", "mis chats", "chat del asistente", "chats del asistente",
                 "historial ia", "historial del asistente", "historial de chat", "historial de chats",
                 "conversacion ia", "conversaciones ia", "conversacion con la ia", "conversaciones con la ia",
-                "conversaciones anteriores", "conversacion anterior", "mis conversaciones",
-                "sesion ia", "sesiones ia", "sesion de chat", "sesiones de chat", "sesiones del asistente",
-                "mensajes del asistente", "preguntas al asistente", "que he preguntado", "que hemos hablado",
-                "hemos hablado antes", "hablamos", "pregunte", "preguntado"
+                "conversaciones anteriores", "conversacion anterior", "mis conversaciones", "esta conversacion", "conversacion actual",
+                "sesion ia", "sesiones ia", "sesion de chat", "sesiones de chat", "sesiones del asistente", "esta sesion", "sesion actual",
+                "mensajes del asistente", "preguntas al asistente", "preguntas le hice", "le hice al asistente", "que preguntas", "que he preguntado", "que hemos hablado",
+                "hemos hablado antes", "hablamos", "pregunte", "preguntado", "resume esta", "resumeme esta", "resumen de esta"
         );
     }
 
@@ -1181,7 +1181,7 @@ public class AiToolCallingService {
 
     private boolean isAiChatRecentMessagesQuestion(String value) {
         return isAiChatHistoryQuestion(value)
-                && containsAny(value, "mensajes", "preguntas", "respuestas", "que he preguntado", "que pregunte", "ultimos mensajes", "ultimas preguntas");
+                && containsAny(value, "mensajes", "preguntas", "respuestas", "que he preguntado", "que pregunte", "preguntas le hice", "le hice al asistente", "que preguntas", "ultimos mensajes", "ultimas preguntas");
     }
 
     private boolean isAiChatSearchHistoryQuestion(String value) {
