@@ -7,7 +7,6 @@ import jakarta.persistence.Query;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Timestamp;
-import java.text.Normalizer;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -6688,132 +6687,27 @@ public class AiReadOnlyToolService {
     }
 
     private boolean containsAny(String value, String... candidates) {
-        for (String candidate : candidates) {
-            if (value.contains(normalize(candidate))) {
-                return true;
-            }
-        }
-        return false;
+        return AiToolTextNormalizer.containsAny(value, candidates);
     }
 
     private String normalize(String value) {
-        if (value == null) {
-            return "";
-        }
-
-        String normalized = Normalizer.normalize(value, Normalizer.Form.NFD);
-        StringBuilder withoutAccents = new StringBuilder(normalized.length());
-        for (int i = 0; i < normalized.length(); i++) {
-            char current = normalized.charAt(i);
-            if (Character.getType(current) != Character.NON_SPACING_MARK) {
-                withoutAccents.append(current);
-            }
-        }
-
-        String lowered = withoutAccents.toString()
-                .toLowerCase(Locale.ROOT)
-                .replace("¿", " ")
-                .replace("?", " ")
-                .replace(",", " ")
-                .replace(".", " ");
-        return collapseWhitespace(lowered);
+        return AiToolTextNormalizer.normalize(value);
     }
 
     private String keepSearchCharacters(String value) {
-        if (value == null || value.isBlank()) {
-            return "";
-        }
-
-        StringBuilder builder = new StringBuilder(value.length());
-        for (int i = 0; i < value.length(); i++) {
-            char current = value.charAt(i);
-            if ((current >= 'a' && current <= 'z') || (current >= '0' && current <= '9') || current == '-') {
-                builder.append(current);
-            } else if (Character.isWhitespace(current)) {
-                builder.append(' ');
-            } else {
-                builder.append(' ');
-            }
-        }
-        return collapseWhitespace(builder.toString());
+        return AiToolTextNormalizer.keepSearchCharacters(value);
     }
 
     private String collapseWhitespace(String value) {
-        if (value == null || value.isBlank()) {
-            return "";
-        }
-
-        StringBuilder builder = new StringBuilder(value.length());
-        boolean previousWasWhitespace = true;
-        for (int i = 0; i < value.length(); i++) {
-            char current = value.charAt(i);
-            if (Character.isWhitespace(current)) {
-                if (!previousWasWhitespace) {
-                    builder.append(' ');
-                    previousWasWhitespace = true;
-                }
-            } else {
-                builder.append(current);
-                previousWasWhitespace = false;
-            }
-        }
-
-        int length = builder.length();
-        if (length > 0 && builder.charAt(length - 1) == ' ') {
-            builder.deleteCharAt(length - 1);
-        }
-        return builder.toString();
+        return AiToolTextNormalizer.collapseWhitespace(value);
     }
 
     private List<String> splitWords(String value) {
-        List<String> words = new ArrayList<>();
-        String normalizedValue = collapseWhitespace(value);
-        if (normalizedValue.isBlank()) {
-            return words;
-        }
-
-        StringBuilder currentWord = new StringBuilder();
-        for (int i = 0; i < normalizedValue.length(); i++) {
-            char current = normalizedValue.charAt(i);
-            if (Character.isWhitespace(current)) {
-                if (!currentWord.isEmpty()) {
-                    words.add(currentWord.toString());
-                    currentWord.setLength(0);
-                }
-            } else {
-                currentWord.append(current);
-            }
-        }
-
-        if (!currentWord.isEmpty()) {
-            words.add(currentWord.toString());
-        }
-        return words;
+        return AiToolTextNormalizer.splitWords(value);
     }
 
     private List<String> splitLines(String value) {
-        List<String> lines = new ArrayList<>();
-        if (value == null || value.isBlank()) {
-            return lines;
-        }
-
-        StringBuilder currentLine = new StringBuilder();
-        for (int i = 0; i < value.length(); i++) {
-            char current = value.charAt(i);
-            if (current == '\n' || current == '\r') {
-                if (!currentLine.isEmpty()) {
-                    lines.add(currentLine.toString());
-                    currentLine.setLength(0);
-                }
-            } else {
-                currentLine.append(current);
-            }
-        }
-
-        if (!currentLine.isEmpty()) {
-            lines.add(currentLine.toString());
-        }
-        return lines;
+        return AiToolTextNormalizer.splitLines(value);
     }
 
     private String value(Object value) {

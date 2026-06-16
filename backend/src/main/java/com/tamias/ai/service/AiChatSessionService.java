@@ -11,6 +11,7 @@ import com.tamias.ai.enums.AiChatMessageRole;
 import com.tamias.ai.mapper.AiChatMapper;
 import com.tamias.ai.repository.AiChatMessageRepository;
 import com.tamias.ai.repository.AiChatSessionRepository;
+import com.tamias.ai.tool.AiToolTextNormalizer;
 import com.tamias.common.dto.PageResponse;
 import com.tamias.common.exception.NotFoundException;
 import com.tamias.organization.entity.Organization;
@@ -165,29 +166,7 @@ public class AiChatSessionService {
     }
 
     private String collapseWhitespace(String value) {
-        if (value == null || value.isBlank()) {
-            return "";
-        }
-
-        StringBuilder builder = new StringBuilder(value.length());
-        boolean previousWasWhitespace = true;
-        for (int i = 0; i < value.length(); i++) {
-            char current = value.charAt(i);
-            if (Character.isWhitespace(current)) {
-                if (!previousWasWhitespace) {
-                    builder.append(' ');
-                    previousWasWhitespace = true;
-                }
-            } else {
-                builder.append(current);
-                previousWasWhitespace = false;
-            }
-        }
-
-        int length = builder.length();
-        if (length > 0 && builder.charAt(length - 1) == ' ') {
-            builder.deleteCharAt(length - 1);
-        }
-        return builder.toString();
+        return AiToolTextNormalizer.collapseWhitespace(value);
     }
+
 }

@@ -2,7 +2,6 @@ package com.tamias.ai.tool;
 
 import com.tamias.ai.dto.AiChatRequest;
 import com.tamias.ai.dto.AiToolEvidenceResponse;
-import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -18,6 +17,16 @@ public class AiToolCallingService {
     }
 
     public Optional<AiToolAnswer> tryHandle(AiChatRequest request) {
+        return tryHandleResult(request).answerOptional();
+    }
+
+    public AiToolResult tryHandleResult(AiChatRequest request) {
+        return tryHandleInternal(request)
+                .map(AiToolResult::hit)
+                .orElseGet(AiToolResult::notApplicable);
+    }
+
+    private Optional<AiToolAnswer> tryHandleInternal(AiChatRequest request) {
         String question = request.question();
         String normalized = normalize(question);
 
@@ -1897,72 +1906,19 @@ public class AiToolCallingService {
     }
 
     private boolean containsAny(String value, String... candidates) {
-        for (String candidate : candidates) {
-            if (value.contains(normalize(candidate))) {
-                return true;
-            }
-        }
-        return false;
+        return AiToolTextNormalizer.containsAnyForRouting(value, candidates);
     }
 
     private boolean startsWithAny(String value, String... prefixes) {
-        for (String prefix : prefixes) {
-            if (value.startsWith(normalize(prefix))) {
-                return true;
-            }
-        }
-        return false;
+        return AiToolTextNormalizer.startsWithAnyForRouting(value, prefixes);
     }
 
     private String normalize(String value) {
-        if (value == null) {
-            return "";
-        }
-
-        String normalized = Normalizer.normalize(value, Normalizer.Form.NFD);
-        StringBuilder withoutAccents = new StringBuilder(normalized.length());
-        for (int i = 0; i < normalized.length(); i++) {
-            char current = normalized.charAt(i);
-            if (Character.getType(current) != Character.NON_SPACING_MARK) {
-                withoutAccents.append(current);
-            }
-        }
-
-        String lowered = withoutAccents.toString()
-                .toLowerCase()
-                .replace("¿", " ")
-                .replace("?", " ")
-                .replace(",", " ")
-                .replace(".", " ")
-                .replace(":", " ")
-                .replace(";", " ");
-        return collapseWhitespace(lowered);
+        return AiToolTextNormalizer.normalizeForRouting(value);
     }
 
     private String collapseWhitespace(String value) {
-        if (value == null || value.isBlank()) {
-            return "";
-        }
-
-        StringBuilder builder = new StringBuilder(value.length());
-        boolean previousWasWhitespace = true;
-        for (int i = 0; i < value.length(); i++) {
-            char current = value.charAt(i);
-            if (Character.isWhitespace(current)) {
-                if (!previousWasWhitespace) {
-                    builder.append(' ');
-                    previousWasWhitespace = true;
-                }
-            } else {
-                builder.append(current);
-                previousWasWhitespace = false;
-            }
-        }
-
-        int length = builder.length();
-        if (length > 0 && builder.charAt(length - 1) == ' ') {
-            builder.deleteCharAt(length - 1);
-        }
-        return builder.toString();
+        return AiToolTextNormalizer.collapseWhitespace(value);
     }
+
 }
