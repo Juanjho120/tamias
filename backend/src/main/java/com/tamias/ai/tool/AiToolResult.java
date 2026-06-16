@@ -35,4 +35,16 @@ public record AiToolResult(
     public Optional<AiToolAnswer> answerOptional() {
         return Optional.ofNullable(answer);
     }
+
+    public boolean hasAnswer() {
+        return answer != null;
+    }
+
+    public boolean shouldAttemptRagFallback() {
+        return allowRagFallback && status.allowsRagFallback();
+    }
+
+    public boolean shouldRespondImmediately() {
+        return hasAnswer() && !shouldAttemptRagFallback();
+    }
 }

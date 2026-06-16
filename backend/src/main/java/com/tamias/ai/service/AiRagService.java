@@ -5,15 +5,17 @@ import com.tamias.ai.dto.AiChatResponse;
 import com.tamias.ai.dto.AiSearchRequest;
 import com.tamias.ai.dto.AiSearchResponse;
 import com.tamias.ai.dto.AiSourceResponse;
+import com.tamias.ai.dto.AiToolEvidenceResponse;
 import com.tamias.ai.entity.AiChatMessage;
 import com.tamias.ai.entity.AiChatSession;
 import com.tamias.ai.enums.AiChatMessageRole;
 import com.tamias.ai.tool.AiToolAnswer;
 import com.tamias.ai.tool.AiToolCallingService;
+import com.tamias.ai.tool.AiToolResult;
+import com.tamias.ai.tool.AiToolResultStatus;
 import com.tamias.security.service.CurrentUserService;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
@@ -79,9 +81,9 @@ public class AiRagService {
                 request.question()
         );
 
-        Optional<AiToolAnswer> toolAnswer = toolCallingService.tryHandle(request);
-        if (toolAnswer.isPresent()) {
-            return persistToolAnswer(session, userMessage, request, toolAnswer.get());
+        AiToolResult toolResult = toolCallingService.tryHandleResult(request);
+        if (toolResult.shouldRespondImmediately()) {
+            return persistToolAnswer(session, userMessage, request, toolResult.answer());
         }
 
         UUID effectivePropertyId = request.propertyId() != null
@@ -95,17 +97,12 @@ public class AiRagService {
                 request.similarityThreshold()
         );
         List<AiSourceResponse> sources = toSourceResponses(matches);
+        List<AiToolEvidenceResponse> toolEvidence = toolResult.answerOptional()
+                .map(AiToolAnswer::evidence)
+                .orElse(List.of());
 
         if (matches.isEmpty()) {
-            String fallbackAnswer = """
-                    No encontré información suficiente en los documentos indexados para responder eso.
-
-                    Puedes intentar:
-                    - Subir o procesar un documento relacionado.
-                    - Indexar el documento para IA.
-                    - Preguntar de forma más específica.
-                    """.trim();
-
+            String fallbackAnswer = buildNoInformationAnswer(toolResult);
             AiChatMessage assistantMessage = chatSessionService.saveMessage(
                     session,
                     AiChatMessageRole.ASSISTANT,
@@ -121,33 +118,11 @@ public class AiRagService {
                     false,
                     0,
                     sources,
-                    List.of()
+                    toolEvidence
             );
         }
 
-        String answer = chatClient.prompt()
-                .system("""
-                        Eres TAMIAS, un asistente para administración de propiedades, alojamientos, mantenimiento, reservaciones y documentos internos.
-
-                        Reglas estrictas:
-                        1. Responde en el mismo idioma de la pregunta del usuario.
-                        2. Usa únicamente el CONTEXTO proporcionado.
-                        3. No inventes datos, reglas, fechas, costos, nombres ni recomendaciones que no aparezcan en el contexto.
-                        4. Si la respuesta no está en el contexto, dilo claramente.
-                        5. Cuando sí respondas, cita las fuentes usando el formato [S1], [S2], etc.
-                        6. Sé claro, práctico y natural; evita sonar como plantilla repetida.
-                        7. Si el contexto tiene reglas, tareas o recomendaciones, sepáralas en secciones simples.
-                        8. Si el usuario pide crear, editar, eliminar o notificar, indícale que esta versión del asistente es de consulta.
-                        """)
-                .user("""
-                        Pregunta del usuario:
-                        %s
-
-                        CONTEXTO:
-                        %s
-                        """.formatted(request.question(), buildContext(matches)))
-                .call()
-                .content();
+        String answer = buildRagAnswer(request.question(), matches, toolResult);
 
         AiChatMessage assistantMessage = chatSessionService.saveMessage(
                 session,
@@ -164,8 +139,52 @@ public class AiRagService {
                 true,
                 sources.size(),
                 sources,
-                List.of()
+                toolEvidence
         );
+    }
+
+    private String buildRagAnswer(String question, List<Document> matches, AiToolResult toolResult) {
+        String systemPrompt = """
+                Eres TAMIAS, un asistente para administración de propiedades, alojamientos, mantenimiento, reservaciones y documentos internos.
+
+                Reglas estrictas:
+                1. Responde en el mismo idioma de la pregunta del usuario.
+                2. Usa únicamente el CONTEXTO proporcionado.
+                3. No inventes datos, reglas, fechas, costos, nombres ni recomendaciones que no aparezcan en el contexto.
+                4. Si la respuesta no está en el contexto, dilo claramente.
+                5. Cuando sí respondas, cita las fuentes usando el formato [S1], [S2], etc.
+                6. Sé claro, práctico y natural; evita sonar como plantilla repetida.
+                7. Si el contexto tiene reglas, tareas o recomendaciones, sepáralas en secciones simples.
+                8. Si el usuario pide crear, editar, eliminar o notificar, indícale que esta versión del asistente es de consulta.
+                """;
+
+        String toolFallbackContext = buildToolFallbackContext(toolResult);
+        String userPrompt = toolFallbackContext.isBlank()
+                ? """
+                        Pregunta del usuario:
+                        %s
+
+                        CONTEXTO:
+                        %s
+                        """.formatted(question, buildContext(matches))
+                : """
+                        Pregunta del usuario:
+                        %s
+
+                        Antes de consultar documentos, TAMIAS intentó responder con datos estructurados del sistema, pero esa ruta no encontró datos suficientes:
+                        %s
+
+                        Usa el CONTEXTO documental de abajo para responder la pregunta. No repitas como respuesta final que la tool no encontró datos si el contexto documental sí contiene la respuesta.
+
+                        CONTEXTO:
+                        %s
+                        """.formatted(question, toolFallbackContext, buildContext(matches));
+
+        return chatClient.prompt()
+                .system(systemPrompt)
+                .user(userPrompt)
+                .call()
+                .content();
     }
 
     private AiChatResponse persistToolAnswer(
@@ -191,6 +210,48 @@ public class AiRagService {
                 List.of(),
                 answer.evidence()
         );
+    }
+
+    private String buildNoInformationAnswer(AiToolResult toolResult) {
+        if (toolResult.status() == AiToolResultStatus.NOT_APPLICABLE) {
+            return """
+                    No encontré información relacionada con lo que preguntaste en los documentos indexados/RAG.
+
+                    Puedes intentar:
+                    - Preguntar con otro nombre o una frase más específica.
+                    - Verificar que el documento esté cargado, procesado e indexado para IA.
+                    - Confirmar que la información exista en TAMIAS.
+                    """.trim();
+        }
+
+        if (toolResult.answer() == null) {
+            return """
+                    No encontré información relacionada con lo que preguntaste.
+
+                    Revisé los documentos indexados/RAG, pero no encontré contenido relacionado.
+                    """.trim();
+        }
+
+        return """
+                No encontré información relacionada con lo que preguntaste.
+
+                Revisé:
+                - Datos del sistema: la tool aplicable no encontró registros suficientes.
+                - Documentos indexados/RAG: no encontré contenido relacionado.
+
+                Detalle de datos del sistema:
+                %s
+
+                Puedes intentar preguntar con otro nombre, revisar si el documento está procesado/indexado, o confirmar que la información exista en TAMIAS.
+                """.formatted(toolResult.answer().answer()).trim();
+    }
+
+    private String buildToolFallbackContext(AiToolResult toolResult) {
+        if (toolResult == null || toolResult.status() == AiToolResultStatus.NOT_APPLICABLE || toolResult.answer() == null) {
+            return "";
+        }
+        return "- Estado de tool: " + toolResult.status() + System.lineSeparator()
+                + "- Respuesta de tool: " + toolResult.answer().answer();
     }
 
     private List<Document> searchSimilarDocuments(
@@ -267,15 +328,55 @@ public class AiRagService {
             return null;
         }
 
-        String normalized = content.replace("\r\n", "\n")
-                .replace("\r", "\n")
-                .replaceAll("[ \\t]+", " ")
-                .replaceAll("\\n{3,}", "\\n\\n")
-                .trim();
-
+        String normalized = normalizeExcerptWhitespace(content);
         return normalized.length() <= MAX_SOURCE_EXCERPT_LENGTH
                 ? normalized
                 : normalized.substring(0, MAX_SOURCE_EXCERPT_LENGTH).trim() + "...";
+    }
+
+    private String normalizeExcerptWhitespace(String content) {
+        StringBuilder builder = new StringBuilder(content.length());
+        boolean previousWasSpace = false;
+        int consecutiveNewLines = 0;
+
+        for (int i = 0; i < content.length(); i++) {
+            char current = content.charAt(i);
+            if (current == '\r') {
+                continue;
+            }
+            if (current == '\n') {
+                if (consecutiveNewLines < 2) {
+                    builder.append('\n');
+                }
+                consecutiveNewLines++;
+                previousWasSpace = false;
+                continue;
+            }
+            consecutiveNewLines = 0;
+            if (current == ' ' || current == '\t') {
+                if (!previousWasSpace) {
+                    builder.append(' ');
+                    previousWasSpace = true;
+                }
+                continue;
+            }
+            builder.append(current);
+            previousWasSpace = false;
+        }
+
+        return trimWhitespace(builder.toString());
+    }
+
+    private String trimWhitespace(String value) {
+        int start = 0;
+        int end = value.length();
+        while (start < end && Character.isWhitespace(value.charAt(start))) {
+            start++;
+        }
+        while (end > start && Character.isWhitespace(value.charAt(end - 1))) {
+            end--;
+        }
+        return value.substring(start, end);
     }
 
     private UUID parseUuid(Object value) {

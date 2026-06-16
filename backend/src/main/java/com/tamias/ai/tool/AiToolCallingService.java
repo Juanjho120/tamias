@@ -1,9 +1,10 @@
 package com.tamias.ai.tool;
 
+import com.tamias.ai.dto.AiChatRequest;
 import com.tamias.ai.tool.context.AiToolRequestContext;
 import com.tamias.ai.tool.handler.AiToolHandler;
+import com.tamias.ai.tool.support.AiToolFallbackPolicy;
 import com.tamias.ai.tool.support.AiToolTextNormalizer;
-import com.tamias.ai.dto.AiChatRequest;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
@@ -18,7 +19,11 @@ public class AiToolCallingService {
     }
 
     public Optional<AiToolAnswer> tryHandle(AiChatRequest request) {
-        return tryHandleResult(request).answerOptional();
+        AiToolResult result = tryHandleResult(request);
+        if (result.status() == AiToolResultStatus.NOT_APPLICABLE) {
+            return Optional.empty();
+        }
+        return result.answerOptional();
     }
 
     public AiToolResult tryHandleResult(AiChatRequest request) {
@@ -29,7 +34,7 @@ public class AiToolCallingService {
         for (AiToolHandler handler : handlers) {
             Optional<AiToolAnswer> answer = handler.tryHandle(context);
             if (answer.isPresent()) {
-                return AiToolResult.hit(answer.get());
+                return AiToolFallbackPolicy.classify(answer.get(), normalized);
             }
         }
 
