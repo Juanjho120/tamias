@@ -1,54 +1,53 @@
 package com.tamias.ai.tool.service;
 
 import com.tamias.ai.tool.AiToolAnswer;
-import com.tamias.ai.tool.support.AiReadOnlyToolSupport;
-import com.tamias.security.service.CurrentUserService;
-import jakarta.persistence.EntityManager;
+import com.tamias.ai.tool.repository.DashboardToolRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
-public class DashboardReadOnlyToolService extends AiReadOnlyToolSupport {
+public class DashboardReadOnlyToolService {
 
-    public DashboardReadOnlyToolService(EntityManager entityManager, CurrentUserService currentUserService) {
-        super(entityManager, currentUserService);
+    private final DashboardToolRepository repository;
+
+    public DashboardReadOnlyToolService(DashboardToolRepository repository) {
+        this.repository = repository;
     }
 
     public AiToolAnswer operationalSummary() {
-        return super.operationalSummary();
+        return repository.operationalSummary();
     }
 
     public AiToolAnswer dashboardReservationSummary() {
-        return super.dashboardReservationSummary();
+        return repository.dashboardReservationSummary();
     }
 
     public AiToolAnswer dashboardMaintenanceSummary() {
-        return super.dashboardMaintenanceSummary();
+        return repository.dashboardMaintenanceSummary();
     }
 
     public AiToolAnswer dashboardPurchaseSummary() {
-        return super.dashboardPurchaseSummary();
+        return repository.dashboardPurchaseSummary();
     }
 
     public AiToolAnswer dashboardTaskSummary() {
-        return super.dashboardTaskSummary();
+        return repository.dashboardTaskSummary();
     }
 
     public AiToolAnswer dashboardDocumentSummary() {
-        return super.dashboardDocumentSummary();
+        return repository.dashboardDocumentSummary();
     }
 
     public AiToolAnswer dashboardCalendarEvents() {
-        return super.dashboardCalendarEvents();
+        return repository.dashboardCalendarEvents();
     }
 
     public AiToolAnswer dashboardAlertSummary() {
-        return super.dashboardAlertSummary();
+        return repository.dashboardAlertSummary();
     }
 
     public AiToolAnswer dashboardAttentionToday() {
-        return super.dashboardAttentionToday();
+        return repository.dashboardAttentionToday();
     }
-
 }

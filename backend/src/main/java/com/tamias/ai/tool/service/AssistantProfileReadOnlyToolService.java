@@ -1,30 +1,29 @@
 package com.tamias.ai.tool.service;
 
 import com.tamias.ai.tool.AiToolAnswer;
-import com.tamias.ai.tool.support.AiReadOnlyToolSupport;
-import com.tamias.security.service.CurrentUserService;
-import jakarta.persistence.EntityManager;
+import com.tamias.ai.tool.repository.AssistantProfileToolRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
-public class AssistantProfileReadOnlyToolService extends AiReadOnlyToolSupport {
+public class AssistantProfileReadOnlyToolService {
 
-    public AssistantProfileReadOnlyToolService(EntityManager entityManager, CurrentUserService currentUserService) {
-        super(entityManager, currentUserService);
+    private final AssistantProfileToolRepository repository;
+
+    public AssistantProfileReadOnlyToolService(AssistantProfileToolRepository repository) {
+        this.repository = repository;
     }
 
     public AiToolAnswer capabilities() {
-        return super.capabilities();
+        return repository.capabilities();
     }
 
     public AiToolAnswer currentUserProfile(String userQuestion) {
-        return super.currentUserProfile(userQuestion);
+        return repository.currentUserProfile(userQuestion);
     }
 
     public AiToolAnswer currentOrganizationSummary() {
-        return super.currentOrganizationSummary();
+        return repository.currentOrganizationSummary();
     }
-
 }

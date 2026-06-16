@@ -1,162 +1,161 @@
 package com.tamias.ai.tool.service;
 
 import com.tamias.ai.tool.AiToolAnswer;
-import com.tamias.ai.tool.support.AiReadOnlyToolSupport;
-import com.tamias.security.service.CurrentUserService;
-import jakarta.persistence.EntityManager;
+import com.tamias.ai.tool.repository.ScheduledReservationGuestToolRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
-public class ScheduledReservationGuestReadOnlyToolService extends AiReadOnlyToolSupport {
+public class ScheduledReservationGuestReadOnlyToolService {
 
-    public ScheduledReservationGuestReadOnlyToolService(EntityManager entityManager, CurrentUserService currentUserService) {
-        super(entityManager, currentUserService);
+    private final ScheduledReservationGuestToolRepository repository;
+
+    public ScheduledReservationGuestReadOnlyToolService(ScheduledReservationGuestToolRepository repository) {
+        this.repository = repository;
     }
 
     public AiToolAnswer upcomingReservations() {
-        return super.upcomingReservations();
+        return repository.upcomingReservations();
     }
 
     public AiToolAnswer scheduledMaintenanceSearch(String userQuestion) {
-        return super.scheduledMaintenanceSearch(userQuestion);
+        return repository.scheduledMaintenanceSearch(userQuestion);
     }
 
     public AiToolAnswer upcomingScheduledMaintenance() {
-        return super.upcomingScheduledMaintenance();
+        return repository.upcomingScheduledMaintenance();
     }
 
     public AiToolAnswer dueTodayScheduledMaintenance() {
-        return super.dueTodayScheduledMaintenance();
+        return repository.dueTodayScheduledMaintenance();
     }
 
     public AiToolAnswer dueThisWeekScheduledMaintenance() {
-        return super.dueThisWeekScheduledMaintenance();
+        return repository.dueThisWeekScheduledMaintenance();
     }
 
     public AiToolAnswer scheduledMaintenanceByProperty(String userQuestion) {
-        return super.scheduledMaintenanceByProperty(userQuestion);
+        return repository.scheduledMaintenanceByProperty(userQuestion);
     }
 
     public AiToolAnswer scheduledMaintenanceByType(String userQuestion) {
-        return super.scheduledMaintenanceByType(userQuestion);
+        return repository.scheduledMaintenanceByType(userQuestion);
     }
 
     public AiToolAnswer scheduledMaintenanceByStatus(String userQuestion) {
-        return super.scheduledMaintenanceByStatus(userQuestion);
+        return repository.scheduledMaintenanceByStatus(userQuestion);
     }
 
     public AiToolAnswer nextDueScheduledMaintenance(String userQuestion) {
-        return super.nextDueScheduledMaintenance(userQuestion);
+        return repository.nextDueScheduledMaintenance(userQuestion);
     }
 
     public AiToolAnswer scheduledMaintenanceFrequencySummary() {
-        return super.scheduledMaintenanceFrequencySummary();
+        return repository.scheduledMaintenanceFrequencySummary();
     }
 
     public AiToolAnswer scheduledMaintenanceHistory(String userQuestion) {
-        return super.scheduledMaintenanceHistory(userQuestion);
+        return repository.scheduledMaintenanceHistory(userQuestion);
     }
 
     public AiToolAnswer scheduledMaintenanceComplianceSummary() {
-        return super.scheduledMaintenanceComplianceSummary();
+        return repository.scheduledMaintenanceComplianceSummary();
     }
 
     public AiToolAnswer reservationsToday() {
-        return super.reservationsToday();
+        return repository.reservationsToday();
     }
 
     public AiToolAnswer currentReservations() {
-        return super.currentReservations();
+        return repository.currentReservations();
     }
 
     public AiToolAnswer reservationsThisWeek() {
-        return super.reservationsThisWeek();
+        return repository.reservationsThisWeek();
     }
 
     public AiToolAnswer reservationsThisMonth() {
-        return super.reservationsThisMonth();
+        return repository.reservationsThisMonth();
     }
 
     public AiToolAnswer reservationsByProperty(String userQuestion) {
-        return super.reservationsByProperty(userQuestion);
+        return repository.reservationsByProperty(userQuestion);
     }
 
     public AiToolAnswer reservationsByGuest(String userQuestion) {
-        return super.reservationsByGuest(userQuestion);
+        return repository.reservationsByGuest(userQuestion);
     }
 
     public AiToolAnswer reservationsByStatus(String userQuestion) {
-        return super.reservationsByStatus(userQuestion);
+        return repository.reservationsByStatus(userQuestion);
     }
 
     public AiToolAnswer reservationsByPlatform(String userQuestion) {
-        return super.reservationsByPlatform(userQuestion);
+        return repository.reservationsByPlatform(userQuestion);
     }
 
     public AiToolAnswer reservationSearch(String userQuestion) {
-        return super.reservationSearch(userQuestion);
+        return repository.reservationSearch(userQuestion);
     }
 
     public AiToolAnswer nextCheckIn() {
-        return super.nextCheckIn();
+        return repository.nextCheckIn();
     }
 
     public AiToolAnswer nextCheckOut() {
-        return super.nextCheckOut();
+        return repository.nextCheckOut();
     }
 
     public AiToolAnswer reservationCalendarEvents() {
-        return super.reservationCalendarEvents();
+        return repository.reservationCalendarEvents();
     }
 
     public AiToolAnswer reservationRevenueSummary(String userQuestion) {
-        return super.reservationRevenueSummary(userQuestion);
+        return repository.reservationRevenueSummary(userQuestion);
     }
 
     public AiToolAnswer reservationNightsSummary(String userQuestion) {
-        return super.reservationNightsSummary(userQuestion);
+        return repository.reservationNightsSummary(userQuestion);
     }
 
     public AiToolAnswer reservationGuestCountSummary(String userQuestion) {
-        return super.reservationGuestCountSummary(userQuestion);
+        return repository.reservationGuestCountSummary(userQuestion);
     }
 
     public AiToolAnswer reservationOccupancySummary(String userQuestion) {
-        return super.reservationOccupancySummary(userQuestion);
+        return repository.reservationOccupancySummary(userQuestion);
     }
 
     public AiToolAnswer reservationGapsBetweenReservations() {
-        return super.reservationGapsBetweenReservations();
+        return repository.reservationGapsBetweenReservations();
     }
 
     public AiToolAnswer guestSearch(String userQuestion) {
-        return super.guestSearch(userQuestion);
+        return repository.guestSearch(userQuestion);
     }
 
     public AiToolAnswer guestsByReservation(String userQuestion) {
-        return super.guestsByReservation(userQuestion);
+        return repository.guestsByReservation(userQuestion);
     }
 
     public AiToolAnswer recentGuests() {
-        return super.recentGuests();
+        return repository.recentGuests();
     }
 
     public AiToolAnswer returningGuests() {
-        return super.returningGuests();
+        return repository.returningGuests();
     }
 
     public AiToolAnswer upcomingGuests() {
-        return super.upcomingGuests();
+        return repository.upcomingGuests();
     }
 
     public AiToolAnswer guestCountByDateRange(String userQuestion) {
-        return super.guestCountByDateRange(userQuestion);
+        return repository.guestCountByDateRange(userQuestion);
     }
 
     public AiToolAnswer overdueScheduledMaintenance() {
-        return super.overdueScheduledMaintenance();
+        return repository.overdueScheduledMaintenance();
     }
-
 }

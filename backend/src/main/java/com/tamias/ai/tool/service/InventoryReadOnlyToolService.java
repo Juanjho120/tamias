@@ -1,42 +1,41 @@
 package com.tamias.ai.tool.service;
 
 import com.tamias.ai.tool.AiToolAnswer;
-import com.tamias.ai.tool.support.AiReadOnlyToolSupport;
-import com.tamias.security.service.CurrentUserService;
-import jakarta.persistence.EntityManager;
+import com.tamias.ai.tool.repository.InventoryToolRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
-public class InventoryReadOnlyToolService extends AiReadOnlyToolSupport {
+public class InventoryReadOnlyToolService {
 
-    public InventoryReadOnlyToolService(EntityManager entityManager, CurrentUserService currentUserService) {
-        super(entityManager, currentUserService);
+    private final InventoryToolRepository repository;
+
+    public InventoryReadOnlyToolService(InventoryToolRepository repository) {
+        this.repository = repository;
     }
 
     public AiToolAnswer inventorySearch(String userQuestion) {
-        return super.inventorySearch(userQuestion);
+        return repository.inventorySearch(userQuestion);
     }
 
     public AiToolAnswer inventoryFrequentlyUsed() {
-        return super.inventoryFrequentlyUsed();
+        return repository.inventoryFrequentlyUsed();
     }
 
     public AiToolAnswer inventoryUnusedItems() {
-        return super.inventoryUnusedItems();
+        return repository.inventoryUnusedItems();
     }
 
     public AiToolAnswer inventoryReservationUsage(String userQuestion) {
-        return super.inventoryReservationUsage(userQuestion);
+        return repository.inventoryReservationUsage(userQuestion);
     }
 
     public AiToolAnswer inventoryPurchaseUsage(String userQuestion) {
-        return super.inventoryPurchaseUsage(userQuestion);
+        return repository.inventoryPurchaseUsage(userQuestion);
     }
 
     public AiToolAnswer inventoryMaintenanceUsage(String userQuestion) {
-        return super.inventoryMaintenanceUsage(userQuestion);
+        return repository.inventoryMaintenanceUsage(userQuestion);
     }
-
 }

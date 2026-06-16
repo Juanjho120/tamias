@@ -1,134 +1,133 @@
 package com.tamias.ai.tool.service;
 
 import com.tamias.ai.tool.AiToolAnswer;
-import com.tamias.ai.tool.support.AiReadOnlyToolSupport;
-import com.tamias.security.service.CurrentUserService;
-import jakarta.persistence.EntityManager;
+import com.tamias.ai.tool.repository.ReservationSupplyTaskToolRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
-public class ReservationSupplyTaskReadOnlyToolService extends AiReadOnlyToolSupport {
+public class ReservationSupplyTaskReadOnlyToolService {
 
-    public ReservationSupplyTaskReadOnlyToolService(EntityManager entityManager, CurrentUserService currentUserService) {
-        super(entityManager, currentUserService);
+    private final ReservationSupplyTaskToolRepository repository;
+
+    public ReservationSupplyTaskReadOnlyToolService(ReservationSupplyTaskToolRepository repository) {
+        this.repository = repository;
     }
 
     public AiToolAnswer pendingTaskLists() {
-        return super.pendingTaskLists();
+        return repository.pendingTaskLists();
     }
 
     public AiToolAnswer reservationSupplySearch(String userQuestion) {
-        return super.reservationSupplySearch(userQuestion);
+        return repository.reservationSupplySearch(userQuestion);
     }
 
     public AiToolAnswer reservationSuppliesByReservation(String userQuestion) {
-        return super.reservationSuppliesByReservation(userQuestion);
+        return repository.reservationSuppliesByReservation(userQuestion);
     }
 
     public AiToolAnswer reservationSuppliesByProperty(String userQuestion) {
-        return super.reservationSuppliesByProperty(userQuestion);
+        return repository.reservationSuppliesByProperty(userQuestion);
     }
 
     public AiToolAnswer reservationSuppliesForUpcomingReservations() {
-        return super.reservationSuppliesForUpcomingReservations();
+        return repository.reservationSuppliesForUpcomingReservations();
     }
 
     public AiToolAnswer reservationSuppliesForLatestPastReservation() {
-        return super.reservationSuppliesForLatestPastReservation();
+        return repository.reservationSuppliesForLatestPastReservation();
     }
 
     public AiToolAnswer reservationSupplySummaryByItem(String userQuestion) {
-        return super.reservationSupplySummaryByItem(userQuestion);
+        return repository.reservationSupplySummaryByItem(userQuestion);
     }
 
     public AiToolAnswer reservationSupplySummaryByDateRange(String userQuestion) {
-        return super.reservationSupplySummaryByDateRange(userQuestion);
+        return repository.reservationSupplySummaryByDateRange(userQuestion);
     }
 
     public AiToolAnswer reservationSupplyLastUsed(String userQuestion) {
-        return super.reservationSupplyLastUsed(userQuestion);
+        return repository.reservationSupplyLastUsed(userQuestion);
     }
 
     public AiToolAnswer reservationSupplyMostUsed() {
-        return super.reservationSupplyMostUsed();
+        return repository.reservationSupplyMostUsed();
     }
 
     public AiToolAnswer reservationSupplyMissingForUpcomingReservations() {
-        return super.reservationSupplyMissingForUpcomingReservations();
+        return repository.reservationSupplyMissingForUpcomingReservations();
     }
 
     public AiToolAnswer taskListSearch(String userQuestion) {
-        return super.taskListSearch(userQuestion);
+        return repository.taskListSearch(userQuestion);
     }
 
     public AiToolAnswer taskListsByProperty(String userQuestion) {
-        return super.taskListsByProperty(userQuestion);
+        return repository.taskListsByProperty(userQuestion);
     }
 
     public AiToolAnswer taskListsByReservation(String userQuestion) {
-        return super.taskListsByReservation(userQuestion);
+        return repository.taskListsByReservation(userQuestion);
     }
 
     public AiToolAnswer taskListsForNextReservation() {
-        return super.taskListsForNextReservation();
+        return repository.taskListsForNextReservation();
     }
 
     public AiToolAnswer activeTaskLists() {
-        return super.activeTaskLists();
+        return repository.activeTaskLists();
     }
 
     public AiToolAnswer completedTaskLists() {
-        return super.completedTaskLists();
+        return repository.completedTaskLists();
     }
 
     public AiToolAnswer overdueTaskLists() {
-        return super.overdueTaskLists();
+        return repository.overdueTaskLists();
     }
 
     public AiToolAnswer dueTodayTaskLists() {
-        return super.dueTodayTaskLists();
+        return repository.dueTodayTaskLists();
     }
 
     public AiToolAnswer dueThisWeekTaskLists() {
-        return super.dueThisWeekTaskLists();
+        return repository.dueThisWeekTaskLists();
     }
 
     public AiToolAnswer taskListProgressSummary() {
-        return super.taskListProgressSummary();
+        return repository.taskListProgressSummary();
     }
 
     public AiToolAnswer taskListCompletionSummary() {
-        return super.taskListCompletionSummary();
+        return repository.taskListCompletionSummary();
     }
 
     public AiToolAnswer taskItemSearch(String userQuestion) {
-        return super.taskItemSearch(userQuestion);
+        return repository.taskItemSearch(userQuestion);
     }
 
     public AiToolAnswer taskItemsByTaskList(String userQuestion) {
-        return super.taskItemsByTaskList(userQuestion);
+        return repository.taskItemsByTaskList(userQuestion);
     }
 
     public AiToolAnswer pendingTaskItems() {
-        return super.pendingTaskItems();
+        return repository.pendingTaskItems();
     }
 
     public AiToolAnswer completedTaskItems() {
-        return super.completedTaskItems();
+        return repository.completedTaskItems();
     }
 
     public AiToolAnswer overdueTaskItems() {
-        return super.overdueTaskItems();
+        return repository.overdueTaskItems();
     }
 
     public AiToolAnswer taskItemAssignedSummary() {
-        return super.taskItemAssignedSummary();
+        return repository.taskItemAssignedSummary();
     }
 
     public AiToolAnswer taskItemPrioritySummary() {
-        return super.taskItemPrioritySummary();
+        return repository.taskItemPrioritySummary();
     }
-
 }

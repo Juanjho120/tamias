@@ -1,50 +1,49 @@
 package com.tamias.ai.tool.service;
 
 import com.tamias.ai.tool.AiToolAnswer;
-import com.tamias.ai.tool.support.AiReadOnlyToolSupport;
-import com.tamias.security.service.CurrentUserService;
-import jakarta.persistence.EntityManager;
+import com.tamias.ai.tool.repository.FileImageToolRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
-public class FileImageReadOnlyToolService extends AiReadOnlyToolSupport {
+public class FileImageReadOnlyToolService {
 
-    public FileImageReadOnlyToolService(EntityManager entityManager, CurrentUserService currentUserService) {
-        super(entityManager, currentUserService);
+    private final FileImageToolRepository repository;
+
+    public FileImageReadOnlyToolService(FileImageToolRepository repository) {
+        this.repository = repository;
     }
 
     public AiToolAnswer fileMetadata(String userQuestion) {
-        return super.fileMetadata(userQuestion);
+        return repository.fileMetadata(userQuestion);
     }
 
     public AiToolAnswer filesByProperty(String userQuestion) {
-        return super.filesByProperty(userQuestion);
+        return repository.filesByProperty(userQuestion);
     }
 
     public AiToolAnswer filesByMaintenance(String userQuestion) {
-        return super.filesByMaintenance(userQuestion);
+        return repository.filesByMaintenance(userQuestion);
     }
 
     public AiToolAnswer filesByDocument(String userQuestion) {
-        return super.filesByDocument(userQuestion);
+        return repository.filesByDocument(userQuestion);
     }
 
     public AiToolAnswer fileStorageSummary() {
-        return super.fileStorageSummary();
+        return repository.fileStorageSummary();
     }
 
     public AiToolAnswer orphanFileCandidates() {
-        return super.orphanFileCandidates();
+        return repository.orphanFileCandidates();
     }
 
     public AiToolAnswer propertyImageMetadataSummary() {
-        return super.propertyImageMetadataSummary();
+        return repository.propertyImageMetadataSummary();
     }
 
     public AiToolAnswer maintenanceImageMetadataSummary() {
-        return super.maintenanceImageMetadataSummary();
+        return repository.maintenanceImageMetadataSummary();
     }
-
 }

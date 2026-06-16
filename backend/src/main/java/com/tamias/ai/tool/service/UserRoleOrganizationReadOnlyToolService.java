@@ -1,54 +1,53 @@
 package com.tamias.ai.tool.service;
 
 import com.tamias.ai.tool.AiToolAnswer;
-import com.tamias.ai.tool.support.AiReadOnlyToolSupport;
-import com.tamias.security.service.CurrentUserService;
-import jakarta.persistence.EntityManager;
+import com.tamias.ai.tool.repository.UserRoleOrganizationToolRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
-public class UserRoleOrganizationReadOnlyToolService extends AiReadOnlyToolSupport {
+public class UserRoleOrganizationReadOnlyToolService {
 
-    public UserRoleOrganizationReadOnlyToolService(EntityManager entityManager, CurrentUserService currentUserService) {
-        super(entityManager, currentUserService);
+    private final UserRoleOrganizationToolRepository repository;
+
+    public UserRoleOrganizationReadOnlyToolService(UserRoleOrganizationToolRepository repository) {
+        this.repository = repository;
     }
 
     public AiToolAnswer activeUsers() {
-        return super.activeUsers();
+        return repository.activeUsers();
     }
 
     public AiToolAnswer inactiveUsers() {
-        return super.inactiveUsers();
+        return repository.inactiveUsers();
     }
 
     public AiToolAnswer searchUsers(String userQuestion) {
-        return super.searchUsers(userQuestion);
+        return repository.searchUsers(userQuestion);
     }
 
     public AiToolAnswer usersByRole(String userQuestion) {
-        return super.usersByRole(userQuestion);
+        return repository.usersByRole(userQuestion);
     }
 
     public AiToolAnswer userAccessSummary(String userQuestion) {
-        return super.userAccessSummary(userQuestion);
+        return repository.userAccessSummary(userQuestion);
     }
 
     public AiToolAnswer roleList() {
-        return super.roleList();
+        return repository.roleList();
     }
 
     public AiToolAnswer rolePermissionSummary(String userQuestion) {
-        return super.rolePermissionSummary(userQuestion);
+        return repository.rolePermissionSummary(userQuestion);
     }
 
     public AiToolAnswer organizationUserCount() {
-        return super.organizationUserCount();
+        return repository.organizationUserCount();
     }
 
     public AiToolAnswer organizationModuleUsageSummary() {
-        return super.organizationModuleUsageSummary();
+        return repository.organizationModuleUsageSummary();
     }
-
 }

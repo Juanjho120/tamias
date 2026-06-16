@@ -1,102 +1,101 @@
 package com.tamias.ai.tool.service;
 
 import com.tamias.ai.tool.AiToolAnswer;
-import com.tamias.ai.tool.support.AiReadOnlyToolSupport;
-import com.tamias.security.service.CurrentUserService;
-import jakarta.persistence.EntityManager;
+import com.tamias.ai.tool.repository.DocumentRagToolRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
-public class DocumentRagReadOnlyToolService extends AiReadOnlyToolSupport {
+public class DocumentRagReadOnlyToolService {
 
-    public DocumentRagReadOnlyToolService(EntityManager entityManager, CurrentUserService currentUserService) {
-        super(entityManager, currentUserService);
+    private final DocumentRagToolRepository repository;
+
+    public DocumentRagReadOnlyToolService(DocumentRagToolRepository repository) {
+        this.repository = repository;
     }
 
     public AiToolAnswer documentMetadata(String userQuestion) {
-        return super.documentMetadata(userQuestion);
+        return repository.documentMetadata(userQuestion);
     }
 
     public AiToolAnswer ragDocumentIndexStatus() {
-        return super.ragDocumentIndexStatus();
+        return repository.ragDocumentIndexStatus();
     }
 
     public AiToolAnswer documentByProperty(String userQuestion) {
-        return super.documentByProperty(userQuestion);
+        return repository.documentByProperty(userQuestion);
     }
 
     public AiToolAnswer documentByType(String userQuestion) {
-        return super.documentByType(userQuestion);
+        return repository.documentByType(userQuestion);
     }
 
     public AiToolAnswer documentByStatus(String userQuestion) {
-        return super.documentByStatus(userQuestion);
+        return repository.documentByStatus(userQuestion);
     }
 
     public AiToolAnswer recentDocuments() {
-        return super.recentDocuments();
+        return repository.recentDocuments();
     }
 
     public AiToolAnswer unprocessedDocuments() {
-        return super.unprocessedDocuments();
+        return repository.unprocessedDocuments();
     }
 
     public AiToolAnswer failedDocuments() {
-        return super.failedDocuments();
+        return repository.failedDocuments();
     }
 
     public AiToolAnswer processedDocuments() {
-        return super.processedDocuments();
+        return repository.processedDocuments();
     }
 
     public AiToolAnswer indexedDocuments() {
-        return super.indexedDocuments();
+        return repository.indexedDocuments();
     }
 
     public AiToolAnswer notIndexedDocuments() {
-        return super.notIndexedDocuments();
+        return repository.notIndexedDocuments();
     }
 
     public AiToolAnswer processedNotIndexedDocuments() {
-        return super.processedNotIndexedDocuments();
+        return repository.processedNotIndexedDocuments();
     }
 
     public AiToolAnswer documentCountByType() {
-        return super.documentCountByType();
+        return repository.documentCountByType();
     }
 
     public AiToolAnswer documentCountByProperty() {
-        return super.documentCountByProperty();
+        return repository.documentCountByProperty();
     }
 
     public AiToolAnswer findBlueprintDocuments() {
-        return super.findBlueprintDocuments();
+        return repository.findBlueprintDocuments();
     }
 
     public AiToolAnswer findHouseRulesDocuments() {
-        return super.findHouseRulesDocuments();
+        return repository.findHouseRulesDocuments();
     }
 
     public AiToolAnswer findManualDocuments() {
-        return super.findManualDocuments();
+        return repository.findManualDocuments();
     }
 
     public AiToolAnswer ragChunkSummary() {
-        return super.ragChunkSummary();
+        return repository.ragChunkSummary();
     }
 
     public AiToolAnswer documentsMissingChunks() {
-        return super.documentsMissingChunks();
+        return repository.documentsMissingChunks();
     }
 
     public AiToolAnswer documentsMissingVectorIds() {
-        return super.documentsMissingVectorIds();
+        return repository.documentsMissingVectorIds();
     }
 
     public AiToolAnswer ragIndexCoverageSummary() {
-        return super.ragIndexCoverageSummary();
+        return repository.ragIndexCoverageSummary();
     }
-
 }

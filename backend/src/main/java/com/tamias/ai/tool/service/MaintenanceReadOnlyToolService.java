@@ -1,62 +1,61 @@
 package com.tamias.ai.tool.service;
 
 import com.tamias.ai.tool.AiToolAnswer;
-import com.tamias.ai.tool.support.AiReadOnlyToolSupport;
-import com.tamias.security.service.CurrentUserService;
-import jakarta.persistence.EntityManager;
+import com.tamias.ai.tool.repository.MaintenanceToolRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
-public class MaintenanceReadOnlyToolService extends AiReadOnlyToolSupport {
+public class MaintenanceReadOnlyToolService {
 
-    public MaintenanceReadOnlyToolService(EntityManager entityManager, CurrentUserService currentUserService) {
-        super(entityManager, currentUserService);
+    private final MaintenanceToolRepository repository;
+
+    public MaintenanceReadOnlyToolService(MaintenanceToolRepository repository) {
+        this.repository = repository;
     }
 
     public AiToolAnswer lastPerformedMaintenance(String userQuestion) {
-        return super.lastPerformedMaintenance(userQuestion);
+        return repository.lastPerformedMaintenance(userQuestion);
     }
 
     public AiToolAnswer maintenanceSearch(String userQuestion) {
-        return super.maintenanceSearch(userQuestion);
+        return repository.maintenanceSearch(userQuestion);
     }
 
     public AiToolAnswer recentMaintenance() {
-        return super.recentMaintenance();
+        return repository.recentMaintenance();
     }
 
     public AiToolAnswer maintenanceByStatus(String userQuestion) {
-        return super.maintenanceByStatus(userQuestion);
+        return repository.maintenanceByStatus(userQuestion);
     }
 
     public AiToolAnswer maintenanceByProperty(String userQuestion) {
-        return super.maintenanceByProperty(userQuestion);
+        return repository.maintenanceByProperty(userQuestion);
     }
 
     public AiToolAnswer maintenanceByCategoryOrType(String userQuestion) {
-        return super.maintenanceByCategoryOrType(userQuestion);
+        return repository.maintenanceByCategoryOrType(userQuestion);
     }
 
     public AiToolAnswer maintenanceCostSummary(String userQuestion) {
-        return super.maintenanceCostSummary(userQuestion);
+        return repository.maintenanceCostSummary(userQuestion);
     }
 
     public AiToolAnswer maintenanceCostByProperty() {
-        return super.maintenanceCostByProperty();
+        return repository.maintenanceCostByProperty();
     }
 
     public AiToolAnswer maintenanceCostByCategory() {
-        return super.maintenanceCostByCategory();
+        return repository.maintenanceCostByCategory();
     }
 
     public AiToolAnswer maintenanceCostByMonth() {
-        return super.maintenanceCostByMonth();
+        return repository.maintenanceCostByMonth();
     }
 
     public AiToolAnswer maintenanceImagesSummary(boolean withoutImages) {
-        return super.maintenanceImagesSummary(withoutImages);
+        return repository.maintenanceImagesSummary(withoutImages);
     }
-
 }

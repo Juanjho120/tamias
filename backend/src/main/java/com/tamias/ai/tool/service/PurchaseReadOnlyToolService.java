@@ -1,94 +1,93 @@
 package com.tamias.ai.tool.service;
 
 import com.tamias.ai.tool.AiToolAnswer;
-import com.tamias.ai.tool.support.AiReadOnlyToolSupport;
-import com.tamias.security.service.CurrentUserService;
-import jakarta.persistence.EntityManager;
+import com.tamias.ai.tool.repository.PurchaseToolRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
-public class PurchaseReadOnlyToolService extends AiReadOnlyToolSupport {
+public class PurchaseReadOnlyToolService {
 
-    public PurchaseReadOnlyToolService(EntityManager entityManager, CurrentUserService currentUserService) {
-        super(entityManager, currentUserService);
+    private final PurchaseToolRepository repository;
+
+    public PurchaseReadOnlyToolService(PurchaseToolRepository repository) {
+        this.repository = repository;
     }
 
     public AiToolAnswer lastPurchasedItem(String userQuestion) {
-        return super.lastPurchasedItem(userQuestion);
+        return repository.lastPurchasedItem(userQuestion);
     }
 
     public AiToolAnswer purchaseListSearch(String userQuestion) {
-        return super.purchaseListSearch(userQuestion);
+        return repository.purchaseListSearch(userQuestion);
     }
 
     public AiToolAnswer purchaseListsByProperty(String userQuestion) {
-        return super.purchaseListsByProperty(userQuestion);
+        return repository.purchaseListsByProperty(userQuestion);
     }
 
     public AiToolAnswer recentPurchaseLists() {
-        return super.recentPurchaseLists();
+        return repository.recentPurchaseLists();
     }
 
     public AiToolAnswer pendingPurchaseLists() {
-        return super.pendingPurchaseLists();
+        return repository.pendingPurchaseLists();
     }
 
     public AiToolAnswer completedPurchaseLists() {
-        return super.completedPurchaseLists();
+        return repository.completedPurchaseLists();
     }
 
     public AiToolAnswer purchaseCostSummary(String userQuestion) {
-        return super.purchaseCostSummary(userQuestion);
+        return repository.purchaseCostSummary(userQuestion);
     }
 
     public AiToolAnswer purchaseCostByProperty() {
-        return super.purchaseCostByProperty();
+        return repository.purchaseCostByProperty();
     }
 
     public AiToolAnswer purchaseCostByCategory() {
-        return super.purchaseCostByCategory();
+        return repository.purchaseCostByCategory();
     }
 
     public AiToolAnswer purchaseCostByMonth() {
-        return super.purchaseCostByMonth();
+        return repository.purchaseCostByMonth();
     }
 
     public AiToolAnswer purchaseItemSearch(String userQuestion) {
-        return super.purchaseItemSearch(userQuestion);
+        return repository.purchaseItemSearch(userQuestion);
     }
 
     public AiToolAnswer purchaseItemsByPurchaseList(String userQuestion) {
-        return super.purchaseItemsByPurchaseList(userQuestion);
+        return repository.purchaseItemsByPurchaseList(userQuestion);
     }
 
     public AiToolAnswer purchaseItemsByInventoryItem(String userQuestion) {
-        return super.purchaseItemsByInventoryItem(userQuestion);
+        return repository.purchaseItemsByInventoryItem(userQuestion);
     }
 
     public AiToolAnswer purchaseItemPriceHistory(String userQuestion) {
-        return super.purchaseItemPriceHistory(userQuestion);
+        return repository.purchaseItemPriceHistory(userQuestion);
     }
 
     public AiToolAnswer purchaseItemAverageUnitCost(String userQuestion) {
-        return super.purchaseItemAverageUnitCost(userQuestion);
+        return repository.purchaseItemAverageUnitCost(userQuestion);
     }
 
     public AiToolAnswer purchaseItemQuantitySummary(String userQuestion) {
-        return super.purchaseItemQuantitySummary(userQuestion);
+        return repository.purchaseItemQuantitySummary(userQuestion);
     }
 
     public AiToolAnswer purchaseItemMostPurchased() {
-        return super.purchaseItemMostPurchased();
+        return repository.purchaseItemMostPurchased();
     }
 
     public AiToolAnswer purchaseItemLeastPurchased() {
-        return super.purchaseItemLeastPurchased();
+        return repository.purchaseItemLeastPurchased();
     }
 
     public AiToolAnswer purchaseItemCostTrend(String userQuestion) {
-        return super.purchaseItemCostTrend(userQuestion);
+        return repository.purchaseItemCostTrend(userQuestion);
     }
-
 }

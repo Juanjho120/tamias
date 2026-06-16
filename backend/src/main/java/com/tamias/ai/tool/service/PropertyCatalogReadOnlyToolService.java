@@ -1,74 +1,73 @@
 package com.tamias.ai.tool.service;
 
 import com.tamias.ai.tool.AiToolAnswer;
-import com.tamias.ai.tool.support.AiReadOnlyToolSupport;
-import com.tamias.security.service.CurrentUserService;
-import jakarta.persistence.EntityManager;
+import com.tamias.ai.tool.repository.PropertyCatalogToolRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
-public class PropertyCatalogReadOnlyToolService extends AiReadOnlyToolSupport {
+public class PropertyCatalogReadOnlyToolService {
 
-    public PropertyCatalogReadOnlyToolService(EntityManager entityManager, CurrentUserService currentUserService) {
-        super(entityManager, currentUserService);
+    private final PropertyCatalogToolRepository repository;
+
+    public PropertyCatalogReadOnlyToolService(PropertyCatalogToolRepository repository) {
+        this.repository = repository;
     }
 
     public AiToolAnswer searchProperties(String userQuestion) {
-        return super.searchProperties(userQuestion);
+        return repository.searchProperties(userQuestion);
     }
 
     public AiToolAnswer activeProperties() {
-        return super.activeProperties();
+        return repository.activeProperties();
     }
 
     public AiToolAnswer inactiveProperties() {
-        return super.inactiveProperties();
+        return repository.inactiveProperties();
     }
 
     public AiToolAnswer propertySummary(String userQuestion) {
-        return super.propertySummary(userQuestion);
+        return repository.propertySummary(userQuestion);
     }
 
     public AiToolAnswer propertyOperationalOverview() {
-        return super.propertyOperationalOverview();
+        return repository.propertyOperationalOverview();
     }
 
     public AiToolAnswer propertyImagesSummary(String userQuestion) {
-        return super.propertyImagesSummary(userQuestion);
+        return repository.propertyImagesSummary(userQuestion);
     }
 
     public AiToolAnswer maintenanceCategories() {
-        return super.maintenanceCategories();
+        return repository.maintenanceCategories();
     }
 
     public AiToolAnswer maintenanceTypes() {
-        return super.maintenanceTypes();
+        return repository.maintenanceTypes();
     }
 
     public AiToolAnswer maintenanceCatalogOverview() {
-        return super.maintenanceCatalogOverview();
+        return repository.maintenanceCatalogOverview();
     }
 
     public AiToolAnswer reservationPlatforms() {
-        return super.reservationPlatforms();
+        return repository.reservationPlatforms();
     }
 
     public AiToolAnswer taskCategories() {
-        return super.taskCategories();
+        return repository.taskCategories();
     }
 
     public AiToolAnswer purchaseCategories() {
-        return super.purchaseCategories();
+        return repository.purchaseCategories();
     }
 
     public AiToolAnswer inventoryItemTypes() {
-        return super.inventoryItemTypes();
+        return repository.inventoryItemTypes();
     }
 
     public AiToolAnswer catalogSearch(String userQuestion) {
-        return super.catalogSearch(userQuestion);
+        return repository.catalogSearch(userQuestion);
     }
-
 }
