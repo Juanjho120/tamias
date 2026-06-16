@@ -13,6 +13,9 @@ import com.tamias.ai.tool.AiToolAnswer;
 import com.tamias.ai.tool.AiToolCallingService;
 import com.tamias.ai.tool.AiToolResult;
 import com.tamias.ai.tool.AiToolResultStatus;
+import com.tamias.ai.planning.AiAnswerCompositionService;
+import com.tamias.ai.planning.AiExecutionPlan;
+import com.tamias.ai.planning.AiPlanningService;
 import com.tamias.security.service.CurrentUserService;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +38,8 @@ public class AiRagService {
     private final CurrentUserService currentUserService;
     private final AiChatSessionService chatSessionService;
     private final AiToolCallingService toolCallingService;
+    private final AiPlanningService planningService;
+    private final AiAnswerCompositionService answerCompositionService;
     private final int defaultTopK;
     private final double defaultSimilarityThreshold;
 
@@ -44,6 +49,8 @@ public class AiRagService {
             CurrentUserService currentUserService,
             AiChatSessionService chatSessionService,
             AiToolCallingService toolCallingService,
+            AiPlanningService planningService,
+            AiAnswerCompositionService answerCompositionService,
             @Value("${tamias.ai.default-top-k:10}") int defaultTopK,
             @Value("${tamias.ai.default-similarity-threshold:0.30}") double defaultSimilarityThreshold
     ) {
@@ -52,6 +59,8 @@ public class AiRagService {
         this.currentUserService = currentUserService;
         this.chatSessionService = chatSessionService;
         this.toolCallingService = toolCallingService;
+        this.planningService = planningService;
+        this.answerCompositionService = answerCompositionService;
         this.defaultTopK = defaultTopK;
         this.defaultSimilarityThreshold = defaultSimilarityThreshold;
     }
@@ -82,13 +91,39 @@ public class AiRagService {
         );
 
         AiToolResult toolResult = toolCallingService.tryHandleResult(request);
-        if (toolResult.shouldRespondImmediately()) {
-            return persistToolAnswer(session, userMessage, request, toolResult.answer());
+        if (toolResult.status() == AiToolResultStatus.GUARDRAIL || toolResult.status() == AiToolResultStatus.DENIED) {
+            return persistToolAnswer(session, userMessage, request, toolResult, AiExecutionPlan.toolFirst("Security result handled deterministically."));
+        }
+
+        AiExecutionPlan plan = planningService.plan(request.question(), toolResult);
+        if (plan.shouldDenyWrite()) {
+            AiToolResult guardrailResult = toolResult.hasAnswer()
+                    ? toolResult
+                    : AiToolResult.guardrail(plannerReadOnlyGuardAnswer());
+            return persistToolAnswer(session, userMessage, request, guardrailResult, plan);
+        }
+        if (plan.shouldAskClarification()) {
+            return persistToolAnswer(session, userMessage, request, AiToolResult.hit(plannerClarificationAnswer()), plan);
         }
 
         UUID effectivePropertyId = request.propertyId() != null
                 ? request.propertyId()
                 : (session.getProperty() != null ? session.getProperty().getId() : null);
+
+        if (plan.prefersRagFirst()) {
+            AiChatResponse ragFirstResponse = tryRagFirst(session, userMessage, request, effectivePropertyId, toolResult, plan);
+            if (ragFirstResponse != null) {
+                return ragFirstResponse;
+            }
+        }
+
+        if (toolResult.shouldRespondImmediately() && !plan.wantsBoth()) {
+            return persistToolAnswer(session, userMessage, request, toolResult, plan);
+        }
+
+        if (plan.toolOnly() && !toolResult.shouldAttemptRagFallback()) {
+            return persistNoInformation(session, userMessage, request, toolResult, List.of(), List.of(), plan);
+        }
 
         List<Document> matches = searchSimilarDocuments(
                 request.question(),
@@ -97,32 +132,16 @@ public class AiRagService {
                 request.similarityThreshold()
         );
         List<AiSourceResponse> sources = toSourceResponses(matches);
-        List<AiToolEvidenceResponse> toolEvidence = toolResult.answerOptional()
-                .map(AiToolAnswer::evidence)
-                .orElse(List.of());
+        List<AiToolEvidenceResponse> toolEvidence = toolEvidenceForResponse(toolResult, plan);
 
         if (matches.isEmpty()) {
-            String fallbackAnswer = buildNoInformationAnswer(toolResult);
-            AiChatMessage assistantMessage = chatSessionService.saveMessage(
-                    session,
-                    AiChatMessageRole.ASSISTANT,
-                    fallbackAnswer
-            );
-
-            return new AiChatResponse(
-                    session.getId(),
-                    userMessage.getId(),
-                    assistantMessage.getId(),
-                    request.question(),
-                    fallbackAnswer,
-                    false,
-                    0,
-                    sources,
-                    toolEvidence
-            );
+            if (toolResult.status() == AiToolResultStatus.HIT) {
+                return persistToolAnswer(session, userMessage, request, toolResult, plan);
+            }
+            return persistNoInformation(session, userMessage, request, toolResult, sources, toolEvidence, plan);
         }
 
-        String answer = buildRagAnswer(request.question(), matches, toolResult);
+        String answer = buildRagAnswer(request.question(), matches, toolResultForRagContext(toolResult, plan), plan);
 
         AiChatMessage assistantMessage = chatSessionService.saveMessage(
                 session,
@@ -143,19 +162,93 @@ public class AiRagService {
         );
     }
 
-    private String buildRagAnswer(String question, List<Document> matches, AiToolResult toolResult) {
+
+    private AiToolAnswer plannerReadOnlyGuardAnswer() {
+        return AiToolAnswer.of(
+                "No puedo crear, editar, eliminar, aprobar, rechazar, enviar notificaciones ni modificar datos desde el asistente IA en esta fase. Puedo ayudarte a consultar la información disponible en TAMIAS.",
+                "assistant.llmReadOnlyGuard",
+                "LLM read-only guard",
+                "LLM planner detected a write-like action and the backend blocked it before execution.",
+                List.of()
+        );
+    }
+
+    private AiToolAnswer plannerClarificationAnswer() {
+        return AiToolAnswer.of(
+                "No tengo suficiente claridad para decidir si debo consultar datos del sistema, documentos/RAG o ambos. Puedes reformular la pregunta indicando si quieres buscar en registros de TAMIAS, en documentos cargados o en ambos.",
+                "assistant.llmClarification",
+                "LLM clarification",
+                "LLM planner requested clarification before choosing a data path.",
+                List.of()
+        );
+    }
+
+    private AiChatResponse tryRagFirst(
+            AiChatSession session,
+            AiChatMessage userMessage,
+            AiChatRequest request,
+            UUID effectivePropertyId,
+            AiToolResult toolResult,
+            AiExecutionPlan plan
+    ) {
+        List<Document> matches = searchSimilarDocuments(
+                request.question(),
+                effectivePropertyId,
+                request.topK(),
+                request.similarityThreshold()
+        );
+        List<AiSourceResponse> sources = toSourceResponses(matches);
+        List<AiToolEvidenceResponse> toolEvidence = toolEvidenceForResponse(toolResult, plan);
+
+        if (!matches.isEmpty()) {
+            String answer = buildRagAnswer(request.question(), matches, toolResultForRagContext(toolResult, plan), plan);
+            AiChatMessage assistantMessage = chatSessionService.saveMessage(
+                    session,
+                    AiChatMessageRole.ASSISTANT,
+                    answer
+            );
+            return new AiChatResponse(
+                    session.getId(),
+                    userMessage.getId(),
+                    assistantMessage.getId(),
+                    request.question(),
+                    answer,
+                    true,
+                    sources.size(),
+                    sources,
+                    toolEvidence
+            );
+        }
+
+        if (plan.ragOnly()) {
+            return persistNoInformation(session, userMessage, request, AiToolResult.notApplicable(), sources, List.of(), plan);
+        }
+
+        if (toolResult.shouldRespondImmediately()) {
+            return persistToolAnswer(session, userMessage, request, toolResult, plan);
+        }
+
+        if (toolResult.status() == AiToolResultStatus.EMPTY || toolResult.status() == AiToolResultStatus.ERROR) {
+            return persistNoInformation(session, userMessage, request, toolResult, sources, toolEvidence, plan);
+        }
+
+        return null;
+    }
+
+    private String buildRagAnswer(String question, List<Document> matches, AiToolResult toolResult, AiExecutionPlan plan) {
         String systemPrompt = """
                 Eres TAMIAS, un asistente para administración de propiedades, alojamientos, mantenimiento, reservaciones y documentos internos.
 
                 Reglas estrictas:
                 1. Responde en el mismo idioma de la pregunta del usuario.
-                2. Usa únicamente el CONTEXTO proporcionado.
+                2. Usa únicamente el CONTEXTO proporcionado y los datos estructurados del backend cuando estén presentes.
                 3. No inventes datos, reglas, fechas, costos, nombres ni recomendaciones que no aparezcan en el contexto.
                 4. Si la respuesta no está en el contexto, dilo claramente.
-                5. Cuando sí respondas, cita las fuentes usando el formato [S1], [S2], etc.
-                6. Sé claro, práctico y natural; evita sonar como plantilla repetida.
-                7. Si el contexto tiene reglas, tareas o recomendaciones, sepáralas en secciones simples.
-                8. Si el usuario pide crear, editar, eliminar o notificar, indícale que esta versión del asistente es de consulta.
+                5. Cuando uses documentos, cita las fuentes usando el formato [S1], [S2], etc.
+                6. Si usas datos estructurados del sistema, no los cites como [S]; solo intégralos naturalmente.
+                7. Sé claro, práctico y natural; evita sonar como plantilla repetida.
+                8. Si el contexto tiene reglas, tareas o recomendaciones, sepáralas en secciones simples.
+                9. Si el usuario pide crear, editar, eliminar o notificar, indícale que esta versión del asistente es de consulta.
                 """;
 
         String toolFallbackContext = buildToolFallbackContext(toolResult);
@@ -164,21 +257,27 @@ public class AiRagService {
                         Pregunta del usuario:
                         %s
 
-                        CONTEXTO:
+                        Plan de ejecución LLM:
                         %s
-                        """.formatted(question, buildContext(matches))
+
+                        CONTEXTO DOCUMENTAL:
+                        %s
+                        """.formatted(question, planSummary(plan), buildContext(matches))
                 : """
                         Pregunta del usuario:
                         %s
 
-                        Antes de consultar documentos, TAMIAS intentó responder con datos estructurados del sistema, pero esa ruta no encontró datos suficientes:
+                        Plan de ejecución LLM:
                         %s
 
-                        Usa el CONTEXTO documental de abajo para responder la pregunta. No repitas como respuesta final que la tool no encontró datos si el contexto documental sí contiene la respuesta.
-
-                        CONTEXTO:
+                        Datos estructurados del sistema consultados antes o junto con RAG:
                         %s
-                        """.formatted(question, toolFallbackContext, buildContext(matches));
+
+                        Usa el CONTEXTO DOCUMENTAL de abajo para responder. Si los datos estructurados no encontraron registros, no repitas ese vacío si el contexto documental sí responde la pregunta. Si tanto los datos estructurados como documentos son relevantes, combínalos sin inventar.
+
+                        CONTEXTO DOCUMENTAL:
+                        %s
+                        """.formatted(question, planSummary(plan), toolFallbackContext, buildContext(matches));
 
         return chatClient.prompt()
                 .system(systemPrompt)
@@ -191,12 +290,18 @@ public class AiRagService {
             AiChatSession session,
             AiChatMessage userMessage,
             AiChatRequest request,
-            AiToolAnswer answer
+            AiToolResult result,
+            AiExecutionPlan plan
     ) {
+        AiToolAnswer answer = result.answer();
+        String finalAnswer = result.status() == AiToolResultStatus.HIT
+                ? answerCompositionService.composeToolAnswer(request.question(), answer, plan)
+                : answer.answer();
+
         AiChatMessage assistantMessage = chatSessionService.saveMessage(
                 session,
                 AiChatMessageRole.ASSISTANT,
-                answer.answer()
+                finalAnswer
         );
 
         return new AiChatResponse(
@@ -204,7 +309,7 @@ public class AiRagService {
                 userMessage.getId(),
                 assistantMessage.getId(),
                 request.question(),
-                answer.answer(),
+                finalAnswer,
                 answer.grounded(),
                 0,
                 List.of(),
@@ -212,7 +317,36 @@ public class AiRagService {
         );
     }
 
-    private String buildNoInformationAnswer(AiToolResult toolResult) {
+    private AiChatResponse persistNoInformation(
+            AiChatSession session,
+            AiChatMessage userMessage,
+            AiChatRequest request,
+            AiToolResult toolResult,
+            List<AiSourceResponse> sources,
+            List<AiToolEvidenceResponse> toolEvidence,
+            AiExecutionPlan plan
+    ) {
+        String fallbackAnswer = buildNoInformationAnswer(toolResult, plan);
+        AiChatMessage assistantMessage = chatSessionService.saveMessage(
+                session,
+                AiChatMessageRole.ASSISTANT,
+                fallbackAnswer
+        );
+
+        return new AiChatResponse(
+                session.getId(),
+                userMessage.getId(),
+                assistantMessage.getId(),
+                request.question(),
+                fallbackAnswer,
+                false,
+                sources == null ? 0 : sources.size(),
+                sources == null ? List.of() : sources,
+                toolEvidence == null ? List.of() : toolEvidence
+        );
+    }
+
+    private String buildNoInformationAnswer(AiToolResult toolResult, AiExecutionPlan plan) {
         if (toolResult.status() == AiToolResultStatus.NOT_APPLICABLE) {
             return """
                     No encontré información relacionada con lo que preguntaste en los documentos indexados/RAG.
@@ -229,6 +363,7 @@ public class AiRagService {
                     No encontré información relacionada con lo que preguntaste.
 
                     Revisé los documentos indexados/RAG, pero no encontré contenido relacionado.
+
                     """.trim();
         }
 
@@ -244,6 +379,43 @@ public class AiRagService {
 
                 Puedes intentar preguntar con otro nombre, revisar si el documento está procesado/indexado, o confirmar que la información exista en TAMIAS.
                 """.formatted(toolResult.answer().answer()).trim();
+    }
+
+
+    private AiToolResult toolResultForRagContext(AiToolResult toolResult, AiExecutionPlan plan) {
+        if (toolResult == null || toolResult.status() == AiToolResultStatus.NOT_APPLICABLE || plan == null) {
+            return AiToolResult.notApplicable();
+        }
+        if (plan.ragOnly()) {
+            return AiToolResult.notApplicable();
+        }
+        if (plan.wantsBoth()) {
+            return toolResult;
+        }
+        if (toolResult.status() == AiToolResultStatus.EMPTY || toolResult.status() == AiToolResultStatus.ERROR) {
+            return toolResult;
+        }
+        return AiToolResult.notApplicable();
+    }
+
+    private List<AiToolEvidenceResponse> toolEvidenceForResponse(AiToolResult toolResult, AiExecutionPlan plan) {
+        if (toolResult == null || toolResult.answer() == null || plan == null || plan.ragOnly()) {
+            return List.of();
+        }
+        if (plan.wantsBoth() || toolResult.status() == AiToolResultStatus.EMPTY || toolResult.status() == AiToolResultStatus.ERROR) {
+            return toolResult.answer().evidence();
+        }
+        return List.of();
+    }
+
+    private String planSummary(AiExecutionPlan plan) {
+        if (plan == null) {
+            return "No LLM planning metadata.";
+        }
+        return "decision=" + plan.safeDecision()
+                + "; confidence=" + plan.confidence()
+                + "; llmGenerated=" + plan.llmGenerated()
+                + "; reason=" + plan.reason();
     }
 
     private String buildToolFallbackContext(AiToolResult toolResult) {
