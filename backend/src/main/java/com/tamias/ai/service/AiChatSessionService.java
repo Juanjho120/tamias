@@ -58,11 +58,9 @@ public class AiChatSessionService {
     @Transactional(readOnly = true)
     public PageResponse<AiChatSessionSummaryResponse> findAll(UUID propertyId, Pageable pageable) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-
         var page = propertyId == null
                 ? sessionRepository.findByOrganization_Id(organizationId, pageable)
                 : sessionRepository.findByOrganization_IdAndProperty_Id(organizationId, propertyId, pageable);
-
         return PageResponse.from(page.map(session -> mapper.toSummaryResponse(
                 session,
                 messageRepository.countByChatSession_IdAndOrganization_Id(session.getId(), organizationId)
@@ -73,10 +71,8 @@ public class AiChatSessionService {
     public AiChatSessionResponse findById(UUID sessionId) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         AiChatSession session = findEntity(sessionId);
-
         List<AiChatMessage> messages = messageRepository
                 .findByChatSession_IdAndOrganization_IdOrderByCreatedAtAsc(session.getId(), organizationId);
-
         return mapper.toResponse(session, messages);
     }
 
@@ -84,7 +80,6 @@ public class AiChatSessionService {
     public List<AiChatMessageResponse> findMessages(UUID sessionId) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         AiChatSession session = findEntity(sessionId);
-
         return messageRepository
                 .findByChatSession_IdAndOrganization_IdOrderByCreatedAtAsc(session.getId(), organizationId)
                 .stream()
@@ -95,19 +90,15 @@ public class AiChatSessionService {
     @Transactional
     public AiChatSessionResponse create(AiChatSessionCreateRequest request) {
         AiChatSession session = createSession(request.propertyId(), request.title());
-
         return mapper.toResponse(session, List.of());
     }
 
     @Transactional
     public AiChatSessionSummaryResponse updateTitle(UUID sessionId, AiChatSessionUpdateRequest request) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-
         AiChatSession session = findEntity(sessionId);
         session.setTitle(request.title());
-
         AiChatSession saved = sessionRepository.save(session);
-
         return mapper.toSummaryResponse(
                 saved,
                 messageRepository.countByChatSession_IdAndOrganization_Id(saved.getId(), organizationId)
@@ -119,11 +110,7 @@ public class AiChatSessionService {
         if (sessionId != null) {
             return findEntity(sessionId);
         }
-
-        String effectiveTitle = title != null && !title.isBlank()
-                ? title.trim()
-                : buildDefaultTitle(question);
-
+        String effectiveTitle = title != null && !title.isBlank() ? title.trim() : buildDefaultTitle(question);
         return createSession(propertyId, effectiveTitle);
     }
 
@@ -138,19 +125,15 @@ public class AiChatSessionService {
         message.setChatSession(session);
         message.setRole(role);
         message.setContent(content);
-
         return messageRepository.save(message);
     }
 
     private AiChatSession createSession(UUID propertyId, String title) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-
         Organization organization = organizationRepository.findByIdAndDeletedAtIsNull(organizationId)
                 .orElseThrow(() -> new NotFoundException("Organization not found"));
-
         User currentUser = userRepository.findByIdAndDeletedAtIsNull(currentUserService.getCurrentUserId())
                 .orElseThrow(() -> new NotFoundException("User not found"));
-
         Property property = propertyId == null
                 ? null
                 : propertyRepository.findByIdAndOrganization_IdAndDeletedAtIsNull(propertyId, organizationId)
@@ -161,13 +144,11 @@ public class AiChatSessionService {
         session.setProperty(property);
         session.setTitle(title);
         session.setCreatedBy(currentUser);
-
         return sessionRepository.save(session);
     }
 
     private AiChatSession findEntity(UUID sessionId) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-
         return sessionRepository.findByIdAndOrganization_Id(sessionId, organizationId)
                 .orElseThrow(() -> new NotFoundException("AI chat session not found"));
     }
@@ -176,13 +157,37 @@ public class AiChatSessionService {
         if (question == null || question.isBlank()) {
             return "New AI chat";
         }
-
-        String normalized = question.trim().replaceAll("\\s+", " ");
-
+        String normalized = collapseWhitespace(question.trim());
         if (normalized.length() <= 70) {
             return normalized;
         }
-
         return normalized.substring(0, 70).trim() + "...";
+    }
+
+    private String collapseWhitespace(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+
+        StringBuilder builder = new StringBuilder(value.length());
+        boolean previousWasWhitespace = true;
+        for (int i = 0; i < value.length(); i++) {
+            char current = value.charAt(i);
+            if (Character.isWhitespace(current)) {
+                if (!previousWasWhitespace) {
+                    builder.append(' ');
+                    previousWasWhitespace = true;
+                }
+            } else {
+                builder.append(current);
+                previousWasWhitespace = false;
+            }
+        }
+
+        int length = builder.length();
+        if (length > 0 && builder.charAt(length - 1) == ' ') {
+            builder.deleteCharAt(length - 1);
+        }
+        return builder.toString();
     }
 }

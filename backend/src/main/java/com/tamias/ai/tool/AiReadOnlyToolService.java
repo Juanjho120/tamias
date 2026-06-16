@@ -459,6 +459,195 @@ public class AiReadOnlyToolService {
         return AiToolAnswer.of(answer, "organization.moduleUsageSummary", "Organization module usage summary", "Organization module usage counts were consulted.", rows);
     }
 
+
+
+    public AiToolAnswer aiChatRecentSessions() {
+        List<Map<String, Object>> rows = aiChatSessionRows(null, null, DEFAULT_LIMIT);
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    "No encontré sesiones de chat IA en tu organización.",
+                    "aiChat.recentSessions",
+                    "AI chat recent sessions",
+                    "No AI chat sessions were found for the current organization.",
+                    List.of()
+            );
+        }
+
+        StringBuilder answer = new StringBuilder("Estas son las sesiones recientes del asistente IA:");
+        appendAiChatSessionRows(answer, rows);
+        return AiToolAnswer.of(
+                answer.toString(),
+                "aiChat.recentSessions",
+                "AI chat recent sessions",
+                "%d recent AI chat sessions were consulted.".formatted(rows.size()),
+                rows
+        );
+    }
+
+    public AiToolAnswer aiChatSearchHistory(String userQuestion) {
+        String search = nullableSearch(extractSearchText(
+                userQuestion,
+                "busca", "buscar", "historial", "chat", "chats", "conversacion", "conversaciones",
+                "sesion", "sesiones", "ia", "asistente", "pregunta", "preguntas", "mensaje", "mensajes",
+                "hemos", "hablado", "antes", "sobre", "relacionado", "relacionados"
+        ));
+        List<Map<String, Object>> rows = aiChatMessageRows(search, DEFAULT_LIMIT);
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    search == null
+                            ? "No encontré mensajes en el historial del asistente IA."
+                            : "No encontré mensajes del asistente IA relacionados con “" + search + "” en tu organización.",
+                    "aiChat.searchHistory",
+                    "AI chat history search",
+                    "No AI chat messages matched the search criteria.",
+                    List.of()
+            );
+        }
+
+        StringBuilder answer = new StringBuilder(search == null
+                ? "Encontré estos mensajes recientes del historial del asistente IA:"
+                : "Encontré estos mensajes del historial del asistente IA relacionados con “" + search + "”:");
+        appendAiChatMessageRows(answer, rows);
+        return AiToolAnswer.of(
+                answer.toString(),
+                "aiChat.searchHistory",
+                "AI chat history search",
+                "%d AI chat messages matched the search criteria.".formatted(rows.size()),
+                rows
+        );
+    }
+
+    public AiToolAnswer aiChatRecentMessages() {
+        List<Map<String, Object>> rows = aiChatMessageRows(null, DEFAULT_LIMIT);
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    "No encontré mensajes recientes del asistente IA en tu organización.",
+                    "aiChat.recentMessages",
+                    "AI chat recent messages",
+                    "No recent AI chat messages were found.",
+                    List.of()
+            );
+        }
+        StringBuilder answer = new StringBuilder("Estos son los mensajes recientes del historial del asistente IA:");
+        appendAiChatMessageRows(answer, rows);
+        return AiToolAnswer.of(
+                answer.toString(),
+                "aiChat.recentMessages",
+                "AI chat recent messages",
+                "%d recent AI chat messages were consulted.".formatted(rows.size()),
+                rows
+        );
+    }
+
+    public AiToolAnswer aiChatSessionsByProperty(String userQuestion) {
+        String propertySearch = nullableSearch(extractSearchText(
+                userQuestion,
+                "chat", "chats", "conversacion", "conversaciones", "sesion", "sesiones", "ia", "asistente",
+                "propiedad", "propiedades", "alojamiento", "alojamientos", "casa", "casas", "bungalow", "bungalows"
+        ));
+        List<Map<String, Object>> rows = aiChatSessionRows(propertySearch, null, DEFAULT_LIMIT);
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    propertySearch == null
+                            ? "No encontré sesiones de chat IA asociadas a propiedades."
+                            : "No encontré sesiones de chat IA para una propiedad relacionada con “" + propertySearch + "”.",
+                    "aiChat.sessionsByProperty",
+                    "AI chat sessions by property",
+                    "No AI chat sessions matched the requested property.",
+                    List.of()
+            );
+        }
+
+        StringBuilder answer = new StringBuilder(propertySearch == null
+                ? "Estas son las sesiones de chat IA asociadas a propiedades:"
+                : "Estas son las sesiones de chat IA para propiedades relacionadas con “" + propertySearch + "”:");
+        appendAiChatSessionRows(answer, rows);
+        return AiToolAnswer.of(
+                answer.toString(),
+                "aiChat.sessionsByProperty",
+                "AI chat sessions by property",
+                "%d AI chat sessions by property were consulted.".formatted(rows.size()),
+                rows
+        );
+    }
+
+    public AiToolAnswer aiChatCurrentSessionSummary(UUID chatSessionId) {
+        if (chatSessionId == null) {
+            return AiToolAnswer.of(
+                    "No tengo una sesión de chat activa para resumir. Abre una conversación existente o envía una pregunta dentro de una sesión y puedo resumirla.",
+                    "aiChat.currentSessionSummary",
+                    "AI chat current session summary",
+                    "No current AI chat session id was provided.",
+                    List.of()
+            );
+        }
+
+        List<Map<String, Object>> rows = aiChatSessionRows(null, chatSessionId, 1);
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    "No encontré la sesión de chat IA actual dentro de tu organización.",
+                    "aiChat.currentSessionSummary",
+                    "AI chat current session summary",
+                    "The current AI chat session was not found for the current organization.",
+                    List.of()
+            );
+        }
+
+        List<Map<String, Object>> messages = aiChatMessagesBySession(chatSessionId, 12);
+        StringBuilder answer = new StringBuilder("Resumen de la sesión actual del asistente IA:");
+        appendAiChatSessionRows(answer, rows);
+        if (messages.isEmpty()) {
+            answer.append(System.lineSeparator()).append("No encontré mensajes asociados a esta sesión.");
+        } else {
+            answer.append(System.lineSeparator()).append("Mensajes recientes de esta sesión:");
+            appendAiChatMessageRows(answer, messages);
+        }
+
+        List<Map<String, Object>> evidenceRows = new ArrayList<>(rows);
+        evidenceRows.addAll(messages);
+        return AiToolAnswer.of(
+                answer.toString(),
+                "aiChat.currentSessionSummary",
+                "AI chat current session summary",
+                "Current AI chat session metadata and recent messages were consulted.",
+                evidenceRows
+        );
+    }
+
+    public AiToolAnswer aiChatUsageSummary() {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        List<Map<String, Object>> rows = query("""
+                SELECT COUNT(DISTINCT s.id) AS session_count,
+                       COUNT(m.id) AS message_count,
+                       COUNT(CASE WHEN m.role = 'USER' THEN 1 END) AS user_message_count,
+                       COUNT(CASE WHEN m.role = 'ASSISTANT' THEN 1 END) AS assistant_message_count,
+                       COUNT(DISTINCT s.property_id) AS property_count,
+                       MIN(s.created_at) AS first_session_at,
+                       MAX(COALESCE(m.created_at, s.updated_at, s.created_at)) AS last_activity_at
+                FROM ai_chat_sessions s
+                LEFT JOIN ai_chat_messages m ON m.chat_session_id = s.id
+                                            AND m.organization_id = s.organization_id
+                WHERE s.organization_id = :organizationId
+                """, q -> q.setParameter("organizationId", organizationId),
+                "sessionCount", "messageCount", "userMessageCount", "assistantMessageCount", "propertyCount", "firstSessionAt", "lastActivityAt");
+        Map<String, Object> row = rows.isEmpty() ? Map.of() : rows.get(0);
+        String answer = "Uso del historial de chat IA en tu organización:\n"
+                + "- Sesiones: " + blankToDash(value(row.get("sessionCount"))) + "\n"
+                + "- Mensajes totales: " + blankToDash(value(row.get("messageCount"))) + "\n"
+                + "- Mensajes de usuarios: " + blankToDash(value(row.get("userMessageCount"))) + "\n"
+                + "- Respuestas del asistente: " + blankToDash(value(row.get("assistantMessageCount"))) + "\n"
+                + "- Propiedades con sesiones asociadas: " + blankToDash(value(row.get("propertyCount"))) + "\n"
+                + "- Primera sesión: " + blankToDash(value(row.get("firstSessionAt"))) + "\n"
+                + "- Última actividad: " + blankToDash(value(row.get("lastActivityAt")));
+        return AiToolAnswer.of(
+                answer,
+                "aiChat.usageSummary",
+                "AI chat usage summary",
+                "AI chat session and message counters were consulted.",
+                rows
+        );
+    }
+
     public AiToolAnswer searchProperties(String userQuestion) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         String search = nullableSearch(extractSearchText(
@@ -6054,6 +6243,134 @@ public class AiReadOnlyToolService {
         }, "id", "title", "propertyName", "maintenanceDate", "imageCount", "filenames");
     }
 
+
+
+
+    private List<Map<String, Object>> aiChatSessionRows(String propertySearch, UUID sessionId, int limit) {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        StringBuilder sql = new StringBuilder("""
+                SELECT s.id,
+                       s.title,
+                       p.name AS property_name,
+                       TRIM(CONCAT(u.first_name, ' ', u.last_name)) AS created_by_name,
+                       s.created_at,
+                       s.updated_at,
+                       COUNT(m.id) AS message_count,
+                       MAX(m.created_at) AS last_message_at
+                FROM ai_chat_sessions s
+                LEFT JOIN properties p ON p.id = s.property_id
+                                      AND p.organization_id = s.organization_id
+                LEFT JOIN users u ON u.id = s.created_by
+                LEFT JOIN ai_chat_messages m ON m.chat_session_id = s.id
+                                            AND m.organization_id = s.organization_id
+                WHERE s.organization_id = :organizationId
+                """);
+        if (sessionId != null) {
+            sql.append("  AND s.id = :sessionId\n");
+        }
+        if (propertySearch != null) {
+            sql.append("""
+                  AND NOT EXISTS (
+                      SELECT 1 FROM unnest(string_to_array(CAST(:propertySearch AS TEXT), ' ')) AS token(value)
+                      WHERE token.value <> ''
+                        AND translate(LOWER(COALESCE(p.name, '')), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
+                  )
+                """);
+        }
+        sql.append("""
+                GROUP BY s.id, s.title, p.name, u.first_name, u.last_name, s.created_at, s.updated_at
+                ORDER BY COALESCE(MAX(m.created_at), s.updated_at, s.created_at) DESC
+                LIMIT :limit
+                """);
+        return query(sql.toString(), q -> {
+            q.setParameter("organizationId", organizationId);
+            if (sessionId != null) q.setParameter("sessionId", sessionId);
+            if (propertySearch != null) q.setParameter("propertySearch", propertySearch);
+            q.setParameter("limit", limit);
+        }, "id", "title", "propertyName", "createdByName", "createdAt", "updatedAt", "messageCount", "lastMessageAt");
+    }
+
+    private List<Map<String, Object>> aiChatMessageRows(String search, int limit) {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        StringBuilder sql = new StringBuilder("""
+                SELECT m.id,
+                       s.id AS session_id,
+                       s.title AS session_title,
+                       p.name AS property_name,
+                       m.role,
+                       LEFT(m.content, 500) AS content_excerpt,
+                       m.created_at
+                FROM ai_chat_messages m
+                JOIN ai_chat_sessions s ON s.id = m.chat_session_id
+                                       AND s.organization_id = m.organization_id
+                LEFT JOIN properties p ON p.id = s.property_id
+                                      AND p.organization_id = s.organization_id
+                WHERE m.organization_id = :organizationId
+                """);
+        if (search != null) {
+            sql.append("""
+                  AND NOT EXISTS (
+                      SELECT 1 FROM unnest(string_to_array(CAST(:search AS TEXT), ' ')) AS token(value)
+                      WHERE token.value <> ''
+                        AND translate(LOWER(CONCAT_WS(' ', m.content, s.title, p.name, m.role)), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
+                  )
+                """);
+        }
+        sql.append("ORDER BY m.created_at DESC\nLIMIT :limit\n");
+        return query(sql.toString(), q -> {
+            q.setParameter("organizationId", organizationId);
+            if (search != null) q.setParameter("search", search);
+            q.setParameter("limit", limit);
+        }, "id", "sessionId", "sessionTitle", "propertyName", "role", "contentExcerpt", "createdAt");
+    }
+
+    private List<Map<String, Object>> aiChatMessagesBySession(UUID sessionId, int limit) {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        return query("""
+                SELECT m.id,
+                       s.id AS session_id,
+                       s.title AS session_title,
+                       p.name AS property_name,
+                       m.role,
+                       LEFT(m.content, 500) AS content_excerpt,
+                       m.created_at
+                FROM ai_chat_messages m
+                JOIN ai_chat_sessions s ON s.id = m.chat_session_id
+                                       AND s.organization_id = m.organization_id
+                LEFT JOIN properties p ON p.id = s.property_id
+                                      AND p.organization_id = s.organization_id
+                WHERE m.organization_id = :organizationId
+                  AND m.chat_session_id = :sessionId
+                ORDER BY m.created_at DESC
+                LIMIT :limit
+                """, q -> {
+            q.setParameter("organizationId", organizationId);
+            q.setParameter("sessionId", sessionId);
+            q.setParameter("limit", limit);
+        }, "id", "sessionId", "sessionTitle", "propertyName", "role", "contentExcerpt", "createdAt");
+    }
+
+    private void appendAiChatSessionRows(StringBuilder answer, List<Map<String, Object>> rows) {
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("title"))))
+                    .append(" | propiedad: ").append(blankToDash(value(row.get("propertyName"))))
+                    .append(" | mensajes: ").append(blankToDash(value(row.get("messageCount"))))
+                    .append(" | creada por: ").append(blankToDash(value(row.get("createdByName"))))
+                    .append(" | última actividad: ").append(blankToDash(value(row.get("lastMessageAt"))));
+        }
+    }
+
+    private void appendAiChatMessageRows(StringBuilder answer, List<Map<String, Object>> rows) {
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- [").append(blankToDash(value(row.get("role")))).append("] ")
+                    .append(blankToDash(value(row.get("contentExcerpt"))))
+                    .append(" | sesión: ").append(blankToDash(value(row.get("sessionTitle"))))
+                    .append(" | propiedad: ").append(blankToDash(value(row.get("propertyName"))))
+                    .append(" | fecha: ").append(blankToDash(value(row.get("createdAt"))));
+        }
+    }
 
     private boolean isCurrentUserAdministrator() {
         UUID userId = currentUserService.getCurrentUserId();

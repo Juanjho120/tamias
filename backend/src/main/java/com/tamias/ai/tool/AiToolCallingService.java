@@ -40,6 +40,11 @@ public class AiToolCallingService {
             return Optional.of(readOnlyToolService.currentOrganizationSummary());
         }
 
+        Optional<AiToolAnswer> aiChatHistoryAnswer = tryHandleAiChatHistoryQuestion(request, question, normalized);
+        if (aiChatHistoryAnswer.isPresent()) {
+            return aiChatHistoryAnswer;
+        }
+
         Optional<AiToolAnswer> fileImageDashboardAnswer = tryHandleFileImageDashboardQuestion(question, normalized);
         if (fileImageDashboardAnswer.isPresent()) {
             return fileImageDashboardAnswer;
@@ -126,6 +131,30 @@ public class AiToolCallingService {
 
 
 
+
+
+
+    private Optional<AiToolAnswer> tryHandleAiChatHistoryQuestion(AiChatRequest request, String question, String normalized) {
+        if (!isAiChatHistoryQuestion(normalized)) {
+            return Optional.empty();
+        }
+        if (isAiChatUsageSummaryQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.aiChatUsageSummary());
+        }
+        if (isAiChatCurrentSessionQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.aiChatCurrentSessionSummary(request.chatSessionId()));
+        }
+        if (isAiChatByPropertyQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.aiChatSessionsByProperty(question));
+        }
+        if (isAiChatRecentMessagesQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.aiChatRecentMessages());
+        }
+        if (isAiChatSearchHistoryQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.aiChatSearchHistory(question));
+        }
+        return Optional.of(readOnlyToolService.aiChatRecentSessions());
+    }
 
     private Optional<AiToolAnswer> tryHandleAdminRoleOrganizationQuestion(String question, String normalized) {
         if (isOrganizationAdminToolQuestion(normalized)) {
@@ -905,6 +934,12 @@ public class AiToolCallingService {
             case "dashboard.calendarEvents" -> "Eventos del calendario";
             case "dashboard.alertSummary" -> "Alertas operativas";
             case "dashboard.executiveSummary" -> "Dashboard ejecutivo";
+            case "aiChat.recentSessions" -> "Sesiones recientes del asistente IA";
+            case "aiChat.searchHistory" -> "Búsqueda en historial IA";
+            case "aiChat.recentMessages" -> "Mensajes recientes del asistente IA";
+            case "aiChat.sessionsByProperty" -> "Sesiones IA por propiedad";
+            case "aiChat.currentSessionSummary" -> "Resumen de la sesión IA actual";
+            case "aiChat.usageSummary" -> "Uso del historial IA";
             default -> answer.evidence().get(0).label();
         };
     }
@@ -1112,6 +1147,46 @@ public class AiToolCallingService {
     private boolean isOrganizationModuleUsageQuestion(String value) {
         return isOrganizationAdminToolQuestion(value)
                 && containsAny(value, "modulo", "modulos", "módulo", "módulos", "uso", "usando", "usamos", "module", "modules", "module usage", "usando mas", "usamos mas");
+    }
+
+
+
+    private boolean isAiChatHistoryQuestion(String value) {
+        return containsAny(
+                value,
+                "chat ia", "chats ia", "chats", "mis chats", "chat del asistente", "chats del asistente",
+                "historial ia", "historial del asistente", "historial de chat", "historial de chats",
+                "conversacion ia", "conversaciones ia", "conversacion con la ia", "conversaciones con la ia",
+                "conversaciones anteriores", "conversacion anterior", "mis conversaciones",
+                "sesion ia", "sesiones ia", "sesion de chat", "sesiones de chat", "sesiones del asistente",
+                "mensajes del asistente", "preguntas al asistente", "que he preguntado", "que hemos hablado",
+                "hemos hablado antes", "hablamos", "pregunte", "preguntado"
+        );
+    }
+
+    private boolean isAiChatUsageSummaryQuestion(String value) {
+        return isAiChatHistoryQuestion(value)
+                && containsAny(value, "cuantas", "cuantos", "conteo", "cantidad", "uso", "resumen de uso", "estadistica", "estadisticas");
+    }
+
+    private boolean isAiChatCurrentSessionQuestion(String value) {
+        return isAiChatHistoryQuestion(value)
+                && containsAny(value, "esta conversacion", "esta sesion", "sesion actual", "conversacion actual", "resumen de esta", "resume esta", "resumeme esta");
+    }
+
+    private boolean isAiChatByPropertyQuestion(String value) {
+        return isAiChatHistoryQuestion(value)
+                && containsAny(value, "propiedad", "propiedades", "alojamiento", "alojamientos", "casa", "casas", "bungalow", "bungalows");
+    }
+
+    private boolean isAiChatRecentMessagesQuestion(String value) {
+        return isAiChatHistoryQuestion(value)
+                && containsAny(value, "mensajes", "preguntas", "respuestas", "que he preguntado", "que pregunte", "ultimos mensajes", "ultimas preguntas");
+    }
+
+    private boolean isAiChatSearchHistoryQuestion(String value) {
+        return isAiChatHistoryQuestion(value)
+                && containsAny(value, "busca", "buscar", "sobre", "relacionado", "relacionados", "mencione", "mencionamos", "hablamos de", "pregunte sobre");
     }
 
     private boolean isCapabilitiesQuestion(String value) {
