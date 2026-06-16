@@ -1,0 +1,187 @@
+### TAMIAS AI Orchestration Smoke Tests — 9P-F
+### Usage:
+### 1. Set baseUrl and token.
+### 2. Optional: set propertyId and chatSessionId.
+### 3. Run requests manually from IntelliJ HTTP Client or VS Code REST Client.
+
+@baseUrl = http://localhost:8080
+@token = paste-jwt-here
+@propertyId = 
+@chatSessionId = 
+
+### General capabilities
+POST {{baseUrl}}/api/v1/ai/chat
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "question": "¿Qué puedes hacer?",
+  "topK": 10,
+  "similarityThreshold": 0.30
+}
+
+### Guardrail: write action must be denied, no RAG fallback
+POST {{baseUrl}}/api/v1/ai/chat
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "question": "Crea una reservación para mañana.",
+  "topK": 10,
+  "similarityThreshold": 0.30
+}
+
+### Tool-only: active users, admin required
+POST {{baseUrl}}/api/v1/ai/chat
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "question": "¿Qué usuarios activos tengo?",
+  "topK": 10,
+  "similarityThreshold": 0.30
+}
+
+### Tool-only: role permission summary, admin required
+POST {{baseUrl}}/api/v1/ai/chat
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "question": "¿Qué permisos tiene Maintenance Staff?",
+  "topK": 10,
+  "similarityThreshold": 0.30
+}
+
+### Tool-only: current user access summary, admin required in current implementation
+POST {{baseUrl}}/api/v1/ai/chat
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "question": "¿Qué accesos tengo?",
+  "topK": 10,
+  "similarityThreshold": 0.30
+}
+
+### Tool-only: properties
+POST {{baseUrl}}/api/v1/ai/chat
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "question": "¿Qué propiedades tengo?",
+  "topK": 10,
+  "similarityThreshold": 0.30
+}
+
+### Tool-only: dashboard alert summary
+POST {{baseUrl}}/api/v1/ai/chat
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "question": "¿Qué alertas operativas tengo?",
+  "topK": 10,
+  "similarityThreshold": 0.30
+}
+
+### RAG-only: visitors in PDF
+POST {{baseUrl}}/api/v1/ai/chat
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "question": "¿Qué dice el PDF sobre visitantes?",
+  "topK": 10,
+  "similarityThreshold": 0.30
+}
+
+### RAG-only: trash rules
+POST {{baseUrl}}/api/v1/ai/chat
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "question": "¿Qué reglas hay sobre basura?",
+  "topK": 10,
+  "similarityThreshold": 0.30
+}
+
+### RAG-only: filters/manual
+POST {{baseUrl}}/api/v1/ai/chat
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "question": "¿Qué menciona el manual sobre filtros?",
+  "topK": 10,
+  "similarityThreshold": 0.30
+}
+
+### Mixed tool + RAG
+POST {{baseUrl}}/api/v1/ai/chat
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "question": "Según mis documentos y datos del sistema, ¿qué debo revisar antes de la próxima reserva?",
+  "topK": 10,
+  "similarityThreshold": 0.30
+}
+
+### RAG not found
+POST {{baseUrl}}/api/v1/ai/chat
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "question": "¿Qué dice el documento sobre una regla que no existe?",
+  "topK": 10,
+  "similarityThreshold": 0.30
+}
+
+### Raw RAG search: exact phrase, low threshold
+POST {{baseUrl}}/api/v1/ai/search
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "question": "visitantes",
+  "topK": 20,
+  "similarityThreshold": 0.10
+}
+
+### Raw RAG search: trash rules, low threshold
+POST {{baseUrl}}/api/v1/ai/search
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "question": "basura reglas",
+  "topK": 20,
+  "similarityThreshold": 0.10
+}
+
+### Document metadata: RAG index status
+POST {{baseUrl}}/api/v1/ai/chat
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "question": "¿Cómo está el índice RAG de mis documentos?",
+  "topK": 10,
+  "similarityThreshold": 0.30
+}
+
+### AI chat history: exclude current session from previous history
+POST {{baseUrl}}/api/v1/ai/chat
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "chatSessionId": "{{chatSessionId}}",
+  "question": "Muéstrame mis últimas conversaciones con la IA",
+  "topK": 10,
+  "similarityThreshold": 0.30
+}
