@@ -11,7 +11,7 @@ import com.tamias.ai.enums.AiChatMessageRole;
 import com.tamias.ai.mapper.AiChatMapper;
 import com.tamias.ai.repository.AiChatMessageRepository;
 import com.tamias.ai.repository.AiChatSessionRepository;
-import com.tamias.ai.tool.AiToolTextNormalizer;
+import com.tamias.ai.tool.support.AiToolTextNormalizer;
 import com.tamias.common.dto.PageResponse;
 import com.tamias.common.exception.NotFoundException;
 import com.tamias.organization.entity.Organization;
