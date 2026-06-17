@@ -137,7 +137,7 @@ public class ScheduledReservationGuestToolRepository extends AiReadOnlyToolSuppo
                 SELECT sm.id,
                        p.name AS property_name,
                        sm.title,
-                       COALESCE(mp.name, '') AS person_name,
+                       COALESCE(mp.full_name, '') AS person_name,
                        COALESCE(mc.name, '') AS category_name,
                        COALESCE(mt.name, '') AS type_name,
                        sm.start_date,
