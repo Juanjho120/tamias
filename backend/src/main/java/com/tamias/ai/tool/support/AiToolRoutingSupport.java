@@ -564,7 +564,8 @@ public abstract class AiToolRoutingSupport {
     }
 
     protected boolean isScheduledMaintenanceUpcomingQuestion(String value) {
-        return isScheduledMaintenanceToolQuestion(value) && containsAny(value, "proximo", "proximos", "proxima", "proximas", "upcoming", "siguiente", "siguientes");
+        return isScheduledMaintenanceToolQuestion(value)
+                && containsAny(value, "proximos", "proximas", "upcoming", "siguientes", "lista", "listar", "muestrame", "muéstrame");
     }
 
     protected boolean isScheduledMaintenanceDueTodayQuestion(String value) {
@@ -577,7 +578,9 @@ public abstract class AiToolRoutingSupport {
 
     protected boolean isScheduledMaintenanceNextDueQuestion(String value) {
         return isScheduledMaintenanceToolQuestion(value)
-                && containsAny(value, "toca", "vence", "vencen", "proximo vencimiento", "siguiente vencimiento");
+                && (containsAny(value, "toca", "vence", "vencen", "proximo vencimiento", "siguiente vencimiento")
+                || containsAny(value, "cual es el proximo mantenimiento programado", "cual es la proxima mantenimiento programado",
+                "proximo mantenimiento programado", "proxima mantenimiento programado", "siguiente mantenimiento programado"));
     }
 
     protected boolean isScheduledMaintenanceByPropertyQuestion(String value) {

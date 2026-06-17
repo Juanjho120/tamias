@@ -700,24 +700,60 @@ public class ReservationSupplyTaskToolRepository extends AiReadOnlyToolSupport {
     }
 
     public AiToolAnswer taskItemAssignedSummary() {
-        List<Map<String, Object>> rows = taskItemRows(null, null, false, null, 50, "COALESCE(ti.responsible_person, '') ASC, p.name ASC, tl.due_date ASC NULLS LAST, ti.sort_order ASC, ti.task_name ASC");
+        List<Map<String, Object>> rows = taskItemRows(null, null, false, null, 50, "COALESCE(ti.responsible_person, '') ASC, p.name ASC, COALESCE(r.reservation_code, '') ASC, tl.due_date ASC NULLS LAST, tl.title ASC, ti.sort_order ASC, ti.task_name ASC");
         if (rows.isEmpty()) {
             return AiToolAnswer.of("No encontré tareas específicas pendientes asignadas por responsable.", "taskItem.assignedSummary", "Task item assigned summary", "No pending task item assignment summary found.", List.of());
         }
+
         StringBuilder answer = new StringBuilder("Estas son las tareas específicas pendientes asignadas por persona:");
         Map<String, List<Map<String, Object>>> byResponsible = new LinkedHashMap<>();
         for (Map<String, Object> row : rows) {
             String responsible = blankToDash(value(row.get("responsiblePerson")));
             byResponsible.computeIfAbsent(responsible, ignored -> new ArrayList<>()).add(row);
         }
-        for (Map.Entry<String, List<Map<String, Object>>> entry : byResponsible.entrySet()) {
-            answer.append(System.lineSeparator()).append(System.lineSeparator()).append(entry.getKey()).append(":");
-            for (Map<String, Object> row : entry.getValue()) {
-                answer.append(System.lineSeparator())
-                        .append("- ").append(blankToDash(value(row.get("taskName"))))
-                        .append(" | lista: ").append(blankToDash(value(row.get("taskListTitle"))))
-                        .append(" | propiedad: ").append(blankToDash(value(row.get("propertyName"))))
-                        .append(" | vence: ").append(blankToDash(value(row.get("dueDate"))));
+
+        for (Map.Entry<String, List<Map<String, Object>>> responsibleEntry : byResponsible.entrySet()) {
+            answer.append(System.lineSeparator()).append(System.lineSeparator()).append(responsibleEntry.getKey()).append(":");
+
+            Map<String, List<Map<String, Object>>> byProperty = new LinkedHashMap<>();
+            for (Map<String, Object> row : responsibleEntry.getValue()) {
+                String property = blankToDash(value(row.get("propertyName")));
+                byProperty.computeIfAbsent(property, ignored -> new ArrayList<>()).add(row);
+            }
+
+            for (Map.Entry<String, List<Map<String, Object>>> propertyEntry : byProperty.entrySet()) {
+                answer.append(System.lineSeparator()).append("- ").append(propertyEntry.getKey());
+
+                Map<String, List<Map<String, Object>>> byReservation = new LinkedHashMap<>();
+                for (Map<String, Object> row : propertyEntry.getValue()) {
+                    String reservationCode = value(row.get("reservationCode"));
+                    String reservationKey = reservationCode.isBlank() ? "__NO_RESERVATION__" : reservationCode;
+                    byReservation.computeIfAbsent(reservationKey, ignored -> new ArrayList<>()).add(row);
+                }
+
+                for (Map.Entry<String, List<Map<String, Object>>> reservationEntry : byReservation.entrySet()) {
+                    boolean hasReservation = !"__NO_RESERVATION__".equals(reservationEntry.getKey());
+                    if (hasReservation) {
+                        answer.append(System.lineSeparator()).append("   ").append(reservationEntry.getKey());
+                    }
+
+                    Map<String, List<Map<String, Object>>> byTaskList = new LinkedHashMap<>();
+                    for (Map<String, Object> row : reservationEntry.getValue()) {
+                        String listKey = blankToDash(value(row.get("taskListTitle"))) + " | vence: " + blankToDash(value(row.get("dueDate")));
+                        byTaskList.computeIfAbsent(listKey, ignored -> new ArrayList<>()).add(row);
+                    }
+
+                    for (Map.Entry<String, List<Map<String, Object>>> taskListEntry : byTaskList.entrySet()) {
+                        answer.append(System.lineSeparator())
+                                .append(hasReservation ? "      - " : "   - ")
+                                .append(taskListEntry.getKey());
+                        for (Map<String, Object> row : taskListEntry.getValue()) {
+                            answer.append(System.lineSeparator())
+                                    .append(hasReservation ? "         - " : "      - ")
+                                    .append(blankToDash(value(row.get("taskName"))));
+                        }
+                    }
+                }
             }
         }
         return AiToolAnswer.of(answer.toString(), "taskItem.assignedSummary", "Task item assigned summary", "%d pending task item assignment rows found.".formatted(rows.size()), rows);

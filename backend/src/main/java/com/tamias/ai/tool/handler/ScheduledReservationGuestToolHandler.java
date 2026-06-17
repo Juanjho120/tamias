@@ -126,11 +126,11 @@ private Optional<AiToolAnswer> tryHandleScheduledReservationGuestQuestion(String
             if (isOverdueScheduledMaintenanceQuestion(normalized)) {
                 return Optional.of(readOnlyToolService.overdueScheduledMaintenance());
             }
-            if (isScheduledMaintenanceUpcomingQuestion(normalized)) {
-                return Optional.of(readOnlyToolService.upcomingScheduledMaintenance());
-            }
             if (isScheduledMaintenanceNextDueQuestion(normalized)) {
                 return Optional.of(readOnlyToolService.nextDueScheduledMaintenance(question));
+            }
+            if (isScheduledMaintenanceUpcomingQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.upcomingScheduledMaintenance());
             }
             if (isScheduledMaintenanceByStatusQuestion(normalized)) {
                 return Optional.of(readOnlyToolService.scheduledMaintenanceByStatus(question));

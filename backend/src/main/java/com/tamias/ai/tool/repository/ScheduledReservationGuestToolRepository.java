@@ -154,7 +154,7 @@ public class ScheduledReservationGuestToolRepository extends AiReadOnlyToolSuppo
                 WHERE sm.organization_id = :organizationId
                   AND sm.deleted_at IS NULL
                   AND sm.status = 'ACTIVE'
-                  AND sm.start_date >= :today
+                  AND sm.start_date > :today
                 """ + (nullableSearch(search) == null ? "" : """
                   AND NOT EXISTS (
                       SELECT 1 FROM regexp_split_to_table(CAST(:search AS TEXT), '\\s+') token(value)
@@ -173,7 +173,7 @@ public class ScheduledReservationGuestToolRepository extends AiReadOnlyToolSuppo
                 }, "id", "propertyName", "title", "personName", "categoryName", "typeName", "startDate", "endDate", "nextDueDate", "frequency", "intervalValue", "status");
         if (rows.isEmpty()) {
             return AiToolAnswer.of(
-                    "No encontré próximos mantenimientos programados activos con fecha de inicio futura.",
+                    "No encontré mantenimientos programados activos con fecha de inicio futura después de hoy.",
                     "scheduledMaintenance.nextDue",
                     "Next scheduled maintenance",
                     "No upcoming scheduled maintenance rows found by start date.",
