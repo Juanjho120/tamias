@@ -175,7 +175,7 @@ public class PropertyCatalogToolRepository extends AiReadOnlyToolSupport {
         return query("""
                 SELECT sm.id,
                        sm.title,
-                       COALESCE(mp.name, '') AS person_name,
+                       COALESCE(mp.full_name, '') AS person_name,
                        COALESCE(mc.name, '') AS category_name,
                        COALESCE(mt.name, '') AS type_name,
                        sm.start_date,
@@ -204,7 +204,7 @@ public class PropertyCatalogToolRepository extends AiReadOnlyToolSupport {
         return query("""
                 SELECT mr.id,
                        mr.title,
-                       COALESCE(mp.name, '') AS person_name,
+                       COALESCE(mp.full_name, '') AS person_name,
                        COALESCE(mc.name, '') AS category_name,
                        COALESCE(mt.name, '') AS type_name,
                        mr.scheduled_at,

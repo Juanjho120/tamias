@@ -554,7 +554,7 @@ public class ReservationSupplyTaskToolRepository extends AiReadOnlyToolSupport {
                 .append(reservationLabel)
                 .append(" de ").append(propertyName)
                 .append(" con check-in el ").append(checkIn)
-                .append(", hay ").append(rows.size() == 1 ? "una tarea pendiente:" : rows.size() + " listas de tareas pendientes:");
+                .append(", hay ").append(rows.size() == 1 ? "una lista de tarea pendiente:" : rows.size() + " listas de tareas pendientes:");
         for (int i = 0; i < rows.size(); i++) {
             Map<String, Object> row = rows.get(i);
             answer.append(System.lineSeparator())
