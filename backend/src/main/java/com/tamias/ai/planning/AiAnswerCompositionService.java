@@ -26,6 +26,9 @@ public class AiAnswerCompositionService {
         if (!composeToolAnswers || toolAnswer == null || toolAnswer.answer() == null || toolAnswer.answer().isBlank()) {
             return toolAnswer != null ? toolAnswer.answer() : "";
         }
+        if (shouldReturnBackendAnswerAsIs(toolAnswer)) {
+            return toolAnswer.answer();
+        }
 
         try {
             return chatClient.prompt()
@@ -36,6 +39,41 @@ public class AiAnswerCompositionService {
         } catch (Exception exception) {
             return toolAnswer.answer();
         }
+    }
+
+    private boolean shouldReturnBackendAnswerAsIs(AiToolAnswer toolAnswer) {
+        String toolName = primaryToolName(toolAnswer);
+        return toolName.equals("assistant.capabilities")
+                || toolName.equals("assistant.readOnlyGuard")
+                || toolName.startsWith("user.")
+                || toolName.startsWith("organization.")
+                || toolName.startsWith("role.")
+                || toolName.startsWith("catalog.")
+                || toolName.startsWith("property.")
+                || toolName.startsWith("reservation.")
+                || toolName.startsWith("guest.")
+                || toolName.startsWith("scheduledMaintenance.")
+                || toolName.startsWith("maintenance.")
+                || toolName.startsWith("reservationSupply.")
+                || toolName.startsWith("taskList.")
+                || toolName.startsWith("taskItem.")
+                || toolName.startsWith("purchase.")
+                || toolName.startsWith("purchaseList.")
+                || toolName.startsWith("purchaseItem.")
+                || toolName.startsWith("inventory.")
+                || toolName.startsWith("document.")
+                || toolName.startsWith("rag.")
+                || toolName.startsWith("dashboard.")
+                || toolName.startsWith("aiChat.")
+                || toolName.startsWith("assistant.");
+    }
+
+    private String primaryToolName(AiToolAnswer toolAnswer) {
+        if (toolAnswer == null || toolAnswer.evidence() == null || toolAnswer.evidence().isEmpty()) {
+            return "";
+        }
+        String toolName = toolAnswer.evidence().get(0).toolName();
+        return toolName == null ? "" : toolName;
     }
 
     private String toolAnswerSystemPrompt() {

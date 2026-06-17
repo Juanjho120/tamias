@@ -80,6 +80,9 @@ private Optional<AiToolAnswer> tryHandleReservationSupplyAndTaskQuestion(String 
         }
 
         if (isTaskListToolQuestion(normalized)) {
+            if (containsAny(normalized, "asignadas por persona", "asignados por persona", "por persona", "responsable", "responsables", "asignadas", "asignados")) {
+                return Optional.of(readOnlyToolService.taskItemAssignedSummary());
+            }
             if (isTaskListProgressQuestion(normalized)) {
                 return Optional.of(readOnlyToolService.taskListProgressSummary());
             }

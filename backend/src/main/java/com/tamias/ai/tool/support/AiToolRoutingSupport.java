@@ -433,7 +433,8 @@ public abstract class AiToolRoutingSupport {
     protected boolean isCatalogQuestion(String value) {
         return containsAny(value,
                 "catalogo", "catalogos", "categoria", "categorias", "tipo de mantenimiento", "tipos de mantenimiento",
-                "plataforma", "plataformas", "task template", "plantilla", "plantillas", "inventory item type", "tipos de item", "tipos de inventario"
+                "plataforma", "plataformas", "task template", "plantilla", "plantillas", "inventory item type",
+                "inventory item", "tipos de item", "tipos de inventario", "tipos de inventory item"
         );
     }
 
@@ -470,7 +471,10 @@ public abstract class AiToolRoutingSupport {
     }
 
     protected boolean isInventoryItemTypeQuestion(String value) {
-        return containsAny(value, "tipos de item", "tipos de inventario", "inventory item types", "item types", "tipos de supplies");
+        return containsAny(value,
+                "tipos de item", "tipos de inventario", "inventory item types", "item types", "tipos de supplies",
+                "tipos de inventory item", "inventory item existen", "inventory items existen", "tipo de inventory item"
+        );
     }
 
 
@@ -572,7 +576,8 @@ public abstract class AiToolRoutingSupport {
     }
 
     protected boolean isScheduledMaintenanceNextDueQuestion(String value) {
-        return isScheduledMaintenanceToolQuestion(value) && containsAny(value, "cual es el proximo", "proximo mantenimiento", "toca", "vence", "siguiente");
+        return isScheduledMaintenanceToolQuestion(value)
+                && containsAny(value, "toca", "vence", "vencen", "proximo vencimiento", "siguiente vencimiento");
     }
 
     protected boolean isScheduledMaintenanceByPropertyQuestion(String value) {
@@ -600,7 +605,7 @@ public abstract class AiToolRoutingSupport {
     }
 
     protected boolean isReservationToolQuestion(String value) {
-        return containsAny(value, "reservacion", "reservaciones", "reserva", "reservas", "check in", "check-in", "check out", "check-out", "llegada", "llegan", "llega", "salida", "salen", "sale", "ocupacion", "noches reservadas", "dias libres");
+        return containsAny(value, "reservacion", "reservaciones", "reserva", "reservas", "check in", "check-in", "check out", "check-out", "llegada", "llegan", "llega", "entrada", "entradas", "salida", "salen", "sale", "ocupacion", "noches reservadas", "dias libres");
     }
 
     protected boolean isReservationTodayQuestion(String value) {
@@ -656,7 +661,10 @@ public abstract class AiToolRoutingSupport {
     }
 
     protected boolean isNextCheckInQuestion(String value) {
-        return isReservationToolQuestion(value) && containsAny(value, "proximo check in", "proximo check-in", "proxima llegada", "quien llega", "llega manana", "llega mañana", "siguiente llegada");
+        return isReservationToolQuestion(value) && containsAny(value,
+                "proximo check in", "proximo check-in", "proxima llegada", "proxima entrada", "siguiente entrada",
+                "cual es la proxima entrada", "quien llega", "llega manana", "llega mañana", "siguiente llegada"
+        );
     }
 
     protected boolean isNextCheckOutQuestion(String value) {
@@ -670,6 +678,16 @@ public abstract class AiToolRoutingSupport {
     protected boolean isGuestToolQuestion(String value) {
         return containsAny(value, "huesped", "huespedes", "guest", "guests", "cliente", "clientes")
                 && !containsAny(value, "supplies", "supply", "suministro", "suministros");
+    }
+
+    protected boolean isGuestInformationLookupQuestion(String value) {
+        return containsAny(value,
+                "quien es", "quién es", "que sabes sobre", "qué sabes sobre", "dame informacion sobre", "dame información sobre", "informacion sobre", "información sobre"
+        ) && !containsAny(value,
+                "propiedad", "propiedades", "casa", "bungalow", "alojamiento", "documento", "documentos", "pdf", "manual", "plano",
+                "reservacion", "reservaciones", "reserva", "reservas", "mantenimiento", "mantenimientos", "tarea", "tareas", "compra", "compras",
+                "catalogo", "catalogos", "plataforma", "plataformas", "inventario", "inventory", "supply", "supplies"
+        );
     }
 
     protected boolean isGuestByReservationQuestion(String value) {
@@ -1002,18 +1020,12 @@ public abstract class AiToolRoutingSupport {
 
     protected boolean isDocumentCountByTypeQuestion(String value) {
         return isDocumentToolQuestion(value)
-                && containsAny(value, "tipo", "por tipo", "by type")
-                && containsAny(value,
-                "cuantos", "cuántos", "cantidad", "conteo", "count", "agrupados", "agrupar", "grupo"
-        );
+                && containsAny(value, "por tipo", "agrupados por tipo", "agrupados tipo", "tipo", "by type");
     }
 
     protected boolean isDocumentCountByPropertyQuestion(String value) {
         return isDocumentToolQuestion(value)
-                && containsAny(value, "propiedad", "por propiedad", "by property")
-                && containsAny(value,
-                "cuantos", "cuántos", "cantidad", "conteo", "count", "agrupados", "agrupar", "grupo"
-        );
+                && containsAny(value, "por propiedad", "agrupados por propiedad", "agrupados propiedad", "by property");
     }
 
     protected boolean isDocumentBlueprintQuestion(String value) {

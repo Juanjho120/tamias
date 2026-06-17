@@ -130,8 +130,68 @@ public class ScheduledReservationGuestToolRepository extends AiReadOnlyToolSuppo
     }
 
     public AiToolAnswer nextDueScheduledMaintenance(String userQuestion) {
-        String search = extractSearchText(userQuestion, "proximo", "proxima", "mantenimiento", "mantenimientos", "programado", "programados", "toca", "vence");
-        return scheduledMaintenanceList("scheduledMaintenance.nextDue", "Next due scheduled maintenance", "El próximo mantenimiento programado que encontré es:", LocalDate.now(), null, search, 1);
+        String search = extractSearchText(userQuestion, "proximo", "proxima", "mantenimiento", "mantenimientos", "programado", "programados", "toca", "vence", "vencimiento");
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        LocalDate today = LocalDate.now();
+        List<Map<String, Object>> rows = query("""
+                SELECT sm.id,
+                       p.name AS property_name,
+                       sm.title,
+                       COALESCE(mp.name, '') AS person_name,
+                       COALESCE(mc.name, '') AS category_name,
+                       COALESCE(mt.name, '') AS type_name,
+                       sm.start_date,
+                       sm.end_date,
+                       sm.next_due_date,
+                       sm.frequency,
+                       sm.interval_value,
+                       sm.status
+                FROM scheduled_maintenance sm
+                JOIN properties p ON p.id = sm.property_id AND p.organization_id = sm.organization_id
+                LEFT JOIN maintenance_people mp ON mp.id = sm.maintenance_person_id AND mp.organization_id = sm.organization_id
+                LEFT JOIN maintenance_categories mc ON mc.id = sm.maintenance_category_id AND mc.organization_id = sm.organization_id
+                LEFT JOIN maintenance_types mt ON mt.id = sm.maintenance_type_id AND mt.organization_id = sm.organization_id
+                WHERE sm.organization_id = :organizationId
+                  AND sm.deleted_at IS NULL
+                  AND sm.status = 'ACTIVE'
+                  AND sm.start_date >= :today
+                """ + (nullableSearch(search) == null ? "" : """
+                  AND NOT EXISTS (
+                      SELECT 1 FROM regexp_split_to_table(CAST(:search AS TEXT), '\\s+') token(value)
+                      WHERE token.value <> ''
+                        AND translate(LOWER(CONCAT_WS(' ', sm.title, sm.description, p.name, mc.name, mt.name, sm.frequency, sm.status)), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
+                  )
+                """) + """
+                ORDER BY sm.start_date ASC, sm.next_due_date ASC, sm.title ASC
+                LIMIT 1
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("today", Date.valueOf(today));
+                    if (nullableSearch(search) != null) {
+                        q.setParameter("search", nullableSearch(search));
+                    }
+                }, "id", "propertyName", "title", "personName", "categoryName", "typeName", "startDate", "endDate", "nextDueDate", "frequency", "intervalValue", "status");
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    "No encontré próximos mantenimientos programados activos con fecha de inicio futura.",
+                    "scheduledMaintenance.nextDue",
+                    "Next scheduled maintenance",
+                    "No upcoming scheduled maintenance rows found by start date.",
+                    List.of()
+            );
+        }
+        Map<String, Object> row = rows.get(0);
+        String answer = "El próximo mantenimiento programado por fecha de inicio es:\n"
+                + "- " + blankToDash(value(row.get("propertyName")))
+                + " | " + blankToDash(value(row.get("title")))
+                + " | inicio: " + blankToDash(value(row.get("startDate")))
+                + " | finalización: " + blankToDash(value(row.get("endDate")))
+                + " | próximo vencimiento: " + blankToDash(value(row.get("nextDueDate")))
+                + " | responsable: " + blankToDash(value(row.get("personName")))
+                + " | categoría/tipo: " + blankToDash(value(row.get("categoryName")))
+                + (value(row.get("typeName")).isBlank() ? "" : " / " + value(row.get("typeName")))
+                + " | estado: " + blankToDash(value(row.get("status")));
+        return AiToolAnswer.of(answer, "scheduledMaintenance.nextDue", "Next scheduled maintenance", "Next scheduled maintenance was selected by start date.", rows);
     }
 
     public AiToolAnswer scheduledMaintenanceFrequencySummary() {
@@ -476,7 +536,10 @@ public class ScheduledReservationGuestToolRepository extends AiReadOnlyToolSuppo
     }
 
     public AiToolAnswer guestSearch(String userQuestion) {
-        String search = extractSearchText(userQuestion, "huesped", "huespedes", "cliente", "clientes", "buscar", "busca", "lista", "listar");
+        String search = extractSearchText(userQuestion,
+                "huesped", "huespedes", "cliente", "clientes", "buscar", "busca", "lista", "listar",
+                "que", "sabes", "sobre", "quien", "es", "dame", "informacion", "información", "del", "de", "la", "el"
+        );
         return guestList("guest.search", "Guest search", "Estos son los huéspedes que encontré:", search, false, false);
     }
 

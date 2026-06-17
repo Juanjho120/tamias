@@ -142,19 +142,76 @@ public class ReservationSupplyTaskToolRepository extends AiReadOnlyToolSupport {
     }
 
     public AiToolAnswer reservationSuppliesForUpcomingReservations() {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
         LocalDate today = LocalDate.now();
-        LocalDate toDate = today.plusDays(14);
-        List<Map<String, Object>> rows = reservationSupplyRows(null, today, toDate, null, null, null, DEFAULT_LIMIT, "r.check_in ASC, p.name ASC, rs.item_name_snapshot ASC");
+        List<Map<String, Object>> rows = query("""
+                WITH next_reservation AS (
+                    SELECT r.id
+                    FROM reservations r
+                    WHERE r.organization_id = :organizationId
+                      AND r.deleted_at IS NULL
+                      AND r.status = 'ACTIVE'
+                      AND r.check_in >= :today
+                      AND EXISTS (
+                          SELECT 1
+                          FROM reservation_supplies rsx
+                          WHERE rsx.organization_id = r.organization_id
+                            AND rsx.reservation_id = r.id
+                      )
+                    ORDER BY r.check_in ASC, r.created_at ASC
+                    LIMIT 1
+                )
+                SELECT rs.id,
+                       rs.item_name_snapshot AS item_name,
+                       rs.quantity,
+                       COALESCE(rs.unit, '') AS unit,
+                       p.name AS property_name,
+                       r.reservation_code,
+                       r.check_in,
+                       r.check_out,
+                       COALESCE(
+                           MAX(CASE WHEN rg.is_primary = TRUE THEN g.full_name ELSE NULL END),
+                           MIN(g.full_name),
+                           ''
+                       ) AS primary_guest
+                FROM reservation_supplies rs
+                JOIN reservations r ON r.id = rs.reservation_id AND r.organization_id = rs.organization_id
+                JOIN next_reservation nr ON nr.id = r.id
+                JOIN properties p ON p.id = r.property_id AND p.organization_id = r.organization_id
+                LEFT JOIN reservation_guests rg ON rg.reservation_id = r.id AND rg.organization_id = r.organization_id
+                LEFT JOIN guests g ON g.id = rg.guest_id AND g.organization_id = r.organization_id AND g.deleted_at IS NULL
+                WHERE rs.organization_id = :organizationId
+                  AND r.deleted_at IS NULL
+                GROUP BY rs.id, rs.item_name_snapshot, rs.quantity, rs.unit, p.name, r.reservation_code, r.check_in, r.check_out
+                ORDER BY rs.item_name_snapshot ASC
+                LIMIT :limit
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("today", Date.valueOf(today));
+                    q.setParameter("limit", DEFAULT_LIMIT);
+                }, "id", "itemName", "quantity", "unit", "propertyName", "reservationCode", "checkIn", "checkOut", "primaryGuest");
         if (rows.isEmpty()) {
             return AiToolAnswer.of(
-                    "No encontré supplies asignados para reservaciones activas con check-in en los próximos 14 días.",
+                    "No encontré supplies asignados para la próxima reservación activa.",
                     "reservationSupply.forUpcomingReservations",
-                    "Reservation supplies for upcoming reservations",
-                    "No supplies found for upcoming reservations.",
+                    "Reservation supplies for next reservation",
+                    "No supplies found for next reservation.",
                     List.of()
             );
         }
-        return reservationSupplyRowsAnswer(rows, "reservationSupply.forUpcomingReservations", "Estos supplies están asignados a próximas reservaciones:");
+        Map<String, Object> first = rows.get(0);
+        StringBuilder answer = new StringBuilder("Para la próxima reserva de ")
+                .append(blankToDash(value(first.get("primaryGuest"))))
+                .append(" en ").append(blankToDash(value(first.get("propertyName"))))
+                .append(" con check-in ").append(blankToDash(value(first.get("checkIn"))))
+                .append(", necesitas los siguientes supplies:");
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("itemName"))))
+                    .append(" | cantidad: ").append(blankToDash(value(row.get("quantity"))))
+                    .append(" ").append(blankToDash(value(row.get("unit"))));
+        }
+        return AiToolAnswer.of(answer.toString(), "reservationSupply.forUpcomingReservations", "Reservation supplies for next reservation", "%d supplies found for next reservation.".formatted(rows.size()), rows);
     }
 
     public AiToolAnswer reservationSuppliesForLatestPastReservation() {
@@ -165,19 +222,27 @@ public class ReservationSupplyTaskToolRepository extends AiReadOnlyToolSupport {
                        p.name AS property_name,
                        r.reservation_code,
                        r.check_in,
-                       r.check_out
+                       r.check_out,
+                       COALESCE(
+                           MAX(CASE WHEN rg.is_primary = TRUE THEN g.full_name ELSE NULL END),
+                           MIN(g.full_name),
+                           ''
+                       ) AS primary_guest
                 FROM reservations r
                 JOIN properties p ON p.id = r.property_id AND p.organization_id = r.organization_id
+                LEFT JOIN reservation_guests rg ON rg.reservation_id = r.id AND rg.organization_id = r.organization_id
+                LEFT JOIN guests g ON g.id = rg.guest_id AND g.organization_id = r.organization_id AND g.deleted_at IS NULL
                 WHERE r.organization_id = :organizationId
                   AND r.deleted_at IS NULL
                   AND r.status = 'ACTIVE'
                   AND r.check_in <= :today
+                GROUP BY r.id, p.name, r.reservation_code, r.check_in, r.check_out
                 ORDER BY r.check_in DESC, r.created_at DESC
                 LIMIT 1
                 """, q -> {
                     q.setParameter("organizationId", organizationId);
                     q.setParameter("today", Date.valueOf(today));
-                }, "id", "propertyName", "reservationCode", "checkIn", "checkOut");
+                }, "id", "propertyName", "reservationCode", "checkIn", "checkOut", "primaryGuest");
         if (reservations.isEmpty()) {
             return AiToolAnswer.of(
                     "No encontré una reservación activa pasada o de hoy para revisar supplies usados.",
@@ -216,6 +281,7 @@ public class ReservationSupplyTaskToolRepository extends AiReadOnlyToolSupport {
         String reservationLabel = blankToDash(value(reservation.get("reservationCode")));
         String propertyName = blankToDash(value(reservation.get("propertyName")));
         String checkIn = blankToDash(value(reservation.get("checkIn")));
+        String primaryGuest = blankToDash(value(reservation.get("primaryGuest")));
         if (rows.isEmpty()) {
             return AiToolAnswer.of(
                     "No encontré supplies asociados a la última reservación " + reservationLabel + " de " + propertyName + " con check-in " + checkIn + ".",
@@ -225,17 +291,20 @@ public class ReservationSupplyTaskToolRepository extends AiReadOnlyToolSupport {
                     reservations
             );
         }
-        StringBuilder answer = new StringBuilder("Estos supplies se usaron en la última reservación que encontré: ")
-                .append(reservationLabel)
-                .append(" | ").append(propertyName)
-                .append(" | check-in: ").append(checkIn)
-                .append(".");
+        StringBuilder answer = new StringBuilder("En la última reservación se usaron los siguientes supplies:");
         for (Map<String, Object> row : rows) {
             answer.append(System.lineSeparator())
                     .append("- ").append(blankToDash(value(row.get("itemName"))))
                     .append(" | cantidad: ").append(blankToDash(value(row.get("quantity"))))
                     .append(" ").append(blankToDash(value(row.get("unit"))));
         }
+        answer.append(System.lineSeparator())
+                .append(System.lineSeparator())
+                .append("La reservación corresponde a ").append(reservationLabel)
+                .append(" | ").append(propertyName)
+                .append(", a nombre de ").append(primaryGuest)
+                .append(" con check-in el ").append(checkIn)
+                .append(".");
         return AiToolAnswer.of(answer.toString(), "reservationSupply.byReservation", "Reservation supplies for latest past reservation", "%d supplies found for latest past reservation.".formatted(rows.size()), rows);
     }
 
@@ -450,12 +519,10 @@ public class ReservationSupplyTaskToolRepository extends AiReadOnlyToolSupport {
                        COALESCE(r.reservation_code, '') AS reservation_code,
                        r.check_in,
                        tl.title,
-                       tl.creation_date,
                        tl.due_date,
                        tl.status,
                        COUNT(ti.id) AS total_items,
-                       COALESCE(SUM(CASE WHEN ti.completed = TRUE THEN 1 ELSE 0 END), 0) AS completed_items,
-                       COALESCE(SUM(CASE WHEN ti.completed = FALSE THEN 1 ELSE 0 END), 0) AS pending_items
+                       COALESCE(SUM(CASE WHEN ti.completed = TRUE THEN 1 ELSE 0 END), 0) AS completed_items
                 FROM task_lists tl
                 JOIN properties p ON p.id = tl.property_id AND p.organization_id = tl.organization_id
                 JOIN reservations r ON r.id = tl.reservation_id AND r.organization_id = tl.organization_id AND r.deleted_at IS NULL
@@ -463,14 +530,14 @@ public class ReservationSupplyTaskToolRepository extends AiReadOnlyToolSupport {
                 WHERE tl.organization_id = :organizationId
                   AND tl.deleted_at IS NULL
                   AND tl.reservation_id = :reservationId
-                GROUP BY tl.id, p.name, r.reservation_code, r.check_in, tl.title, tl.creation_date, tl.due_date, tl.status
+                GROUP BY tl.id, p.name, r.reservation_code, r.check_in, tl.title, tl.due_date, tl.status
                 ORDER BY tl.due_date ASC NULLS LAST, tl.creation_date DESC, tl.title ASC
                 LIMIT :limit
                 """, q -> {
                     q.setParameter("organizationId", organizationId);
                     q.setParameter("reservationId", reservationId);
                     q.setParameter("limit", DEFAULT_LIMIT);
-                }, "id", "propertyName", "reservationCode", "checkIn", "title", "creationDate", "dueDate", "status", "totalItems", "completedItems", "pendingItems");
+                }, "id", "propertyName", "reservationCode", "checkIn", "title", "dueDate", "status", "totalItems", "completedItems");
         String reservationLabel = blankToDash(value(reservation.get("reservationCode")));
         String propertyName = blankToDash(value(reservation.get("propertyName")));
         String checkIn = blankToDash(value(reservation.get("checkIn")));
@@ -483,7 +550,25 @@ public class ReservationSupplyTaskToolRepository extends AiReadOnlyToolSupport {
                     reservations
             );
         }
-        return taskListRowsAnswer(rows, "taskList.byReservation", "Estas tareas están asociadas a la próxima reservación " + reservationLabel + " de " + propertyName + " con check-in " + checkIn + ":");
+        StringBuilder answer = new StringBuilder("Para la próxima reservación ")
+                .append(reservationLabel)
+                .append(" de ").append(propertyName)
+                .append(" con check-in el ").append(checkIn)
+                .append(", hay ").append(rows.size() == 1 ? "una tarea pendiente:" : rows.size() + " listas de tareas pendientes:");
+        for (int i = 0; i < rows.size(); i++) {
+            Map<String, Object> row = rows.get(i);
+            answer.append(System.lineSeparator())
+                    .append(System.lineSeparator())
+                    .append(i + 1).append(". ").append(blankToDash(value(row.get("title"))))
+                    .append(" | estado: ").append(blankToDash(value(row.get("status"))))
+                    .append(" | vence: ").append(blankToDash(value(row.get("dueDate"))))
+                    .append(" | avance: ").append(blankToDash(value(row.get("completedItems"))))
+                    .append("/").append(blankToDash(value(row.get("totalItems"))))
+                    .append(".");
+            UUID taskListId = UUID.fromString(value(row.get("id")));
+            appendTaskItemsForTaskList(answer, organizationId, taskListId);
+        }
+        return AiToolAnswer.of(answer.toString(), "taskList.byReservation", "Task lists for next reservation", "%d task lists found for next reservation.".formatted(rows.size()), rows);
     }
 
     public AiToolAnswer activeTaskLists() {
@@ -595,7 +680,7 @@ public class ReservationSupplyTaskToolRepository extends AiReadOnlyToolSupport {
         if (rows.isEmpty()) {
             return AiToolAnswer.of("No encontré tareas específicas pendientes.", "taskItem.pending", "Pending task items", "No pending task items found.", List.of());
         }
-        return taskItemRowsAnswer(rows, "taskItem.pending", "Estas tareas específicas siguen pendientes:");
+        return groupedPendingTaskItemsAnswer(rows, "taskItem.pending", "Tienes las siguientes tareas pendientes:");
     }
 
     public AiToolAnswer completedTaskItems() {
@@ -615,37 +700,87 @@ public class ReservationSupplyTaskToolRepository extends AiReadOnlyToolSupport {
     }
 
     public AiToolAnswer taskItemAssignedSummary() {
-        UUID organizationId = currentUserService.getCurrentOrganizationId();
-        List<Map<String, Object>> rows = query("""
-                SELECT COALESCE(NULLIF(ti.responsible_person, ''), 'Sin responsable') AS responsible_person,
-                       COUNT(*) AS item_count,
-                       COALESCE(SUM(CASE WHEN ti.completed = TRUE THEN 1 ELSE 0 END), 0) AS completed_items,
-                       COALESCE(SUM(CASE WHEN ti.completed = FALSE THEN 1 ELSE 0 END), 0) AS pending_items,
-                       COALESCE(STRING_AGG(ti.task_name, ', ' ORDER BY ti.completed ASC, ti.sort_order ASC, ti.task_name ASC), '') AS task_names
+        List<Map<String, Object>> rows = taskItemRows(null, null, false, null, 50, "COALESCE(ti.responsible_person, '') ASC, p.name ASC, tl.due_date ASC NULLS LAST, ti.sort_order ASC, ti.task_name ASC");
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of("No encontré tareas específicas pendientes asignadas por responsable.", "taskItem.assignedSummary", "Task item assigned summary", "No pending task item assignment summary found.", List.of());
+        }
+        StringBuilder answer = new StringBuilder("Estas son las tareas específicas pendientes asignadas por persona:");
+        Map<String, List<Map<String, Object>>> byResponsible = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            String responsible = blankToDash(value(row.get("responsiblePerson")));
+            byResponsible.computeIfAbsent(responsible, ignored -> new ArrayList<>()).add(row);
+        }
+        for (Map.Entry<String, List<Map<String, Object>>> entry : byResponsible.entrySet()) {
+            answer.append(System.lineSeparator()).append(System.lineSeparator()).append(entry.getKey()).append(":");
+            for (Map<String, Object> row : entry.getValue()) {
+                answer.append(System.lineSeparator())
+                        .append("- ").append(blankToDash(value(row.get("taskName"))))
+                        .append(" | lista: ").append(blankToDash(value(row.get("taskListTitle"))))
+                        .append(" | propiedad: ").append(blankToDash(value(row.get("propertyName"))))
+                        .append(" | vence: ").append(blankToDash(value(row.get("dueDate"))));
+            }
+        }
+        return AiToolAnswer.of(answer.toString(), "taskItem.assignedSummary", "Task item assigned summary", "%d pending task item assignment rows found.".formatted(rows.size()), rows);
+    }
+
+    private AiToolAnswer groupedPendingTaskItemsAnswer(List<Map<String, Object>> rows, String toolName, String intro) {
+        StringBuilder answer = new StringBuilder(intro);
+        Map<String, List<Map<String, Object>>> byProperty = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            String property = blankToDash(value(row.get("propertyName")));
+            byProperty.computeIfAbsent(property, ignored -> new ArrayList<>()).add(row);
+        }
+        for (Map.Entry<String, List<Map<String, Object>>> propertyEntry : byProperty.entrySet()) {
+            answer.append(System.lineSeparator()).append(System.lineSeparator()).append(propertyEntry.getKey());
+            Map<String, List<Map<String, Object>>> byList = new LinkedHashMap<>();
+            for (Map<String, Object> row : propertyEntry.getValue()) {
+                String listKey = blankToDash(value(row.get("taskListTitle"))) + " | vence el " + blankToDash(value(row.get("dueDate")));
+                byList.computeIfAbsent(listKey, ignored -> new ArrayList<>()).add(row);
+            }
+            int listIndex = 1;
+            for (Map.Entry<String, List<Map<String, Object>>> listEntry : byList.entrySet()) {
+                answer.append(System.lineSeparator()).append(listIndex++).append(". ").append(listEntry.getKey());
+                Map<String, List<Map<String, Object>>> byResponsible = new LinkedHashMap<>();
+                for (Map<String, Object> row : listEntry.getValue()) {
+                    String responsible = blankToDash(value(row.get("responsiblePerson")));
+                    byResponsible.computeIfAbsent(responsible, ignored -> new ArrayList<>()).add(row);
+                }
+                for (Map.Entry<String, List<Map<String, Object>>> responsibleEntry : byResponsible.entrySet()) {
+                    answer.append(System.lineSeparator()).append("   ").append(responsibleEntry.getKey());
+                    for (Map<String, Object> row : responsibleEntry.getValue()) {
+                        answer.append(System.lineSeparator()).append("      - ").append(blankToDash(value(row.get("taskName"))));
+                    }
+                }
+            }
+        }
+        return AiToolAnswer.of(answer.toString(), toolName, "Pending task items", "%d pending task item rows found.".formatted(rows.size()), rows);
+    }
+
+    private void appendTaskItemsForTaskList(StringBuilder answer, UUID organizationId, UUID taskListId) {
+        List<Map<String, Object>> items = query("""
+                SELECT ti.task_name,
+                       COALESCE(ti.responsible_person, 'Sin responsable') AS responsible_person,
+                       ti.completed
                 FROM task_items ti
-                JOIN task_lists tl ON tl.id = ti.task_list_id AND tl.organization_id = ti.organization_id
                 WHERE ti.organization_id = :organizationId
-                  AND tl.deleted_at IS NULL
-                GROUP BY COALESCE(NULLIF(ti.responsible_person, ''), 'Sin responsable')
-                ORDER BY item_count DESC, responsible_person ASC
-                LIMIT :limit
+                  AND ti.task_list_id = :taskListId
+                  AND ti.completed = FALSE
+                ORDER BY COALESCE(ti.responsible_person, 'Sin responsable') ASC, ti.sort_order ASC, ti.task_name ASC
                 """, q -> {
                     q.setParameter("organizationId", organizationId);
-                    q.setParameter("limit", DEFAULT_LIMIT);
-                }, "responsiblePerson", "itemCount", "completedItems", "pendingItems", "taskNames");
-        if (rows.isEmpty()) {
-            return AiToolAnswer.of("No encontré responsables asignados en tareas específicas.", "taskItem.assignedSummary", "Task item assigned summary", "No task item assignment summary found.", List.of());
+                    q.setParameter("taskListId", taskListId);
+                }, "taskName", "responsiblePerson", "completed");
+        Map<String, List<Map<String, Object>>> byResponsible = new LinkedHashMap<>();
+        for (Map<String, Object> item : items) {
+            String responsible = blankToDash(value(item.get("responsiblePerson")));
+            byResponsible.computeIfAbsent(responsible, ignored -> new ArrayList<>()).add(item);
         }
-        StringBuilder answer = new StringBuilder("Resumen de tareas específicas por responsable:");
-        for (Map<String, Object> row : rows) {
-            answer.append(System.lineSeparator())
-                    .append("- ").append(blankToDash(value(row.get("responsiblePerson"))))
-                    .append(" | total: ").append(blankToDash(value(row.get("itemCount"))))
-                    .append(" | completadas: ").append(blankToDash(value(row.get("completedItems"))))
-                    .append(" | pendientes: ").append(blankToDash(value(row.get("pendingItems"))))
-                    .append(" | tareas: ").append(blankToDash(value(row.get("taskNames"))));
+        for (Map.Entry<String, List<Map<String, Object>>> entry : byResponsible.entrySet()) {
+            answer.append(System.lineSeparator()).append(entry.getKey());
+            for (Map<String, Object> item : entry.getValue()) {
+                answer.append(System.lineSeparator()).append("- ").append(blankToDash(value(item.get("taskName"))));
+            }
         }
-        return AiToolAnswer.of(answer.toString(), "taskItem.assignedSummary", "Task item assigned summary", "%d task item assignment summary rows found.".formatted(rows.size()), rows);
     }
 
     public AiToolAnswer taskItemPrioritySummary() {

@@ -26,7 +26,11 @@ public class ScheduledReservationGuestToolHandler extends AiToolRoutingSupport i
 
 
 private Optional<AiToolAnswer> tryHandleScheduledReservationGuestQuestion(String question, String normalized) {
-        if (isGuestToolQuestion(normalized)) {
+        if (isPreparationQuestion(normalized) || isOperationalPlanningQuestion(normalized)) {
+            return Optional.empty();
+        }
+
+        if (isGuestToolQuestion(normalized) || isGuestInformationLookupQuestion(normalized)) {
             if (isReturningGuestQuestion(normalized)) {
                 return Optional.of(readOnlyToolService.returningGuests());
             }
@@ -46,6 +50,9 @@ private Optional<AiToolAnswer> tryHandleScheduledReservationGuestQuestion(String
         }
 
         if (isReservationToolQuestion(normalized)) {
+            if (isReservationPlatformQuestion(normalized)) {
+                return Optional.empty();
+            }
             if (isReservationGapQuestion(normalized)) {
                 return Optional.of(readOnlyToolService.reservationGapsBetweenReservations());
             }
@@ -119,6 +126,9 @@ private Optional<AiToolAnswer> tryHandleScheduledReservationGuestQuestion(String
             if (isOverdueScheduledMaintenanceQuestion(normalized)) {
                 return Optional.of(readOnlyToolService.overdueScheduledMaintenance());
             }
+            if (isScheduledMaintenanceUpcomingQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.upcomingScheduledMaintenance());
+            }
             if (isScheduledMaintenanceNextDueQuestion(normalized)) {
                 return Optional.of(readOnlyToolService.nextDueScheduledMaintenance(question));
             }
@@ -130,9 +140,6 @@ private Optional<AiToolAnswer> tryHandleScheduledReservationGuestQuestion(String
             }
             if (isScheduledMaintenanceByTypeQuestion(normalized)) {
                 return Optional.of(readOnlyToolService.scheduledMaintenanceByType(question));
-            }
-            if (isScheduledMaintenanceUpcomingQuestion(normalized)) {
-                return Optional.of(readOnlyToolService.upcomingScheduledMaintenance());
             }
             return Optional.of(readOnlyToolService.scheduledMaintenanceSearch(question));
         }

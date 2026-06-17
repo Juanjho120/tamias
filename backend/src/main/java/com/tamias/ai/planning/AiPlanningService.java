@@ -36,6 +36,14 @@ public class AiPlanningService {
             return AiExecutionPlan.toolFirst("Security-sensitive deterministic tool result must be respected before LLM planning.");
         }
 
+        String normalized = AiToolTextNormalizer.normalizeForRouting(question);
+        if (toolResult != null
+                && toolResult.status() == AiToolResultStatus.HIT
+                && isStructuredToolHitThatShouldBeRespected(toolResult)
+                && !looksDocumentCentric(normalized)) {
+            return AiExecutionPlan.toolFirst("Deterministic structured system tool produced a relevant hit.");
+        }
+
         try {
             String raw = chatClient.prompt()
                     .system(systemPrompt())
@@ -83,6 +91,40 @@ public class AiPlanningService {
         }
 
         return AiExecutionPlan.defaultPlan(reason);
+    }
+
+    private boolean isStructuredToolHitThatShouldBeRespected(AiToolResult toolResult) {
+        String toolName = primaryToolName(toolResult);
+        if (toolName.isBlank()) {
+            return false;
+        }
+        return toolName.startsWith("user.")
+                || toolName.startsWith("role.")
+                || toolName.startsWith("organization.")
+                || toolName.startsWith("catalog.")
+                || toolName.startsWith("property.")
+                || toolName.startsWith("reservation.")
+                || toolName.startsWith("guest.")
+                || toolName.startsWith("scheduledMaintenance.")
+                || toolName.startsWith("maintenance.")
+                || toolName.startsWith("reservationSupply.")
+                || toolName.startsWith("taskList.")
+                || toolName.startsWith("taskItem.")
+                || toolName.startsWith("purchase.")
+                || toolName.startsWith("purchaseList.")
+                || toolName.startsWith("purchaseItem.")
+                || toolName.startsWith("inventory.")
+                || toolName.startsWith("document.")
+                || toolName.startsWith("rag.")
+                || toolName.startsWith("dashboard.")
+                || toolName.startsWith("aiChat.")
+                || toolName.startsWith("assistant.");
+    }
+
+    private String primaryToolName(AiToolResult toolResult) {
+        return toolResult == null || toolResult.answerOptional().isEmpty() || toolResult.answer().evidence().isEmpty()
+                ? ""
+                : String.valueOf(toolResult.answer().evidence().get(0).toolName());
     }
 
     private String systemPrompt() {
@@ -220,9 +262,10 @@ public class AiPlanningService {
     private boolean looksDocumentCentric(String normalized) {
         return AiToolTextNormalizer.containsAnyForRouting(
                 normalized,
-                "documento", "documentos", "pdf", "archivo", "archivos", "manual", "plano", "planos",
-                "regla", "reglas", "politica", "politicas", "instruccion", "instrucciones", "contenido",
-                "que dice", "que menciona", "menciona", "habla de", "segun el documento", "segun el pdf"
+                "que dice", "qué dice", "que menciona", "qué menciona", "menciona", "habla de", "contenido",
+                "segun el documento", "según el documento", "segun el pdf", "según el pdf", "en el pdf",
+                "en el documento", "texto del documento", "regla del documento", "reglas del documento",
+                "manual dice", "plano dice", "pdf dice", "documento dice"
         );
     }
 

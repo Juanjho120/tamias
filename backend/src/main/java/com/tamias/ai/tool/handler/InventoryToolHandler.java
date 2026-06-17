@@ -26,6 +26,9 @@ public class InventoryToolHandler extends AiToolRoutingSupport implements AiTool
 
 
 private Optional<AiToolAnswer> tryHandleInventoryQuestion(String question, String normalized) {
+        if (isInventoryItemTypeQuestion(normalized)) {
+            return Optional.empty();
+        }
         if (!isInventoryQuestion(normalized) && !isInventoryWhereUsedQuestion(normalized)) {
             return Optional.empty();
         }

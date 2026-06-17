@@ -28,15 +28,16 @@ public class AssistantLevelToolHandler extends AiToolRoutingSupport implements A
 private Optional<AiToolAnswer> tryHandleAssistantLevelQuestion(String question, String normalized) {
         if (isPreparationQuestion(normalized)) {
             List<AiToolAnswer> answers = List.of(
-                    readOnlyToolService.upcomingReservations(),
-                    readOnlyToolService.overdueScheduledMaintenance(),
-                    readOnlyToolService.pendingTaskLists()
+                    readOnlyToolService.scheduledMaintenanceByStatus("mantenimientos programados activos"),
+                    readOnlyToolService.maintenanceByStatus("mantenimientos pendientes"),
+                    readOnlyToolService.pendingTaskItems(),
+                    readOnlyToolService.pendingPurchaseLists()
             );
             return Optional.of(combine(
                     "assistant.operationalPreparation",
                     "Operational preparation assistant",
-                    "Upcoming reservations, overdue scheduled maintenance and pending tasks were consulted together.",
-                    "Revisé tus próximas reservaciones, mantenimientos vencidos y tareas pendientes para darte una visión rápida de preparación.",
+                    "Active scheduled maintenance, pending maintenance records, pending task items and pending purchase lists were consulted together.",
+                    "Antes de la próxima reservación, revisa estos pendientes operativos del sistema.",
                     answers
             ));
         }
