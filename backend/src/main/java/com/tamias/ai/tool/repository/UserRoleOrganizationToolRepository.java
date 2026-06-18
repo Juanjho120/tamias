@@ -200,10 +200,9 @@ public class UserRoleOrganizationToolRepository extends AiReadOnlyToolSupport {
                     .append("- ").append(blankToDash(value(row.get("fullName"))))
                     .append(" | correo: ").append(blankToDash(value(row.get("email"))))
                     .append(" | rol: ").append(blankToDash(value(row.get("roleCode"))))
-                    .append(" | usuario: ").append(blankToDash(value(row.get("userStatus"))))
-                    .append(" | membresía: ").append(blankToDash(value(row.get("membershipStatus"))))
-                    .append(" | último login: ").append(blankToDash(value(row.get("lastLoginAt"))))
-                    .append(" | cambio de contraseña requerido: ").append(blankToDash(value(row.get("passwordChangeRequired"))));
+                    .append(" | estado: ").append(blankToDash(value(row.get("userStatus"))))
+                    .append(" | último login: ").append(formatDateTime(row.get("lastLoginAt")))
+                    .append(" | cambio de contraseña requerido: ").append(formatBooleanYesNo(row.get("passwordChangeRequired")));
         }
         answer.append(System.lineSeparator())
                 .append("No muestro contraseñas, hashes, tokens ni información interna de seguridad.");
@@ -311,7 +310,9 @@ public class UserRoleOrganizationToolRepository extends AiReadOnlyToolSupport {
                 """, q -> q.setParameter("organizationId", organizationId),
                 "properties", "reservations", "maintenanceRecords", "scheduledMaintenance", "purchaseLists", "taskLists", "documents", "aiChatSessions");
         Map<String, Object> row = rows.isEmpty() ? Map.of() : rows.get(0);
-        String answer = "Uso de módulos en tu organización:\n"
+        String mostUsedModule = mostUsedModule(row);
+        String answer = "Uso de módulos en tu organización"
+                + (mostUsedModule.isBlank() ? ":\n" : ", siendo el más usado \"" + mostUsedModule + "\":\n")
                 + "- Propiedades: " + blankToDash(value(row.get("properties"))) + "\n"
                 + "- Reservaciones: " + blankToDash(value(row.get("reservations"))) + "\n"
                 + "- Mantenimientos: " + blankToDash(value(row.get("maintenanceRecords"))) + "\n"
@@ -322,4 +323,27 @@ public class UserRoleOrganizationToolRepository extends AiReadOnlyToolSupport {
                 + "- Sesiones del asistente IA: " + blankToDash(value(row.get("aiChatSessions")));
         return AiToolAnswer.of(answer, "organization.moduleUsageSummary", "Organization module usage summary", "Organization module usage counts were consulted.", rows);
     }
+    private String mostUsedModule(Map<String, Object> row) {
+        String winner = "";
+        long max = Long.MIN_VALUE;
+        Object[][] modules = {
+                {"Propiedades", row.get("properties")},
+                {"Reservaciones", row.get("reservations")},
+                {"Mantenimientos", row.get("maintenanceRecords")},
+                {"Mantenimientos programados", row.get("scheduledMaintenance")},
+                {"Listas de compras", row.get("purchaseLists")},
+                {"Listas de tareas", row.get("taskLists")},
+                {"Documentos", row.get("documents")},
+                {"Sesiones del asistente IA", row.get("aiChatSessions")}
+        };
+        for (Object[] module : modules) {
+            long value = toLong(module[1]);
+            if (value > max) {
+                max = value;
+                winner = String.valueOf(module[0]);
+            }
+        }
+        return max == Long.MIN_VALUE ? "" : winner;
+    }
+
 }

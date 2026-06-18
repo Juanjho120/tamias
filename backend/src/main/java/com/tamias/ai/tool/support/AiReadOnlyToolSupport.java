@@ -1976,7 +1976,12 @@ public abstract class AiReadOnlyToolSupport {
                   AND NOT EXISTS (
                       SELECT 1 FROM unnest(string_to_array(CAST(:propertySearch AS TEXT), ' ')) AS token(value)
                       WHERE token.value <> ''
-                        AND translate(LOWER(COALESCE(p.name, '')), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
+                        AND translate(LOWER(CONCAT_WS(' ', COALESCE(p.name, ''), s.title, COALESCE((
+                            SELECT STRING_AGG(m2.content, ' ' ORDER BY m2.created_at ASC)
+                            FROM ai_chat_messages m2
+                            WHERE m2.chat_session_id = s.id
+                              AND m2.organization_id = s.organization_id
+                        ), ''))), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
                   )
                 """);
         }
@@ -2043,22 +2048,26 @@ public abstract class AiReadOnlyToolSupport {
     protected List<Map<String, Object>> aiChatMessagesBySession(UUID sessionId, int limit) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         return query("""
-                SELECT m.id,
-                       s.id AS session_id,
-                       s.title AS session_title,
-                       p.name AS property_name,
-                       m.role,
-                       LEFT(m.content, 500) AS content_excerpt,
-                       m.created_at
-                FROM ai_chat_messages m
-                JOIN ai_chat_sessions s ON s.id = m.chat_session_id
-                                       AND s.organization_id = m.organization_id
-                LEFT JOIN properties p ON p.id = s.property_id
-                                      AND p.organization_id = s.organization_id
-                WHERE m.organization_id = :organizationId
-                  AND m.chat_session_id = :sessionId
-                ORDER BY m.created_at DESC
-                LIMIT :limit
+                SELECT *
+                FROM (
+                    SELECT m.id,
+                           s.id AS session_id,
+                           s.title AS session_title,
+                           p.name AS property_name,
+                           m.role,
+                           LEFT(m.content, 500) AS content_excerpt,
+                           m.created_at
+                    FROM ai_chat_messages m
+                    JOIN ai_chat_sessions s ON s.id = m.chat_session_id
+                                           AND s.organization_id = m.organization_id
+                    LEFT JOIN properties p ON p.id = s.property_id
+                                          AND p.organization_id = s.organization_id
+                    WHERE m.organization_id = :organizationId
+                      AND m.chat_session_id = :sessionId
+                    ORDER BY m.created_at DESC
+                    LIMIT :limit
+                ) recent_messages
+                ORDER BY created_at ASC
                 """, q -> {
             q.setParameter("organizationId", organizationId);
             q.setParameter("sessionId", sessionId);
@@ -2070,10 +2079,9 @@ public abstract class AiReadOnlyToolSupport {
         for (Map<String, Object> row : rows) {
             answer.append(System.lineSeparator())
                     .append("- ").append(blankToDash(value(row.get("title"))))
-                    .append(" | propiedad: ").append(blankToDash(value(row.get("propertyName"))))
                     .append(" | mensajes: ").append(blankToDash(value(row.get("messageCount"))))
                     .append(" | creada por: ").append(blankToDash(value(row.get("createdByName"))))
-                    .append(" | última actividad: ").append(blankToDash(value(row.get("lastMessageAt"))));
+                    .append(" | última actividad: ").append(formatDateTime(row.get("lastMessageAt")));
         }
     }
 
@@ -2081,10 +2089,18 @@ public abstract class AiReadOnlyToolSupport {
         for (Map<String, Object> row : rows) {
             answer.append(System.lineSeparator())
                     .append("- [").append(blankToDash(value(row.get("role")))).append("] ")
-                    .append(blankToDash(value(row.get("contentExcerpt"))))
+                    .append(blankToDash(firstLine(value(row.get("contentExcerpt")))))
                     .append(" | sesión: ").append(blankToDash(value(row.get("sessionTitle"))))
-                    .append(" | propiedad: ").append(blankToDash(value(row.get("propertyName"))))
-                    .append(" | fecha: ").append(blankToDash(value(row.get("createdAt"))));
+                    .append(" | fecha: ").append(formatDateTime(row.get("createdAt")));
+        }
+    }
+
+    protected void appendAiChatTimelineRows(StringBuilder answer, List<Map<String, Object>> rows) {
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append(formatDateTime(row.get("createdAt")))
+                    .append(" - [").append(blankToDash(value(row.get("role")))).append("] ")
+                    .append(formatTimelineContent(value(row.get("contentExcerpt"))));
         }
     }
 
@@ -2239,8 +2255,7 @@ public abstract class AiReadOnlyToolSupport {
                     .append("- ").append(blankToDash(value(row.get("fullName"))))
                     .append(" | correo: ").append(blankToDash(value(row.get("email"))))
                     .append(" | rol: ").append(blankToDash(value(row.get("roleCode"))))
-                    .append(" | usuario: ").append(blankToDash(value(row.get("userStatus"))))
-                    .append(" | membresía: ").append(blankToDash(value(row.get("membershipStatus"))));
+                    .append(" | estado: ").append(blankToDash(value(row.get("userStatus"))));
         }
     }
 
@@ -2286,11 +2301,14 @@ public abstract class AiReadOnlyToolSupport {
             answer.append(System.lineSeparator())
                     .append("- ").append(blankToDash(value(row.get("title"))))
                     .append(" | propiedad: ").append(blankToDash(value(row.get("propertyName"))))
-                    .append(" | fecha: ").append(blankToDash(value(row.get("maintenanceDate"))))
+                    .append(" | fecha: ").append(formatDateTime(row.get("maintenanceDate")))
                     .append(" | imágenes: ").append(blankToDash(value(row.get("imageCount"))));
             String filenames = value(row.get("filenames"));
             if (!filenames.isBlank()) {
-                answer.append(" | archivos: ").append(filenames);
+                for (String filename : splitCommaValues(filenames)) {
+                    answer.append(System.lineSeparator())
+                            .append("	- ").append(filename);
+                }
             }
         }
     }
@@ -2391,6 +2409,93 @@ public abstract class AiReadOnlyToolSupport {
 
     protected String blankToDash(String value) {
         return value == null || value.isBlank() ? "—" : value;
+    }
+
+    protected String formatBooleanYesNo(Object value) {
+        String text = normalize(value(value));
+        if (text.isBlank()) {
+            return "—";
+        }
+        return containsAny(text, "true", "t", "yes", "si", "sí", "1") ? "Sí" : "No";
+    }
+
+    protected String formatDateTime(Object value) {
+        String text = value(value).trim();
+        if (text.isBlank()) {
+            return "—";
+        }
+
+        int tIndex = text.indexOf('T');
+        if (tIndex > 0) {
+            String date = text.substring(0, tIndex);
+            String rest = text.substring(tIndex + 1);
+            StringBuilder time = new StringBuilder();
+            for (int i = 0; i < rest.length() && time.length() < 8; i++) {
+                char current = rest.charAt(i);
+                if ((current >= '0' && current <= '9') || current == ':') {
+                    time.append(current);
+                } else {
+                    break;
+                }
+            }
+            return time.isEmpty() ? date : date + " " + time;
+        }
+
+        if (text.length() >= 19 && text.charAt(10) == ' ') {
+            return text.substring(0, 19);
+        }
+        return text;
+    }
+
+    protected List<String> splitCommaValues(String value) {
+        List<String> values = new ArrayList<>();
+        if (value == null || value.isBlank()) {
+            return values;
+        }
+        StringBuilder current = new StringBuilder();
+        for (int i = 0; i < value.length(); i++) {
+            char ch = value.charAt(i);
+            if (ch == ',') {
+                String item = current.toString().trim();
+                if (!item.isBlank()) {
+                    values.add(item);
+                }
+                current.setLength(0);
+            } else {
+                current.append(ch);
+            }
+        }
+        String item = current.toString().trim();
+        if (!item.isBlank()) {
+            values.add(item);
+        }
+        return values;
+    }
+
+    protected String firstLine(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        List<String> lines = splitLines(value);
+        return lines.isEmpty() ? value.trim() : lines.get(0).trim();
+    }
+
+    protected String formatTimelineContent(String value) {
+        if (value == null || value.isBlank()) {
+            return "—";
+        }
+        List<String> lines = splitLines(value);
+        if (lines.isEmpty()) {
+            return value.trim();
+        }
+        StringBuilder builder = new StringBuilder(lines.get(0).trim());
+        for (int i = 1; i < lines.size(); i++) {
+            String line = lines.get(i).trim();
+            if (!line.isBlank()) {
+                builder.append(System.lineSeparator()).append("	").append(line);
+            }
+        }
+        return builder.toString();
     }
 
     protected String formatMoney(Object value) {

@@ -52,35 +52,58 @@ public class AiChatHistoryToolRepository extends AiReadOnlyToolSupport {
         );
     }
 
+    public AiToolAnswer aiChatLastPreviousSession(UUID excludedSessionId) {
+        List<Map<String, Object>> rows = aiChatSessionRows(null, null, excludedSessionId, 1);
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    "No encontré una conversación anterior del asistente IA fuera de esta conversación.",
+                    "aiChat.recentSessions",
+                    "AI chat last previous session",
+                    "No previous AI chat session was found outside the current session.",
+                    List.of()
+            );
+        }
+
+        StringBuilder answer = new StringBuilder("La última conversación que hemos tenido, excluyendo esta conversación:");
+        appendAiChatSessionRows(answer, rows);
+        return AiToolAnswer.of(
+                answer.toString(),
+                "aiChat.recentSessions",
+                "AI chat last previous session",
+                "The latest previous AI chat session was consulted.",
+                rows
+        );
+    }
+
     public AiToolAnswer aiChatSearchHistory(String userQuestion, UUID excludedSessionId) {
         String search = nullableSearch(extractSearchText(
                 userQuestion,
                 "busca", "buscar", "historial", "chat", "chats", "conversacion", "conversaciones",
                 "sesion", "sesiones", "ia", "asistente", "pregunta", "preguntas", "mensaje", "mensajes",
-                "hemos", "hablado", "antes", "sobre", "relacionado", "relacionados", "si"
+                "hemos", "hablado", "hablamos", "hablar", "antes", "sobre", "relacionado", "relacionados", "si", "de"
         ));
-        List<Map<String, Object>> rows = aiChatMessageRows(search, null, excludedSessionId, DEFAULT_LIMIT);
+        List<Map<String, Object>> rows = aiChatSessionsContaining(search, excludedSessionId, DEFAULT_LIMIT);
         if (rows.isEmpty()) {
             return AiToolAnswer.of(
                     search == null
-                            ? "No encontré mensajes en el historial del asistente IA."
-                            : "No encontré mensajes del asistente IA relacionados con “" + search + "” en tu organización.",
+                            ? "No encontré sesiones en el historial del asistente IA."
+                            : "No encontré sesiones donde hayamos hablado de “" + search + "” en tu organización.",
                     "aiChat.searchHistory",
                     "AI chat history search",
-                    "No AI chat messages matched the search criteria.",
+                    "No AI chat sessions matched the search criteria.",
                     List.of()
             );
         }
 
         StringBuilder answer = new StringBuilder(search == null
-                ? "Encontré estos mensajes recientes del historial del asistente IA:"
-                : "Encontré estos mensajes del historial del asistente IA relacionados con “" + search + "”:");
-        appendAiChatMessageRows(answer, rows);
+                ? "Estas son las sesiones recientes del historial del asistente IA:"
+                : "Estas son las sesiones donde hablamos de " + search + ":");
+        appendAiChatSessionRows(answer, rows);
         return AiToolAnswer.of(
                 answer.toString(),
                 "aiChat.searchHistory",
                 "AI chat history search",
-                "%d AI chat messages matched the search criteria.".formatted(rows.size()),
+                "%d AI chat sessions matched the search criteria.".formatted(rows.size()),
                 rows
         );
     }
@@ -190,7 +213,7 @@ public class AiChatHistoryToolRepository extends AiReadOnlyToolSupport {
             answer.append(System.lineSeparator()).append("No encontré mensajes asociados a esta sesión.");
         } else {
             answer.append(System.lineSeparator()).append("Mensajes recientes de esta sesión:");
-            appendAiChatMessageRows(answer, messages);
+            appendAiChatTimelineRows(answer, messages);
         }
 
         List<Map<String, Object>> evidenceRows = new ArrayList<>(rows);
@@ -202,6 +225,55 @@ public class AiChatHistoryToolRepository extends AiReadOnlyToolSupport {
                 "Current AI chat session metadata and recent messages were consulted.",
                 evidenceRows
         );
+    }
+
+    private List<Map<String, Object>> aiChatSessionsContaining(String search, UUID excludedSessionId, int limit) {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        StringBuilder sql = new StringBuilder("""
+                SELECT s.id,
+                       s.title,
+                       p.name AS property_name,
+                       TRIM(CONCAT(u.first_name, ' ', u.last_name)) AS created_by_name,
+                       s.created_at,
+                       s.updated_at,
+                       COUNT(m.id) AS message_count,
+                       MAX(m.created_at) AS last_message_at
+                FROM ai_chat_sessions s
+                LEFT JOIN properties p ON p.id = s.property_id
+                                      AND p.organization_id = s.organization_id
+                LEFT JOIN users u ON u.id = s.created_by
+                LEFT JOIN ai_chat_messages m ON m.chat_session_id = s.id
+                                            AND m.organization_id = s.organization_id
+                WHERE s.organization_id = :organizationId
+                """);
+        if (excludedSessionId != null) {
+            sql.append("  AND s.id <> :excludedSessionId\n");
+        }
+        if (search != null) {
+            sql.append("""
+                  AND NOT EXISTS (
+                      SELECT 1 FROM unnest(string_to_array(CAST(:search AS TEXT), ' ')) AS token(value)
+                      WHERE token.value <> ''
+                        AND translate(LOWER(CONCAT_WS(' ', s.title, COALESCE(p.name, ''), COALESCE((
+                            SELECT STRING_AGG(m2.content, ' ' ORDER BY m2.created_at ASC)
+                            FROM ai_chat_messages m2
+                            WHERE m2.chat_session_id = s.id
+                              AND m2.organization_id = s.organization_id
+                        ), ''))), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
+                  )
+                """);
+        }
+        sql.append("""
+                GROUP BY s.id, s.title, p.name, u.first_name, u.last_name, s.created_at, s.updated_at
+                ORDER BY COALESCE(MAX(m.created_at), s.updated_at, s.created_at) DESC
+                LIMIT :limit
+                """);
+        return query(sql.toString(), q -> {
+            q.setParameter("organizationId", organizationId);
+            if (excludedSessionId != null) q.setParameter("excludedSessionId", excludedSessionId);
+            if (search != null) q.setParameter("search", search);
+            q.setParameter("limit", limit);
+        }, "id", "title", "propertyName", "createdByName", "createdAt", "updatedAt", "messageCount", "lastMessageAt");
     }
 
     public AiToolAnswer aiChatUsageSummary() {
@@ -227,8 +299,8 @@ public class AiChatHistoryToolRepository extends AiReadOnlyToolSupport {
                 + "- Mensajes de usuarios: " + blankToDash(value(row.get("userMessageCount"))) + "\n"
                 + "- Respuestas del asistente: " + blankToDash(value(row.get("assistantMessageCount"))) + "\n"
                 + "- Propiedades con sesiones asociadas: " + blankToDash(value(row.get("propertyCount"))) + "\n"
-                + "- Primera sesión: " + blankToDash(value(row.get("firstSessionAt"))) + "\n"
-                + "- Última actividad: " + blankToDash(value(row.get("lastActivityAt")));
+                + "- Primera sesión: " + formatDateTime(row.get("firstSessionAt")) + "\n"
+                + "- Última actividad: " + formatDateTime(row.get("lastActivityAt"));
         return AiToolAnswer.of(
                 answer,
                 "aiChat.usageSummary",

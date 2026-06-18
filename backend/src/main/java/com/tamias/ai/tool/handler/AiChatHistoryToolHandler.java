@@ -30,6 +30,9 @@ private Optional<AiToolAnswer> tryHandleAiChatHistoryQuestion(AiChatRequest requ
         if (!isAiChatHistoryQuestion(normalized)) {
             return Optional.empty();
         }
+        if (isAiChatLastPreviousSessionQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.aiChatLastPreviousSession(request.chatSessionId()));
+        }
         if (isAiChatUsageSummaryQuestion(normalized)) {
             return Optional.of(readOnlyToolService.aiChatUsageSummary());
         }

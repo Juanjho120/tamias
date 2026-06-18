@@ -24,6 +24,10 @@ public class AiChatHistoryReadOnlyToolService {
         return repository.aiChatSearchHistory(userQuestion, excludedSessionId);
     }
 
+    public AiToolAnswer aiChatLastPreviousSession(UUID excludedSessionId) {
+        return repository.aiChatLastPreviousSession(excludedSessionId);
+    }
+
     public AiToolAnswer aiChatRecentMessages(UUID excludedSessionId) {
         return repository.aiChatRecentMessages(excludedSessionId);
     }

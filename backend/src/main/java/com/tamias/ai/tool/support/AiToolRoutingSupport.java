@@ -353,6 +353,12 @@ public abstract class AiToolRoutingSupport {
         );
     }
 
+    protected boolean isAiChatLastPreviousSessionQuestion(String value) {
+        return isAiChatHistoryQuestion(value)
+                && containsAny(value, "que hemos hablado antes", "hemos hablado antes", "que hablamos antes", "ultima conversacion", "última conversación")
+                && !containsAny(value, "busca", "buscar", "sobre", "cuantas", "cuantos", "conteo", "cantidad");
+    }
+
     protected boolean isAiChatUsageSummaryQuestion(String value) {
         return isAiChatHistoryQuestion(value)
                 && containsAny(value, "cuantas", "cuantos", "conteo", "cantidad", "uso", "resumen de uso", "estadistica", "estadisticas");
@@ -1029,6 +1035,22 @@ public abstract class AiToolRoutingSupport {
     protected boolean isDocumentCountByPropertyQuestion(String value) {
         return isDocumentToolQuestion(value)
                 && containsAny(value, "por propiedad", "agrupados por propiedad", "agrupados propiedad", "by property");
+    }
+
+    protected boolean isDocumentContentQuestion(String value) {
+        boolean metadataQuestion = containsAny(value,
+                "documentos tengo", "documentos cargados", "documentos por tipo", "documentos por propiedad",
+                "que documentos", "qué documentos", "documentos estan", "documentos están", "documentos fallaron",
+                "documentos listos", "documentos procesados", "indice rag", "índice rag", "chunks"
+        );
+        if (metadataQuestion) {
+            return false;
+        }
+        return containsAny(value,
+                "que dice", "qué dice", "que menciona", "qué menciona", "menciona", "habla de", "contenido",
+                "que reglas hay", "qué reglas hay", "reglas hay", "reglas aplican", "que reglas aplican", "qué reglas aplican",
+                "aplican a", "aplica a", "sobre basura", "sobre mascotas", "segun mis documentos", "según mis documentos"
+        );
     }
 
     protected boolean isDocumentBlueprintQuestion(String value) {

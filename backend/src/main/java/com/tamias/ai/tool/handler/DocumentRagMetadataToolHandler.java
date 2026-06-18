@@ -41,6 +41,9 @@ private Optional<AiToolAnswer> tryHandleDocumentAndRagQuestion(String question, 
         if (isRagHealthQuestion(normalized)) {
             return Optional.of(readOnlyToolService.ragDocumentIndexStatus());
         }
+        if (isDocumentContentQuestion(normalized)) {
+            return Optional.empty();
+        }
         if (!isDocumentToolQuestion(normalized)) {
             return Optional.empty();
         }

@@ -37,6 +37,12 @@ public class AiPlanningService {
         }
 
         String normalized = AiToolTextNormalizer.normalizeForRouting(question);
+        if (looksExplicitlyToolAndRag(normalized)) {
+            return new AiExecutionPlan(AiPlanDecisionType.TOOL_AND_RAG, "Question explicitly asks for both system records and documents.", 1.0, false);
+        }
+        if (looksDocumentCentric(normalized) && toolResult != null && toolResult.status() == AiToolResultStatus.HIT && primaryToolName(toolResult).startsWith("document.")) {
+            return AiExecutionPlan.ragOnly("Question asks for document content; metadata tool hit should not replace RAG.");
+        }
         if (toolResult != null
                 && toolResult.status() == AiToolResultStatus.HIT
                 && isStructuredToolHitThatShouldBeRespected(toolResult)
@@ -80,6 +86,10 @@ public class AiPlanningService {
 
         if (looksLikeWriteAction(normalized)) {
             return AiExecutionPlan.denyWrite(reason + " Write-like request detected.");
+        }
+
+        if (looksExplicitlyToolAndRag(normalized)) {
+            return new AiExecutionPlan(AiPlanDecisionType.TOOL_AND_RAG, reason + " Explicit system-and-document question detected.", 1.0, false);
         }
 
         if (looksDocumentCentric(normalized)) {
@@ -265,7 +275,16 @@ public class AiPlanningService {
                 "que dice", "qué dice", "que menciona", "qué menciona", "menciona", "habla de", "contenido",
                 "segun el documento", "según el documento", "segun el pdf", "según el pdf", "en el pdf",
                 "en el documento", "texto del documento", "regla del documento", "reglas del documento",
-                "manual dice", "plano dice", "pdf dice", "documento dice"
+                "manual dice", "plano dice", "pdf dice", "documento dice", "que reglas hay", "qué reglas hay",
+                "reglas hay", "reglas aplican", "que reglas aplican", "qué reglas aplican", "aplican a", "aplica a"
+        );
+    }
+
+    private boolean looksExplicitlyToolAndRag(String normalized) {
+        return AiToolTextNormalizer.containsAnyForRouting(
+                normalized,
+                "documentos y datos del sistema", "datos del sistema y documentos", "registros y documentos", "documentos y registros",
+                "mis documentos y datos", "mis registros y documentos"
         );
     }
 

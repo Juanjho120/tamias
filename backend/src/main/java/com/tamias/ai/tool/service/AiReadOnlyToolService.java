@@ -104,6 +104,10 @@ public class AiReadOnlyToolService {
         return aiChatHistoryReadOnlyToolService.aiChatSearchHistory(userQuestion, excludedSessionId);
     }
 
+    public AiToolAnswer aiChatLastPreviousSession(UUID excludedSessionId) {
+        return aiChatHistoryReadOnlyToolService.aiChatLastPreviousSession(excludedSessionId);
+    }
+
     public AiToolAnswer aiChatRecentMessages(UUID excludedSessionId) {
         return aiChatHistoryReadOnlyToolService.aiChatRecentMessages(excludedSessionId);
     }
