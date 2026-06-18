@@ -39,7 +39,6 @@ type FormMode = 'create' | 'edit';
   templateUrl: './catalogs-page.component.html'
 })
 export class CatalogsPageComponent implements OnInit {
-
   private readonly catalogService = inject(CatalogService);
   private readonly toastService = inject(ToastService);
   private readonly languageService = inject(LanguageService);
@@ -52,15 +51,12 @@ export class CatalogsPageComponent implements OnInit {
   readonly selectedItem = signal<CatalogItem | null>(null);
   readonly itemToDelete = signal<CatalogItem | null>(null);
   readonly imageModalItem = signal<CatalogItem | null>(null);
-
   readonly loading = signal(false);
   readonly saving = signal(false);
   readonly deletingId = signal<string | null>(null);
-
   readonly formVisible = signal(false);
   readonly formMode = signal<FormMode>('create');
-
-  readonly status = signal('');
+  readonly status = signal<CatalogStatus | ''>('');
   readonly page = signal(0);
   readonly size = signal(10);
   readonly totalElements = signal(0);
@@ -70,7 +66,6 @@ export class CatalogsPageComponent implements OnInit {
 
   readonly tableFields = computed(() => this.selectedConfig().fields.filter((field) => field.table));
   readonly primaryField = computed(() => this.selectedConfig().fields.find((field) => field.primary) ?? this.selectedConfig().fields[0]);
-
   readonly pageLabel = computed(() => {
     if (this.totalElements() === 0) {
       return this.languageService.instant('catalogs.pagination.noItems');
@@ -81,9 +76,9 @@ export class CatalogsPageComponent implements OnInit {
       totalPages: this.totalPages()
     });
   });
-
   readonly deleteMessage = computed(() => {
     const item = this.itemToDelete();
+
     if (!item) {
       return '';
     }
@@ -115,7 +110,6 @@ export class CatalogsPageComponent implements OnInit {
 
   loadItems(): void {
     const config = this.selectedConfig();
-
     this.loading.set(true);
 
     this.catalogService.findAll(config.endpoint, {
@@ -201,20 +195,19 @@ export class CatalogsPageComponent implements OnInit {
   saveItem(request: CatalogRequest): void {
     const config = this.selectedConfig();
     const selectedItem = this.selectedItem();
-
     this.saving.set(true);
 
     const saveRequest = this.formMode() === 'edit' && selectedItem
-        ? this.catalogService.update(config.endpoint, selectedItem.id, request)
-        : this.catalogService.create(config.endpoint, request);
+      ? this.catalogService.update(config.endpoint, selectedItem.id, request)
+      : this.catalogService.create(config.endpoint, request);
 
     saveRequest.subscribe({
       next: () => {
         this.saving.set(false);
         this.toastService.success(
-            this.formMode() === 'edit'
-                ? this.languageService.instant('catalogs.messages.updated')
-                : this.languageService.instant('catalogs.messages.created')
+          this.formMode() === 'edit'
+            ? this.languageService.instant('catalogs.messages.updated')
+            : this.languageService.instant('catalogs.messages.created')
         );
         this.refreshBrandOptionsWhenNeeded(config);
         this.closeForm();
@@ -242,6 +235,7 @@ export class CatalogsPageComponent implements OnInit {
   confirmDelete(): void {
     const config = this.selectedConfig();
     const item = this.itemToDelete();
+
     if (!item) {
       return;
     }
@@ -338,6 +332,7 @@ export class CatalogsPageComponent implements OnInit {
   private applyInventoryBrandOptions(options: CatalogSelectOption[]): void {
     const inventoryConfig = this.configs.find((config) => config.key === 'inventory-items');
     const brandField = inventoryConfig?.fields.find((field) => field.key === 'brandId');
+
     if (!brandField) {
       return;
     }
@@ -345,10 +340,7 @@ export class CatalogsPageComponent implements OnInit {
     brandField.options = options;
 
     if (this.selectedConfig().key === 'inventory-items') {
-      this.selectedConfig.set({
-        ...this.selectedConfig(),
-        fields: [...this.selectedConfig().fields]
-      });
+      this.selectedConfig.set({ ...this.selectedConfig(), fields: [...this.selectedConfig().fields] });
     }
   }
 

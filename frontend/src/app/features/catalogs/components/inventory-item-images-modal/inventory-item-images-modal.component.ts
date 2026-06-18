@@ -13,23 +13,23 @@ import { InventoryItemImageService } from '../../services/inventory-item-image.s
   standalone: true,
   imports: [DatePipe],
   templateUrl: './inventory-item-images-modal.component.html',
-  styles: [`
-    .inventory-item-image-card {
-      min-height: 100%;
-    }
+  styles: [
+    `
+      .inventory-item-image-card {
+        min-height: 100%;
+      }
 
-    .inventory-item-image-preview {
-      height: 180px;
-      object-fit: cover;
-      width: 100%;
-    }
-  `]
+      .inventory-item-image-preview {
+        height: 180px;
+        object-fit: cover;
+        width: 100%;
+      }
+    `
+  ]
 })
 export class InventoryItemImagesModalComponent implements OnChanges {
-
   @Input() open = false;
   @Input() inventoryItem: CatalogItem | null = null;
-
   @Output() closed = new EventEmitter<void>();
 
   private readonly imageService = inject(InventoryItemImageService);
@@ -58,9 +58,10 @@ export class InventoryItemImagesModalComponent implements OnChanges {
       return '—';
     }
 
-    return this.inventoryItem.brandName
-        ? `${this.inventoryItem.name} - ${this.inventoryItem.brandName}`
-        : this.inventoryItem.name;
+    const itemName = this.inventoryItem.name ?? '—';
+    const brandName = this.inventoryItem.brandName;
+
+    return brandName ? `${itemName} - ${brandName}` : itemName;
   }
 
   onFileSelected(event: Event): void {
@@ -78,19 +79,20 @@ export class InventoryItemImagesModalComponent implements OnChanges {
 
     this.uploading.set(true);
 
-    forkJoin(files.map((file, index) => this.imageService.upload(this.inventoryItem!.id, file, shouldMarkFirstAsCover && index === 0)))
-        .subscribe({
-          next: () => {
-            this.uploading.set(false);
-            this.selectedFiles.set([]);
-            this.toastService.success('Imágenes cargadas correctamente.');
-            this.loadImages();
-          },
-          error: (error: unknown) => {
-            this.uploading.set(false);
-            this.toastService.error(this.extractErrorMessage(error, 'No se pudieron cargar las imágenes.'));
-          }
-        });
+    forkJoin(files.map((file, index) =>
+      this.imageService.upload(this.inventoryItem!.id, file, shouldMarkFirstAsCover && index === 0)
+    )).subscribe({
+      next: () => {
+        this.uploading.set(false);
+        this.selectedFiles.set([]);
+        this.toastService.success('Imágenes cargadas correctamente.');
+        this.loadImages();
+      },
+      error: (error: unknown) => {
+        this.uploading.set(false);
+        this.toastService.error(this.extractErrorMessage(error, 'No se pudieron cargar las imágenes.'));
+      }
+    });
   }
 
   setCover(image: InventoryItemImage): void {
@@ -119,6 +121,7 @@ export class InventoryItemImagesModalComponent implements OnChanges {
     }
 
     const confirmed = window.confirm(`¿Eliminar la imagen ${image.originalFilename}?`);
+
     if (!confirmed) {
       return;
     }
