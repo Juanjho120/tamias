@@ -714,3 +714,15 @@ a {
 .ai-tool-evidence-field strong {
   font-weight: 600;
 }
+
+/* Keep long modal forms usable without growing beyond the viewport. */
+.modal-content > form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: calc(100vh - var(--bs-modal-margin) * 2);
+}
+
+.modal-content > form > .modal-body {
+  overflow-y: auto;
+}

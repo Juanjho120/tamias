@@ -199,6 +199,7 @@ export class CatalogsPageComponent implements OnInit {
             ? this.languageService.instant('catalogs.messages.updated')
             : this.languageService.instant('catalogs.messages.created')
         );
+        this.refreshBrandOptionsWhenNeeded(config);
         this.closeForm();
         this.loadItems();
       },
@@ -234,6 +235,7 @@ export class CatalogsPageComponent implements OnInit {
         this.deletingId.set(null);
         this.itemToDelete.set(null);
         this.toastService.success(this.languageService.instant('catalogs.messages.deleted'));
+        this.refreshBrandOptionsWhenNeeded(config);
         this.loadItems();
       },
       error: (error: unknown) => {
@@ -244,10 +246,6 @@ export class CatalogsPageComponent implements OnInit {
   }
 
   displayValue(item: CatalogItem, field: CatalogFieldConfig): string {
-    if (this.selectedConfig().key === 'inventory-items' && field.key === 'name') {
-      return this.inventoryItemDisplayName(item);
-    }
-
     if (this.selectedConfig().key === 'inventory-items' && field.key === 'brandId') {
       return item.brandName ?? '—';
     }
@@ -324,9 +322,10 @@ export class CatalogsPageComponent implements OnInit {
     }
   }
 
-  private inventoryItemDisplayName(item: CatalogItem): string {
-    const itemName = item.name ?? '—';
-    return item.brandName ? `${itemName} - ${item.brandName}` : itemName;
+  private refreshBrandOptionsWhenNeeded(config: CatalogConfig): void {
+    if (config.key === 'brands') {
+      this.loadBrandOptions();
+    }
   }
 
   private extractErrorMessage(error: unknown, fallback: string): string {
