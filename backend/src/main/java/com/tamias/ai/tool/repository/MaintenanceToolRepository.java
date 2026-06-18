@@ -318,8 +318,7 @@ public class MaintenanceToolRepository extends AiReadOnlyToolSupport {
                 JOIN properties p ON p.id = mr.property_id
                 LEFT JOIN maintenance_record_images mri ON mri.maintenance_record_id = mr.id
                                                        AND mri.organization_id = mr.organization_id
-                                                       AND mri.deleted_at IS NULL
-                                                       AND mri.status = 'ACTIVE'
+                                                                                            AND mri.status = 'ACTIVE'
                 WHERE mr.organization_id = :organizationId
                   AND mr.deleted_at IS NULL
                 GROUP BY mr.id, p.name, mr.title, mr.status, COALESCE(mr.performed_at, mr.scheduled_at, mr.created_at)

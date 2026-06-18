@@ -98,38 +98,38 @@ public class DocumentService {
         Page<Document> page;
 
         if (propertyId != null && documentType != null) {
-            page = documentRepository.findByOrganization_IdAndProperty_IdAndDocumentTypeAndDeletedAtIsNull(
+            page = documentRepository.findByOrganization_IdAndProperty_IdAndDocumentType(
                     organizationId,
                     propertyId,
                     documentType,
                     pageable
             );
         } else if (propertyId != null) {
-            page = documentRepository.findByOrganization_IdAndProperty_IdAndDeletedAtIsNull(
+            page = documentRepository.findByOrganization_IdAndProperty_Id(
                     organizationId,
                     propertyId,
                     pageable
             );
         } else if (documentType != null) {
-            page = documentRepository.findByOrganization_IdAndDocumentTypeAndDeletedAtIsNull(
+            page = documentRepository.findByOrganization_IdAndDocumentType(
                     organizationId,
                     documentType,
                     pageable
             );
         } else if (processingStatus != null) {
-            page = documentRepository.findByOrganization_IdAndProcessingStatusAndDeletedAtIsNull(
+            page = documentRepository.findByOrganization_IdAndProcessingStatus(
                     organizationId,
                     processingStatus,
                     pageable
             );
         } else if (status != null) {
-            page = documentRepository.findByOrganization_IdAndStatusAndDeletedAtIsNull(
+            page = documentRepository.findByOrganization_IdAndStatus(
                     organizationId,
                     status,
                     pageable
             );
         } else {
-            page = documentRepository.findByOrganization_IdAndDeletedAtIsNull(organizationId, pageable);
+            page = documentRepository.findByOrganization_Id(organizationId, pageable);
         }
 
         return PageResponse.from(page.map(documentMapper::toSummaryResponse));
@@ -229,7 +229,7 @@ public class DocumentService {
 
     private Document findDocument(UUID id) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-        return documentRepository.findByIdAndOrganization_IdAndDeletedAtIsNull(id, organizationId)
+        return documentRepository.findByIdAndOrganization_Id(id, organizationId)
                 .orElseThrow(() -> new NotFoundException("Document not found"));
     }
 

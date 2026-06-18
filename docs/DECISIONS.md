@@ -453,6 +453,9 @@ Rules:
 - Abort the delete transaction if S3 cleanup fails.
 - Abort the delete transaction if Chroma cleanup fails.
 - Do not leave stale vectors or stale document chunks after a successful delete.
+- `documents.deleted_at` and `documents.deleted_by` must not remain in the schema.
+- `DocumentStatus` must not expose `DELETED`; deleted documents are physically removed.
+- AI metadata queries must not reference `d.deleted_at IS NULL` for documents.
 
 ---
 

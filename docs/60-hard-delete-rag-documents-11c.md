@@ -108,7 +108,7 @@ documents.deleted_by
 documents.status = DELETED
 ```
 
-The `deleted_at` and `deleted_by` columns are kept for compatibility with existing read-only metadata queries. They can be removed later in a dedicated schema cleanup after all metadata/tool queries are migrated away from `d.deleted_at IS NULL`.
+The temporary compatibility columns were removed in 11C.1. `documents.deleted_at` and `documents.deleted_by` no longer exist after `V26__remove_document_soft_delete_columns.sql`.
 
 ---
 
@@ -157,4 +157,8 @@ The persisted `filepath` keeps the bucket + folder without the filename:
 - RAG retrieval tuning. That belongs to 9P-I if needed.
 - Reprocessing/reindex retry UX.
 - Document versioning.
-- Removing legacy `documents.deleted_at` / `documents.deleted_by` columns from the schema.
+
+
+## 11C.1 cleanup
+
+The temporary compatibility fields `documents.deleted_at` and `documents.deleted_by` were removed in 11C.1. AI metadata queries no longer filter documents with `d.deleted_at IS NULL`; documents now use physical deletion only.

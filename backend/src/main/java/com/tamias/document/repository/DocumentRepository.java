@@ -12,35 +12,35 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface DocumentRepository extends JpaRepository<Document, UUID> {
 
-    Optional<Document> findByIdAndOrganization_IdAndDeletedAtIsNull(UUID id, UUID organizationId);
+    Optional<Document> findByIdAndOrganization_Id(UUID id, UUID organizationId);
 
-    Page<Document> findByOrganization_IdAndDeletedAtIsNull(UUID organizationId, Pageable pageable);
+    Page<Document> findByOrganization_Id(UUID organizationId, Pageable pageable);
 
-    Page<Document> findByOrganization_IdAndProperty_IdAndDeletedAtIsNull(
+    Page<Document> findByOrganization_IdAndProperty_Id(
             UUID organizationId,
             UUID propertyId,
             Pageable pageable
     );
 
-    Page<Document> findByOrganization_IdAndDocumentTypeAndDeletedAtIsNull(
+    Page<Document> findByOrganization_IdAndDocumentType(
             UUID organizationId,
             DocumentType documentType,
             Pageable pageable
     );
 
-    Page<Document> findByOrganization_IdAndProcessingStatusAndDeletedAtIsNull(
+    Page<Document> findByOrganization_IdAndProcessingStatus(
             UUID organizationId,
             DocumentProcessingStatus processingStatus,
             Pageable pageable
     );
 
-    Page<Document> findByOrganization_IdAndStatusAndDeletedAtIsNull(
+    Page<Document> findByOrganization_IdAndStatus(
             UUID organizationId,
             DocumentStatus status,
             Pageable pageable
     );
 
-    Page<Document> findByOrganization_IdAndProperty_IdAndDocumentTypeAndDeletedAtIsNull(
+    Page<Document> findByOrganization_IdAndProperty_IdAndDocumentType(
             UUID organizationId,
             UUID propertyId,
             DocumentType documentType,

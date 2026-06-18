@@ -172,8 +172,7 @@ public class FileImageToolRepository extends AiReadOnlyToolSupport {
                     SELECT 'DOCUMENT' AS source_type, d.size_bytes
                     FROM documents d
                     WHERE d.organization_id = :organizationId
-                      AND d.deleted_at IS NULL
-                    UNION ALL
+                        UNION ALL
                     SELECT 'PROPERTY_IMAGE' AS source_type, pi.size_bytes
                     FROM property_images pi
                     WHERE pi.organization_id = :organizationId
@@ -240,7 +239,6 @@ public class FileImageToolRepository extends AiReadOnlyToolSupport {
                     AND p.organization_id = d.organization_id
                     AND p.deleted_at IS NULL
                 WHERE d.organization_id = :organizationId
-                  AND d.deleted_at IS NULL
                   AND d.property_id IS NULL
                 ORDER BY d.created_at DESC
                 LIMIT :limit
@@ -360,8 +358,7 @@ public class FileImageToolRepository extends AiReadOnlyToolSupport {
                         AND p.organization_id = d.organization_id
                         AND p.deleted_at IS NULL
                     WHERE d.organization_id = :organizationId
-                      AND d.deleted_at IS NULL
-                    UNION ALL
+                        UNION ALL
                     SELECT 'PROPERTY_IMAGE' AS source_type,
                            p.name AS display_name,
                            pi.original_filename,
@@ -448,7 +445,6 @@ public class FileImageToolRepository extends AiReadOnlyToolSupport {
                     AND p.organization_id = d.organization_id
                     AND p.deleted_at IS NULL
                 WHERE d.organization_id = :organizationId
-                  AND d.deleted_at IS NULL
                 """);
         if (search != null) {
             sql.append("""

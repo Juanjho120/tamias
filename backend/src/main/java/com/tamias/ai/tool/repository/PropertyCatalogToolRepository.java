@@ -175,7 +175,7 @@ public class PropertyCatalogToolRepository extends AiReadOnlyToolSupport {
         return query("""
                 SELECT sm.id,
                        sm.title,
-                       COALESCE(mp.full_name, '') AS person_name,
+                       COALESCE(mp.name, '') AS person_name,
                        COALESCE(mc.name, '') AS category_name,
                        COALESCE(mt.name, '') AS type_name,
                        sm.start_date,
@@ -204,7 +204,7 @@ public class PropertyCatalogToolRepository extends AiReadOnlyToolSupport {
         return query("""
                 SELECT mr.id,
                        mr.title,
-                       COALESCE(mp.full_name, '') AS person_name,
+                       COALESCE(mp.name, '') AS person_name,
                        COALESCE(mc.name, '') AS category_name,
                        COALESCE(mt.name, '') AS type_name,
                        mr.scheduled_at,
@@ -403,8 +403,7 @@ public class PropertyCatalogToolRepository extends AiReadOnlyToolSupport {
                 FROM properties p
                 LEFT JOIN property_images pi ON pi.property_id = p.id
                                             AND pi.organization_id = p.organization_id
-                                            AND pi.deleted_at IS NULL
-                                            AND pi.status = 'ACTIVE'
+                                                                      AND pi.status = 'ACTIVE'
                 WHERE p.organization_id = :organizationId
                   AND p.deleted_at IS NULL
                 GROUP BY p.id, p.name, p.status

@@ -148,7 +148,7 @@ Completed sub-phases:
 These phases must be implemented before continuing with deeper AI observability, because they change security, file ownership, storage paths, documents, images, inventory items, purchases, reservations and AI chat behavior.
 
 ### Phase 10A — Chat ownership security + quick AI UI fixes + last login
-Status: Planned next.
+Status: Completed.
 
 Documentation: `56-chat-ownership-quick-ai-ui-fixes-10a.md`
 
@@ -163,7 +163,7 @@ Goals:
 - Auto-collapse mobile sidebar after selecting a route.
 
 ### Phase 10B — Typewriter animation for TAMI responses
-Status: Planned.
+Status: Completed.
 
 Documentation: `57-ai-typewriter-response-10b.md`
 
@@ -174,7 +174,7 @@ Goals:
 - Preserve sources, tool evidence and grounded status.
 
 ### Phase 11A — S3 key strategy + filepath fields
-Status: Planned.
+Status: Completed.
 
 Documentation: `58-s3-key-strategy-filepath-fields-11a.md`
 
@@ -185,7 +185,7 @@ Goals:
 - Store full bucket + folder path in `filepath`, without filename.
 
 ### Phase 11B — Hard delete policy for entity images
-Status: Planned.
+Status: Completed.
 
 Documentation: `59-hard-delete-entity-images-11b.md`
 
@@ -196,7 +196,7 @@ Goals:
 - Delete S3 object and database row when an image is removed.
 
 ### Phase 11C — Hard delete policy for RAG documents
-Status: Planned.
+Status: Completed.
 
 Documentation: `60-hard-delete-rag-documents-11c.md`
 
@@ -205,6 +205,20 @@ Goals:
 - Remove soft-delete behavior from RAG documents.
 - Delete S3 object, Chroma vectors, document chunks and document row.
 - Abort deletion if S3 or Chroma cleanup fails.
+
+
+### Phase 11C.1 — Remove document soft-delete leftovers
+Status: Completed.
+
+Documentation: `65-remove-document-soft-delete-leftovers-11c1.md`
+
+Goals:
+
+- Remove `documents.deleted_at` and `documents.deleted_by`.
+- Remove `Document.deletedAt` and `Document.deletedBy`.
+- Remove `DELETED` from `DocumentStatus`.
+- Remove stale `d.deleted_at IS NULL` predicates from AI metadata queries.
+- Remove stale image soft-delete predicates against image tables already migrated to hard delete.
 
 ### Phase 12A — Associate brands directly with inventory items
 Status: Planned.

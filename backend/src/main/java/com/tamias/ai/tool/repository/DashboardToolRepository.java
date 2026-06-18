@@ -75,7 +75,6 @@ public class DashboardToolRepository extends AiReadOnlyToolSupport {
                 SELECT COUNT(*)
                 FROM documents d
                 WHERE d.organization_id = :organizationId
-                  AND d.deleted_at IS NULL
                   AND NOT EXISTS (
                       SELECT 1
                       FROM document_chunks dc
@@ -153,8 +152,7 @@ public class DashboardToolRepository extends AiReadOnlyToolSupport {
                            SELECT 1 FROM maintenance_record_images mri
                            WHERE mri.maintenance_record_id = mr.id
                              AND mri.organization_id = mr.organization_id
-                             AND mri.deleted_at IS NULL
-                             AND mri.status = 'ACTIVE'
+                                        AND mri.status = 'ACTIVE'
                        )) AS with_images_count,
                        COUNT(*) FILTER (WHERE mr.status = 'COMPLETED' AND mr.performed_at >= :monthStart) AS completed_this_month
                 FROM maintenance_records mr
@@ -250,7 +248,6 @@ public class DashboardToolRepository extends AiReadOnlyToolSupport {
                 LEFT JOIN document_chunks dc ON dc.document_id = d.id
                                             AND dc.organization_id = d.organization_id
                 WHERE d.organization_id = :organizationId
-                  AND d.deleted_at IS NULL
                 """, q -> q.setParameter("organizationId", organizationId),
                 "documentCount", "processedCount", "failedCount", "pendingCount", "chunkCount", "indexedChunkCount");
         Map<String, Object> row = rows.get(0);
@@ -381,7 +378,6 @@ public class DashboardToolRepository extends AiReadOnlyToolSupport {
                 SELECT COUNT(*)
                 FROM documents d
                 WHERE d.organization_id = :organizationId
-                  AND d.deleted_at IS NULL
                   AND d.processing_status = 'FAILED'
                 """, q -> q.setParameter("organizationId", organizationId));
 
@@ -389,7 +385,6 @@ public class DashboardToolRepository extends AiReadOnlyToolSupport {
                 SELECT COUNT(*)
                 FROM documents d
                 WHERE d.organization_id = :organizationId
-                  AND d.deleted_at IS NULL
                   AND d.processing_status = 'PROCESSED'
                   AND NOT EXISTS (
                       SELECT 1
@@ -510,7 +505,6 @@ public class DashboardToolRepository extends AiReadOnlyToolSupport {
                 FROM documents d
                 LEFT JOIN properties p ON p.id = d.property_id AND p.organization_id = d.organization_id
                 WHERE d.organization_id = :organizationId
-                  AND d.deleted_at IS NULL
                   AND d.processing_status = 'FAILED'
                 ORDER BY d.created_at DESC
                 LIMIT :limit
@@ -526,7 +520,6 @@ public class DashboardToolRepository extends AiReadOnlyToolSupport {
                 FROM documents d
                 LEFT JOIN properties p ON p.id = d.property_id AND p.organization_id = d.organization_id
                 WHERE d.organization_id = :organizationId
-                  AND d.deleted_at IS NULL
                   AND d.processing_status = 'PROCESSED'
                   AND NOT EXISTS (
                       SELECT 1

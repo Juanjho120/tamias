@@ -305,7 +305,7 @@ public class UserRoleOrganizationToolRepository extends AiReadOnlyToolSupport {
                   (SELECT COUNT(*) FROM scheduled_maintenance sm WHERE sm.organization_id = :organizationId AND sm.deleted_at IS NULL) AS scheduled_maintenance_count,
                   (SELECT COUNT(*) FROM purchase_lists pl WHERE pl.organization_id = :organizationId AND pl.deleted_at IS NULL) AS purchase_lists_count,
                   (SELECT COUNT(*) FROM task_lists tl WHERE tl.organization_id = :organizationId AND tl.deleted_at IS NULL) AS task_lists_count,
-                  (SELECT COUNT(*) FROM documents d WHERE d.organization_id = :organizationId AND d.deleted_at IS NULL) AS documents_count,
+                  (SELECT COUNT(*) FROM documents d WHERE d.organization_id = :organizationId) AS documents_count,
                   (SELECT COUNT(*) FROM ai_chat_sessions acs WHERE acs.organization_id = :organizationId) AS ai_chat_sessions_count
                 """, q -> q.setParameter("organizationId", organizationId),
                 "properties", "reservations", "maintenanceRecords", "scheduledMaintenance", "purchaseLists", "taskLists", "documents", "aiChatSessions");

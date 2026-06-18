@@ -692,7 +692,6 @@ public abstract class AiReadOnlyToolSupport {
                 LEFT JOIN document_chunks dc ON dc.document_id = d.id
                                             AND dc.organization_id = d.organization_id
                 WHERE d.organization_id = :organizationId
-                  AND d.deleted_at IS NULL
                 """);
         if (extraWhere != null && !extraWhere.isBlank()) {
             sql.append(extraWhere).append(System.lineSeparator());
@@ -1829,8 +1828,7 @@ public abstract class AiReadOnlyToolSupport {
                                       AND p.organization_id = d.organization_id
                                       AND p.deleted_at IS NULL
                     WHERE d.organization_id = :organizationId
-                      AND d.deleted_at IS NULL
-                    UNION ALL
+                        UNION ALL
                     SELECT 'PROPERTY_IMAGE' AS source_type,
                            pi.original_filename AS display_name,
                            pi.original_filename,
@@ -1845,8 +1843,7 @@ public abstract class AiReadOnlyToolSupport {
                                      AND p.organization_id = pi.organization_id
                                      AND p.deleted_at IS NULL
                     WHERE pi.organization_id = :organizationId
-                      AND pi.deleted_at IS NULL
-                      AND pi.status = 'ACTIVE'
+                          AND pi.status = 'ACTIVE'
                     UNION ALL
                     SELECT 'MAINTENANCE_IMAGE' AS source_type,
                            mri.original_filename AS display_name,
@@ -1865,8 +1862,7 @@ public abstract class AiReadOnlyToolSupport {
                                      AND p.organization_id = mr.organization_id
                                      AND p.deleted_at IS NULL
                     WHERE mri.organization_id = :organizationId
-                      AND mri.deleted_at IS NULL
-                      AND mri.status = 'ACTIVE'
+                          AND mri.status = 'ACTIVE'
                 ) files
                 WHERE 1 = 1
                 """);
@@ -1915,8 +1911,7 @@ public abstract class AiReadOnlyToolSupport {
                                  AND p.organization_id = mr.organization_id
                 LEFT JOIN maintenance_record_images mri ON mri.maintenance_record_id = mr.id
                                                        AND mri.organization_id = mr.organization_id
-                                                       AND mri.deleted_at IS NULL
-                                                       AND mri.status = 'ACTIVE'
+                                                                                            AND mri.status = 'ACTIVE'
                 WHERE mr.organization_id = :organizationId
                   AND mr.deleted_at IS NULL
                 """);

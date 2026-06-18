@@ -51,7 +51,6 @@ public class DocumentRagToolRepository extends AiReadOnlyToolSupport {
                 LEFT JOIN document_chunks dc ON dc.document_id = d.id
                                             AND dc.organization_id = d.organization_id
                 WHERE d.organization_id = :organizationId
-                  AND d.deleted_at IS NULL
                   AND (
                        CAST(:search AS TEXT) IS NULL
                        OR LOWER(d.title) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
@@ -112,7 +111,6 @@ public class DocumentRagToolRepository extends AiReadOnlyToolSupport {
                 LEFT JOIN document_chunks dc ON dc.document_id = d.id
                                             AND dc.organization_id = d.organization_id
                 WHERE d.organization_id = :organizationId
-                  AND d.deleted_at IS NULL
                 GROUP BY d.id, d.title, d.document_type, d.processing_status
                 ORDER BY d.created_at DESC
                 LIMIT :limit
@@ -242,7 +240,6 @@ public class DocumentRagToolRepository extends AiReadOnlyToolSupport {
                        ) THEN TRUE ELSE FALSE END AS indexed
                 FROM documents d
                 WHERE d.organization_id = :organizationId
-                  AND d.deleted_at IS NULL
                 ORDER BY d.document_type ASC, d.title ASC
                 """, q -> q.setParameter("organizationId", organizationId),
                 "documentType", "title", "processingStatus", "indexed");
@@ -267,7 +264,6 @@ public class DocumentRagToolRepository extends AiReadOnlyToolSupport {
                 LEFT JOIN properties p ON p.id = d.property_id AND p.organization_id = d.organization_id
                 LEFT JOIN document_chunks dc ON dc.document_id = d.id AND dc.organization_id = d.organization_id
                 WHERE d.organization_id = :organizationId
-                  AND d.deleted_at IS NULL
                 GROUP BY p.name, d.title, d.document_type, d.processing_status
                 ORDER BY property_name ASC, d.document_type ASC, d.title ASC
                 """, q -> q.setParameter("organizationId", organizationId),
@@ -373,7 +369,6 @@ public class DocumentRagToolRepository extends AiReadOnlyToolSupport {
                 LEFT JOIN document_chunks dc ON dc.document_id = d.id
                                             AND dc.organization_id = d.organization_id
                 WHERE d.organization_id = :organizationId
-                  AND d.deleted_at IS NULL
                 GROUP BY d.id, d.title, d.document_type, d.processing_status
                 ORDER BY d.created_at DESC
                 LIMIT :limit
@@ -422,7 +417,6 @@ public class DocumentRagToolRepository extends AiReadOnlyToolSupport {
                 LEFT JOIN document_chunks dc ON dc.document_id = d.id
                                             AND dc.organization_id = d.organization_id
                 WHERE d.organization_id = :organizationId
-                  AND d.deleted_at IS NULL
                 """, q -> q.setParameter("organizationId", organizationId),
                 "documentCount", "chunkCount", "indexedChunkCount", "missingVectorIdCount", "documentsMissingChunks", "documentsWithIndexedChunks");
         Map<String, Object> row = rows.isEmpty() ? Map.of() : rows.get(0);
