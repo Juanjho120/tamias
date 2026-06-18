@@ -142,7 +142,7 @@ public class AiChatHistoryToolRepository extends AiReadOnlyToolSupport {
             );
         }
         StringBuilder answer = new StringBuilder("Estas son las preguntas recientes que le hiciste al asistente IA, excluyendo esta conversación:");
-        appendAiChatMessageRows(answer, rows);
+        appendAiChatUserQuestionRowsGroupedBySession(answer, rows);
         return AiToolAnswer.of(
                 answer.toString(),
                 "aiChat.recentMessages",
@@ -150,6 +150,22 @@ public class AiChatHistoryToolRepository extends AiReadOnlyToolSupport {
                 "%d recent user questions were consulted outside the current session.".formatted(rows.size()),
                 rows
         );
+    }
+
+    private void appendAiChatUserQuestionRowsGroupedBySession(StringBuilder answer, List<Map<String, Object>> rows) {
+        String currentSessionTitle = null;
+        for (Map<String, Object> row : rows) {
+            String sessionTitle = blankToDash(value(row.get("sessionTitle")));
+            if (!sessionTitle.equals(currentSessionTitle)) {
+                currentSessionTitle = sessionTitle;
+                answer.append(System.lineSeparator())
+                        .append("Sesión ").append(currentSessionTitle);
+            }
+            answer.append(System.lineSeparator())
+                    .append(formatDateTime(row.get("createdAt")))
+                    .append(" - [").append(blankToDash(value(row.get("role")))).append("] ")
+                    .append(blankToDash(firstLine(value(row.get("contentExcerpt")))));
+        }
     }
 
     public AiToolAnswer aiChatSessionsByProperty(String userQuestion, UUID excludedSessionId) {
