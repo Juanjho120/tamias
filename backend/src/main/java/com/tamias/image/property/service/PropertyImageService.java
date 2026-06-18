@@ -36,13 +36,13 @@ public class PropertyImageService {
     private final ImageMapper imageMapper;
 
     public PropertyImageService(
-            PropertyImageRepository propertyImageRepository,
-            PropertyRepository propertyRepository,
-            UserRepository userRepository,
-            CurrentUserService currentUserService,
-            FileStorageService fileStorageService,
-            ImageValidationService imageValidationService,
-            ImageMapper imageMapper
+        PropertyImageRepository propertyImageRepository,
+        PropertyRepository propertyRepository,
+        UserRepository userRepository,
+        CurrentUserService currentUserService,
+        FileStorageService fileStorageService,
+        ImageValidationService imageValidationService,
+        ImageMapper imageMapper
     ) {
         this.propertyImageRepository = propertyImageRepository;
         this.propertyRepository = propertyRepository;
@@ -60,10 +60,10 @@ public class PropertyImageService {
         validateProperty(propertyId, organizationId);
 
         return propertyImageRepository
-                .findByProperty_IdAndOrganization_IdAndDeletedAtIsNullOrderByCreatedAtDesc(propertyId, organizationId)
-                .stream()
-                .map(imageMapper::toResponse)
-                .toList();
+            .findByProperty_IdAndOrganization_IdAndDeletedAtIsNullOrderByCreatedAtDesc(propertyId, organizationId)
+            .stream()
+            .map(imageMapper::toResponse)
+            .toList();
     }
 
     @Transactional(readOnly = true)
@@ -78,34 +78,34 @@ public class PropertyImageService {
         imageValidationService.validateImage(file);
 
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-
         Property property = validateProperty(propertyId, organizationId);
         User currentUser = getCurrentUser();
 
         boolean shouldBeCover = Boolean.TRUE.equals(cover)
-                || propertyImageRepository.countByProperty_IdAndOrganization_IdAndStatusAndDeletedAtIsNull(
-                        propertyId,
-                        organizationId,
-                        ImageStatus.ACTIVE
-                ) == 0;
+            || propertyImageRepository.countByProperty_IdAndOrganization_IdAndStatusAndDeletedAtIsNull(
+                propertyId,
+                organizationId,
+                ImageStatus.ACTIVE
+            ) == 0;
 
         if (shouldBeCover) {
             clearCover(propertyId, organizationId);
         }
 
-        var storedFile = fileStorageService.store(file, organizationId.toString());
+        var storedFile = fileStorageService.store(file, "properties/" + property.getId());
 
         PropertyImage entity = new PropertyImage();
         entity.setOrganization(property.getOrganization());
         entity.setProperty(property);
         entity.setOriginalFilename(file.getOriginalFilename() != null ? file.getOriginalFilename() : "image");
         entity.setS3Key(storedFile.storageKey());
+        entity.setFilepath(storedFile.filepath());
         entity.setContentType(storedFile.contentType());
         entity.setSizeBytes(storedFile.sizeBytes());
         entity.setCover(shouldBeCover);
         entity.setStatus(ImageStatus.ACTIVE);
         entity.setCreatedBy(currentUser);
-        System.out.println("Storage implementation: " + fileStorageService.getClass().getName());
+
         return imageMapper.toUploadResponse(propertyImageRepository.save(entity));
     }
 
@@ -113,11 +113,9 @@ public class PropertyImageService {
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
     public ImageResponse setCover(UUID propertyId, UUID imageId) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-
         PropertyImage image = findImage(propertyId, imageId);
 
         clearCover(propertyId, organizationId);
-
         image.setCover(true);
 
         return imageMapper.toResponse(propertyImageRepository.save(image));
@@ -153,30 +151,28 @@ public class PropertyImageService {
 
     private Property validateProperty(UUID propertyId, UUID organizationId) {
         return propertyRepository.findByIdAndOrganization_IdAndDeletedAtIsNull(propertyId, organizationId)
-                .orElseThrow(() -> new NotFoundException("Property not found"));
+            .orElseThrow(() -> new NotFoundException("Property not found"));
     }
 
     private PropertyImage findImage(UUID propertyId, UUID imageId) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-
         return propertyImageRepository
-                .findByIdAndProperty_IdAndOrganization_IdAndDeletedAtIsNull(imageId, propertyId, organizationId)
-                .orElseThrow(() -> new NotFoundException("Property image not found"));
+            .findByIdAndProperty_IdAndOrganization_IdAndDeletedAtIsNull(imageId, propertyId, organizationId)
+            .orElseThrow(() -> new NotFoundException("Property image not found"));
     }
 
     private void clearCover(UUID propertyId, UUID organizationId) {
         List<PropertyImage> coverImages = propertyImageRepository
-                .findByProperty_IdAndOrganization_IdAndCoverAndDeletedAtIsNull(propertyId, organizationId, true);
+            .findByProperty_IdAndOrganization_IdAndCoverAndDeletedAtIsNull(propertyId, organizationId, true);
 
         for (PropertyImage coverImage : coverImages) {
             coverImage.setCover(false);
         }
-
         propertyImageRepository.saveAll(coverImages);
     }
 
     private User getCurrentUser() {
         return userRepository.findByIdAndDeletedAtIsNull(currentUserService.getCurrentUserId())
-                .orElseThrow(() -> new NotFoundException("User not found"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
     }
 }

@@ -2,57 +2,56 @@
 
 ## Purpose
 
-Replace the current year/month S3 folder structure with a module/entity-based structure that is easier to understand, clean up and audit.
+Replace the old year/month-based upload structure with module/entity-based folders in S3.
 
-Current year/month structure is not useful for TAMIAS because uploaded files are operationally tied to entities such as properties, maintenance records, reservations, purchase lists, inventory items and documents.
+This keeps uploaded files close to the operational entity they belong to and makes cleanup/auditing easier.
 
----
+## Implemented folders in this phase
 
-## Target S3 structure
+This phase updates only the entities/modules that already exist before phases 12B–12D:
 
 ```text
 tamias-dev-files/
   properties/
     {propertyId}/
       Image1.jpg
-      Image2.jpg
-  reservations/
-    {reservationId}/
-      Image1.jpg
-  catalogs/
-    inventory_items/
-      {inventoryItemId}/
-        Image1.jpg
   maintenance/
     {maintenanceRecordId}/
       Image1.jpg
-  purchases/
-    {purchaseListId}/
-      Image1.jpg
   documents/
     Document1.pdf
-    Document2.pdf
     {propertyId}/
       Document1.pdf
 ```
 
-Documents rule:
+Documents follow this rule:
 
 ```text
 Document without property -> documents/{filename}
 Document with property    -> documents/{propertyId}/{filename}
 ```
 
----
+The following folders are reserved for later phases:
+
+```text
+reservations/{reservationId}/                 -> 12D
+catalogs/inventory_items/{inventoryItemId}/   -> 12B
+purchases/{purchaseListId}/                   -> 12C
+```
 
 ## filepath definition
 
-Add `filepath VARCHAR(300)` to:
+Added `filepath VARCHAR(300)` to:
 
 ```text
 documents
 property_images
 maintenance_record_images
+```
+
+Future image tables must also include the same column:
+
+```text
 reservation_images
 purchase_images
 inventory_item_images
@@ -61,7 +60,7 @@ inventory_item_images
 Definition:
 
 ```text
-filepath = bucket + full folder path, without filename
+filepath = bucket + folder path, without filename
 ```
 
 Example:
@@ -73,93 +72,34 @@ filepath: tamias-dev-files/properties/078dab91-b46d-4378-9672-ad2c16cf50cf
 filename: Image1.jpg
 ```
 
-Important:
-
-```text
-filepath is for traceability/reporting.
-s3_key is still the value used to access/delete the object in S3.
-```
-
----
-
-## Bucket source
-
-The bucket name must come from the current environment/configuration.
-
-Development example:
-
-```text
-tamias-dev-files
-```
-
-Production must use the production bucket from environment/configuration.
-
-Do not hardcode `tamias-dev-files` in business logic.
-
----
-
-## Backend design recommendation
-
-Introduce a central S3 key builder to avoid path duplication.
-
-Possible concept:
-
-```text
-S3FilePathService
-S3KeyBuilder
-FileStoragePathResolver
-```
-
-Responsibilities:
-
-```text
-buildPropertyImageKey(propertyId, filename)
-buildMaintenanceImageKey(maintenanceRecordId, filename)
-buildReservationImageKey(reservationId, filename)
-buildPurchaseImageKey(purchaseListId, filename)
-buildInventoryItemImageKey(inventoryItemId, filename)
-buildDocumentKey(propertyId nullable, filename)
-buildFilepath(s3Key)
-```
-
-Before implementing, check existing storage service/class names and reuse the current architecture.
-
----
+`filepath` is for traceability/reporting. `s3_key` remains the value used to access/delete the object in S3.
 
 ## Migration notes
 
-This phase should add new columns and update new upload behavior.
+The migration adds the new columns as nullable so existing rows with old year/month keys keep working.
 
-Recommended approach:
+New uploads must populate `filepath`.
 
-```text
-1. Add filepath nullable first if existing rows exist.
-2. New uploads must populate filepath.
-3. Existing rows may remain null unless a backfill is intentionally implemented.
-4. Do not break existing files that still use old s3_key paths.
-```
-
-If a backfill is implemented, derive `filepath` from existing `s3_key` and configured bucket.
-
----
+Existing rows may remain null unless a manual backfill is intentionally performed later.
 
 ## Acceptance tests
 
 ```text
 1. Upload a property image.
 2. Confirm s3_key starts with properties/{propertyId}/.
-3. Confirm filepath is bucket + properties/{propertyId}.
+3. Confirm filepath is {bucket}/properties/{propertyId}.
 4. Upload a maintenance image.
 5. Confirm s3_key starts with maintenance/{maintenanceRecordId}/.
-6. Upload a document without property.
-7. Confirm s3_key starts with documents/ and no property folder.
-8. Upload a document with property.
-9. Confirm s3_key starts with documents/{propertyId}/.
-10. Download URLs still work.
-11. Existing old files do not crash list/download flows.
+6. Confirm filepath is {bucket}/maintenance/{maintenanceRecordId}.
+7. Upload a document without property.
+8. Confirm s3_key starts with documents/ and has no property folder.
+9. Confirm filepath is {bucket}/documents.
+10. Upload a document with property.
+11. Confirm s3_key starts with documents/{propertyId}/.
+12. Confirm filepath is {bucket}/documents/{propertyId}.
+13. Download URLs still work.
+14. Existing old files do not crash list/download flows.
 ```
-
----
 
 ## Out of scope
 

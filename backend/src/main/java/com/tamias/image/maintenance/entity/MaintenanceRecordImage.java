@@ -38,6 +38,9 @@ public class MaintenanceRecordImage extends BaseEntity {
     @Column(name = "s3_key", nullable = false, columnDefinition = "TEXT")
     private String s3Key;
 
+    @Column(name = "filepath", length = 300)
+    private String filepath;
+
     @Column(name = "content_type", nullable = false, length = 100)
     private String contentType;
 

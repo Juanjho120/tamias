@@ -36,13 +36,13 @@ public class MaintenanceRecordImageService {
     private final ImageMapper imageMapper;
 
     public MaintenanceRecordImageService(
-            MaintenanceRecordImageRepository imageRepository,
-            MaintenanceRecordRepository maintenanceRecordRepository,
-            UserRepository userRepository,
-            CurrentUserService currentUserService,
-            FileStorageService fileStorageService,
-            ImageValidationService imageValidationService,
-            ImageMapper imageMapper
+        MaintenanceRecordImageRepository imageRepository,
+        MaintenanceRecordRepository maintenanceRecordRepository,
+        UserRepository userRepository,
+        CurrentUserService currentUserService,
+        FileStorageService fileStorageService,
+        ImageValidationService imageValidationService,
+        ImageMapper imageMapper
     ) {
         this.imageRepository = imageRepository;
         this.maintenanceRecordRepository = maintenanceRecordRepository;
@@ -60,13 +60,13 @@ public class MaintenanceRecordImageService {
         validateMaintenanceRecord(maintenanceRecordId, organizationId);
 
         return imageRepository
-                .findByMaintenanceRecord_IdAndOrganization_IdAndDeletedAtIsNullOrderByCreatedAtDesc(
-                        maintenanceRecordId,
-                        organizationId
-                )
-                .stream()
-                .map(imageMapper::toResponse)
-                .toList();
+            .findByMaintenanceRecord_IdAndOrganization_IdAndDeletedAtIsNullOrderByCreatedAtDesc(
+                maintenanceRecordId,
+                organizationId
+            )
+            .stream()
+            .map(imageMapper::toResponse)
+            .toList();
     }
 
     @Transactional(readOnly = true)
@@ -81,17 +81,17 @@ public class MaintenanceRecordImageService {
         imageValidationService.validateImage(file);
 
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-
         MaintenanceRecord maintenanceRecord = validateMaintenanceRecord(maintenanceRecordId, organizationId);
         User currentUser = getCurrentUser();
 
-        var storedFile = fileStorageService.store(file, organizationId.toString());
+        var storedFile = fileStorageService.store(file, "maintenance/" + maintenanceRecord.getId());
 
         MaintenanceRecordImage entity = new MaintenanceRecordImage();
         entity.setOrganization(maintenanceRecord.getOrganization());
         entity.setMaintenanceRecord(maintenanceRecord);
         entity.setOriginalFilename(file.getOriginalFilename() != null ? file.getOriginalFilename() : "image");
         entity.setS3Key(storedFile.storageKey());
+        entity.setFilepath(storedFile.filepath());
         entity.setContentType(storedFile.contentType());
         entity.setSizeBytes(storedFile.sizeBytes());
         entity.setStatus(ImageStatus.ACTIVE);
@@ -129,24 +129,23 @@ public class MaintenanceRecordImageService {
 
     private MaintenanceRecord validateMaintenanceRecord(UUID maintenanceRecordId, UUID organizationId) {
         return maintenanceRecordRepository
-                .findByIdAndOrganization_IdAndDeletedAtIsNull(maintenanceRecordId, organizationId)
-                .orElseThrow(() -> new NotFoundException("Maintenance record not found"));
+            .findByIdAndOrganization_IdAndDeletedAtIsNull(maintenanceRecordId, organizationId)
+            .orElseThrow(() -> new NotFoundException("Maintenance record not found"));
     }
 
     private MaintenanceRecordImage findImage(UUID maintenanceRecordId, UUID imageId) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-
         return imageRepository
-                .findByIdAndMaintenanceRecord_IdAndOrganization_IdAndDeletedAtIsNull(
-                        imageId,
-                        maintenanceRecordId,
-                        organizationId
-                )
-                .orElseThrow(() -> new NotFoundException("Maintenance record image not found"));
+            .findByIdAndMaintenanceRecord_IdAndOrganization_IdAndDeletedAtIsNull(
+                imageId,
+                maintenanceRecordId,
+                organizationId
+            )
+            .orElseThrow(() -> new NotFoundException("Maintenance record image not found"));
     }
 
     private User getCurrentUser() {
         return userRepository.findByIdAndDeletedAtIsNull(currentUserService.getCurrentUserId())
-                .orElseThrow(() -> new NotFoundException("User not found"));
+            .orElseThrow(() -> new NotFoundException("User not found"));
     }
 }
