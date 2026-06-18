@@ -2,21 +2,23 @@ import { DatePipe, NgClass } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '@ngx-translate/core';
+
 import { LanguageService } from '../../../../core/i18n/language.service';
 import { ApiError } from '../../../../core/models/api-error.model';
 import { PageResponse } from '../../../../core/models/page-response.model';
 import { ConfirmModalComponent } from '../../../../shared/confirm-modal/confirm-modal.component';
 import { ToastService } from '../../../../shared/toast/toast.service';
-import { CatalogFormModalComponent } from '../../components/catalog-form-modal/catalog-form-modal.component';
 import { CATALOG_CONFIGS } from '../../catalogs.config';
+import { CatalogFormModalComponent } from '../../components/catalog-form-modal/catalog-form-modal.component';
+import { InventoryItemImagesModalComponent } from '../../components/inventory-item-images-modal/inventory-item-images-modal.component';
 import {
+  CATALOG_STATUSES,
   CatalogConfig,
   CatalogFieldConfig,
   CatalogItem,
   CatalogRequest,
   CatalogSelectOption,
-  CatalogStatus,
-  CATALOG_STATUSES
+  CatalogStatus
 } from '../../models/catalog.model';
 import { CatalogService } from '../../services/catalog.service';
 
@@ -31,35 +33,44 @@ type FormMode = 'create' | 'edit';
     NgClass,
     TranslatePipe,
     CatalogFormModalComponent,
+    InventoryItemImagesModalComponent,
     ConfirmModalComponent
   ],
   templateUrl: './catalogs-page.component.html'
 })
 export class CatalogsPageComponent implements OnInit {
+
   private readonly catalogService = inject(CatalogService);
   private readonly toastService = inject(ToastService);
   private readonly languageService = inject(LanguageService);
 
   readonly configs = CATALOG_CONFIGS;
   readonly statuses = CATALOG_STATUSES;
+
   readonly selectedConfig = signal<CatalogConfig>(CATALOG_CONFIGS[0]);
   readonly items = signal<CatalogItem[]>([]);
   readonly selectedItem = signal<CatalogItem | null>(null);
   readonly itemToDelete = signal<CatalogItem | null>(null);
+  readonly imageModalItem = signal<CatalogItem | null>(null);
+
   readonly loading = signal(false);
   readonly saving = signal(false);
   readonly deletingId = signal<string | null>(null);
+
   readonly formVisible = signal(false);
   readonly formMode = signal<FormMode>('create');
-  readonly status = signal<CatalogStatus | ''>('');
+
+  readonly status = signal('');
   readonly page = signal(0);
   readonly size = signal(10);
   readonly totalElements = signal(0);
   readonly totalPages = signal(0);
   readonly first = signal(true);
   readonly last = signal(true);
+
   readonly tableFields = computed(() => this.selectedConfig().fields.filter((field) => field.table));
   readonly primaryField = computed(() => this.selectedConfig().fields.find((field) => field.primary) ?? this.selectedConfig().fields[0]);
+
   readonly pageLabel = computed(() => {
     if (this.totalElements() === 0) {
       return this.languageService.instant('catalogs.pagination.noItems');
@@ -70,6 +81,7 @@ export class CatalogsPageComponent implements OnInit {
       totalPages: this.totalPages()
     });
   });
+
   readonly deleteMessage = computed(() => {
     const item = this.itemToDelete();
     if (!item) {
@@ -97,12 +109,15 @@ export class CatalogsPageComponent implements OnInit {
     this.formVisible.set(false);
     this.selectedItem.set(null);
     this.itemToDelete.set(null);
+    this.imageModalItem.set(null);
     this.loadItems();
   }
 
   loadItems(): void {
     const config = this.selectedConfig();
+
     this.loading.set(true);
+
     this.catalogService.findAll(config.endpoint, {
       status: this.status(),
       page: this.page(),
@@ -186,18 +201,20 @@ export class CatalogsPageComponent implements OnInit {
   saveItem(request: CatalogRequest): void {
     const config = this.selectedConfig();
     const selectedItem = this.selectedItem();
+
     this.saving.set(true);
+
     const saveRequest = this.formMode() === 'edit' && selectedItem
-      ? this.catalogService.update(config.endpoint, selectedItem.id, request)
-      : this.catalogService.create(config.endpoint, request);
+        ? this.catalogService.update(config.endpoint, selectedItem.id, request)
+        : this.catalogService.create(config.endpoint, request);
 
     saveRequest.subscribe({
       next: () => {
         this.saving.set(false);
         this.toastService.success(
-          this.formMode() === 'edit'
-            ? this.languageService.instant('catalogs.messages.updated')
-            : this.languageService.instant('catalogs.messages.created')
+            this.formMode() === 'edit'
+                ? this.languageService.instant('catalogs.messages.updated')
+                : this.languageService.instant('catalogs.messages.created')
         );
         this.refreshBrandOptionsWhenNeeded(config);
         this.closeForm();
@@ -230,6 +247,7 @@ export class CatalogsPageComponent implements OnInit {
     }
 
     this.deletingId.set(item.id);
+
     this.catalogService.delete(config.endpoint, item.id).subscribe({
       next: () => {
         this.deletingId.set(null);
@@ -245,12 +263,25 @@ export class CatalogsPageComponent implements OnInit {
     });
   }
 
+  openImagesModal(item: CatalogItem): void {
+    this.imageModalItem.set(item);
+  }
+
+  closeImagesModal(): void {
+    this.imageModalItem.set(null);
+  }
+
+  isInventoryItemsCatalog(): boolean {
+    return this.selectedConfig().key === 'inventory-items';
+  }
+
   displayValue(item: CatalogItem, field: CatalogFieldConfig): string {
     if (this.selectedConfig().key === 'inventory-items' && field.key === 'brandId') {
       return item.brandName ?? '—';
     }
 
     const value = item[field.key as keyof CatalogItem];
+
     if (value === null || value === undefined || value === '') {
       return '—';
     }
@@ -307,7 +338,6 @@ export class CatalogsPageComponent implements OnInit {
   private applyInventoryBrandOptions(options: CatalogSelectOption[]): void {
     const inventoryConfig = this.configs.find((config) => config.key === 'inventory-items');
     const brandField = inventoryConfig?.fields.find((field) => field.key === 'brandId');
-
     if (!brandField) {
       return;
     }

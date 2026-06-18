@@ -3,7 +3,6 @@
     <h1 class="h3 mb-1">{{ 'catalogs.title' | translate }}</h1>
     <p class="text-muted mb-0">{{ 'catalogs.subtitle' | translate }}</p>
   </div>
-
   <button type="button" class="btn btn-primary" (click)="openCreateForm()">
     <i class="bi bi-plus-lg me-1"></i>
     {{ 'catalogs.newItem' | translate }}
@@ -123,6 +122,12 @@
                     </td>
                     <td class="text-end">
                       <div class="btn-group">
+                        @if (isInventoryItemsCatalog()) {
+                          <button type="button" class="btn btn-outline-secondary btn-sm" (click)="openImagesModal(item)">
+                            <i class="bi bi-images me-1"></i>
+                            Imágenes
+                          </button>
+                        }
                         <button type="button" class="btn btn-outline-primary btn-sm" (click)="openEditForm(item)">
                           <i class="bi bi-pencil-square me-1"></i>
                           {{ 'common.edit' | translate }}
@@ -183,6 +188,11 @@
   [loading]="saving()"
   (save)="saveItem($event)"
   (cancel)="closeForm()" />
+
+<app-inventory-item-images-modal
+  [open]="!!imageModalItem()"
+  [inventoryItem]="imageModalItem()"
+  (closed)="closeImagesModal()" />
 
 <app-confirm-modal
   [open]="!!itemToDelete()"

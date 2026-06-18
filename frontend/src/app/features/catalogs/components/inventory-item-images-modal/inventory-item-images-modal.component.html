@@ -1,0 +1,127 @@
+@if (open) {
+  <div class="modal-backdrop fade show"></div>
+  <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h2 class="modal-title h5 mb-0">Imágenes del item</h2>
+            <p class="text-muted small mb-0">{{ itemDisplayName() }}</p>
+          </div>
+          <button type="button" class="btn-close" aria-label="Cerrar" [disabled]="uploading() || !!deletingId() || !!settingCoverId()" (click)="close()"></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="card border-0 bg-light-subtle mb-4">
+            <div class="card-body">
+              <label for="inventory-item-images-file" class="form-label fw-semibold">Agregar imágenes</label>
+              <input
+                id="inventory-item-images-file"
+                type="file"
+                class="form-control"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                [disabled]="uploading()"
+                (change)="onFileSelected($event)">
+              <div class="form-text">Formatos permitidos: JPG, PNG y WEBP.</div>
+
+              <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mt-3">
+                <span class="text-muted small">
+                  @if (selectedFiles().length > 0) {
+                    {{ selectedFiles().length }} archivo(s) seleccionado(s)
+                  } @else {
+                    Selecciona una o varias imágenes para este item.
+                  }
+                </span>
+                <button
+                  type="button"
+                  class="btn btn-primary"
+                  [disabled]="selectedFiles().length === 0 || uploading()"
+                  (click)="uploadSelected()">
+                  @if (uploading()) {
+                    <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+                  } @else {
+                    <i class="bi bi-cloud-upload me-1"></i>
+                  }
+                  Cargar imágenes
+                </button>
+              </div>
+            </div>
+          </div>
+
+          @if (loading()) {
+            <div class="py-5 text-center">
+              <div class="spinner-border text-primary" role="status"></div>
+              <div class="text-muted mt-3">Cargando imágenes...</div>
+            </div>
+          } @else if (images().length === 0) {
+            <div class="py-5 text-center border rounded-4 bg-light-subtle">
+              <i class="bi bi-images fs-1 text-muted"></i>
+              <h3 class="h6 mt-3">Este item todavía no tiene imágenes</h3>
+              <p class="text-muted mb-0">Carga una o varias imágenes para identificarlo visualmente.</p>
+            </div>
+          } @else {
+            <div class="row g-3">
+              @for (image of images(); track image.id) {
+                <div class="col-12 col-md-6 col-xl-4">
+                  <div class="card inventory-item-image-card">
+                    <img [src]="image.fileUrl" [alt]="image.originalFilename" class="card-img-top inventory-item-image-preview">
+                    <div class="card-body">
+                      <div class="d-flex justify-content-between align-items-start gap-2">
+                        <div>
+                          <h3 class="h6 mb-1 text-truncate" [title]="image.originalFilename">{{ image.originalFilename }}</h3>
+                          <p class="text-muted small mb-0">{{ image.createdAt | date:'medium' }}</p>
+                        </div>
+                        @if (image.cover) {
+                          <span class="badge text-bg-primary">Principal</span>
+                        }
+                      </div>
+                    </div>
+                    <div class="card-footer bg-white d-flex justify-content-between gap-2">
+                      <a class="btn btn-outline-secondary btn-sm" [href]="image.fileUrl" target="_blank" rel="noopener">
+                        <i class="bi bi-box-arrow-up-right me-1"></i>
+                        Ver
+                      </a>
+                      <div class="btn-group">
+                        <button
+                          type="button"
+                          class="btn btn-outline-primary btn-sm"
+                          [disabled]="!!image.cover || settingCoverId() === image.id || !!deletingId()"
+                          (click)="setCover(image)">
+                          @if (settingCoverId() === image.id) {
+                            <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+                          } @else {
+                            <i class="bi bi-star me-1"></i>
+                          }
+                          Principal
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-outline-danger btn-sm"
+                          [disabled]="deletingId() === image.id || !!settingCoverId()"
+                          (click)="deleteImage(image)">
+                          @if (deletingId() === image.id) {
+                            <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+                          } @else {
+                            <i class="bi bi-trash me-1"></i>
+                          }
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" [disabled]="uploading() || !!deletingId() || !!settingCoverId()" (click)="close()">
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

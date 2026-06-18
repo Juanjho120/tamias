@@ -12,11 +12,9 @@ This helps identify supplies, materials, amenities, cleaning products, tools and
 
 This phase depends on:
 
-```text
-11A — S3 key strategy + filepath fields
-11B — Hard delete policy for entity images
-12A — Brand association with inventory items
-```
+- 11A — S3 key strategy + filepath fields
+- 11B — Hard delete policy for entity images
+- 12A — Brand association with inventory items
 
 ---
 
@@ -28,36 +26,38 @@ Create:
 inventory_item_images
 ```
 
-Fields should match the current `property_images` pattern as much as possible, but with:
-
-```text
-inventory_item_id
-filepath
-```
+Fields mirror the current `property_images` pattern as much as possible, but with `inventory_item_id` as parent FK.
 
 Required logical fields:
 
 ```text
 id
+organization_id
 inventory_item_id
+original_filename
 s3_key
 filepath
-filename/original_filename
 content_type
 size_bytes
+is_cover
+status
 created_at
 created_by
 ```
 
-Do not add soft-delete columns.
+Rules:
 
-Before implementing, inspect the actual current `property_images` and `maintenance_record_images` schemas/entities and mirror the real naming conventions.
+- Do not add `deleted_at` or `deleted_by`.
+- Do not soft-delete rows.
+- Delete must physically remove the S3/storage object first and then physically delete the DB row.
+- If deleting the S3/storage object fails, do not delete the DB row.
+- Parent inventory item must belong to the current organization.
 
 ---
 
 ## S3 path
 
-Use:
+Use the final 11A storage strategy with `organizationId` as the first level inside the bucket:
 
 ```text
 {organizationId}/catalogs/inventory_items/{inventoryItemId}/{filename}
@@ -66,8 +66,8 @@ Use:
 Example:
 
 ```text
-s3_key: catalogs/inventory_items/289d3236-2f55-4759-83c3-01d3407228e2/Image1.jpg
-filepath: tamias-dev-files/catalogs/inventory_items/289d3236-2f55-4759-83c3-01d3407228e2
+s3_key: 7a3a8c8e-1111-4444-9999-111122223333/catalogs/inventory_items/289d3236-2f55-4759-83c3-01d3407228e2/Image1.jpg
+filepath: tamias-dev-files/7a3a8c8e-1111-4444-9999-111122223333/catalogs/inventory_items/289d3236-2f55-4759-83c3-01d3407228e2
 ```
 
 Bucket must come from configuration.
@@ -76,11 +76,14 @@ Bucket must come from configuration.
 
 ## Backend API
 
-Recommended endpoint pattern:
+Endpoint pattern:
 
-```http
+```text
 GET    /api/v1/inventory-items/{inventoryItemId}/images
+GET    /api/v1/inventory-items/{inventoryItemId}/images/{imageId}
 POST   /api/v1/inventory-items/{inventoryItemId}/images
+PATCH  /api/v1/inventory-items/{inventoryItemId}/images/{imageId}/cover
+GET    /api/v1/inventory-items/{inventoryItemId}/images/{imageId}/file
 DELETE /api/v1/inventory-items/{inventoryItemId}/images/{imageId}
 ```
 
@@ -88,13 +91,14 @@ Rules:
 
 - Parent inventory item must belong to current organization.
 - Upload must use configured file size/content type validations.
-- Delete must delete S3 object and DB row physically.
+- Delete must delete S3/storage object and DB row physically.
+- The storage key must include organization ID.
 
 ---
 
 ## Frontend
 
-Inventory Items catalog should include an images action.
+Inventory Items catalog includes an images action.
 
 UI pattern:
 
@@ -104,10 +108,17 @@ Inventory Items table
     opens modal
       list existing images
       upload one or more images
+      optionally mark image as principal
       delete image
 ```
 
-Use the same UX pattern already used by property images and maintenance images.
+Inventory item names in selectors/searchers should continue to show:
+
+```text
+{item} - {brand}
+```
+
+The Inventory Items table should continue to show item name and brand in separate columns.
 
 ---
 
@@ -126,15 +137,15 @@ Not required in this phase unless existing file/image tools are updated at the s
 
 ## Acceptance tests
 
-```text
 1. Open Inventory Items catalog.
 2. Click Images for an item.
-3. Upload image.
+3. Upload one image.
 4. Confirm image appears in modal.
-5. Confirm S3 key uses catalogs/inventory_items/{inventoryItemId}/.
-6. Confirm filepath is populated.
-7. Delete image.
-8. Confirm S3 object is gone.
-9. Confirm DB row is gone.
-10. Confirm user from another organization cannot access/delete image.
-```
+5. Upload multiple images.
+6. Confirm all images appear in modal.
+7. Confirm S3 key uses `{organizationId}/catalogs/inventory_items/{inventoryItemId}/`.
+8. Confirm `filepath` is populated as `{bucket}/{organizationId}/catalogs/inventory_items/{inventoryItemId}`.
+9. Delete image.
+10. Confirm S3 object is gone.
+11. Confirm DB row is gone.
+12. Confirm user from another organization cannot access/delete image.
