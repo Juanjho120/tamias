@@ -167,9 +167,14 @@
                     }
                   </div>
 
-                  <div class="ai-message-content">{{ message.content }}</div>
+                  <div class="ai-message-content">
+                    {{ displayedMessageContent(message) }}
+                    @if (isTypingMessage(message)) {
+                      <span class="ai-typing-cursor" aria-hidden="true">▌</span>
+                    }
+                  </div>
 
-                  @if (messageToolEvidence(message).length > 0) {
+                  @if (!isTypingMessage(message) && messageToolEvidence(message).length > 0) {
                     <div class="ai-tool-evidence mt-3">
                       @for (evidence of messageToolEvidence(message); track trackByEvidence($index, evidence)) {
                         <div class="ai-tool-evidence-card">
@@ -209,7 +214,7 @@
                     </div>
                   }
 
-                  @if (messageSources(message).length > 0) {
+                  @if (!isTypingMessage(message) && messageSources(message).length > 0) {
                     <div class="mt-3">
                       <app-ai-source-list [sources]="messageSources(message)" [compact]="true" />
                     </div>
@@ -245,11 +250,11 @@
             [placeholder]="mode() === 'chat' ? ('aiAssistant.input.chatPlaceholder' | translate) : ('aiAssistant.input.searchPlaceholder' | translate)"
             [ngModel]="question()"
             (ngModelChange)="question.set($event)"
-            [disabled]="sending() || searching()"
+            [disabled]="sending() || typingAssistant() || searching()"
             (keydown)="handleQuestionKeydown($event)">
           </textarea>
 
-          <button type="button" class="btn btn-primary" [disabled]="!question().trim() || sending() || searching()" (click)="send()">
+          <button type="button" class="btn btn-primary" [disabled]="!question().trim() || sending() || typingAssistant() || searching()" (click)="send()">
             @if (sending() || searching()) {
               <span class="spinner-border spinner-border-sm me-1"></span>
             } @else {

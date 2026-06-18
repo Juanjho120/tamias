@@ -1,5 +1,5 @@
 import { DatePipe, NgClass, TitleCasePipe } from '@angular/common';
-import { Component, ElementRef, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '@ngx-translate/core';
 
@@ -24,6 +24,11 @@ import { AiReferenceDataService } from '../../services/ai-reference-data.service
 
 type AssistantMode = 'chat' | 'search';
 
+type AiAnimatedLocalMessage = AiLocalMessage & {
+  displayedContent?: string;
+  typing?: boolean;
+};
+
 @Component({
   selector: 'app-ai-assistant-page',
   standalone: true,
@@ -36,9 +41,21 @@ type AssistantMode = 'chat' | 'search';
     AiSourceListComponent,
     AiSessionTitleModalComponent
   ],
-  templateUrl: './ai-assistant-page.component.html'
+  templateUrl: './ai-assistant-page.component.html',
+  styles: [`
+    .ai-typing-cursor {
+      display: inline-block;
+      margin-left: 1px;
+      animation: tamiTypingCursorBlink 1s steps(2, start) infinite;
+    }
+
+    @keyframes tamiTypingCursorBlink {
+      0%, 45% { opacity: 1; }
+      46%, 100% { opacity: 0; }
+    }
+  `]
 })
-export class AiAssistantPageComponent implements OnInit {
+export class AiAssistantPageComponent implements OnInit, OnDestroy {
   @ViewChild('messagesContainer') messagesContainer?: ElementRef<HTMLElement>;
 
   private readonly aiAssistantService = inject(AiAssistantService);
@@ -46,17 +63,21 @@ export class AiAssistantPageComponent implements OnInit {
   private readonly toastService = inject(ToastService);
   private readonly languageService = inject(LanguageService);
 
+  private readonly typingDelayMs = 12;
+  private readonly typingTimers = new Map<string, ReturnType<typeof setInterval>>();
+
   readonly loadingReferences = signal(false);
   readonly loadingSessions = signal(false);
   readonly loadingSession = signal(false);
   readonly sending = signal(false);
+  readonly typingAssistant = signal(false);
   readonly searching = signal(false);
   readonly renaming = signal(false);
 
   readonly properties = signal<AiPropertyOption[]>([]);
   readonly sessions = signal<AiChatSessionSummary[]>([]);
   readonly activeSession = signal<AiChatSession | null>(null);
-  readonly messages = signal<AiLocalMessage[]>([]);
+  readonly messages = signal<AiAnimatedLocalMessage[]>([]);
   readonly searchResult = signal<AiSearchResponse | null>(null);
   readonly sessionToRename = signal<AiChatSessionSummary | null>(null);
 
@@ -101,6 +122,10 @@ export class AiAssistantPageComponent implements OnInit {
     this.loadSessions();
   }
 
+  ngOnDestroy(): void {
+    this.clearTypingTimers();
+  }
+
   loadProperties(): void {
     this.loadingReferences.set(true);
 
@@ -143,6 +168,7 @@ export class AiAssistantPageComponent implements OnInit {
   }
 
   refreshByProperty(): void {
+    this.clearTypingTimers();
     this.sessionPage.set(0);
     this.activeSession.set(null);
     this.messages.set([]);
@@ -169,6 +195,7 @@ export class AiAssistantPageComponent implements OnInit {
   }
 
   newSession(): void {
+    this.clearTypingTimers();
     this.activeSession.set(null);
     this.messages.set([]);
     this.searchResult.set(null);
@@ -176,6 +203,7 @@ export class AiAssistantPageComponent implements OnInit {
   }
 
   openSession(sessionId: string): void {
+    this.clearTypingTimers();
     this.loadingSession.set(true);
     this.searchResult.set(null);
 
@@ -197,7 +225,7 @@ export class AiAssistantPageComponent implements OnInit {
   send(): void {
     const question = this.question().trim();
 
-    if (!question || this.sending() || this.searching()) {
+    if (!question || this.sending() || this.typingAssistant() || this.searching()) {
       return;
     }
 
@@ -219,10 +247,15 @@ export class AiAssistantPageComponent implements OnInit {
   }
 
   chat(question: string): void {
-    const temporaryUserMessage: AiLocalMessage = {
+    const currentSession = this.activeSession();
+    const requestPropertyId = currentSession?.propertyId ?? (this.propertyId() || null);
+    const requestTitle = currentSession?.title ?? this.createTitleFromQuestion(question);
+
+    const temporaryUserMessage: AiAnimatedLocalMessage = {
       id: crypto.randomUUID(),
       role: 'USER',
       content: question,
+      displayedContent: question,
       createdAt: new Date().toISOString()
     };
 
@@ -231,39 +264,60 @@ export class AiAssistantPageComponent implements OnInit {
     this.sending.set(true);
     this.searchResult.set(null);
 
-    const currentSession = this.activeSession();
-
     this.aiAssistantService.chat({
       chatSessionId: currentSession?.id ?? null,
-      propertyId: currentSession?.propertyId ?? (this.propertyId() || null),
-      title: currentSession?.title ?? this.createTitleFromQuestion(question),
+      propertyId: requestPropertyId,
+      title: requestTitle,
       question,
       topK: this.topK(),
       similarityThreshold: this.similarityThreshold()
     }).subscribe({
       next: (response) => {
-        const assistantMessage: AiLocalMessage = {
+        const now = new Date().toISOString();
+        const assistantMessage: AiAnimatedLocalMessage = {
           id: response.assistantMessageId,
           role: 'ASSISTANT',
           content: response.answer,
-          createdAt: new Date().toISOString(),
+          displayedContent: '',
+          typing: true,
+          createdAt: now,
           sources: response.sources ?? [],
           grounded: response.grounded,
           toolEvidence: response.toolEvidence ?? []
         };
 
-        this.messages.update((messages) => [...messages, assistantMessage]);
+        this.messages.update((messages) => [
+          ...messages.map((message) => message.id === temporaryUserMessage.id
+            ? { ...message, id: response.userMessageId }
+            : message),
+          assistantMessage
+        ]);
         this.sending.set(false);
+        this.typingAssistant.set(true);
 
         if (!currentSession || currentSession.id !== response.chatSessionId) {
-          this.openSession(response.chatSessionId);
-        } else {
+          this.activeSession.set({
+            id: response.chatSessionId,
+            propertyId: requestPropertyId,
+            propertyName: null,
+            title: requestTitle,
+            createdBy: null,
+            createdByName: null,
+            createdAt: now,
+            updatedAt: now,
+            messages: []
+          });
+        }
+
+        this.animateAssistantMessage(response.assistantMessageId, response.answer, () => {
+          this.typingAssistant.set(false);
           this.loadSessions();
           setTimeout(() => this.scrollToBottom(), 0);
-        }
+        });
       },
       error: (error: unknown) => {
         this.sending.set(false);
+        this.typingAssistant.set(false);
         this.messages.update((messages) => messages.filter((message) => message.id !== temporaryUserMessage.id));
         this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('aiAssistant.messages.chatError')));
       }
@@ -357,6 +411,14 @@ export class AiAssistantPageComponent implements OnInit {
     return this.messageToolEvidence(message).length > 0;
   }
 
+  displayedMessageContent(message: AiAnimatedLocalMessage): string {
+    return message.displayedContent ?? message.content;
+  }
+
+  isTypingMessage(message: AiAnimatedLocalMessage): boolean {
+    return message.role === 'ASSISTANT' && message.typing === true;
+  }
+
   evidenceItems(evidence: AiToolEvidence): Record<string, unknown>[] {
     return evidence.items ?? [];
   }
@@ -416,7 +478,7 @@ export class AiAssistantPageComponent implements OnInit {
     return session.id;
   }
 
-  trackByMessage(index: number, message: AiLocalMessage): string {
+  trackByMessage(index: number, message: AiAnimatedLocalMessage): string {
     return message.id;
   }
 
@@ -436,11 +498,13 @@ export class AiAssistantPageComponent implements OnInit {
     return this.activeSession()?.id === session.id;
   }
 
-  private toLocalMessage(message: AiChatMessage): AiLocalMessage {
+  private toLocalMessage(message: AiChatMessage): AiAnimatedLocalMessage {
     return {
       id: message.id,
       role: message.role,
       content: message.content,
+      displayedContent: message.content,
+      typing: false,
       createdAt: message.createdAt
     };
   }
@@ -451,6 +515,82 @@ export class AiAssistantPageComponent implements OnInit {
     }
 
     return `${question.substring(0, 57)}...`;
+  }
+
+  private animateAssistantMessage(messageId: string, answer: string, onComplete?: () => void): void {
+    this.stopTypingTimer(messageId);
+
+    if (!answer) {
+      this.finishTypingMessage(messageId, answer, onComplete);
+      return;
+    }
+
+    let currentIndex = 0;
+    const chunkSize = this.resolveTypingChunkSize(answer);
+
+    const timer = setInterval(() => {
+      currentIndex = Math.min(currentIndex + chunkSize, answer.length);
+      const displayedContent = answer.slice(0, currentIndex);
+      const done = currentIndex >= answer.length;
+
+      this.messages.update((messages) => messages.map((message) => message.id === messageId
+        ? { ...message, displayedContent, typing: !done }
+        : message));
+
+      setTimeout(() => this.scrollToBottom(), 0);
+
+      if (done) {
+        this.stopTypingTimer(messageId);
+        onComplete?.();
+      }
+    }, this.typingDelayMs);
+
+    this.typingTimers.set(messageId, timer);
+  }
+
+  private finishTypingMessage(messageId: string, answer: string, onComplete?: () => void): void {
+    this.messages.update((messages) => messages.map((message) => message.id === messageId
+      ? { ...message, content: answer, displayedContent: answer, typing: false }
+      : message));
+    this.stopTypingTimer(messageId);
+    onComplete?.();
+  }
+
+  private resolveTypingChunkSize(answer: string): number {
+    if (answer.length > 2_000) {
+      return 8;
+    }
+
+    if (answer.length > 1_000) {
+      return 5;
+    }
+
+    if (answer.length > 500) {
+      return 3;
+    }
+
+    return 1;
+  }
+
+  private clearTypingTimers(): void {
+    this.typingAssistant.set(false);
+
+    for (const timer of this.typingTimers.values()) {
+      clearInterval(timer);
+    }
+
+    this.typingTimers.clear();
+  }
+
+  private stopTypingTimer(messageId: string): void {
+    const timer = this.typingTimers.get(messageId);
+
+    if (!timer) {
+      return;
+    }
+
+    clearInterval(timer);
+    this.typingTimers.delete(messageId);
   }
 
   private scrollToBottom(): void {
