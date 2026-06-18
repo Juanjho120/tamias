@@ -1948,6 +1948,7 @@ public abstract class AiReadOnlyToolSupport {
 
     protected List<Map<String, Object>> aiChatSessionRows(String propertySearch, UUID sessionId, UUID excludedSessionId, int limit) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
+        UUID currentUserId = currentUserService.getCurrentUserId();
         StringBuilder sql = new StringBuilder("""
                 SELECT s.id,
                        s.title,
@@ -1964,6 +1965,7 @@ public abstract class AiReadOnlyToolSupport {
                 LEFT JOIN ai_chat_messages m ON m.chat_session_id = s.id
                                             AND m.organization_id = s.organization_id
                 WHERE s.organization_id = :organizationId
+                  AND s.created_by = :currentUserId
                 """);
         if (sessionId != null) {
             sql.append("  AND s.id = :sessionId\n");
@@ -1992,6 +1994,7 @@ public abstract class AiReadOnlyToolSupport {
                 """);
         return query(sql.toString(), q -> {
             q.setParameter("organizationId", organizationId);
+            q.setParameter("currentUserId", currentUserId);
             if (sessionId != null) q.setParameter("sessionId", sessionId);
             if (excludedSessionId != null) q.setParameter("excludedSessionId", excludedSessionId);
             if (propertySearch != null) q.setParameter("propertySearch", propertySearch);
@@ -2005,6 +2008,7 @@ public abstract class AiReadOnlyToolSupport {
 
     protected List<Map<String, Object>> aiChatMessageRows(String search, String role, UUID excludedSessionId, int limit) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
+        UUID currentUserId = currentUserService.getCurrentUserId();
         StringBuilder sql = new StringBuilder("""
                 SELECT m.id,
                        s.id AS session_id,
@@ -2019,6 +2023,7 @@ public abstract class AiReadOnlyToolSupport {
                 LEFT JOIN properties p ON p.id = s.property_id
                                       AND p.organization_id = s.organization_id
                 WHERE m.organization_id = :organizationId
+                  AND s.created_by = :currentUserId
                 """);
         if (excludedSessionId != null) {
             sql.append("  AND m.chat_session_id <> :excludedSessionId\n");
@@ -2038,6 +2043,7 @@ public abstract class AiReadOnlyToolSupport {
         sql.append("ORDER BY m.created_at DESC\nLIMIT :limit\n");
         return query(sql.toString(), q -> {
             q.setParameter("organizationId", organizationId);
+            q.setParameter("currentUserId", currentUserId);
             if (excludedSessionId != null) q.setParameter("excludedSessionId", excludedSessionId);
             if (role != null) q.setParameter("role", role);
             if (search != null) q.setParameter("search", search);
@@ -2047,6 +2053,7 @@ public abstract class AiReadOnlyToolSupport {
 
     protected List<Map<String, Object>> aiChatMessagesBySession(UUID sessionId, int limit) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
+        UUID currentUserId = currentUserService.getCurrentUserId();
         return query("""
                 SELECT *
                 FROM (
@@ -2063,6 +2070,7 @@ public abstract class AiReadOnlyToolSupport {
                     LEFT JOIN properties p ON p.id = s.property_id
                                           AND p.organization_id = s.organization_id
                     WHERE m.organization_id = :organizationId
+                      AND s.created_by = :currentUserId
                       AND m.chat_session_id = :sessionId
                     ORDER BY m.created_at DESC
                     LIMIT :limit
@@ -2070,6 +2078,7 @@ public abstract class AiReadOnlyToolSupport {
                 ORDER BY created_at ASC
                 """, q -> {
             q.setParameter("organizationId", organizationId);
+            q.setParameter("currentUserId", currentUserId);
             q.setParameter("sessionId", sessionId);
             q.setParameter("limit", limit);
         }, "id", "sessionId", "sessionTitle", "propertyName", "role", "contentExcerpt", "createdAt");

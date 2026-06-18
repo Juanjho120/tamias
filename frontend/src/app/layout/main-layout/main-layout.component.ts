@@ -12,6 +12,11 @@ interface MenuItem {
   route: string;
 }
 
+interface BootstrapOffcanvasApi {
+  getInstance(element: Element): { hide(): void } | null;
+  getOrCreateInstance(element: Element): { hide(): void };
+}
+
 @Component({
   selector: 'app-main-layout',
   standalone: true,
@@ -22,7 +27,6 @@ export class MainLayoutComponent {
   private readonly authService = inject(AuthService);
 
   readonly user = this.authService.currentUser;
-
   readonly displayName = computed(() => {
     const user = this.user();
 
@@ -34,7 +38,6 @@ export class MainLayoutComponent {
   });
 
   readonly isAdministrator = computed(() => this.user()?.role === 'ADMINISTRATOR');
-
   readonly menuItems = computed<MenuItem[]>(() => {
     const items: MenuItem[] = [
       { labelKey: 'navigation.profile', icon: 'bi-person-circle', route: '/profile' },
@@ -56,6 +59,30 @@ export class MainLayoutComponent {
 
     return items;
   });
+
+  closeMobileSidebar(): void {
+    const sidebarElement = document.getElementById('mobileSidebar');
+
+    if (!sidebarElement) {
+      return;
+    }
+
+    const windowWithBootstrap = window as Window & {
+      bootstrap?: { Offcanvas?: BootstrapOffcanvasApi };
+    };
+    const offcanvasApi = windowWithBootstrap.bootstrap?.Offcanvas;
+
+    if (!offcanvasApi) {
+      sidebarElement.classList.remove('show');
+      document.querySelectorAll('.offcanvas-backdrop').forEach((backdrop) => backdrop.remove());
+      document.body.style.removeProperty('overflow');
+      document.body.style.removeProperty('padding-right');
+      return;
+    }
+
+    const instance = offcanvasApi.getInstance(sidebarElement) ?? offcanvasApi.getOrCreateInstance(sidebarElement);
+    instance.hide();
+  }
 
   logout(): void {
     this.authService.logout();

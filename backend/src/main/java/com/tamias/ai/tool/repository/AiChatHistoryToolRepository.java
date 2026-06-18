@@ -33,10 +33,10 @@ public class AiChatHistoryToolRepository extends AiReadOnlyToolSupport {
         List<Map<String, Object>> rows = aiChatSessionRows(null, null, excludedSessionId, DEFAULT_LIMIT);
         if (rows.isEmpty()) {
             return AiToolAnswer.of(
-                    "No encontré sesiones de chat IA en tu organización.",
+                    "No encontré sesiones de chat IA tuyas.",
                     "aiChat.recentSessions",
                     "AI chat recent sessions",
-                    "No AI chat sessions were found for the current organization.",
+                    "No AI chat sessions were found for the current user.",
                     List.of()
             );
         }
@@ -87,7 +87,7 @@ public class AiChatHistoryToolRepository extends AiReadOnlyToolSupport {
             return AiToolAnswer.of(
                     search == null
                             ? "No encontré sesiones en el historial del asistente IA."
-                            : "No encontré sesiones donde hayamos hablado de “" + search + "” en tu organización.",
+                            : "No encontré sesiones tuyas donde hayamos hablado de “" + search + "”.",
                     "aiChat.searchHistory",
                     "AI chat history search",
                     "No AI chat sessions matched the search criteria.",
@@ -112,7 +112,7 @@ public class AiChatHistoryToolRepository extends AiReadOnlyToolSupport {
         List<Map<String, Object>> rows = aiChatMessageRows(null, null, excludedSessionId, DEFAULT_LIMIT);
         if (rows.isEmpty()) {
             return AiToolAnswer.of(
-                    "No encontré mensajes recientes del asistente IA en tu organización.",
+                    "No encontré mensajes recientes tuyos del asistente IA.",
                     "aiChat.recentMessages",
                     "AI chat recent messages",
                     "No recent AI chat messages were found.",
@@ -214,10 +214,10 @@ public class AiChatHistoryToolRepository extends AiReadOnlyToolSupport {
         List<Map<String, Object>> rows = aiChatSessionRows(null, chatSessionId, 1);
         if (rows.isEmpty()) {
             return AiToolAnswer.of(
-                    "No encontré la sesión de chat IA actual dentro de tu organización.",
+                    "No encontré la sesión de chat IA actual entre tus conversaciones.",
                     "aiChat.currentSessionSummary",
                     "AI chat current session summary",
-                    "The current AI chat session was not found for the current organization.",
+                    "The current AI chat session was not found for the current user.",
                     List.of()
             );
         }
@@ -245,6 +245,7 @@ public class AiChatHistoryToolRepository extends AiReadOnlyToolSupport {
 
     private List<Map<String, Object>> aiChatSessionsContaining(String search, UUID excludedSessionId, int limit) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
+        UUID currentUserId = currentUserService.getCurrentUserId();
         StringBuilder sql = new StringBuilder("""
                 SELECT s.id,
                        s.title,
@@ -261,6 +262,7 @@ public class AiChatHistoryToolRepository extends AiReadOnlyToolSupport {
                 LEFT JOIN ai_chat_messages m ON m.chat_session_id = s.id
                                             AND m.organization_id = s.organization_id
                 WHERE s.organization_id = :organizationId
+                  AND s.created_by = :currentUserId
                 """);
         if (excludedSessionId != null) {
             sql.append("  AND s.id <> :excludedSessionId\n");
@@ -286,6 +288,7 @@ public class AiChatHistoryToolRepository extends AiReadOnlyToolSupport {
                 """);
         return query(sql.toString(), q -> {
             q.setParameter("organizationId", organizationId);
+            q.setParameter("currentUserId", currentUserId);
             if (excludedSessionId != null) q.setParameter("excludedSessionId", excludedSessionId);
             if (search != null) q.setParameter("search", search);
             q.setParameter("limit", limit);
@@ -294,6 +297,7 @@ public class AiChatHistoryToolRepository extends AiReadOnlyToolSupport {
 
     public AiToolAnswer aiChatUsageSummary() {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
+        UUID currentUserId = currentUserService.getCurrentUserId();
         List<Map<String, Object>> rows = query("""
                 SELECT COUNT(DISTINCT s.id) AS session_count,
                        COUNT(m.id) AS message_count,
@@ -306,10 +310,14 @@ public class AiChatHistoryToolRepository extends AiReadOnlyToolSupport {
                 LEFT JOIN ai_chat_messages m ON m.chat_session_id = s.id
                                             AND m.organization_id = s.organization_id
                 WHERE s.organization_id = :organizationId
-                """, q -> q.setParameter("organizationId", organizationId),
+                  AND s.created_by = :currentUserId
+                """, q -> {
+                    q.setParameter("organizationId", organizationId);
+                    q.setParameter("currentUserId", currentUserId);
+                },
                 "sessionCount", "messageCount", "userMessageCount", "assistantMessageCount", "propertyCount", "firstSessionAt", "lastActivityAt");
         Map<String, Object> row = rows.isEmpty() ? Map.of() : rows.get(0);
-        String answer = "Uso del historial de chat IA en tu organización:\n"
+        String answer = "Uso de tu historial de chat IA:\n"
                 + "- Sesiones: " + blankToDash(value(row.get("sessionCount"))) + "\n"
                 + "- Mensajes totales: " + blankToDash(value(row.get("messageCount"))) + "\n"
                 + "- Mensajes de usuarios: " + blankToDash(value(row.get("userMessageCount"))) + "\n"
@@ -321,7 +329,7 @@ public class AiChatHistoryToolRepository extends AiReadOnlyToolSupport {
                 answer,
                 "aiChat.usageSummary",
                 "AI chat usage summary",
-                "AI chat session and message counters were consulted.",
+                "Current user AI chat session and message counters were consulted.",
                 rows
         );
     }

@@ -1,6 +1,6 @@
 <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
   <div>
-    <h1 class="h3 mb-1">{{ 'aiAssistant.title' | translate }}</h1>
+    <h1 class="h3 mb-1">TAMI</h1>
     <p class="text-muted mb-0">{{ 'aiAssistant.subtitle' | translate }}</p>
   </div>
 
@@ -149,7 +149,7 @@
               <div class="ai-message" [class.ai-message-user]="message.role === 'USER'" [class.ai-message-assistant]="message.role === 'ASSISTANT'">
                 <div class="ai-message-bubble">
                   <div class="small text-muted mb-1 d-flex flex-wrap align-items-center gap-1">
-                    <span>{{ 'aiAssistant.role.' + message.role | translate }} · {{ message.createdAt | date:'shortTime' }}</span>
+                    <span>{{ roleLabel(message.role) }} · {{ message.createdAt | date:'shortTime' }}</span>
 
                     @if (hasSystemEvidence(message)) {
                       <span class="badge rounded-pill text-bg-info ai-evidence-status-badge">
@@ -261,8 +261,7 @@
         </div>
 
         <div class="small text-muted mt-2">
-          {{ 'aiAssistant.input.help' | translate }}
-          <span class="ms-2">También puedes usar <kbd>Ctrl</kbd> + <kbd>Enter</kbd>.</span>
+          Presiona <kbd>Enter</kbd> para enviar y <kbd>Shift</kbd> + <kbd>Enter</kbd> para bajar una línea.
         </div>
       </div>
     </div>

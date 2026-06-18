@@ -14,7 +14,6 @@ import {
   AiChatSession,
   AiChatSessionSummary,
   AiLocalMessage,
-  AiChatResponse,
   AiSearchResponse,
   AiSource,
   AiToolEvidence
@@ -106,7 +105,7 @@ export class AiAssistantPageComponent implements OnInit {
     this.loadingReferences.set(true);
 
     this.referenceDataService.loadProperties().subscribe({
-      next: (properties: AiPropertyOption[]) => {
+      next: (properties) => {
         this.properties.set(properties);
         this.loadingReferences.set(false);
       },
@@ -211,7 +210,7 @@ export class AiAssistantPageComponent implements OnInit {
   }
 
   handleQuestionKeydown(event: KeyboardEvent): void {
-    if (event.key !== 'Enter' || (!event.ctrlKey && !event.metaKey)) {
+    if (event.key !== 'Enter' || event.shiftKey) {
       return;
     }
 
@@ -242,7 +241,7 @@ export class AiAssistantPageComponent implements OnInit {
       topK: this.topK(),
       similarityThreshold: this.similarityThreshold()
     }).subscribe({
-      next: (response: AiChatResponse) => {
+      next: (response) => {
         const assistantMessage: AiLocalMessage = {
           id: response.assistantMessageId,
           role: 'ASSISTANT',
@@ -284,7 +283,7 @@ export class AiAssistantPageComponent implements OnInit {
       topK: this.topK(),
       similarityThreshold: this.similarityThreshold()
     }).subscribe({
-      next: (response: AiSearchResponse) => {
+      next: (response) => {
         this.searchResult.set(response);
         this.searching.set(false);
       },
@@ -335,6 +334,15 @@ export class AiAssistantPageComponent implements OnInit {
         this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('aiAssistant.messages.renameError')));
       }
     });
+  }
+
+
+  roleLabel(role: AiLocalMessage['role']): string {
+    if (role === 'ASSISTANT') {
+      return 'TAMI';
+    }
+
+    return this.languageService.instant(`aiAssistant.role.${role}`);
   }
 
   messageSources(message: AiLocalMessage): AiSource[] {

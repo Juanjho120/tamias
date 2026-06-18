@@ -59,9 +59,10 @@ public class AiChatSessionService {
     @Transactional(readOnly = true)
     public PageResponse<AiChatSessionSummaryResponse> findAll(UUID propertyId, Pageable pageable) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
+        UUID currentUserId = currentUserService.getCurrentUserId();
         var page = propertyId == null
-                ? sessionRepository.findByOrganization_Id(organizationId, pageable)
-                : sessionRepository.findByOrganization_IdAndProperty_Id(organizationId, propertyId, pageable);
+                ? sessionRepository.findByOrganization_IdAndCreatedBy_Id(organizationId, currentUserId, pageable)
+                : sessionRepository.findByOrganization_IdAndCreatedBy_IdAndProperty_Id(organizationId, currentUserId, propertyId, pageable);
         return PageResponse.from(page.map(session -> mapper.toSummaryResponse(
                 session,
                 messageRepository.countByChatSession_IdAndOrganization_Id(session.getId(), organizationId)
@@ -150,7 +151,8 @@ public class AiChatSessionService {
 
     private AiChatSession findEntity(UUID sessionId) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-        return sessionRepository.findByIdAndOrganization_Id(sessionId, organizationId)
+        UUID currentUserId = currentUserService.getCurrentUserId();
+        return sessionRepository.findByIdAndOrganization_IdAndCreatedBy_Id(sessionId, organizationId, currentUserId)
                 .orElseThrow(() -> new NotFoundException("AI chat session not found"));
     }
 
