@@ -8,15 +8,10 @@ import { PageResponse } from '../../../../core/models/page-response.model';
 import { ConfirmModalComponent } from '../../../../shared/confirm-modal/confirm-modal.component';
 import { QuetzalCurrencyPipe } from '../../../../shared/pipes/quetzal-currency.pipe';
 import { ToastService } from '../../../../shared/toast/toast.service';
+import { PurchaseImagesModalComponent } from '../../components/purchase-images-modal/purchase-images-modal.component';
 import { PurchaseItemsModalComponent } from '../../components/purchase-items-modal/purchase-items-modal.component';
 import { PurchaseListFormModalComponent } from '../../components/purchase-list-form-modal/purchase-list-form-modal.component';
-import {
-  PurchaseList,
-  PurchaseListRequest,
-  PurchaseListStatus,
-  PurchaseListSummary,
-  PURCHASE_LIST_STATUSES
-} from '../../models/purchase-list.model';
+import { PurchaseList, PurchaseListRequest, PurchaseListStatus, PurchaseListSummary, PURCHASE_LIST_STATUSES } from '../../models/purchase-list.model';
 import { PurchaseReferenceData, PurchaseReferenceDataService } from '../../services/purchase-reference-data.service';
 import { PurchaseListService } from '../../services/purchase-list.service';
 
@@ -32,6 +27,7 @@ type FormMode = 'create' | 'edit';
     TranslatePipe,
     ConfirmModalComponent,
     QuetzalCurrencyPipe,
+    PurchaseImagesModalComponent,
     PurchaseItemsModalComponent,
     PurchaseListFormModalComponent
   ],
@@ -45,43 +41,33 @@ export class PurchasesPageComponent implements OnInit {
 
   readonly statuses = PURCHASE_LIST_STATUSES;
 
-  readonly loading = signal(false);
-  readonly saving = signal(false);
+  readonly loading = signal<boolean>(false);
+  readonly saving = signal<boolean>(false);
   readonly deletingId = signal<string | null>(null);
-  readonly loadingReferences = signal(false);
-
+  readonly loadingReferences = signal<boolean>(false);
   readonly purchaseLists = signal<PurchaseListSummary[]>([]);
   readonly selectedPurchaseList = signal<PurchaseList | null>(null);
   readonly purchaseListForItems = signal<PurchaseListSummary | null>(null);
+  readonly purchaseListForImages = signal<PurchaseListSummary | null>(null);
   readonly purchaseListToDelete = signal<PurchaseListSummary | null>(null);
-
-  readonly references = signal<PurchaseReferenceData>({
-    properties: [],
-    cities: [],
-    suppliers: [],
-    inventoryItems: [],
-    brands: []
-  });
-
-  readonly formVisible = signal(false);
+  readonly references = signal<PurchaseReferenceData>({ properties: [], cities: [], suppliers: [], inventoryItems: [], brands: [] });
+  readonly formVisible = signal<boolean>(false);
   readonly formMode = signal<FormMode>('create');
-
-  readonly propertyId = signal('');
-  readonly supplierId = signal('');
-  readonly cityId = signal('');
+  readonly propertyId = signal<string>('');
+  readonly supplierId = signal<string>('');
+  readonly cityId = signal<string>('');
   readonly status = signal<PurchaseListStatus | ''>('');
-  readonly page = signal(0);
-  readonly size = signal(10);
-  readonly totalElements = signal(0);
-  readonly totalPages = signal(0);
-  readonly first = signal(true);
-  readonly last = signal(true);
+  readonly page = signal<number>(0);
+  readonly size = signal<number>(10);
+  readonly totalElements = signal<number>(0);
+  readonly totalPages = signal<number>(0);
+  readonly first = signal<boolean>(true);
+  readonly last = signal<boolean>(true);
 
   readonly pageLabel = computed(() => {
     if (this.totalElements() === 0) {
       return this.languageService.instant('purchases.pagination.noItems');
     }
-
     return this.languageService.instant('purchases.pagination.pageOf', {
       page: this.page() + 1,
       totalPages: this.totalPages()
@@ -90,14 +76,10 @@ export class PurchasesPageComponent implements OnInit {
 
   readonly deleteMessage = computed(() => {
     const purchaseList = this.purchaseListToDelete();
-
     if (!purchaseList) {
       return '';
     }
-
-    return this.languageService.instant('purchases.confirmDeleteMessage', {
-      date: purchaseList.purchaseDate
-    });
+    return this.languageService.instant('purchases.confirmDeleteMessage', { date: purchaseList.purchaseDate });
   });
 
   ngOnInit(): void {
@@ -107,7 +89,6 @@ export class PurchasesPageComponent implements OnInit {
 
   loadReferences(): void {
     this.loadingReferences.set(true);
-
     this.referenceDataService.loadAll().subscribe({
       next: (references) => {
         this.references.set(references);
@@ -122,7 +103,6 @@ export class PurchasesPageComponent implements OnInit {
 
   loadPurchaseLists(): void {
     this.loading.set(true);
-
     this.purchaseListService.findAll({
       propertyId: this.propertyId() || undefined,
       supplierId: this.supplierId() || undefined,
@@ -167,7 +147,6 @@ export class PurchasesPageComponent implements OnInit {
     if (this.first()) {
       return;
     }
-
     this.page.update((value) => value - 1);
     this.loadPurchaseLists();
   }
@@ -176,7 +155,6 @@ export class PurchasesPageComponent implements OnInit {
     if (this.last()) {
       return;
     }
-
     this.page.update((value) => value + 1);
     this.loadPurchaseLists();
   }
@@ -195,7 +173,6 @@ export class PurchasesPageComponent implements OnInit {
 
   openEditForm(id: string): void {
     this.loading.set(true);
-
     this.purchaseListService.findById(id).subscribe({
       next: (purchaseList) => {
         this.selectedPurchaseList.set(purchaseList);
@@ -214,7 +191,6 @@ export class PurchasesPageComponent implements OnInit {
     if (this.saving()) {
       return;
     }
-
     this.formVisible.set(false);
     this.selectedPurchaseList.set(null);
     this.formMode.set('create');
@@ -222,9 +198,7 @@ export class PurchasesPageComponent implements OnInit {
 
   savePurchaseList(request: PurchaseListRequest): void {
     const selectedPurchaseList = this.selectedPurchaseList();
-
     this.saving.set(true);
-
     const saveRequest = this.formMode() === 'edit' && selectedPurchaseList
       ? this.purchaseListService.update(selectedPurchaseList.id, request)
       : this.purchaseListService.create(request);
@@ -255,6 +229,14 @@ export class PurchasesPageComponent implements OnInit {
     this.purchaseListForItems.set(null);
   }
 
+  openImages(purchaseList: PurchaseListSummary): void {
+    this.purchaseListForImages.set(purchaseList);
+  }
+
+  closeImages(): void {
+    this.purchaseListForImages.set(null);
+  }
+
   requestDelete(purchaseList: PurchaseListSummary): void {
     this.purchaseListToDelete.set(purchaseList);
   }
@@ -263,19 +245,16 @@ export class PurchasesPageComponent implements OnInit {
     if (this.deletingId()) {
       return;
     }
-
     this.purchaseListToDelete.set(null);
   }
 
   confirmDelete(): void {
     const purchaseList = this.purchaseListToDelete();
-
     if (!purchaseList) {
       return;
     }
 
     this.deletingId.set(purchaseList.id);
-
     this.purchaseListService.delete(purchaseList.id).subscribe({
       next: () => {
         this.deletingId.set(null);
@@ -311,7 +290,6 @@ export class PurchasesPageComponent implements OnInit {
     if (!purchaseList.totalItems) {
       return 0;
     }
-
     return purchaseList.purchasedItems / purchaseList.totalItems;
   }
 

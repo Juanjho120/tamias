@@ -51,12 +51,14 @@ Required logical fields:
 
 ```text
 id
+organization_id
 purchase_list_id
 s3_key
 filepath
 filename/original_filename
 content_type
 size_bytes
+status
 created_at
 created_by
 ```
@@ -78,11 +80,13 @@ Use:
 Example:
 
 ```text
-s3_key: purchases/8d58a26f-11a1-4a80-a851-eab88de142f2/receipt.jpg
-filepath: tamias-dev-files/purchases/8d58a26f-11a1-4a80-a851-eab88de142f2
+s3_key: {organizationId}/purchases/8d58a26f-11a1-4a80-a851-eab88de142f2/receipt.jpg
+filepath: tamias-dev-files/{organizationId}/purchases/8d58a26f-11a1-4a80-a851-eab88de142f2
 ```
 
 Bucket must come from configuration.
+
+The final S3 strategy keeps `organizationId` as the first level inside the bucket.
 
 ---
 
@@ -92,7 +96,9 @@ Recommended endpoint pattern:
 
 ```http
 GET    /api/v1/purchase-lists/{purchaseListId}/images
+GET    /api/v1/purchase-lists/{purchaseListId}/images/{imageId}
 POST   /api/v1/purchase-lists/{purchaseListId}/images
+GET    /api/v1/purchase-lists/{purchaseListId}/images/{imageId}/file
 DELETE /api/v1/purchase-lists/{purchaseListId}/images/{imageId}
 ```
 
@@ -100,6 +106,7 @@ Rules:
 
 - Parent purchase list must belong to current organization.
 - Delete must remove S3 object and DB row physically.
+- If S3/storage deletion fails, the DB row must not be deleted.
 - Do not allow image access across organizations.
 
 ---
@@ -121,6 +128,8 @@ Purchase Lists table
 
 Use the same pattern as properties and maintenance images.
 
+All visible labels/messages must use the current i18n strategy. Do not add hardcoded Spanish or English labels in templates/components.
+
 ---
 
 ## Acceptance tests
@@ -130,8 +139,8 @@ Use the same pattern as properties and maintenance images.
 2. Click Images for a purchase list.
 3. Upload several images.
 4. Confirm images appear in modal.
-5. Confirm s3_key starts with purchases/{purchaseListId}/.
-6. Confirm filepath is populated.
+5. Confirm s3_key starts with {organizationId}/purchases/{purchaseListId}/.
+6. Confirm filepath is populated as {bucket}/{organizationId}/purchases/{purchaseListId}.
 7. Delete one image.
 8. Confirm S3 object is gone.
 9. Confirm DB row is gone.
