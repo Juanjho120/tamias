@@ -46,7 +46,6 @@
                           }
                         </select>
                       </div>
-
                       <div class="col-12 col-lg-4">
                         <button type="submit" class="btn btn-primary w-100" [disabled]="addingPerson() || availablePeople().length === 0">
                           @if (addingPerson()) {
@@ -109,7 +108,7 @@
                             (ngModelChange)="onInventoryItemSelected($event)">
                             <option value="">{{ 'maintenance.details.materials.noCatalogItem' | translate }}</option>
                             @for (item of inventoryItemOptions; track item.id) {
-                              <option [value]="item.id">{{ item.name }}</option>
+                              <option [value]="item.id">{{ inventoryItemDisplayName(item) }}</option>
                             }
                           </select>
                         </div>
@@ -160,7 +159,6 @@
                             }
                             {{ (editingItem() ? 'maintenance.details.materials.update' : 'maintenance.details.materials.add') | translate }}
                           </button>
-
                           @if (editingItem()) {
                             <button type="button" class="btn btn-outline-secondary" [disabled]="savingItem()" (click)="cancelEditItem()">
                               {{ 'common.cancel' | translate }}
@@ -190,13 +188,13 @@
                       <div class="table-responsive bg-white rounded-3 border">
                         <table class="table table-hover align-middle mb-0">
                           <thead class="table-light">
-                          <tr>
-                            <th>{{ 'maintenance.details.materials.material' | translate }}</th>
-                            <th>{{ 'maintenance.details.materials.quantity' | translate }}</th>
-                            <th>{{ 'maintenance.details.materials.unit' | translate }}</th>
-                            <th>{{ 'maintenance.details.materials.notes' | translate }}</th>
-                            <th class="text-end">{{ 'maintenance.table.actions' | translate }}</th>
-                          </tr>
+                            <tr>
+                              <th>{{ 'maintenance.details.materials.material' | translate }}</th>
+                              <th>{{ 'maintenance.details.materials.quantity' | translate }}</th>
+                              <th>{{ 'maintenance.details.materials.unit' | translate }}</th>
+                              <th>{{ 'maintenance.details.materials.notes' | translate }}</th>
+                              <th class="text-end">{{ 'maintenance.table.actions' | translate }}</th>
+                            </tr>
                           </thead>
                           <tbody>
                             @for (item of items(); track trackById($index, item)) {

@@ -42,7 +42,6 @@ export class MaintenanceDetailsModalComponent implements OnChanges {
 
   readonly people = signal<MaintenanceRecordPerson[]>([]);
   readonly items = signal<MaintenanceRecordItem[]>([]);
-
   readonly loading = signal(false);
   readonly addingPerson = signal(false);
   readonly savingItem = signal(false);
@@ -64,7 +63,6 @@ export class MaintenanceDetailsModalComponent implements OnChanges {
 
   readonly deleteMessage = computed(() => {
     const target = this.deleteTarget();
-
     if (!target) {
       return '';
     }
@@ -98,13 +96,11 @@ export class MaintenanceDetailsModalComponent implements OnChanges {
 
   loadDetails(): void {
     const record = this.maintenanceRecord;
-
     if (!record) {
       return;
     }
 
     this.loading.set(true);
-
     forkJoin({
       people: this.maintenanceDetailService.findPeople(record.id),
       items: this.maintenanceDetailService.findItems(record.id)
@@ -123,7 +119,6 @@ export class MaintenanceDetailsModalComponent implements OnChanges {
 
   addPerson(): void {
     const record = this.maintenanceRecord;
-
     if (!record) {
       return;
     }
@@ -134,7 +129,6 @@ export class MaintenanceDetailsModalComponent implements OnChanges {
     }
 
     this.addingPerson.set(true);
-
     this.maintenanceDetailService.addPerson(record.id, this.personForm.getRawValue()).subscribe({
       next: () => {
         this.addingPerson.set(false);
@@ -167,24 +161,16 @@ export class MaintenanceDetailsModalComponent implements OnChanges {
     }
 
     this.editingItem.set(null);
-    this.itemForm.reset({
-      inventoryItemId: '',
-      itemNameSnapshot: '',
-      quantity: '',
-      unit: '',
-      notes: ''
-    });
+    this.itemForm.reset({ inventoryItemId: '', itemNameSnapshot: '', quantity: '', unit: '', notes: '' });
   }
 
   saveItem(): void {
     const record = this.maintenanceRecord;
-
     if (!record) {
       return;
     }
 
     const rawValue = this.itemForm.getRawValue();
-
     if (!rawValue.inventoryItemId && !rawValue.itemNameSnapshot.trim()) {
       this.toastService.warning(this.languageService.instant('maintenance.details.messages.materialRequired'));
       return;
@@ -204,9 +190,7 @@ export class MaintenanceDetailsModalComponent implements OnChanges {
     };
 
     this.savingItem.set(true);
-
     const editingItem = this.editingItem();
-
     const saveRequest = editingItem
       ? this.maintenanceDetailService.updateItem(record.id, editingItem.id, request)
       : this.maintenanceDetailService.addItem(record.id, request);
@@ -231,19 +215,11 @@ export class MaintenanceDetailsModalComponent implements OnChanges {
   }
 
   requestRemovePerson(person: MaintenanceRecordPerson): void {
-    this.deleteTarget.set({
-      type: 'person',
-      id: person.id,
-      name: person.fullName
-    });
+    this.deleteTarget.set({ type: 'person', id: person.id, name: person.fullName });
   }
 
   requestRemoveItem(item: MaintenanceRecordItem): void {
-    this.deleteTarget.set({
-      type: 'item',
-      id: item.id,
-      name: this.itemDisplayName(item)
-    });
+    this.deleteTarget.set({ type: 'item', id: item.id, name: this.itemDisplayName(item) });
   }
 
   cancelDelete(): void {
@@ -257,13 +233,11 @@ export class MaintenanceDetailsModalComponent implements OnChanges {
   confirmDelete(): void {
     const record = this.maintenanceRecord;
     const target = this.deleteTarget();
-
     if (!record || !target) {
       return;
     }
 
     this.deleting.set(true);
-
     const deleteRequest = target.type === 'person'
       ? this.maintenanceDetailService.removePerson(record.id, target.id)
       : this.maintenanceDetailService.removeItem(record.id, target.id);
@@ -289,14 +263,28 @@ export class MaintenanceDetailsModalComponent implements OnChanges {
 
   onInventoryItemSelected(inventoryItemId: string): void {
     const inventoryItem = this.inventoryItemOptions.find((item) => item.id === inventoryItemId);
-
     if (inventoryItem?.unit && !this.itemForm.controls.unit.value) {
       this.itemForm.controls.unit.setValue(inventoryItem.unit);
     }
   }
 
+  inventoryItemDisplayName(inventoryItem: MaintenanceInventoryItemOption): string {
+    return inventoryItem.brandName ? `${inventoryItem.name} - ${inventoryItem.brandName}` : inventoryItem.name;
+  }
+
   itemDisplayName(item: MaintenanceRecordItem): string {
-    return item.inventoryItemName ?? item.itemNameSnapshot ?? '—';
+    const inventoryItem = item.inventoryItemId
+      ? this.inventoryItemOptions.find((candidate) => candidate.id === item.inventoryItemId)
+      : null;
+
+    if (inventoryItem) {
+      return this.inventoryItemDisplayName(inventoryItem);
+    }
+
+    const baseName = item.inventoryItemName ?? item.materialName ?? item.itemNameSnapshot ?? item.materialNameSnapshot ?? '—';
+    const brandName = item.inventoryItemBrandName ?? item.materialBrandName;
+
+    return brandName ? `${baseName} - ${brandName}` : baseName;
   }
 
   trackById(index: number, item: { id: string }): string {
@@ -309,13 +297,7 @@ export class MaintenanceDetailsModalComponent implements OnChanges {
     this.deleteTarget.set(null);
     this.editingItem.set(null);
     this.personForm.reset({ maintenancePersonId: '' });
-    this.itemForm.reset({
-      inventoryItemId: '',
-      itemNameSnapshot: '',
-      quantity: '',
-      unit: '',
-      notes: ''
-    });
+    this.itemForm.reset({ inventoryItemId: '', itemNameSnapshot: '', quantity: '', unit: '', notes: '' });
   }
 
   private extractErrorMessage(error: unknown, fallback: string): string {

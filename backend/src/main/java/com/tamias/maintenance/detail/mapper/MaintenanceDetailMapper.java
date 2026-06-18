@@ -7,6 +7,7 @@ import com.tamias.maintenance.detail.dto.MaintenanceRecordItemUpdateRequest;
 import com.tamias.maintenance.detail.dto.MaintenanceRecordPersonResponse;
 import com.tamias.maintenance.detail.entity.MaintenanceRecordItem;
 import com.tamias.maintenance.detail.entity.MaintenanceRecordPerson;
+import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -14,7 +15,6 @@ public class MaintenanceDetailMapper {
 
     public MaintenanceRecordPersonResponse toPersonResponse(MaintenanceRecordPerson entity) {
         var person = entity.getMaintenancePerson();
-
         return new MaintenanceRecordPersonResponse(
                 entity.getId(),
                 entity.getMaintenanceRecord().getId(),
@@ -56,14 +56,24 @@ public class MaintenanceDetailMapper {
 
     public MaintenanceRecordItemResponse toRecordItemResponse(MaintenanceRecordItem entity) {
         var inventoryItem = entity.getInventoryItem();
+        UUID brandId = inventoryItem != null && inventoryItem.getBrand() != null
+                ? inventoryItem.getBrand().getId()
+                : null;
+        String brandName = inventoryItem != null && inventoryItem.getBrand() != null
+                ? inventoryItem.getBrand().getName()
+                : null;
 
         return new MaintenanceRecordItemResponse(
                 entity.getId(),
                 entity.getMaintenanceRecord().getId(),
                 inventoryItem != null ? inventoryItem.getId() : null,
                 inventoryItem != null ? inventoryItem.getName() : null,
+                brandId,
+                brandName,
                 inventoryItem != null ? inventoryItem.getId() : null,
                 inventoryItem != null ? inventoryItem.getName() : null,
+                brandId,
+                brandName,
                 entity.getItemNameSnapshot(),
                 entity.getItemNameSnapshot(),
                 entity.getQuantity(),
