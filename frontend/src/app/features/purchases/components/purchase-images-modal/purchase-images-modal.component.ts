@@ -76,7 +76,9 @@ export class PurchaseImagesModalComponent implements OnChanges {
       },
       error: (error: unknown) => {
         this.loading.set(false);
-        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('common.error')));
+        this.toastService.error(
+          this.extractErrorMessage(error, this.languageService.instant('purchases.images.messages.loadError'))
+        );
       }
     });
   }
@@ -91,7 +93,7 @@ export class PurchaseImagesModalComponent implements OnChanges {
     const files = this.selectedFiles();
 
     if (!purchaseListId || files.length === 0) {
-      this.toastService.warning(this.languageService.instant('documents.upload.noFileSelected'));
+      this.toastService.warning(this.languageService.instant('purchases.images.messages.fileRequired'));
       return;
     }
 
@@ -103,13 +105,15 @@ export class PurchaseImagesModalComponent implements OnChanges {
         if (this.fileInput?.nativeElement) {
           this.fileInput.nativeElement.value = '';
         }
-        this.toastService.success(this.languageService.instant('common.success'));
+        this.toastService.success(this.languageService.instant('purchases.images.messages.uploaded'));
         this.imagesChanged.emit();
         this.loadImages();
       },
       error: (error: unknown) => {
         this.uploading.set(false);
-        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('common.error')));
+        this.toastService.error(
+          this.extractErrorMessage(error, this.languageService.instant('purchases.images.messages.uploadError'))
+        );
       }
     });
   }
@@ -121,7 +125,7 @@ export class PurchaseImagesModalComponent implements OnChanges {
     }
 
     const confirmed = window.confirm(
-      this.languageService.instant('properties.images.confirmDeleteMessage', { filename: image.originalFilename })
+      this.languageService.instant('purchases.images.confirmDeleteMessage', { filename: image.originalFilename })
     );
     if (!confirmed) {
       return;
@@ -131,13 +135,15 @@ export class PurchaseImagesModalComponent implements OnChanges {
     this.purchaseImageService.delete(purchaseListId, image.id).subscribe({
       next: () => {
         this.deletingId.set(null);
-        this.toastService.success(this.languageService.instant('common.success'));
+        this.toastService.success(this.languageService.instant('purchases.images.messages.deleted'));
         this.imagesChanged.emit();
         this.loadImages();
       },
       error: (error: unknown) => {
         this.deletingId.set(null);
-        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('common.error')));
+        this.toastService.error(
+          this.extractErrorMessage(error, this.languageService.instant('purchases.images.messages.deleteError'))
+        );
       }
     });
   }
@@ -152,12 +158,12 @@ export class PurchaseImagesModalComponent implements OnChanges {
   filesSummary(): string {
     const files = this.selectedFiles();
     if (files.length === 0) {
-      return this.languageService.instant('documents.upload.noFileSelected');
+      return this.languageService.instant('purchases.images.upload.noFilesSelected');
     }
     if (files.length === 1) {
       return files[0].name;
     }
-    return files.map((file) => file.name).join(', ');
+    return this.languageService.instant('purchases.images.upload.selectedFiles', { count: files.length });
   }
 
   purchaseListLabel(): string {

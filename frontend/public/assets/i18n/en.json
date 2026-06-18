@@ -550,7 +550,39 @@
       },
       "inventoryItems": {
         "title": "Inventory Items",
-        "description": "Shared catalog of operational items used in maintenance, purchases and reservations."
+        "description": "Shared catalog of operational items used in maintenance, purchases and reservations.",
+        "images": {
+          "button": "Images",
+          "title": "Inventory item images",
+          "loading": "Loading images...",
+          "cover": "Main",
+          "setCover": "Main",
+          "open": "View",
+          "confirmDeleteTitle": "Delete image",
+          "confirmDeleteMessage": "Delete image \"{{filename}}\"?",
+          "upload": {
+            "title": "Add images",
+            "file": "Image file",
+            "help": "Allowed types: JPG, PNG and WEBP.",
+            "noFilesSelected": "Select one or more images for this item.",
+            "selectedFiles": "{{count}} files selected",
+            "button": "Upload images",
+            "uploading": "Uploading..."
+          },
+          "empty": {
+            "title": "This item does not have images yet",
+            "description": "Upload one or more images to identify it visually."
+          },
+          "messages": {
+            "loadError": "Unable to load item images.",
+            "uploaded": "Images uploaded successfully.",
+            "uploadError": "Unable to upload images.",
+            "coverUpdated": "Main image updated successfully.",
+            "coverError": "Unable to update the main image.",
+            "deleted": "Image deleted successfully.",
+            "deleteError": "Unable to delete image."
+          }
+        }
       },
       "suppliers": {
         "title": "Suppliers",
@@ -1063,6 +1095,35 @@
         "deleted": "Purchase item deleted successfully.",
         "purchasedUpdated": "Purchase item status updated.",
         "purchasedError": "Unable to update purchase item status."
+      }
+    },
+    "images": {
+      "button": "Images",
+      "title": "Purchase list images",
+      "loading": "Loading images...",
+      "previewUnavailable": "Preview unavailable",
+      "urlExpiresIn": "URL expires in {{seconds}} seconds",
+      "confirmDeleteTitle": "Delete image",
+      "confirmDeleteMessage": "Delete image \"{{filename}}\"?",
+      "upload": {
+        "file": "Image file",
+        "help": "Allowed types: JPG, PNG, WEBP. The maximum size is controlled by the backend configuration.",
+        "noFilesSelected": "Select one or more images for this purchase list.",
+        "selectedFiles": "{{count}} files selected",
+        "button": "Upload image",
+        "uploading": "Uploading..."
+      },
+      "empty": {
+        "title": "No images yet",
+        "description": "Upload receipts, invoices or evidence related to this purchase list."
+      },
+      "messages": {
+        "loadError": "Unable to load purchase list images.",
+        "fileRequired": "Select an image file first.",
+        "uploaded": "Image uploaded successfully.",
+        "uploadError": "Unable to upload image.",
+        "deleted": "Image deleted successfully.",
+        "deleteError": "Unable to delete image."
       }
     }
   },

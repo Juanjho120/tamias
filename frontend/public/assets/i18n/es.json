@@ -549,7 +549,39 @@
       },
       "inventoryItems": {
         "title": "Insumos y materiales",
-        "description": "Catálogo compartido de items operativos usados en mantenimiento, compras y reservaciones."
+        "description": "Catálogo compartido de items operativos usados en mantenimiento, compras y reservaciones.",
+        "images": {
+          "button": "Imágenes",
+          "title": "Imágenes del item de inventario",
+          "loading": "Cargando imágenes...",
+          "cover": "Principal",
+          "setCover": "Principal",
+          "open": "Ver",
+          "confirmDeleteTitle": "Eliminar imagen",
+          "confirmDeleteMessage": "¿Eliminar la imagen \"{{filename}}\"?",
+          "upload": {
+            "title": "Agregar imágenes",
+            "file": "Archivo de imagen",
+            "help": "Tipos permitidos: JPG, PNG y WEBP.",
+            "noFilesSelected": "Selecciona una o varias imágenes para este item.",
+            "selectedFiles": "{{count}} archivos seleccionados",
+            "button": "Cargar imágenes",
+            "uploading": "Cargando..."
+          },
+          "empty": {
+            "title": "Este item todavía no tiene imágenes",
+            "description": "Carga una o varias imágenes para identificarlo visualmente."
+          },
+          "messages": {
+            "loadError": "No se pudieron cargar las imágenes del item.",
+            "uploaded": "Imágenes cargadas correctamente.",
+            "uploadError": "No se pudieron cargar las imágenes.",
+            "coverUpdated": "Imagen principal actualizada.",
+            "coverError": "No se pudo actualizar la imagen principal.",
+            "deleted": "Imagen eliminada correctamente.",
+            "deleteError": "No se pudo eliminar la imagen."
+          }
+        }
       },
       "suppliers": {
         "title": "Proveedores",
@@ -1062,6 +1094,35 @@
         "deleted": "Item de compra eliminado correctamente.",
         "purchasedUpdated": "Estado del item actualizado.",
         "purchasedError": "No se pudo actualizar el estado del item."
+      }
+    },
+    "images": {
+      "button": "Imágenes",
+      "title": "Imágenes de la lista de compras",
+      "loading": "Cargando imágenes...",
+      "previewUnavailable": "Vista previa no disponible",
+      "urlExpiresIn": "URL expira en {{seconds}} segundos",
+      "confirmDeleteTitle": "Eliminar imagen",
+      "confirmDeleteMessage": "¿Eliminar la imagen \"{{filename}}\"?",
+      "upload": {
+        "file": "Archivo de imagen",
+        "help": "Tipos permitidos: JPG, PNG, WEBP. El tamaño máximo lo controla la configuración del backend.",
+        "noFilesSelected": "Selecciona una o varias imágenes para esta lista de compras.",
+        "selectedFiles": "{{count}} archivos seleccionados",
+        "button": "Subir imagen",
+        "uploading": "Subiendo..."
+      },
+      "empty": {
+        "title": "Aún no hay imágenes",
+        "description": "Sube imágenes de facturas, recibos o evidencia relacionada con esta lista de compras."
+      },
+      "messages": {
+        "loadError": "No se pudieron cargar las imágenes de la lista de compras.",
+        "fileRequired": "Selecciona primero un archivo de imagen.",
+        "uploaded": "Imagen subida correctamente.",
+        "uploadError": "No se pudo subir la imagen.",
+        "deleted": "Imagen eliminada correctamente.",
+        "deleteError": "No se pudo eliminar la imagen."
       }
     }
   },

@@ -1,7 +1,9 @@
 import { DatePipe } from '@angular/common';
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 
+import { LanguageService } from '../../../../core/i18n/language.service';
 import { ApiError } from '../../../../core/models/api-error.model';
 import { ToastService } from '../../../../shared/toast/toast.service';
 import { CatalogItem } from '../../models/catalog.model';
@@ -11,7 +13,7 @@ import { InventoryItemImageService } from '../../services/inventory-item-image.s
 @Component({
   selector: 'app-inventory-item-images-modal',
   standalone: true,
-  imports: [DatePipe],
+  imports: [DatePipe, TranslatePipe],
   templateUrl: './inventory-item-images-modal.component.html',
   styles: [
     `
@@ -34,6 +36,7 @@ export class InventoryItemImagesModalComponent implements OnChanges {
 
   private readonly imageService = inject(InventoryItemImageService);
   private readonly toastService = inject(ToastService);
+  private readonly languageService = inject(LanguageService);
 
   readonly images = signal<InventoryItemImage[]>([]);
   readonly selectedFiles = signal<File[]>([]);
@@ -64,6 +67,20 @@ export class InventoryItemImagesModalComponent implements OnChanges {
     return brandName ? `${itemName} - ${brandName}` : itemName;
   }
 
+  filesSummary(): string {
+    const files = this.selectedFiles();
+
+    if (files.length === 0) {
+      return this.languageService.instant('catalogs.items.inventoryItems.images.upload.noFilesSelected');
+    }
+
+    if (files.length === 1) {
+      return files[0].name;
+    }
+
+    return this.languageService.instant('catalogs.items.inventoryItems.images.upload.selectedFiles', { count: files.length });
+  }
+
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     this.selectedFiles.set(Array.from(input.files ?? []));
@@ -85,12 +102,14 @@ export class InventoryItemImagesModalComponent implements OnChanges {
       next: () => {
         this.uploading.set(false);
         this.selectedFiles.set([]);
-        this.toastService.success('Imágenes cargadas correctamente.');
+        this.toastService.success(this.languageService.instant('catalogs.items.inventoryItems.images.messages.uploaded'));
         this.loadImages();
       },
       error: (error: unknown) => {
         this.uploading.set(false);
-        this.toastService.error(this.extractErrorMessage(error, 'No se pudieron cargar las imágenes.'));
+        this.toastService.error(
+          this.extractErrorMessage(error, this.languageService.instant('catalogs.items.inventoryItems.images.messages.uploadError'))
+        );
       }
     });
   }
@@ -105,12 +124,14 @@ export class InventoryItemImagesModalComponent implements OnChanges {
     this.imageService.setCover(this.inventoryItem.id, image.id).subscribe({
       next: () => {
         this.settingCoverId.set(null);
-        this.toastService.success('Imagen principal actualizada.');
+        this.toastService.success(this.languageService.instant('catalogs.items.inventoryItems.images.messages.coverUpdated'));
         this.loadImages();
       },
       error: (error: unknown) => {
         this.settingCoverId.set(null);
-        this.toastService.error(this.extractErrorMessage(error, 'No se pudo actualizar la imagen principal.'));
+        this.toastService.error(
+          this.extractErrorMessage(error, this.languageService.instant('catalogs.items.inventoryItems.images.messages.coverError'))
+        );
       }
     });
   }
@@ -120,7 +141,11 @@ export class InventoryItemImagesModalComponent implements OnChanges {
       return;
     }
 
-    const confirmed = window.confirm(`¿Eliminar la imagen ${image.originalFilename}?`);
+    const confirmed = window.confirm(
+      this.languageService.instant('catalogs.items.inventoryItems.images.confirmDeleteMessage', {
+        filename: image.originalFilename
+      })
+    );
 
     if (!confirmed) {
       return;
@@ -132,11 +157,13 @@ export class InventoryItemImagesModalComponent implements OnChanges {
       next: () => {
         this.deletingId.set(null);
         this.images.update((current) => current.filter((item) => item.id !== image.id));
-        this.toastService.success('Imagen eliminada correctamente.');
+        this.toastService.success(this.languageService.instant('catalogs.items.inventoryItems.images.messages.deleted'));
       },
       error: (error: unknown) => {
         this.deletingId.set(null);
-        this.toastService.error(this.extractErrorMessage(error, 'No se pudo eliminar la imagen.'));
+        this.toastService.error(
+          this.extractErrorMessage(error, this.languageService.instant('catalogs.items.inventoryItems.images.messages.deleteError'))
+        );
       }
     });
   }
@@ -164,7 +191,9 @@ export class InventoryItemImagesModalComponent implements OnChanges {
       },
       error: (error: unknown) => {
         this.loading.set(false);
-        this.toastService.error(this.extractErrorMessage(error, 'No se pudieron cargar las imágenes del item.'));
+        this.toastService.error(
+          this.extractErrorMessage(error, this.languageService.instant('catalogs.items.inventoryItems.images.messages.loadError'))
+        );
       }
     });
   }
