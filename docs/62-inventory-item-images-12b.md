@@ -60,7 +60,7 @@ Before implementing, inspect the actual current `property_images` and `maintenan
 Use:
 
 ```text
-catalogs/inventory_items/{inventoryItemId}/{filename}
+{organizationId}/catalogs/inventory_items/{inventoryItemId}/{filename}
 ```
 
 Example:

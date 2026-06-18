@@ -72,7 +72,7 @@ Before implementing, inspect current purchase list table/entity names.
 Use:
 
 ```text
-purchases/{purchaseListId}/{filename}
+{organizationId}/purchases/{purchaseListId}/{filename}
 ```
 
 Example:

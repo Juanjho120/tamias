@@ -95,7 +95,7 @@ public class PropertyImageService {
             clearCover(propertyId, organizationId);
         }
 
-        var storedFile = fileStorageService.store(file, "properties/" + property.getId());
+        var storedFile = fileStorageService.store(file, property.getOrganization().getId() + "/properties/" + property.getId());
 
         PropertyImage entity = new PropertyImage();
         entity.setOrganization(property.getOrganization());

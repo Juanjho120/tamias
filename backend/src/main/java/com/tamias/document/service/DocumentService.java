@@ -20,6 +20,7 @@ import com.tamias.document.processing.DocumentProcessingService;
 import com.tamias.document.repository.DocumentChunkRepository;
 import com.tamias.document.repository.DocumentRepository;
 import com.tamias.document.storage.FileStorageService;
+import com.tamias.organization.entity.Organization;
 import com.tamias.organization.repository.OrganizationRepository;
 import com.tamias.property.entity.Property;
 import com.tamias.property.repository.PropertyRepository;
@@ -158,7 +159,7 @@ public class DocumentService {
             : propertyRepository.findByIdAndOrganization_IdAndDeletedAtIsNull(request.propertyId(), organizationId)
                 .orElseThrow(() -> new NotFoundException("Property not found"));
 
-        String storageFolder = buildDocumentStorageFolder(property);
+        String storageFolder = buildDocumentStorageFolder(organization, property);
         var storedFile = fileStorageService.store(file, storageFolder);
 
         Document document = new Document();
@@ -239,11 +240,11 @@ public class DocumentService {
             .orElseThrow(() -> new NotFoundException("Document not found"));
     }
 
-    private String buildDocumentStorageFolder(Property property) {
+    private String buildDocumentStorageFolder(Organization organization, Property property) {
         if (property == null) {
             return "documents";
         }
-        return "documents/" + property.getId();
+        return organization.getId() + "/documents/" + property.getId();
     }
 
     private void validateFile(MultipartFile file) {

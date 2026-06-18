@@ -324,27 +324,83 @@ Reason:
 Decision:
 
 ```text
-Store files by module and entity id instead of year/month folders.
+Store files by organization, module and entity id instead of year/month folders.
 ```
 
 Target structure:
 
 ```text
-properties/{propertyId}/
-reservations/{reservationId}/
-catalogs/inventory_items/{inventoryItemId}/
-maintenance/{maintenanceRecordId}/
-purchases/{purchaseListId}/
-documents/
-documents/{propertyId}/
+{organizationId}/properties/{propertyId}/
+{organizationId}/reservations/{reservationId}/
+{organizationId}/catalogs/inventory_items/{inventoryItemId}/
+{organizationId}/maintenance/{maintenanceRecordId}/
+{organizationId}/purchases/{purchaseListId}/
+{organizationId}/documents/
+{organizationId}/documents/{propertyId}/
+```
+
+Bucket example:
+
+```text
+tamias-dev-files/
+  {organizationId}/
+    properties/
+      {propertyId}/
+        Image1.jpg
+        Image2.jpg
+    reservations/
+      {reservationId}/
+        Image1.jpg
+    catalogs/
+      inventory_items/
+        {inventoryItemId}/
+          Image1.jpg
+    maintenance/
+      {maintenanceRecordId}/
+        Image1.jpg
+    purchases/
+      {purchaseListId}/
+        Image1.jpg
+    documents/
+      Document1.pdf
+      Document2.pdf
+      {propertyId}/
+        Document1.pdf
 ```
 
 Rules:
 
 - `s3_key` remains the relative key used by AWS S3 operations.
+- `s3_key` must include the organization id prefix.
 - `filepath` stores the configured bucket plus the folder path without the filename.
 - `filepath` must use the bucket configured by environment/properties.
-- New uploads must use the new module/entity path strategy.
+- New uploads must use the organization/module/entity path strategy.
+
+Examples:
+
+```text
+s3_key:
+{organizationId}/properties/{propertyId}/uuid_Image1.jpg
+
+filepath:
+tamias-dev-files/{organizationId}/properties/{propertyId}
+```
+
+```text
+s3_key:
+{organizationId}/documents/{propertyId}/uuid_Document1.pdf
+
+filepath:
+tamias-dev-files/{organizationId}/documents/{propertyId}
+```
+
+Reason:
+
+- Keeps each organization's files grouped together in the bucket.
+- Improves multi-tenant operational visibility.
+- Makes manual S3 inspection easier.
+- Avoids mixing unrelated module files in year/month folders.
+- Keeps future cleanup by organization/entity simpler.
 
 ---
 

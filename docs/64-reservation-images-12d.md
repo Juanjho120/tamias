@@ -60,7 +60,7 @@ Before implementing, inspect the actual reservation entity/table and existing im
 Use:
 
 ```text
-reservations/{reservationId}/{filename}
+{organizationId}/reservations/{reservationId}/{filename}
 ```
 
 Example:

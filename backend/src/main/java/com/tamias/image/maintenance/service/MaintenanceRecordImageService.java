@@ -84,7 +84,7 @@ public class MaintenanceRecordImageService {
         MaintenanceRecord maintenanceRecord = validateMaintenanceRecord(maintenanceRecordId, organizationId);
         User currentUser = getCurrentUser();
 
-        var storedFile = fileStorageService.store(file, "maintenance/" + maintenanceRecord.getId());
+        var storedFile = fileStorageService.store(file, maintenanceRecord.getOrganization().getId() + "/maintenance/" + maintenanceRecord.getId());
 
         MaintenanceRecordImage entity = new MaintenanceRecordImage();
         entity.setOrganization(maintenanceRecord.getOrganization());
