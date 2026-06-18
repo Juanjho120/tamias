@@ -14,6 +14,7 @@ public interface InventoryItemRepository extends BaseCatalogRepository<Inventory
     @Query("""
             SELECT item
             FROM InventoryItem item
+            LEFT JOIN item.brand brand
             WHERE item.organization.id = :organizationId
               AND item.deletedAt IS NULL
               AND (:status IS NULL OR item.status = :status)
@@ -35,6 +36,7 @@ public interface InventoryItemRepository extends BaseCatalogRepository<Inventory
     @Query("""
             SELECT item
             FROM InventoryItem item
+            LEFT JOIN item.brand brand
             WHERE item.organization.id = :organizationId
               AND item.deletedAt IS NULL
               AND (:status IS NULL OR item.status = :status)
@@ -44,9 +46,10 @@ public interface InventoryItemRepository extends BaseCatalogRepository<Inventory
               AND (:availableForPurchases IS NULL OR item.availableForPurchases = :availableForPurchases)
               AND (
                     LOWER(item.name) LIKE CONCAT('%', LOWER(:search), '%')
-                    OR LOWER(COALESCE(item.description, '')) LIKE CONCAT('%', LOWER(:search), '%')
-                    OR LOWER(COALESCE(item.internalCode, '')) LIKE CONCAT('%', LOWER(:search), '%')
-                    OR LOWER(COALESCE(item.barcode, '')) LIKE CONCAT('%', LOWER(:search), '%')
+                 OR LOWER(COALESCE(item.description, '')) LIKE CONCAT('%', LOWER(:search), '%')
+                 OR LOWER(COALESCE(item.internalCode, '')) LIKE CONCAT('%', LOWER(:search), '%')
+                 OR LOWER(COALESCE(item.barcode, '')) LIKE CONCAT('%', LOWER(:search), '%')
+                 OR LOWER(COALESCE(brand.name, '')) LIKE CONCAT('%', LOWER(:search), '%')
               )
             """)
     Page<InventoryItem> searchWithText(

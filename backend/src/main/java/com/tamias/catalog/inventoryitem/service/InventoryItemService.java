@@ -1,5 +1,7 @@
 package com.tamias.catalog.inventoryitem.service;
 
+import com.tamias.catalog.brand.entity.Brand;
+import com.tamias.catalog.brand.repository.BrandRepository;
 import com.tamias.catalog.dto.InventoryItemRequest;
 import com.tamias.catalog.dto.InventoryItemResponse;
 import com.tamias.catalog.enums.CatalogStatus;
@@ -23,18 +25,22 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class InventoryItemService {
+
     private final InventoryItemRepository repository;
+    private final BrandRepository brandRepository;
     private final OrganizationRepository organizationRepository;
     private final CurrentUserService currentUserService;
     private final CatalogMapper catalogMapper;
 
     public InventoryItemService(
-        InventoryItemRepository repository,
-        OrganizationRepository organizationRepository,
-        CurrentUserService currentUserService,
-        CatalogMapper catalogMapper
+            InventoryItemRepository repository,
+            BrandRepository brandRepository,
+            OrganizationRepository organizationRepository,
+            CurrentUserService currentUserService,
+            CatalogMapper catalogMapper
     ) {
         this.repository = repository;
+        this.brandRepository = brandRepository;
         this.organizationRepository = organizationRepository;
         this.currentUserService = currentUserService;
         this.catalogMapper = catalogMapper;
@@ -43,37 +49,37 @@ public class InventoryItemService {
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF', 'READ_ONLY')")
     public PageResponse<InventoryItemResponse> findAll(
-        CatalogStatus status,
-        InventoryItemType itemType,
-        Boolean availableForMaintenance,
-        Boolean availableForReservations,
-        Boolean availableForPurchases,
-        String search,
-        Pageable pageable
+            CatalogStatus status,
+            InventoryItemType itemType,
+            Boolean availableForMaintenance,
+            Boolean availableForReservations,
+            Boolean availableForPurchases,
+            String search,
+            Pageable pageable
     ) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         String normalizedSearch = search == null || search.isBlank() ? null : search.trim();
 
         Page<InventoryItem> page = normalizedSearch == null
-            ? repository.search(
-                organizationId,
-                status,
-                itemType,
-                availableForMaintenance,
-                availableForReservations,
-                availableForPurchases,
-                pageable
-            )
-            : repository.searchWithText(
-                organizationId,
-                status,
-                itemType,
-                availableForMaintenance,
-                availableForReservations,
-                availableForPurchases,
-                normalizedSearch,
-                pageable
-            );
+                ? repository.search(
+                        organizationId,
+                        status,
+                        itemType,
+                        availableForMaintenance,
+                        availableForReservations,
+                        availableForPurchases,
+                        pageable
+                )
+                : repository.searchWithText(
+                        organizationId,
+                        status,
+                        itemType,
+                        availableForMaintenance,
+                        availableForReservations,
+                        availableForPurchases,
+                        normalizedSearch,
+                        pageable
+                );
 
         return PageResponse.from(page.map(catalogMapper::toInventoryItemResponse));
     }
@@ -88,7 +94,6 @@ public class InventoryItemService {
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
     public InventoryItemResponse create(InventoryItemRequest request) {
         validateWritableStatus(request.status());
-
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         String normalizedName = request.name().trim();
 
@@ -97,13 +102,13 @@ public class InventoryItemService {
         }
 
         var organization = organizationRepository.findByIdAndDeletedAtIsNull(organizationId)
-            .orElseThrow(() -> new NotFoundException("Organization not found"));
+                .orElseThrow(() -> new NotFoundException("Organization not found"));
 
         InventoryItem entity = new InventoryItem();
         entity.setOrganization(organization);
-
         catalogMapper.updateInventoryItem(entity, request);
         entity.setName(normalizedName);
+        entity.setBrand(resolveBrand(request.brandId(), organizationId));
 
         return catalogMapper.toInventoryItemResponse(repository.save(entity));
     }
@@ -112,18 +117,18 @@ public class InventoryItemService {
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
     public InventoryItemResponse update(UUID id, InventoryItemRequest request) {
         validateWritableStatus(request.status());
-
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         InventoryItem entity = findEntity(id);
         String normalizedName = request.name().trim();
 
         if (!entity.getName().equalsIgnoreCase(normalizedName)
-            && repository.existsByOrganization_IdAndNameIgnoreCaseAndDeletedAtIsNull(organizationId, normalizedName)) {
+                && repository.existsByOrganization_IdAndNameIgnoreCaseAndDeletedAtIsNull(organizationId, normalizedName)) {
             throw new ConflictException("inventory item name already exists");
         }
 
         catalogMapper.updateInventoryItem(entity, request);
         entity.setName(normalizedName);
+        entity.setBrand(resolveBrand(request.brandId(), organizationId));
 
         return catalogMapper.toInventoryItemResponse(repository.save(entity));
     }
@@ -132,18 +137,30 @@ public class InventoryItemService {
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
     public void delete(UUID id) {
         InventoryItem entity = findEntity(id);
-
         entity.setStatus(CatalogStatus.DELETED);
         entity.setDeletedAt(OffsetDateTime.now());
-
         repository.save(entity);
     }
 
     public InventoryItem findEntity(UUID id) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-
         return repository.findByIdAndOrganization_IdAndDeletedAtIsNull(id, organizationId)
-            .orElseThrow(() -> new NotFoundException("inventory item not found"));
+                .orElseThrow(() -> new NotFoundException("inventory item not found"));
+    }
+
+    private Brand resolveBrand(UUID brandId, UUID organizationId) {
+        if (brandId == null) {
+            return null;
+        }
+
+        Brand brand = brandRepository.findByIdAndOrganization_IdAndDeletedAtIsNull(brandId, organizationId)
+                .orElseThrow(() -> new NotFoundException("Brand not found"));
+
+        if (brand.getStatus() == CatalogStatus.DELETED) {
+            throw new BadRequestException("Brand is not available");
+        }
+
+        return brand;
     }
 
     private void validateWritableStatus(CatalogStatus status) {

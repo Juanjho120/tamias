@@ -36,30 +36,33 @@ public class CatalogMapper {
 
     public CatalogResponse toCatalogResponse(BaseCatalogEntity entity) {
         return new CatalogResponse(
-                entity.getId(),
-                entity.getName(),
-                entity.getDescription(),
-                entity.getStatus(),
-                entity.getCreatedAt(),
-                entity.getUpdatedAt()
+            entity.getId(),
+            entity.getName(),
+            entity.getDescription(),
+            entity.getStatus(),
+            entity.getCreatedAt(),
+            entity.getUpdatedAt()
         );
     }
 
     public InventoryItemResponse toInventoryItemResponse(InventoryItem entity) {
+        var brand = entity.getBrand();
         return new InventoryItemResponse(
-                entity.getId(),
-                entity.getName(),
-                entity.getDescription(),
-                entity.getUnit(),
-                entity.getItemType(),
-                entity.getInternalCode(),
-                entity.getBarcode(),
-                entity.getAvailableForMaintenance(),
-                entity.getAvailableForReservations(),
-                entity.getAvailableForPurchases(),
-                entity.getStatus(),
-                entity.getCreatedAt(),
-                entity.getUpdatedAt()
+            entity.getId(),
+            entity.getName(),
+            entity.getDescription(),
+            brand != null ? brand.getId() : null,
+            brand != null ? brand.getName() : null,
+            entity.getUnit(),
+            entity.getItemType(),
+            entity.getInternalCode(),
+            entity.getBarcode(),
+            entity.getAvailableForMaintenance(),
+            entity.getAvailableForReservations(),
+            entity.getAvailableForPurchases(),
+            entity.getStatus(),
+            entity.getCreatedAt(),
+            entity.getUpdatedAt()
         );
     }
 
@@ -78,12 +81,12 @@ public class CatalogMapper {
 
     public MaintenanceTypeResponse toMaintenanceTypeResponse(MaintenanceType entity) {
         return new MaintenanceTypeResponse(
-                entity.getId(),
-                entity.getName(),
-                entity.getDescription(),
-                entity.getStatus(),
-                entity.getCreatedAt(),
-                entity.getUpdatedAt()
+            entity.getId(),
+            entity.getName(),
+            entity.getDescription(),
+            entity.getStatus(),
+            entity.getCreatedAt(),
+            entity.getUpdatedAt()
         );
     }
 
@@ -95,14 +98,14 @@ public class CatalogMapper {
 
     public MaintenancePersonResponse toMaintenancePersonResponse(MaintenancePerson entity) {
         return new MaintenancePersonResponse(
-                entity.getId(),
-                entity.getFullName(),
-                entity.getPhone(),
-                entity.getEmail(),
-                entity.getNotes(),
-                entity.getStatus(),
-                entity.getCreatedAt(),
-                entity.getUpdatedAt()
+            entity.getId(),
+            entity.getFullName(),
+            entity.getPhone(),
+            entity.getEmail(),
+            entity.getNotes(),
+            entity.getStatus(),
+            entity.getCreatedAt(),
+            entity.getUpdatedAt()
         );
     }
 
@@ -116,15 +119,15 @@ public class CatalogMapper {
 
     public SupplierResponse toSupplierResponse(Supplier entity) {
         return new SupplierResponse(
-                entity.getId(),
-                entity.getName(),
-                entity.getPhone(),
-                entity.getEmail(),
-                entity.getWebsite(),
-                entity.getNotes(),
-                entity.getStatus(),
-                entity.getCreatedAt(),
-                entity.getUpdatedAt()
+            entity.getId(),
+            entity.getName(),
+            entity.getPhone(),
+            entity.getEmail(),
+            entity.getWebsite(),
+            entity.getNotes(),
+            entity.getStatus(),
+            entity.getCreatedAt(),
+            entity.getUpdatedAt()
         );
     }
 
@@ -139,12 +142,12 @@ public class CatalogMapper {
 
     public CityResponse toCityResponse(City entity) {
         return new CityResponse(
-                entity.getId(),
-                entity.getName(),
-                entity.getCountry(),
-                entity.getStatus(),
-                entity.getCreatedAt(),
-                entity.getUpdatedAt()
+            entity.getId(),
+            entity.getName(),
+            entity.getCountry(),
+            entity.getStatus(),
+            entity.getCreatedAt(),
+            entity.getUpdatedAt()
         );
     }
 
@@ -156,12 +159,12 @@ public class CatalogMapper {
 
     public TaskTemplateResponse toTaskTemplateResponse(TaskTemplate entity) {
         return new TaskTemplateResponse(
-                entity.getId(),
-                entity.getName(),
-                entity.getDescription(),
-                entity.getStatus(),
-                entity.getCreatedAt(),
-                entity.getUpdatedAt()
+            entity.getId(),
+            entity.getName(),
+            entity.getDescription(),
+            entity.getStatus(),
+            entity.getCreatedAt(),
+            entity.getUpdatedAt()
         );
     }
 

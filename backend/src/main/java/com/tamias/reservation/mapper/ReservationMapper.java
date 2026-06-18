@@ -87,12 +87,15 @@ public class ReservationMapper {
 
     public ReservationSupplyResponse toSupplyResponse(ReservationSupply reservationSupply) {
         var inventoryItem = reservationSupply.getInventoryItem();
+        var brand = inventoryItem.getBrand();
 
         return new ReservationSupplyResponse(
                 reservationSupply.getId(),
                 reservationSupply.getReservation().getId(),
                 inventoryItem.getId(),
                 inventoryItem.getName(),
+                brand != null ? brand.getId() : null,
+                brand != null ? brand.getName() : null,
                 inventoryItem.getItemType().name(),
                 inventoryItem.getInternalCode(),
                 inventoryItem.getBarcode(),
@@ -109,7 +112,6 @@ public class ReservationMapper {
 
     private ReservationGuestResponse toGuestResponse(ReservationGuest reservationGuest) {
         var guest = reservationGuest.getGuest();
-
         return new ReservationGuestResponse(
                 reservationGuest.getId(),
                 guest.getId(),

@@ -6,7 +6,7 @@ import { ApiError } from '../../../../core/models/api-error.model';
 import { ConfirmModalComponent } from '../../../../shared/confirm-modal/confirm-modal.component';
 import { QuetzalCurrencyPipe } from '../../../../shared/pipes/quetzal-currency.pipe';
 import { ToastService } from '../../../../shared/toast/toast.service';
-import { PurchaseItem, PurchaseList, PurchaseListSummary } from '../../models/purchase-list.model';
+import { PurchaseItem, PurchaseItemRequest, PurchaseList, PurchaseListSummary } from '../../models/purchase-list.model';
 import { PurchaseBrandOption, PurchaseInventoryItemOption } from '../../models/purchase-reference.model';
 import { PurchaseListService } from '../../services/purchase-list.service';
 
@@ -26,7 +26,6 @@ export class PurchaseItemsModalComponent implements OnChanges {
   @Input() purchaseListSummary: PurchaseListSummary | null = null;
   @Input() inventoryItems: PurchaseInventoryItemOption[] = [];
   @Input() brands: PurchaseBrandOption[] = [];
-
   @Output() close = new EventEmitter<void>();
   @Output() itemsChanged = new EventEmitter<void>();
 
@@ -39,7 +38,6 @@ export class PurchaseItemsModalComponent implements OnChanges {
 
   readonly itemForm = this.formBuilder.nonNullable.group({
     inventoryItemId: [''],
-    brandId: [''],
     itemNameSnapshot: ['', [Validators.maxLength(150)]],
     quantity: [''],
     unit: ['', [Validators.maxLength(50)]],
@@ -65,13 +63,11 @@ export class PurchaseItemsModalComponent implements OnChanges {
 
   loadPurchaseList(): void {
     const summary = this.purchaseListSummary;
-
     if (!summary) {
       return;
     }
 
     this.loading.set(true);
-
     this.purchaseListService.findById(summary.id).subscribe({
       next: (purchaseList) => {
         this.purchaseList.set(purchaseList);
@@ -86,13 +82,11 @@ export class PurchaseItemsModalComponent implements OnChanges {
 
   saveItem(): void {
     const purchaseList = this.purchaseList();
-
     if (!purchaseList) {
       return;
     }
 
     const rawValue = this.itemForm.getRawValue();
-
     if (!rawValue.inventoryItemId && !rawValue.itemNameSnapshot.trim()) {
       this.itemForm.controls.itemNameSnapshot.setErrors({ required: true });
       this.itemForm.controls.itemNameSnapshot.markAsTouched();
@@ -104,9 +98,8 @@ export class PurchaseItemsModalComponent implements OnChanges {
       return;
     }
 
-    const request = {
+    const request: PurchaseItemRequest = {
       inventoryItemId: rawValue.inventoryItemId || null,
-      brandId: rawValue.brandId || null,
       itemNameSnapshot: rawValue.itemNameSnapshot.trim() || null,
       quantity: rawValue.quantity === '' ? null : Number(rawValue.quantity),
       unit: rawValue.unit.trim() || null,
@@ -116,9 +109,7 @@ export class PurchaseItemsModalComponent implements OnChanges {
     };
 
     this.saving.set(true);
-
     const editingItem = this.editingItem();
-
     const saveRequest = editingItem
       ? this.purchaseListService.updateItem(purchaseList.id, editingItem.id, request)
       : this.purchaseListService.createItem(purchaseList.id, request);
@@ -146,7 +137,6 @@ export class PurchaseItemsModalComponent implements OnChanges {
     this.editingItem.set(item);
     this.itemForm.reset({
       inventoryItemId: item.inventoryItemId ?? '',
-      brandId: item.brandId ?? '',
       itemNameSnapshot: item.itemNameSnapshot ?? '',
       quantity: item.quantity !== null && item.quantity !== undefined ? String(item.quantity) : '',
       unit: item.unit ?? '',
@@ -160,7 +150,6 @@ export class PurchaseItemsModalComponent implements OnChanges {
     this.editingItem.set(null);
     this.itemForm.reset({
       inventoryItemId: '',
-      brandId: '',
       itemNameSnapshot: '',
       quantity: '',
       unit: '',
@@ -172,14 +161,11 @@ export class PurchaseItemsModalComponent implements OnChanges {
 
   togglePurchased(item: PurchaseItem): void {
     const purchaseList = this.purchaseList();
-
     if (!purchaseList) {
       return;
     }
 
-    this.purchaseListService.updateItemPurchased(purchaseList.id, item.id, {
-      purchased: !item.purchased
-    }).subscribe({
+    this.purchaseListService.updateItemPurchased(purchaseList.id, item.id, { purchased: !item.purchased }).subscribe({
       next: () => {
         this.toastService.success(this.languageService.instant('purchases.items.messages.purchasedUpdated'));
         this.itemsChanged.emit();
@@ -206,13 +192,11 @@ export class PurchaseItemsModalComponent implements OnChanges {
   confirmDelete(): void {
     const purchaseList = this.purchaseList();
     const item = this.itemToDelete();
-
     if (!purchaseList || !item) {
       return;
     }
 
     this.deletingId.set(item.id);
-
     this.purchaseListService.deleteItem(purchaseList.id, item.id).subscribe({
       next: () => {
         this.deletingId.set(null);
@@ -241,7 +225,12 @@ export class PurchaseItemsModalComponent implements OnChanges {
   }
 
   itemDisplayName(item: PurchaseItem): string {
-    return item.inventoryItemName ?? item.itemNameSnapshot ?? '—';
+    const baseName = item.inventoryItemName ?? item.itemNameSnapshot ?? '—';
+    return item.brandName ? `${baseName} - ${item.brandName}` : baseName;
+  }
+
+  inventoryItemDisplayName(inventoryItem: PurchaseInventoryItemOption): string {
+    return inventoryItem.brandName ? `${inventoryItem.name} - ${inventoryItem.brandName}` : inventoryItem.name;
   }
 
   trackById(index: number, item: { id: string }): string {

@@ -6,18 +6,19 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 public record InventoryItemResponse(
-        UUID id,
-        String name,
-        String description,
-        String unit,
-        InventoryItemType itemType,
-        String internalCode,
-        String barcode,
-        Boolean availableForMaintenance,
-        Boolean availableForReservations,
-        Boolean availableForPurchases,
-        CatalogStatus status,
-        OffsetDateTime createdAt,
-        OffsetDateTime updatedAt
-) {
-}
+    UUID id,
+    String name,
+    String description,
+    UUID brandId,
+    String brandName,
+    String unit,
+    InventoryItemType itemType,
+    String internalCode,
+    String barcode,
+    Boolean availableForMaintenance,
+    Boolean availableForReservations,
+    Boolean availableForPurchases,
+    CatalogStatus status,
+    OffsetDateTime createdAt,
+    OffsetDateTime updatedAt
+) { }

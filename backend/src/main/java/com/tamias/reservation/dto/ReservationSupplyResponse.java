@@ -9,6 +9,8 @@ public record ReservationSupplyResponse(
         UUID reservationId,
         UUID inventoryItemId,
         String inventoryItemName,
+        UUID brandId,
+        String brandName,
         String itemType,
         String internalCode,
         String barcode,

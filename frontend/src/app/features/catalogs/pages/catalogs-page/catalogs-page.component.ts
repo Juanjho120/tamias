@@ -9,7 +9,15 @@ import { ConfirmModalComponent } from '../../../../shared/confirm-modal/confirm-
 import { ToastService } from '../../../../shared/toast/toast.service';
 import { CatalogFormModalComponent } from '../../components/catalog-form-modal/catalog-form-modal.component';
 import { CATALOG_CONFIGS } from '../../catalogs.config';
-import { CatalogConfig, CatalogFieldConfig, CatalogItem, CatalogRequest, CatalogStatus, CATALOG_STATUSES } from '../../models/catalog.model';
+import {
+  CatalogConfig,
+  CatalogFieldConfig,
+  CatalogItem,
+  CatalogRequest,
+  CatalogSelectOption,
+  CatalogStatus,
+  CATALOG_STATUSES
+} from '../../models/catalog.model';
 import { CatalogService } from '../../services/catalog.service';
 
 type FormMode = 'create' | 'edit';
@@ -34,18 +42,15 @@ export class CatalogsPageComponent implements OnInit {
 
   readonly configs = CATALOG_CONFIGS;
   readonly statuses = CATALOG_STATUSES;
-
   readonly selectedConfig = signal<CatalogConfig>(CATALOG_CONFIGS[0]);
   readonly items = signal<CatalogItem[]>([]);
   readonly selectedItem = signal<CatalogItem | null>(null);
   readonly itemToDelete = signal<CatalogItem | null>(null);
-
   readonly loading = signal(false);
   readonly saving = signal(false);
   readonly deletingId = signal<string | null>(null);
   readonly formVisible = signal(false);
   readonly formMode = signal<FormMode>('create');
-
   readonly status = signal<CatalogStatus | ''>('');
   readonly page = signal(0);
   readonly size = signal(10);
@@ -53,10 +58,8 @@ export class CatalogsPageComponent implements OnInit {
   readonly totalPages = signal(0);
   readonly first = signal(true);
   readonly last = signal(true);
-
   readonly tableFields = computed(() => this.selectedConfig().fields.filter((field) => field.table));
   readonly primaryField = computed(() => this.selectedConfig().fields.find((field) => field.primary) ?? this.selectedConfig().fields[0]);
-
   readonly pageLabel = computed(() => {
     if (this.totalElements() === 0) {
       return this.languageService.instant('catalogs.pagination.noItems');
@@ -67,10 +70,8 @@ export class CatalogsPageComponent implements OnInit {
       totalPages: this.totalPages()
     });
   });
-
   readonly deleteMessage = computed(() => {
     const item = this.itemToDelete();
-
     if (!item) {
       return '';
     }
@@ -81,6 +82,7 @@ export class CatalogsPageComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.loadBrandOptions();
     this.loadItems();
   }
 
@@ -100,9 +102,7 @@ export class CatalogsPageComponent implements OnInit {
 
   loadItems(): void {
     const config = this.selectedConfig();
-
     this.loading.set(true);
-
     this.catalogService.findAll(config.endpoint, {
       status: this.status(),
       page: this.page(),
@@ -186,9 +186,7 @@ export class CatalogsPageComponent implements OnInit {
   saveItem(request: CatalogRequest): void {
     const config = this.selectedConfig();
     const selectedItem = this.selectedItem();
-
     this.saving.set(true);
-
     const saveRequest = this.formMode() === 'edit' && selectedItem
       ? this.catalogService.update(config.endpoint, selectedItem.id, request)
       : this.catalogService.create(config.endpoint, request);
@@ -226,13 +224,11 @@ export class CatalogsPageComponent implements OnInit {
   confirmDelete(): void {
     const config = this.selectedConfig();
     const item = this.itemToDelete();
-
     if (!item) {
       return;
     }
 
     this.deletingId.set(item.id);
-
     this.catalogService.delete(config.endpoint, item.id).subscribe({
       next: () => {
         this.deletingId.set(null);
@@ -248,8 +244,15 @@ export class CatalogsPageComponent implements OnInit {
   }
 
   displayValue(item: CatalogItem, field: CatalogFieldConfig): string {
-    const value = item[field.key as keyof CatalogItem];
+    if (this.selectedConfig().key === 'inventory-items' && field.key === 'name') {
+      return this.inventoryItemDisplayName(item);
+    }
 
+    if (this.selectedConfig().key === 'inventory-items' && field.key === 'brandId') {
+      return item.brandName ?? '—';
+    }
+
+    const value = item[field.key as keyof CatalogItem];
     if (value === null || value === undefined || value === '') {
       return '—';
     }
@@ -281,6 +284,49 @@ export class CatalogsPageComponent implements OnInit {
       default:
         return 'text-bg-secondary';
     }
+  }
+
+  private loadBrandOptions(): void {
+    this.catalogService.findAll('/catalogs/brands', {
+      status: 'ACTIVE',
+      page: 0,
+      size: 200,
+      sort: 'name,asc'
+    }).subscribe({
+      next: (response: PageResponse<CatalogItem>) => {
+        const options: CatalogSelectOption[] = response.content.map((brand) => ({
+          value: brand.id,
+          labelKey: brand.name ?? '—'
+        }));
+        this.applyInventoryBrandOptions(options);
+      },
+      error: () => {
+        this.applyInventoryBrandOptions([]);
+      }
+    });
+  }
+
+  private applyInventoryBrandOptions(options: CatalogSelectOption[]): void {
+    const inventoryConfig = this.configs.find((config) => config.key === 'inventory-items');
+    const brandField = inventoryConfig?.fields.find((field) => field.key === 'brandId');
+
+    if (!brandField) {
+      return;
+    }
+
+    brandField.options = options;
+
+    if (this.selectedConfig().key === 'inventory-items') {
+      this.selectedConfig.set({
+        ...this.selectedConfig(),
+        fields: [...this.selectedConfig().fields]
+      });
+    }
+  }
+
+  private inventoryItemDisplayName(item: CatalogItem): string {
+    const itemName = item.name ?? '—';
+    return item.brandName ? `${itemName} - ${item.brandName}` : itemName;
   }
 
   private extractErrorMessage(error: unknown, fallback: string): string {

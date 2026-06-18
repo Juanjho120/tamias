@@ -27,6 +27,8 @@ export interface ReservationSupply {
   reservationId: string;
   inventoryItemId: string;
   inventoryItemName: string;
+  brandId: string | null;
+  brandName: string | null;
   itemType: string | null;
   internalCode: string | null;
   barcode: string | null;

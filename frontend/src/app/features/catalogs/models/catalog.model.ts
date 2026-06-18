@@ -13,6 +13,8 @@ export interface CatalogItem {
   fullName?: string;
   description?: string | null;
   country?: string | null;
+  brandId?: string | null;
+  brandName?: string | null;
   unit?: string | null;
   itemType?: InventoryItemType | null;
   internalCode?: string | null;
@@ -62,7 +64,6 @@ export interface CatalogConfig {
 }
 
 export const CATALOG_STATUSES: CatalogStatus[] = ['ACTIVE', 'INACTIVE', 'DELETED'];
-
 export const INVENTORY_ITEM_TYPES: InventoryItemType[] = [
   'MATERIAL',
   'SUPPLY',

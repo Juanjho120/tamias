@@ -35,7 +35,6 @@ export class PurchaseListFormModalComponent implements OnChanges {
   @Input() inventoryItems: PurchaseInventoryItemOption[] = [];
   @Input() brands: PurchaseBrandOption[] = [];
   @Input() loading = false;
-
   @Output() save = new EventEmitter<PurchaseListRequest>();
   @Output() cancel = new EventEmitter<void>();
 
@@ -49,12 +48,11 @@ export class PurchaseListFormModalComponent implements OnChanges {
     supplierId: [''],
     purchaseDate: ['', [Validators.required]],
     notes: [''],
-    status: this.formBuilder.nonNullable.control<PurchaseListStatus>('OPEN', [Validators.required])
+    status: this.formBuilder.nonNullable.control<Exclude<PurchaseListStatus, 'DELETED'>>('OPEN', [Validators.required])
   });
 
   readonly itemForm = this.formBuilder.nonNullable.group({
     inventoryItemId: [''],
-    brandId: [''],
     itemNameSnapshot: ['', [Validators.maxLength(150)]],
     quantity: [''],
     unit: ['', [Validators.maxLength(50)]],
@@ -78,7 +76,6 @@ export class PurchaseListFormModalComponent implements OnChanges {
     }
 
     const rawValue = this.form.getRawValue();
-
     this.save.emit({
       propertyId: rawValue.propertyId || null,
       cityId: rawValue.cityId || null,
@@ -106,7 +103,6 @@ export class PurchaseListFormModalComponent implements OnChanges {
 
     const item: PurchaseItemRequest = {
       inventoryItemId: rawValue.inventoryItemId || null,
-      brandId: rawValue.brandId || null,
       itemNameSnapshot: rawValue.itemNameSnapshot.trim() || null,
       quantity: rawValue.quantity === '' ? null : Number(rawValue.quantity),
       unit: rawValue.unit.trim() || null,
@@ -130,7 +126,6 @@ export class PurchaseListFormModalComponent implements OnChanges {
 
   editItem(index: number): void {
     const item = this.items()[index];
-
     if (!item) {
       return;
     }
@@ -138,7 +133,6 @@ export class PurchaseListFormModalComponent implements OnChanges {
     this.editingItemIndex.set(index);
     this.itemForm.reset({
       inventoryItemId: item.inventoryItemId ?? '',
-      brandId: item.brandId ?? '',
       itemNameSnapshot: item.itemNameSnapshot ?? '',
       quantity: item.quantity !== null && item.quantity !== undefined ? String(item.quantity) : '',
       unit: item.unit ?? '',
@@ -159,7 +153,6 @@ export class PurchaseListFormModalComponent implements OnChanges {
     this.editingItemIndex.set(null);
     this.itemForm.reset({
       inventoryItemId: '',
-      brandId: '',
       itemNameSnapshot: '',
       quantity: '',
       unit: '',
@@ -182,13 +175,19 @@ export class PurchaseListFormModalComponent implements OnChanges {
   }
 
   itemDisplayName(item: PurchaseItemRequest): string {
-    const inventoryItem = item.inventoryItemId ? this.inventoryItems.find((candidate) => candidate.id === item.inventoryItemId) : null;
-    return inventoryItem?.name ?? item.itemNameSnapshot ?? '—';
+    const inventoryItem = item.inventoryItemId
+      ? this.inventoryItems.find((candidate) => candidate.id === item.inventoryItemId)
+      : null;
+
+    if (inventoryItem) {
+      return this.inventoryItemDisplayName(inventoryItem);
+    }
+
+    return item.itemNameSnapshot ?? '—';
   }
 
-  brandDisplayName(item: PurchaseItemRequest): string {
-    const brand = item.brandId ? this.brands.find((candidate) => candidate.id === item.brandId) : null;
-    return brand?.name ?? '—';
+  inventoryItemDisplayName(inventoryItem: PurchaseInventoryItemOption): string {
+    return inventoryItem.brandName ? `${inventoryItem.name} - ${inventoryItem.brandName}` : inventoryItem.name;
   }
 
   isInvalid(controlName: keyof typeof this.form.controls): boolean {
@@ -227,7 +226,6 @@ export class PurchaseListFormModalComponent implements OnChanges {
 
     this.items.set((this.purchaseList.items ?? []).map((item) => ({
       inventoryItemId: item.inventoryItemId ?? null,
-      brandId: item.brandId,
       itemNameSnapshot: item.itemNameSnapshot,
       quantity: item.quantity,
       unit: item.unit,
@@ -235,7 +233,6 @@ export class PurchaseListFormModalComponent implements OnChanges {
       purchased: item.purchased,
       notes: item.notes
     })));
-
     this.cancelItemEdit();
   }
 

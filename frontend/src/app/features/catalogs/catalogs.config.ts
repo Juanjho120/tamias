@@ -40,13 +40,7 @@ export const CATALOG_CONFIGS: CatalogConfig[] = [
         table: true,
         primary: true
       },
-      {
-        key: 'country',
-        labelKey: 'catalogs.fields.country',
-        type: 'text',
-        maxLength: 100,
-        table: true
-      }
+      { key: 'country', labelKey: 'catalogs.fields.country', type: 'text', maxLength: 100, table: true }
     ]
   },
   {
@@ -65,12 +59,13 @@ export const CATALOG_CONFIGS: CatalogConfig[] = [
     fields: [
       ...baseFields,
       {
-        key: 'unit',
-        labelKey: 'catalogs.fields.unit',
-        type: 'text',
-        maxLength: 50,
-        table: true
+        key: 'brandId',
+        labelKey: 'purchases.items.brand',
+        type: 'select',
+        table: true,
+        options: []
       },
+      { key: 'unit', labelKey: 'catalogs.fields.unit', type: 'text', maxLength: 50, table: true },
       {
         key: 'itemType',
         labelKey: 'catalogs.fields.itemType',
@@ -79,38 +74,11 @@ export const CATALOG_CONFIGS: CatalogConfig[] = [
         table: true,
         options: inventoryItemTypeOptions
       },
-      {
-        key: 'internalCode',
-        labelKey: 'catalogs.fields.internalCode',
-        type: 'text',
-        maxLength: 100,
-        table: true
-      },
-      {
-        key: 'barcode',
-        labelKey: 'catalogs.fields.barcode',
-        type: 'text',
-        maxLength: 100,
-        table: true
-      },
-      {
-        key: 'availableForMaintenance',
-        labelKey: 'catalogs.fields.availableForMaintenance',
-        type: 'checkbox',
-        table: true
-      },
-      {
-        key: 'availableForReservations',
-        labelKey: 'catalogs.fields.availableForReservations',
-        type: 'checkbox',
-        table: true
-      },
-      {
-        key: 'availableForPurchases',
-        labelKey: 'catalogs.fields.availableForPurchases',
-        type: 'checkbox',
-        table: true
-      }
+      { key: 'internalCode', labelKey: 'catalogs.fields.internalCode', type: 'text', maxLength: 100, table: true },
+      { key: 'barcode', labelKey: 'catalogs.fields.barcode', type: 'text', maxLength: 100, table: true },
+      { key: 'availableForMaintenance', labelKey: 'catalogs.fields.availableForMaintenance', type: 'checkbox', table: true },
+      { key: 'availableForReservations', labelKey: 'catalogs.fields.availableForReservations', type: 'checkbox', table: true },
+      { key: 'availableForPurchases', labelKey: 'catalogs.fields.availableForPurchases', type: 'checkbox', table: true }
     ]
   },
   {
@@ -128,31 +96,10 @@ export const CATALOG_CONFIGS: CatalogConfig[] = [
         table: true,
         primary: true
       },
-      {
-        key: 'phone',
-        labelKey: 'catalogs.fields.phone',
-        type: 'text',
-        maxLength: 50,
-        table: true
-      },
-      {
-        key: 'email',
-        labelKey: 'catalogs.fields.email',
-        type: 'email',
-        maxLength: 150,
-        table: true
-      },
-      {
-        key: 'website',
-        labelKey: 'catalogs.fields.website',
-        type: 'url'
-      },
-      {
-        key: 'notes',
-        labelKey: 'catalogs.fields.notes',
-        type: 'textarea',
-        rows: 3
-      }
+      { key: 'phone', labelKey: 'catalogs.fields.phone', type: 'text', maxLength: 50, table: true },
+      { key: 'email', labelKey: 'catalogs.fields.email', type: 'email', maxLength: 150, table: true },
+      { key: 'website', labelKey: 'catalogs.fields.website', type: 'url' },
+      { key: 'notes', labelKey: 'catalogs.fields.notes', type: 'textarea', rows: 3 }
     ]
   },
   {
@@ -184,26 +131,9 @@ export const CATALOG_CONFIGS: CatalogConfig[] = [
         table: true,
         primary: true
       },
-      {
-        key: 'phone',
-        labelKey: 'catalogs.fields.phone',
-        type: 'text',
-        maxLength: 50,
-        table: true
-      },
-      {
-        key: 'email',
-        labelKey: 'catalogs.fields.email',
-        type: 'email',
-        maxLength: 150,
-        table: true
-      },
-      {
-        key: 'notes',
-        labelKey: 'catalogs.fields.notes',
-        type: 'textarea',
-        rows: 3
-      }
+      { key: 'phone', labelKey: 'catalogs.fields.phone', type: 'text', maxLength: 50, table: true },
+      { key: 'email', labelKey: 'catalogs.fields.email', type: 'email', maxLength: 150, table: true },
+      { key: 'notes', labelKey: 'catalogs.fields.notes', type: 'textarea', rows: 3 }
     ]
   },
   {

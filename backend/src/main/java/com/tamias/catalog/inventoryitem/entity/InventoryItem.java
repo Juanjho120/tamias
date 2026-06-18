@@ -1,11 +1,15 @@
 package com.tamias.catalog.inventoryitem.entity;
 
+import com.tamias.catalog.brand.entity.Brand;
 import com.tamias.catalog.entity.BaseCatalogEntity;
 import com.tamias.catalog.enums.InventoryItemType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
@@ -15,6 +19,10 @@ import lombok.Setter;
 @Entity
 @Table(name = "inventory_items")
 public class InventoryItem extends BaseCatalogEntity {
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "brand_id")
+    private Brand brand;
 
     @Column(length = 50)
     private String unit;

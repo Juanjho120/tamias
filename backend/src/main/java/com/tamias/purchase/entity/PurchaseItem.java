@@ -1,6 +1,5 @@
 package com.tamias.purchase.entity;
 
-import com.tamias.catalog.brand.entity.Brand;
 import com.tamias.catalog.inventoryitem.entity.InventoryItem;
 import com.tamias.common.entity.AuditableEntity;
 import com.tamias.organization.entity.Organization;
@@ -31,10 +30,6 @@ public class PurchaseItem extends AuditableEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "inventory_item_id")
     private InventoryItem inventoryItem;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "brand_id")
-    private Brand brand;
 
     @Column(name = "item_name_snapshot", nullable = false, length = 150)
     private String itemNameSnapshot;

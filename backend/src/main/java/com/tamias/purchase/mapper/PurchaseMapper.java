@@ -1,6 +1,5 @@
 package com.tamias.purchase.mapper;
 
-import com.tamias.catalog.brand.entity.Brand;
 import com.tamias.catalog.inventoryitem.entity.InventoryItem;
 import com.tamias.purchase.dto.PurchaseItemRequest;
 import com.tamias.purchase.dto.PurchaseItemResponse;
@@ -27,11 +26,9 @@ public class PurchaseMapper {
             PurchaseItem entity,
             PurchaseItemRequest request,
             InventoryItem inventoryItem,
-            Brand brand,
             String itemNameSnapshot
     ) {
         entity.setInventoryItem(inventoryItem);
-        entity.setBrand(brand);
         entity.setItemNameSnapshot(itemNameSnapshot);
         entity.setQuantity(request.quantity() != null ? request.quantity() : BigDecimal.ONE);
         entity.setUnit(request.unit());
@@ -44,11 +41,9 @@ public class PurchaseMapper {
             PurchaseItem entity,
             PurchaseItemUpdateRequest request,
             InventoryItem inventoryItem,
-            Brand brand,
             String itemNameSnapshot
     ) {
         entity.setInventoryItem(inventoryItem);
-        entity.setBrand(brand);
         entity.setItemNameSnapshot(itemNameSnapshot);
         entity.setQuantity(request.quantity() != null ? request.quantity() : BigDecimal.ONE);
         entity.setUnit(request.unit());
@@ -113,7 +108,7 @@ public class PurchaseMapper {
 
     public PurchaseItemResponse toItemResponse(PurchaseItem entity) {
         var inventoryItem = entity.getInventoryItem();
-        var brand = entity.getBrand();
+        var brand = inventoryItem != null ? inventoryItem.getBrand() : null;
 
         return new PurchaseItemResponse(
                 entity.getId(),

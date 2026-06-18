@@ -5,11 +5,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { ApiError } from '../../../../core/models/api-error.model';
 import { LanguageService } from '../../../../core/i18n/language.service';
 import { ToastService } from '../../../../shared/toast/toast.service';
-import {
-  ReservationSummary,
-  ReservationSupply,
-  ReservationSupplyRequest
-} from '../../models/reservation.model';
+import { ReservationSummary, ReservationSupply, ReservationSupplyRequest } from '../../models/reservation.model';
 import { ReservationInventoryItemOption } from '../../models/reservation-reference.model';
 import { ReservationService } from '../../services/reservation.service';
 
@@ -28,7 +24,6 @@ export class ReservationSuppliesModalComponent implements OnChanges {
   @Input() open = false;
   @Input() reservationSummary: ReservationSummary | null = null;
   @Input() inventoryItems: ReservationInventoryItemOption[] = [];
-
   @Output() close = new EventEmitter<void>();
   @Output() changed = new EventEmitter<void>();
 
@@ -59,13 +54,11 @@ export class ReservationSuppliesModalComponent implements OnChanges {
 
   loadSupplies(): void {
     const reservation = this.reservationSummary;
-
     if (!reservation) {
       return;
     }
 
     this.loading.set(true);
-
     this.reservationService.findSupplies(reservation.id).subscribe({
       next: (supplies) => {
         this.supplies.set(supplies);
@@ -80,7 +73,6 @@ export class ReservationSuppliesModalComponent implements OnChanges {
 
   submit(): void {
     const reservation = this.reservationSummary;
-
     if (!reservation) {
       return;
     }
@@ -92,9 +84,7 @@ export class ReservationSuppliesModalComponent implements OnChanges {
 
     const request = this.buildRequest();
     const editingSupply = this.editingSupply();
-
     this.saving.set(true);
-
     const saveRequest = editingSupply
       ? this.reservationService.updateSupply(reservation.id, editingSupply.id, request)
       : this.reservationService.addSupply(reservation.id, request);
@@ -130,13 +120,11 @@ export class ReservationSuppliesModalComponent implements OnChanges {
 
   deleteSupply(supply: ReservationSupply): void {
     const reservation = this.reservationSummary;
-
     if (!reservation) {
       return;
     }
 
     this.deletingId.set(supply.id);
-
     this.reservationService.deleteSupply(reservation.id, supply.id).subscribe({
       next: () => {
         this.deletingId.set(null);
@@ -163,14 +151,18 @@ export class ReservationSuppliesModalComponent implements OnChanges {
 
   onInventoryItemSelected(inventoryItemId: string): void {
     const inventoryItem = this.inventoryItems.find((item) => item.id === inventoryItemId);
-
     if (inventoryItem?.unit && !this.form.controls.unit.value) {
       this.form.controls.unit.setValue(inventoryItem.unit);
     }
   }
 
+  inventoryItemDisplayName(item: ReservationInventoryItemOption): string {
+    return item.brandName ? `${item.name} - ${item.brandName}` : item.name;
+  }
+
   itemDisplayName(supply: ReservationSupply): string {
-    return supply.inventoryItemName || supply.itemNameSnapshot || '—';
+    const baseName = supply.inventoryItemName || supply.itemNameSnapshot || '—';
+    return supply.brandName ? `${baseName} - ${supply.brandName}` : baseName;
   }
 
   itemCodeLabel(supply: ReservationSupply): string {
@@ -179,7 +171,6 @@ export class ReservationSuppliesModalComponent implements OnChanges {
 
   selectedReservationTitle(): string {
     const reservation = this.reservationSummary;
-
     if (!reservation) {
       return '—';
     }

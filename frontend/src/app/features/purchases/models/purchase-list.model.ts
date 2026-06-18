@@ -2,7 +2,6 @@ export type PurchaseListStatus = 'OPEN' | 'PARTIALLY_PURCHASED' | 'COMPLETED' | 
 
 export interface PurchaseItemRequest {
   inventoryItemId: string | null;
-  brandId: string | null;
   itemNameSnapshot: string | null;
   quantity: number | null;
   unit: string | null;
