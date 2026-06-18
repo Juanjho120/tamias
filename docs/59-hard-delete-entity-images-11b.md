@@ -2,119 +2,136 @@
 
 ## Purpose
 
-Ensure entity image deletion removes both:
+Entity image deletion must remove both:
 
 ```text
-1. the S3 object
+1. the object from storage
 2. the database relationship row
 ```
 
-Image relationship tables must not use soft delete. This avoids garbage files in S3 and stale image records in PostgreSQL.
+Image relationship tables must not use soft delete. This avoids new garbage files in S3 and stale image rows in PostgreSQL.
 
 ---
 
-## Applies to
+## Implemented in this phase
+
+The existing image tables are:
 
 ```text
 property_images
 maintenance_record_images
-reservation_images
-purchase_images
-inventory_item_images
 ```
 
-Some of these tables already exist and some will be added in later phases.
+The future tables remain out of scope until their own phases:
+
+```text
+inventory_item_images   -> 12B
+purchase_images         -> 12C
+reservation_images      -> 12D
+```
 
 ---
 
-## Schema rule
+## Schema changes
 
-Image relationship tables must not have soft-delete fields.
-
-If any existing image table has:
+Migration:
 
 ```text
-deleted_at
-deleted_by
-status = DELETED
+V24__hard_delete_entity_images.sql
 ```
 
-clean the schema according to the actual current table design.
-
-The specific user decision for this phase is:
+The migration removes the soft-delete fields from existing image tables:
 
 ```text
-Clean schema and remove deleted_at from image relationship tables where present.
+property_images.deleted_at
+property_images.deleted_by
+maintenance_record_images.deleted_at
+maintenance_record_images.deleted_by
 ```
 
-Before creating migrations, inspect the current Flyway migrations and entity classes. Do not assume columns exist.
+It also removes existing rows already marked as soft-deleted before dropping the columns:
+
+```sql
+DELETE FROM property_images
+WHERE status = 'DELETED'
+   OR deleted_at IS NOT NULL;
+
+DELETE FROM maintenance_record_images
+WHERE status = 'DELETED'
+   OR deleted_at IS NOT NULL;
+```
+
+Important note: if older soft-deleted rows already left orphaned files in S3, those S3 objects cannot be safely removed from a PostgreSQL migration. This phase prevents new garbage from being created going forward.
 
 ---
 
-## Delete behavior
+## Runtime delete behavior
 
 Expected flow:
 
 ```text
 1. Validate authenticated user.
-2. Validate organization ownership of parent entity.
-3. Find image row.
-4. Delete file from S3 using s3_key.
-5. Delete database row physically.
+2. Validate organization ownership of the parent entity.
+3. Find the active image row scoped by parent entity + organization.
+4. Delete the object from storage using s3_key.
+5. Physically delete the database row.
 ```
 
-If S3 delete fails:
+If storage deletion fails:
 
 ```text
-abort operation
-keep database row
-return controlled error
+- abort operation
+- keep database row
+- return controlled error
 ```
 
-If database delete fails after S3 delete:
+Because the service methods are transactional, the database delete is not committed unless the storage deletion succeeds.
+
+---
+
+## Updated storage contract
+
+`FileStorageService` now exposes:
+
+```java
+void delete(String storageKey);
+```
+
+Implemented by:
 
 ```text
-return controlled error
-log enough context for manual investigation
+S3FileStorageService
+LocalFileStorageService
 ```
 
-For MVP, prefer strict behavior to avoid silent inconsistencies.
+For S3, deletion uses the configured bucket and the stored `s3_key`.
 
 ---
 
 ## Multi-tenant rule
 
-Do not delete an image only by image id.
-
-Always scope through the parent entity and organization.
-
-Example pattern:
+Do not delete an image only by image id. Always scope through the parent entity and organization.
 
 ```text
-property image -> image id + property id + organization id
-maintenance image -> image id + maintenance record id + organization id
-reservation image -> image id + reservation id + organization id
-purchase image -> image id + purchase list id + organization id
-inventory item image -> image id + inventory item id + organization id
+property image -> image id + property id + organization id + ACTIVE status
+maintenance image -> image id + maintenance record id + organization id + ACTIVE status
 ```
-
-Use actual entity/repository names from the codebase.
 
 ---
 
-## filepath behavior
+## Query rule after this phase
 
-All image rows must store:
+Do not query image tables with:
 
-```text
-s3_key
-filepath
-original_filename or filename, according to existing pattern
-content_type
-size_bytes
+```sql
+deleted_at IS NULL
 ```
 
-`filepath` comes from 11A and must not include filename.
+The columns no longer exist. Use active metadata instead:
+
+```sql
+status = 'ACTIVE'
+```
 
 ---
 
@@ -125,17 +142,19 @@ size_bytes
 2. Delete property image.
 3. Confirm S3 object no longer exists.
 4. Confirm property_images row no longer exists.
-5. Confirm no deleted_at/status soft delete was applied.
+5. Confirm no deleted_at/deleted_by columns exist for property_images.
 6. Repeat for maintenance images.
-7. After 12B/12C/12D, repeat for inventory item, purchase list and reservation images.
-8. Attempt deleting an image from another organization.
-9. Operation must be denied/not found.
+7. Attempt deleting an image from another organization.
+8. Operation must be denied/not found.
+9. Confirm AI file/image metadata tools still work without deleted_at queries.
 ```
 
 ---
 
 ## Out of scope
 
+```text
 - RAG document deletion. That belongs to 11C.
 - S3 path strategy. That belongs to 11A.
 - Adding new image modules. Those belong to 12B, 12C and 12D.
+```

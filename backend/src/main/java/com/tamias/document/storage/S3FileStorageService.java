@@ -13,6 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
@@ -30,9 +31,9 @@ public class S3FileStorageService implements FileStorageService {
     private final S3StorageProperties properties;
 
     public S3FileStorageService(
-        S3Client s3Client,
-        S3Presigner s3Presigner,
-        S3StorageProperties properties
+            S3Client s3Client,
+            S3Presigner s3Presigner,
+            S3StorageProperties properties
     ) {
         this.s3Client = s3Client;
         this.s3Presigner = s3Presigner;
@@ -48,22 +49,21 @@ public class S3FileStorageService implements FileStorageService {
         validateConfiguration();
 
         String contentType = file.getContentType() != null
-            ? file.getContentType()
-            : "application/octet-stream";
+                ? file.getContentType()
+                : "application/octet-stream";
         String normalizedStorageFolder = normalizeStorageFolder(storageFolder);
         String storageKey = buildStorageKey(file, normalizedStorageFolder);
         String filepath = properties.bucket() + "/" + normalizedStorageFolder;
 
         try {
             PutObjectRequest request = PutObjectRequest.builder()
-                .bucket(properties.bucket())
-                .key(storageKey)
-                .contentType(contentType)
-                .contentLength(file.getSize())
-                .build();
+                    .bucket(properties.bucket())
+                    .key(storageKey)
+                    .contentType(contentType)
+                    .contentLength(file.getSize())
+                    .build();
 
             s3Client.putObject(request, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
-
             return new StoredFile(storageKey, filepath, contentType, file.getSize());
         } catch (IOException ex) {
             throw new BadRequestException("Could not read file for upload");
@@ -78,9 +78,9 @@ public class S3FileStorageService implements FileStorageService {
 
         try {
             GetObjectRequest request = GetObjectRequest.builder()
-                .bucket(properties.bucket())
-                .key(storageKey)
-                .build();
+                    .bucket(properties.bucket())
+                    .key(storageKey)
+                    .build();
 
             ResponseBytes<GetObjectResponse> responseBytes = s3Client.getObjectAsBytes(request);
             byte[] bytes = responseBytes.asByteArray();
@@ -99,6 +99,26 @@ public class S3FileStorageService implements FileStorageService {
     }
 
     @Override
+    public void delete(String storageKey) {
+        validateConfiguration();
+
+        if (storageKey == null || storageKey.isBlank()) {
+            throw new BadRequestException("Invalid storage key");
+        }
+
+        try {
+            DeleteObjectRequest request = DeleteObjectRequest.builder()
+                    .bucket(properties.bucket())
+                    .key(storageKey)
+                    .build();
+
+            s3Client.deleteObject(request);
+        } catch (S3Exception ex) {
+            throw new BadRequestException("Could not delete file from S3");
+        }
+    }
+
+    @Override
     public String buildDownloadUrl(String storageKey, String documentId) {
         return buildFileUrl(storageKey);
     }
@@ -108,18 +128,18 @@ public class S3FileStorageService implements FileStorageService {
         validateConfiguration();
 
         GetObjectRequest getObjectRequest = GetObjectRequest.builder()
-            .bucket(properties.bucket())
-            .key(storageKey)
-            .build();
+                .bucket(properties.bucket())
+                .key(storageKey)
+                .build();
 
         GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
-            .signatureDuration(Duration.ofSeconds(getDownloadUrlExpirationSeconds()))
-            .getObjectRequest(getObjectRequest)
-            .build();
+                .signatureDuration(Duration.ofSeconds(getDownloadUrlExpirationSeconds()))
+                .getObjectRequest(getObjectRequest)
+                .build();
 
         return s3Presigner.presignGetObject(presignRequest)
-            .url()
-            .toString();
+                .url()
+                .toString();
     }
 
     @Override
@@ -129,9 +149,8 @@ public class S3FileStorageService implements FileStorageService {
 
     private String buildStorageKey(MultipartFile file, String normalizedStorageFolder) {
         String safeOriginalName = file.getOriginalFilename() != null
-            ? sanitizeFilename(file.getOriginalFilename())
-            : "file";
-
+                ? sanitizeFilename(file.getOriginalFilename())
+                : "file";
         return normalizedStorageFolder + "/" + UUID.randomUUID() + "_" + safeOriginalName;
     }
 
@@ -147,7 +166,6 @@ public class S3FileStorageService implements FileStorageService {
         while (normalized.endsWith("/")) {
             normalized = normalized.substring(0, normalized.length() - 1);
         }
-
         if (normalized.isBlank()) {
             throw new BadRequestException("Invalid storage folder");
         }
@@ -176,12 +194,10 @@ public class S3FileStorageService implements FileStorageService {
         if (rawPart == null || rawPart.length() == 0) {
             return;
         }
-
         String sanitized = sanitizePathPart(rawPart.toString());
         if (sanitized.isBlank()) {
             return;
         }
-
         if (builder.length() > 0) {
             builder.append('/');
         }
@@ -211,25 +227,23 @@ public class S3FileStorageService implements FileStorageService {
                 builder.append('_');
             }
         }
-
         String sanitized = builder.toString();
         return sanitized.isBlank() ? "file" : sanitized;
     }
 
     private boolean isSafePathCharacter(char value) {
         return (value >= 'a' && value <= 'z')
-            || (value >= 'A' && value <= 'Z')
-            || (value >= '0' && value <= '9')
-            || value == '.'
-            || value == '_'
-            || value == '-';
+                || (value >= 'A' && value <= 'Z')
+                || (value >= '0' && value <= '9')
+                || value == '.'
+                || value == '_'
+                || value == '-';
     }
 
     private String extractFilename(String storageKey) {
         if (storageKey == null || storageKey.isBlank()) {
             return "file";
         }
-
         int index = storageKey.lastIndexOf('/');
         if (index < 0 || index == storageKey.length() - 1) {
             return storageKey;

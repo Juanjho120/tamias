@@ -22,9 +22,9 @@ public class LocalFileStorageService implements FileStorageService {
     private final int expirationSeconds;
 
     public LocalFileStorageService(
-        @Value("${tamias.storage.local-root:uploads/documents}") String localRoot,
-        @Value("${tamias.storage.public-base-url:http://localhost:8080}") String publicBaseUrl,
-        @Value("${tamias.storage.download-url-expiration-seconds:300}") int expirationSeconds
+            @Value("${tamias.storage.local-root:uploads/documents}") String localRoot,
+            @Value("${tamias.storage.public-base-url:http://localhost:8080}") String publicBaseUrl,
+            @Value("${tamias.storage.download-url-expiration-seconds:300}") int expirationSeconds
     ) {
         this.rootPath = Path.of(localRoot).toAbsolutePath().normalize();
         this.publicBaseUrl = publicBaseUrl;
@@ -43,26 +43,23 @@ public class LocalFileStorageService implements FileStorageService {
             if (!folderPath.startsWith(rootPath)) {
                 throw new BadRequestException("Invalid file path");
             }
-
             Files.createDirectories(folderPath);
 
             String safeOriginalName = file.getOriginalFilename() != null
-                ? sanitizeFilename(file.getOriginalFilename())
-                : "document";
+                    ? sanitizeFilename(file.getOriginalFilename())
+                    : "document";
             String storageKey = normalizedStorageFolder + "/" + UUID.randomUUID() + "_" + safeOriginalName;
             Path targetPath = rootPath.resolve(storageKey).normalize();
-
             if (!targetPath.startsWith(rootPath)) {
                 throw new BadRequestException("Invalid file path");
             }
 
             file.transferTo(targetPath);
-
             return new StoredFile(
-                storageKey,
-                folderPath.toString(),
-                file.getContentType() != null ? file.getContentType() : "application/octet-stream",
-                file.getSize()
+                    storageKey,
+                    folderPath.toString(),
+                    file.getContentType() != null ? file.getContentType() : "application/octet-stream",
+                    file.getSize()
             );
         } catch (IOException ex) {
             throw new BadRequestException("Could not store file");
@@ -84,6 +81,23 @@ public class LocalFileStorageService implements FileStorageService {
             return resource;
         } catch (IOException ex) {
             throw new NotFoundException("File not found");
+        }
+    }
+
+    @Override
+    public void delete(String storageKey) {
+        if (storageKey == null || storageKey.isBlank()) {
+            throw new BadRequestException("Invalid storage key");
+        }
+
+        try {
+            Path filePath = rootPath.resolve(storageKey).normalize();
+            if (!filePath.startsWith(rootPath)) {
+                throw new BadRequestException("Invalid file path");
+            }
+            Files.deleteIfExists(filePath);
+        } catch (IOException ex) {
+            throw new BadRequestException("Could not delete file");
         }
     }
 
@@ -114,7 +128,6 @@ public class LocalFileStorageService implements FileStorageService {
         while (normalized.endsWith("/")) {
             normalized = normalized.substring(0, normalized.length() - 1);
         }
-
         if (normalized.isBlank()) {
             throw new BadRequestException("Invalid storage folder");
         }
@@ -143,12 +156,10 @@ public class LocalFileStorageService implements FileStorageService {
         if (rawPart == null || rawPart.length() == 0) {
             return;
         }
-
         String sanitized = sanitizePathPart(rawPart.toString());
         if (sanitized.isBlank()) {
             return;
         }
-
         if (builder.length() > 0) {
             builder.append('/');
         }
@@ -178,17 +189,16 @@ public class LocalFileStorageService implements FileStorageService {
                 builder.append('_');
             }
         }
-
         String sanitized = builder.toString();
         return sanitized.isBlank() ? "file" : sanitized;
     }
 
     private boolean isSafePathCharacter(char value) {
         return (value >= 'a' && value <= 'z')
-            || (value >= 'A' && value <= 'Z')
-            || (value >= '0' && value <= '9')
-            || value == '.'
-            || value == '_'
-            || value == '-';
+                || (value >= 'A' && value <= 'Z')
+                || (value >= '0' && value <= '9')
+                || value == '.'
+                || value == '_'
+                || value == '-';
     }
 }

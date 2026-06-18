@@ -61,13 +61,6 @@ public class PropertyImage extends BaseEntity {
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
-    @Column(name = "deleted_at")
-    private OffsetDateTime deletedAt;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "deleted_by")
-    private User deletedBy;
-
     @PrePersist
     protected void onCreate() {
         this.createdAt = OffsetDateTime.now();

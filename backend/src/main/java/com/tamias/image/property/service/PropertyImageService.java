@@ -14,7 +14,6 @@ import com.tamias.property.repository.PropertyRepository;
 import com.tamias.security.service.CurrentUserService;
 import com.tamias.user.entity.User;
 import com.tamias.user.repository.UserRepository;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.core.io.Resource;
@@ -36,13 +35,13 @@ public class PropertyImageService {
     private final ImageMapper imageMapper;
 
     public PropertyImageService(
-        PropertyImageRepository propertyImageRepository,
-        PropertyRepository propertyRepository,
-        UserRepository userRepository,
-        CurrentUserService currentUserService,
-        FileStorageService fileStorageService,
-        ImageValidationService imageValidationService,
-        ImageMapper imageMapper
+            PropertyImageRepository propertyImageRepository,
+            PropertyRepository propertyRepository,
+            UserRepository userRepository,
+            CurrentUserService currentUserService,
+            FileStorageService fileStorageService,
+            ImageValidationService imageValidationService,
+            ImageMapper imageMapper
     ) {
         this.propertyImageRepository = propertyImageRepository;
         this.propertyRepository = propertyRepository;
@@ -60,10 +59,14 @@ public class PropertyImageService {
         validateProperty(propertyId, organizationId);
 
         return propertyImageRepository
-            .findByProperty_IdAndOrganization_IdAndDeletedAtIsNullOrderByCreatedAtDesc(propertyId, organizationId)
-            .stream()
-            .map(imageMapper::toResponse)
-            .toList();
+                .findByProperty_IdAndOrganization_IdAndStatusOrderByCreatedAtDesc(
+                        propertyId,
+                        organizationId,
+                        ImageStatus.ACTIVE
+                )
+                .stream()
+                .map(imageMapper::toResponse)
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -82,11 +85,11 @@ public class PropertyImageService {
         User currentUser = getCurrentUser();
 
         boolean shouldBeCover = Boolean.TRUE.equals(cover)
-            || propertyImageRepository.countByProperty_IdAndOrganization_IdAndStatusAndDeletedAtIsNull(
+                || propertyImageRepository.countByProperty_IdAndOrganization_IdAndStatus(
                 propertyId,
                 organizationId,
                 ImageStatus.ACTIVE
-            ) == 0;
+        ) == 0;
 
         if (shouldBeCover) {
             clearCover(propertyId, organizationId);
@@ -139,31 +142,36 @@ public class PropertyImageService {
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
     public void delete(UUID propertyId, UUID imageId) {
         PropertyImage image = findImage(propertyId, imageId);
-        User currentUser = getCurrentUser();
 
-        image.setStatus(ImageStatus.DELETED);
-        image.setDeletedAt(OffsetDateTime.now());
-        image.setDeletedBy(currentUser);
-        image.setCover(false);
-
-        propertyImageRepository.save(image);
+        fileStorageService.delete(image.getS3Key());
+        propertyImageRepository.delete(image);
     }
 
     private Property validateProperty(UUID propertyId, UUID organizationId) {
         return propertyRepository.findByIdAndOrganization_IdAndDeletedAtIsNull(propertyId, organizationId)
-            .orElseThrow(() -> new NotFoundException("Property not found"));
+                .orElseThrow(() -> new NotFoundException("Property not found"));
     }
 
     private PropertyImage findImage(UUID propertyId, UUID imageId) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         return propertyImageRepository
-            .findByIdAndProperty_IdAndOrganization_IdAndDeletedAtIsNull(imageId, propertyId, organizationId)
-            .orElseThrow(() -> new NotFoundException("Property image not found"));
+                .findByIdAndProperty_IdAndOrganization_IdAndStatus(
+                        imageId,
+                        propertyId,
+                        organizationId,
+                        ImageStatus.ACTIVE
+                )
+                .orElseThrow(() -> new NotFoundException("Property image not found"));
     }
 
     private void clearCover(UUID propertyId, UUID organizationId) {
         List<PropertyImage> coverImages = propertyImageRepository
-            .findByProperty_IdAndOrganization_IdAndCoverAndDeletedAtIsNull(propertyId, organizationId, true);
+                .findByProperty_IdAndOrganization_IdAndCoverAndStatus(
+                        propertyId,
+                        organizationId,
+                        true,
+                        ImageStatus.ACTIVE
+                );
 
         for (PropertyImage coverImage : coverImages) {
             coverImage.setCover(false);
@@ -173,6 +181,6 @@ public class PropertyImageService {
 
     private User getCurrentUser() {
         return userRepository.findByIdAndDeletedAtIsNull(currentUserService.getCurrentUserId())
-            .orElseThrow(() -> new NotFoundException("User not found"));
+                .orElseThrow(() -> new NotFoundException("User not found"));
     }
 }

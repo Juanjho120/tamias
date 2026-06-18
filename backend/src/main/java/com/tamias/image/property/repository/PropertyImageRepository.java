@@ -9,24 +9,27 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface PropertyImageRepository extends JpaRepository<PropertyImage, UUID> {
 
-    List<PropertyImage> findByProperty_IdAndOrganization_IdAndDeletedAtIsNullOrderByCreatedAtDesc(
-            UUID propertyId,
-            UUID organizationId
-    );
-
-    Optional<PropertyImage> findByIdAndProperty_IdAndOrganization_IdAndDeletedAtIsNull(
-            UUID id,
-            UUID propertyId,
-            UUID organizationId
-    );
-
-    List<PropertyImage> findByProperty_IdAndOrganization_IdAndCoverAndDeletedAtIsNull(
+    List<PropertyImage> findByProperty_IdAndOrganization_IdAndStatusOrderByCreatedAtDesc(
             UUID propertyId,
             UUID organizationId,
-            Boolean cover
+            ImageStatus status
     );
 
-    long countByProperty_IdAndOrganization_IdAndStatusAndDeletedAtIsNull(
+    Optional<PropertyImage> findByIdAndProperty_IdAndOrganization_IdAndStatus(
+            UUID id,
+            UUID propertyId,
+            UUID organizationId,
+            ImageStatus status
+    );
+
+    List<PropertyImage> findByProperty_IdAndOrganization_IdAndCoverAndStatus(
+            UUID propertyId,
+            UUID organizationId,
+            Boolean cover,
+            ImageStatus status
+    );
+
+    long countByProperty_IdAndOrganization_IdAndStatus(
             UUID propertyId,
             UUID organizationId,
             ImageStatus status

@@ -14,7 +14,6 @@ import com.tamias.maintenance.repository.MaintenanceRecordRepository;
 import com.tamias.security.service.CurrentUserService;
 import com.tamias.user.entity.User;
 import com.tamias.user.repository.UserRepository;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.core.io.Resource;
@@ -36,13 +35,13 @@ public class MaintenanceRecordImageService {
     private final ImageMapper imageMapper;
 
     public MaintenanceRecordImageService(
-        MaintenanceRecordImageRepository imageRepository,
-        MaintenanceRecordRepository maintenanceRecordRepository,
-        UserRepository userRepository,
-        CurrentUserService currentUserService,
-        FileStorageService fileStorageService,
-        ImageValidationService imageValidationService,
-        ImageMapper imageMapper
+            MaintenanceRecordImageRepository imageRepository,
+            MaintenanceRecordRepository maintenanceRecordRepository,
+            UserRepository userRepository,
+            CurrentUserService currentUserService,
+            FileStorageService fileStorageService,
+            ImageValidationService imageValidationService,
+            ImageMapper imageMapper
     ) {
         this.imageRepository = imageRepository;
         this.maintenanceRecordRepository = maintenanceRecordRepository;
@@ -60,13 +59,14 @@ public class MaintenanceRecordImageService {
         validateMaintenanceRecord(maintenanceRecordId, organizationId);
 
         return imageRepository
-            .findByMaintenanceRecord_IdAndOrganization_IdAndDeletedAtIsNullOrderByCreatedAtDesc(
-                maintenanceRecordId,
-                organizationId
-            )
-            .stream()
-            .map(imageMapper::toResponse)
-            .toList();
+                .findByMaintenanceRecord_IdAndOrganization_IdAndStatusOrderByCreatedAtDesc(
+                        maintenanceRecordId,
+                        organizationId,
+                        ImageStatus.ACTIVE
+                )
+                .stream()
+                .map(imageMapper::toResponse)
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -118,34 +118,31 @@ public class MaintenanceRecordImageService {
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF')")
     public void delete(UUID maintenanceRecordId, UUID imageId) {
         MaintenanceRecordImage image = findImage(maintenanceRecordId, imageId);
-        User currentUser = getCurrentUser();
 
-        image.setStatus(ImageStatus.DELETED);
-        image.setDeletedAt(OffsetDateTime.now());
-        image.setDeletedBy(currentUser);
-
-        imageRepository.save(image);
+        fileStorageService.delete(image.getS3Key());
+        imageRepository.delete(image);
     }
 
     private MaintenanceRecord validateMaintenanceRecord(UUID maintenanceRecordId, UUID organizationId) {
         return maintenanceRecordRepository
-            .findByIdAndOrganization_IdAndDeletedAtIsNull(maintenanceRecordId, organizationId)
-            .orElseThrow(() -> new NotFoundException("Maintenance record not found"));
+                .findByIdAndOrganization_IdAndDeletedAtIsNull(maintenanceRecordId, organizationId)
+                .orElseThrow(() -> new NotFoundException("Maintenance record not found"));
     }
 
     private MaintenanceRecordImage findImage(UUID maintenanceRecordId, UUID imageId) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         return imageRepository
-            .findByIdAndMaintenanceRecord_IdAndOrganization_IdAndDeletedAtIsNull(
-                imageId,
-                maintenanceRecordId,
-                organizationId
-            )
-            .orElseThrow(() -> new NotFoundException("Maintenance record image not found"));
+                .findByIdAndMaintenanceRecord_IdAndOrganization_IdAndStatus(
+                        imageId,
+                        maintenanceRecordId,
+                        organizationId,
+                        ImageStatus.ACTIVE
+                )
+                .orElseThrow(() -> new NotFoundException("Maintenance record image not found"));
     }
 
     private User getCurrentUser() {
         return userRepository.findByIdAndDeletedAtIsNull(currentUserService.getCurrentUserId())
-            .orElseThrow(() -> new NotFoundException("User not found"));
+                .orElseThrow(() -> new NotFoundException("User not found"));
     }
 }
