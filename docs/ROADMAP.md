@@ -319,10 +319,6 @@ Goals:
 - Record final image modal UX and i18n policy.
 - Record final AI tool evidence expectations for image, brand and inventory questions.
 
----
-
-## Next phase
-
 ### Phase 13A — AI image/file dashboard tools
 
 Status: Completed.
@@ -344,14 +340,21 @@ Goals:
 
 ## Next AI phases
 
-### 9P-G — AI orchestration observability and debug traces
+### 9P-G — AI orchestration observability and persisted debug traces
 
-Status: Planned next.
+Status: Design ready / implementation next.
+
+Documentation: `69-ai-orchestration-observability-debug-traces-9p-g.md`
 
 Goals:
 
-- Add trace visibility for planner decision, selected route, selected tool, tool status, RAG source count and composer usage.
-- Make failures easier to diagnose without guessing whether the issue is planner, router, tool, RAG or answer composition.
+- Persist one debug trace row per assistant/TAMI response.
+- Add `ai_chat_message_debugs` referencing the assistant `ai_chat_messages.id`.
+- Add `users.ai_chat_debug` to control whether debug is included in API responses.
+- Capture selected handler, primary tool, all tools, sanitized params, RAG usage and answer source.
+- Keep `answerSource` separate from tool names.
+- Show debug only to the authenticated chat owner when `ai_chat_debug = true`.
+- Keep normal TAMI answers unchanged for users without debug enabled.
 
 ### 9P-H — Smoke test hardening and final fixes
 

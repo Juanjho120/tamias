@@ -647,7 +647,6 @@ Implemented examples:
 ¿Qué archivos ocupan más espacio?
 ```
 
-
 Implemented tools:
 
 ```text
@@ -677,3 +676,56 @@ Reason:
 - 12B–12E added new image tables and module-specific image tools.
 - 13A should provide cross-module visibility before deeper AI observability work.
 - This creates a cleaner checkpoint before 9P-G/H/I.
+
+---
+
+## 25. AI orchestration persisted debug traces
+
+Decision:
+
+```text
+Persist one AI debug trace per assistant/TAMI message and expose it only to users with ai_chat_debug enabled.
+```
+
+Table:
+
+```text
+ai_chat_message_debugs
+```
+
+User flag:
+
+```text
+users.ai_chat_debug
+```
+
+Rules:
+
+- Store one consolidated debug row for each assistant/TAMI response message.
+- `ai_chat_message_debugs.ai_chat_message_id` must reference the assistant `ai_chat_messages.id`.
+- Store selected handler, primary tool, all tools, sanitized params, RAG usage and answer source.
+- `answerSource` describes how the final answer was produced; it must not be overloaded with tool names.
+- Tool names belong in `tool_name` and `tool_names`.
+- Persist debug traces regardless of whether the user can see them.
+- Include debug in API responses only when the authenticated chat owner has `users.ai_chat_debug = true`.
+- Keep debug hidden by default.
+- Do not expose debug traces across users or chats.
+- Do not store secrets, raw stack traces, JWTs, S3 credentials, presigned URLs or arbitrary SQL in debug params/errors.
+
+Recommended `answerSource` values:
+
+```text
+BACKEND_DIRECT
+LLM_COMPOSED
+RAG
+TOOLS_AND_RAG
+NO_MATCH
+ERROR
+```
+
+Reason:
+
+- Recent AI tool routing fixes showed that incorrect answers can come from planner, handler, tool parameter extraction, RAG fallback or LLM composition.
+- Persisted traces make debugging reproducible instead of relying only on screenshots or manual guesses.
+- A per-message trace keeps chat history and troubleshooting linked.
+- The `ai_chat_debug` flag protects normal users from noisy diagnostic output while allowing controlled developer/admin troubleshooting.
