@@ -1,0 +1,131 @@
+@if (open) {
+  <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title">{{ 'productBoxModels.faces.title' | translate }}</h5>
+            @if (model) {
+              <p class="text-muted mb-0 small">{{ model.name }}</p>
+            }
+          </div>
+          <button type="button" class="btn-close" aria-label="Close" [disabled]="!!uploadingFace() || !!deletingFace()" (click)="close()"></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="alert alert-info small" role="alert">
+            {{ 'productBoxModels.faces.help' | translate }}
+          </div>
+
+          @if (loading()) {
+            <div class="text-center py-5">
+              <div class="spinner-border text-primary" aria-hidden="true"></div>
+              <p class="text-muted mt-3 mb-0">{{ 'productBoxModels.faces.loading' | translate }}</p>
+            </div>
+          } @else {
+            <div class="row g-3">
+              @for (faceName of faceNames; track faceName) {
+                @let currentFace = face(faceName);
+                <div class="col-md-6 col-xl-4">
+                  <div class="card h-100 shadow-sm">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                      <strong>{{ 'productBoxModels.faces.names.' + faceName | translate }}</strong>
+                      @if (currentFace) {
+                        <span class="badge text-bg-success">{{ 'productBoxModels.faces.available' | translate }}</span>
+                      } @else {
+                        <span class="badge text-bg-secondary">{{ 'productBoxModels.faces.missing' | translate }}</span>
+                      }
+                    </div>
+
+                    @if (currentFace?.imageUrl) {
+                      <img
+                        class="product-box-face-preview card-img-top"
+                        [src]="currentFace?.imageUrl"
+                        [alt]="currentFace?.originalFilename || faceName"
+                      />
+                    } @else {
+                      <div class="bg-body-tertiary d-flex align-items-center justify-content-center product-box-face-preview text-muted">
+                        <div class="text-center">
+                          <i class="bi bi-image fs-2 d-block mb-1"></i>
+                          {{ 'productBoxModels.faces.previewUnavailable' | translate }}
+                        </div>
+                      </div>
+                    }
+
+                    <div class="card-body">
+                      @if (currentFace) {
+                        <p class="fw-semibold mb-1 text-break">{{ currentFace.originalFilename || '—' }}</p>
+                        <p class="text-muted small mb-1">{{ formatSize(currentFace.sizeBytes) }}</p>
+                        <p class="text-muted small mb-0">{{ currentFace.createdAt | date:'medium' }}</p>
+                      } @else {
+                        <p class="text-muted mb-0">{{ 'productBoxModels.faces.emptyFace' | translate }}</p>
+                      }
+                    </div>
+
+                    <div class="card-footer bg-transparent">
+                      <label class="btn btn-outline-primary btn-sm w-100 mb-2" [class.disabled]="uploadingFace() === faceName">
+                        @if (uploadingFace() === faceName) {
+                          <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+                          {{ 'productBoxModels.faces.uploading' | translate }}
+                        } @else {
+                          <i class="bi bi-upload me-1"></i>
+                          {{ (currentFace ? 'productBoxModels.faces.replace' : 'productBoxModels.faces.upload') | translate }}
+                        }
+                        <input
+                          type="file"
+                          class="d-none"
+                          accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                          [disabled]="uploadingFace() === faceName"
+                          (change)="uploadFace(faceName, $event)"
+                        />
+                      </label>
+
+                      @if (currentFace) {
+                        <div class="d-flex gap-2">
+                          <button type="button" class="btn btn-outline-secondary btn-sm flex-fill" (click)="openImage(currentFace)">
+                            <i class="bi bi-box-arrow-up-right me-1"></i>
+                            {{ 'productBoxModels.faces.open' | translate }}
+                          </button>
+                          <button
+                            type="button"
+                            class="btn btn-outline-danger btn-sm flex-fill"
+                            [disabled]="deletingFace() === faceName"
+                            (click)="requestDelete(faceName)"
+                          >
+                            @if (deletingFace() === faceName) {
+                              <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+                            } @else {
+                              <i class="bi bi-trash me-1"></i>
+                            }
+                            {{ 'common.delete' | translate }}
+                          </button>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" [disabled]="!!uploadingFace() || !!deletingFace()" (click)="close()">
+            {{ 'common.close' | translate }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}
+
+<app-confirm-modal
+  [open]="!!faceToDelete()"
+  title="productBoxModels.faces.confirmDeleteTitle"
+  [message]="deleteMessage()"
+  confirmButtonClass="btn-danger"
+  [loading]="!!deletingFace()"
+  (cancel)="cancelDelete()"
+  (confirm)="confirmDelete()"
+/>

@@ -27,9 +27,9 @@ export class MainLayoutComponent {
   private readonly authService = inject(AuthService);
 
   readonly user = this.authService.currentUser;
+
   readonly displayName = computed(() => {
     const user = this.user();
-
     if (!user) {
       return 'User';
     }
@@ -38,12 +38,14 @@ export class MainLayoutComponent {
   });
 
   readonly isAdministrator = computed(() => this.user()?.role === 'ADMINISTRATOR');
-  readonly menuItems = computed<MenuItem[]>(() => {
+
+  readonly menuItems = computed(() => {
     const items: MenuItem[] = [
       { labelKey: 'navigation.profile', icon: 'bi-person-circle', route: '/profile' },
       { labelKey: 'navigation.dashboard', icon: 'bi-speedometer2', route: '/dashboard' },
       { labelKey: 'navigation.properties', icon: 'bi-houses', route: '/properties' },
       { labelKey: 'navigation.catalogs', icon: 'bi-tags', route: '/catalogs' },
+      { labelKey: 'navigation.productBoxModels', icon: 'bi-box-seam', route: '/product-box-models' },
       { labelKey: 'navigation.maintenance', icon: 'bi-tools', route: '/maintenance' },
       { labelKey: 'navigation.scheduledMaintenance', icon: 'bi-calendar-check', route: '/scheduled-maintenance' },
       { labelKey: 'navigation.reservations', icon: 'bi-calendar2-week', route: '/reservations' },
@@ -62,14 +64,11 @@ export class MainLayoutComponent {
 
   closeMobileSidebar(): void {
     const sidebarElement = document.getElementById('mobileSidebar');
-
     if (!sidebarElement) {
       return;
     }
 
-    const windowWithBootstrap = window as Window & {
-      bootstrap?: { Offcanvas?: BootstrapOffcanvasApi };
-    };
+    const windowWithBootstrap = window as Window & { bootstrap?: { Offcanvas?: BootstrapOffcanvasApi } };
     const offcanvasApi = windowWithBootstrap.bootstrap?.Offcanvas;
 
     if (!offcanvasApi) {

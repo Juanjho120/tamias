@@ -1,0 +1,150 @@
+@if (open) {
+  <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <form (ngSubmit)="submit()" novalidate>
+          <div class="modal-header">
+            <div>
+              <h5 class="modal-title">
+                {{ (mode === 'create' ? 'productBoxModels.form.createTitle' : 'productBoxModels.form.editTitle') | translate }}
+              </h5>
+              <p class="text-muted mb-0 small">{{ 'productBoxModels.form.subtitle' | translate }}</p>
+            </div>
+            <button type="button" class="btn-close" aria-label="Close" [disabled]="saving" (click)="close()"></button>
+          </div>
+
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-12">
+                <label class="form-label" for="productBoxName">{{ 'productBoxModels.form.name' | translate }}</label>
+                <input
+                  id="productBoxName"
+                  name="name"
+                  type="text"
+                  class="form-control"
+                  maxlength="255"
+                  required
+                  [(ngModel)]="form.name"
+                  [class.is-invalid]="submitted() && !form.name.trim()"
+                />
+                @if (submitted() && !form.name.trim()) {
+                  <div class="invalid-feedback d-block">{{ 'productBoxModels.validation.nameRequired' | translate }}</div>
+                }
+              </div>
+
+              <div class="col-12">
+                <label class="form-label" for="productBoxDescription">{{ 'productBoxModels.form.description' | translate }}</label>
+                <textarea
+                  id="productBoxDescription"
+                  name="description"
+                  rows="3"
+                  class="form-control"
+                  [(ngModel)]="form.description"
+                ></textarea>
+              </div>
+
+              <div class="col-md-4">
+                <label class="form-label" for="productBoxWidth">{{ 'productBoxModels.form.width' | translate }}</label>
+                <input
+                  id="productBoxWidth"
+                  name="width"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  class="form-control"
+                  required
+                  [(ngModel)]="form.width"
+                  [class.is-invalid]="submitted() && (!form.width || form.width <= 0)"
+                />
+              </div>
+
+              <div class="col-md-4">
+                <label class="form-label" for="productBoxHeight">{{ 'productBoxModels.form.height' | translate }}</label>
+                <input
+                  id="productBoxHeight"
+                  name="height"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  class="form-control"
+                  required
+                  [(ngModel)]="form.height"
+                  [class.is-invalid]="submitted() && (!form.height || form.height <= 0)"
+                />
+              </div>
+
+              <div class="col-md-4">
+                <label class="form-label" for="productBoxDepth">{{ 'productBoxModels.form.depth' | translate }}</label>
+                <input
+                  id="productBoxDepth"
+                  name="depth"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  class="form-control"
+                  required
+                  [(ngModel)]="form.depth"
+                  [class.is-invalid]="submitted() && (!form.depth || form.depth <= 0)"
+                />
+              </div>
+
+              @if (submitted() && (!form.width || form.width <= 0 || !form.height || form.height <= 0 || !form.depth || form.depth <= 0)) {
+                <div class="col-12">
+                  <div class="invalid-feedback d-block">{{ 'productBoxModels.validation.dimensionsRequired' | translate }}</div>
+                </div>
+              }
+
+              <div class="col-md-4">
+                <label class="form-label" for="productBoxUnit">{{ 'productBoxModels.form.unit' | translate }}</label>
+                <select id="productBoxUnit" name="unit" class="form-select" required [(ngModel)]="form.unit">
+                  @for (unit of units; track unit) {
+                    <option [ngValue]="unit">{{ 'productBoxModels.units.' + unit | translate }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="col-md-8">
+                <label class="form-label" for="productBoxInventoryItem">{{ 'productBoxModels.form.inventoryItem' | translate }}</label>
+                <select id="productBoxInventoryItem" name="inventoryItemId" class="form-select" [(ngModel)]="form.inventoryItemId">
+                  <option [ngValue]="null">{{ 'productBoxModels.form.noInventoryItem' | translate }}</option>
+                  @for (item of inventoryItems; track item.id) {
+                    <option [ngValue]="item.id">{{ inventoryItemLabel(item) }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="col-12">
+                <label class="form-label" for="productBoxPurchaseItemId">{{ 'productBoxModels.form.purchaseItemId' | translate }}</label>
+                <input
+                  id="productBoxPurchaseItemId"
+                  name="purchaseItemId"
+                  type="text"
+                  class="form-control"
+                  [(ngModel)]="form.purchaseItemId"
+                  [placeholder]="'productBoxModels.form.purchaseItemIdPlaceholder' | translate"
+                />
+                <div class="form-text">{{ 'productBoxModels.form.purchaseItemHelp' | translate }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" [disabled]="saving" (click)="close()">
+              {{ 'common.cancel' | translate }}
+            </button>
+            <button type="submit" class="btn btn-primary" [disabled]="saving">
+              @if (saving) {
+                <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+                {{ 'common.saving' | translate }}
+              } @else {
+                <i class="bi bi-save me-1"></i>
+                {{ 'productBoxModels.form.save' | translate }}
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}

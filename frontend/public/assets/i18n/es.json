@@ -51,7 +51,8 @@
     "purchases": "Compras",
     "documents": "Documentos",
     "aiAssistant": "Asistente IA",
-    "users": "Usuarios"
+    "users": "Usuarios",
+    "productBoxModels": "Modelos 3D de cajas"
   },
   "login": {
     "title": "Bienvenido",
@@ -1447,6 +1448,107 @@
       "profileUpdateError": "No se pudo actualizar el perfil.",
       "passwordUpdated": "Contraseña cambiada correctamente.",
       "passwordUpdateError": "No se pudo cambiar la contraseña."
+    }
+  },
+  "productBoxModels": {
+    "title": "Modelos 3D de cajas",
+    "subtitle": "Administra metadata y fotos por cara para reconstruir cajas de productos.",
+    "newModel": "Nuevo modelo de caja",
+    "loading": "Cargando modelos de caja...",
+    "confirmDeleteTitle": "Eliminar modelo de caja",
+    "confirmDeleteMessage": "¿Eliminar el modelo de caja \"{{name}}\"? Esta acción eliminará sus imágenes de S3 y marcará el modelo como eliminado.",
+    "filters": {
+      "search": "Buscar",
+      "searchPlaceholder": "Buscar por nombre o descripción",
+      "inventoryItem": "Item de inventario",
+      "allInventoryItems": "Todos los items",
+      "purchaseItemId": "Purchase item ID",
+      "purchaseItemIdPlaceholder": "UUID opcional del item de compra"
+    },
+    "table": {
+      "name": "Nombre",
+      "association": "Asociación",
+      "dimensions": "Medidas",
+      "faces": "Caras",
+      "created": "Creado",
+      "actions": "Acciones",
+      "standalone": "Sin asociación",
+      "facesCount": "{{count}} de {{total}} caras"
+    },
+    "empty": {
+      "title": "No se encontraron modelos de caja",
+      "description": "Crea tu primer modelo para registrar medidas e imágenes por cara."
+    },
+    "pagination": {
+      "noItems": "Sin modelos de caja",
+      "pageOf": "Página {{page}} de {{totalPages}}"
+    },
+    "units": {
+      "cm": "cm",
+      "mm": "mm",
+      "in": "in"
+    },
+    "form": {
+      "createTitle": "Crear modelo de caja",
+      "editTitle": "Editar modelo de caja",
+      "subtitle": "Completa la metadata principal. Las imágenes por cara se administran después de guardar el modelo.",
+      "name": "Nombre",
+      "description": "Descripción",
+      "width": "Ancho",
+      "height": "Alto",
+      "depth": "Profundidad",
+      "unit": "Unidad",
+      "inventoryItem": "Item de inventario",
+      "noInventoryItem": "Sin item de inventario",
+      "purchaseItemId": "Purchase item ID",
+      "purchaseItemIdPlaceholder": "UUID opcional del item de compra",
+      "purchaseItemHelp": "MVP 14C permite asociar manualmente un purchase item por UUID. La integración visual con compras queda para 14E.",
+      "save": "Guardar modelo"
+    },
+    "validation": {
+      "nameRequired": "El nombre es requerido.",
+      "dimensionsRequired": "Ancho, alto y profundidad deben ser mayores a cero."
+    },
+    "faces": {
+      "button": "Caras",
+      "title": "Imágenes por cara",
+      "help": "Sube una imagen JPG, PNG o WEBP para cada cara. El visor 3D con Three.js se agregará en 14D.",
+      "loading": "Cargando caras...",
+      "available": "Disponible",
+      "missing": "Pendiente",
+      "previewUnavailable": "Sin imagen",
+      "emptyFace": "Aún no hay imagen para esta cara.",
+      "upload": "Subir imagen",
+      "replace": "Reemplazar",
+      "uploading": "Subiendo...",
+      "open": "Abrir",
+      "confirmDeleteTitle": "Eliminar imagen de cara",
+      "confirmDeleteMessage": "¿Eliminar la imagen \"{{filename}}\"?",
+      "names": {
+        "front": "Frente",
+        "back": "Atrás",
+        "left": "Izquierda",
+        "right": "Derecha",
+        "top": "Arriba",
+        "bottom": "Abajo"
+      },
+      "messages": {
+        "loadError": "No se pudieron cargar las caras del modelo.",
+        "saved": "Imagen de cara guardada correctamente.",
+        "saveError": "No se pudo guardar la imagen de la cara.",
+        "deleted": "Imagen de cara eliminada correctamente.",
+        "deleteError": "No se pudo eliminar la imagen de la cara."
+      }
+    },
+    "messages": {
+      "loadError": "No se pudieron cargar los modelos de caja.",
+      "referencesError": "No se pudo cargar la información de referencia.",
+      "detailError": "No se pudo cargar el detalle del modelo de caja.",
+      "saveError": "No se pudo guardar el modelo de caja.",
+      "deleteError": "No se pudo eliminar el modelo de caja.",
+      "created": "Modelo de caja creado correctamente.",
+      "updated": "Modelo de caja actualizado correctamente.",
+      "deleted": "Modelo de caja eliminado correctamente."
     }
   }
 }

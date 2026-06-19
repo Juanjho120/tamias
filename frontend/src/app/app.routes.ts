@@ -41,6 +41,11 @@ export const routes: Routes = [
         title: 'Catalogs | TAMIAS'
       },
       {
+        path: 'product-box-models',
+        loadComponent: () => import('./features/product-box-models/pages/product-box-models-page/product-box-models-page.component').then((m) => m.ProductBoxModelsPageComponent),
+        title: 'Product Box Models | TAMIAS'
+      },
+      {
         path: 'maintenance',
         loadComponent: () => import('./features/maintenance/pages/maintenance-page/maintenance-page.component').then((m) => m.MaintenancePageComponent),
         title: 'Maintenance | TAMIAS'

@@ -1,0 +1,180 @@
+<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-4">
+  <div>
+    <h1 class="h3 mb-1">{{ 'productBoxModels.title' | translate }}</h1>
+    <p class="text-muted mb-0">{{ 'productBoxModels.subtitle' | translate }}</p>
+  </div>
+  <button type="button" class="btn btn-primary" (click)="openCreateForm()">
+    <i class="bi bi-plus-lg me-1"></i>
+    {{ 'productBoxModels.newModel' | translate }}
+  </button>
+</div>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <div class="row g-3 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label" for="productBoxSearch">{{ 'productBoxModels.filters.search' | translate }}</label>
+        <input
+          id="productBoxSearch"
+          type="search"
+          class="form-control"
+          [(ngModel)]="search"
+          [placeholder]="'productBoxModels.filters.searchPlaceholder' | translate"
+          (keyup.enter)="applyFilters()"
+        />
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label" for="productBoxInventoryFilter">{{ 'productBoxModels.filters.inventoryItem' | translate }}</label>
+        <select id="productBoxInventoryFilter" class="form-select" [(ngModel)]="inventoryItemId">
+          <option value="">{{ 'productBoxModels.filters.allInventoryItems' | translate }}</option>
+          @for (item of inventoryItems(); track item.id) {
+            <option [value]="item.id">{{ inventoryItemLabel(item) }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label" for="productBoxPurchaseItemFilter">{{ 'productBoxModels.filters.purchaseItemId' | translate }}</label>
+        <input
+          id="productBoxPurchaseItemFilter"
+          type="text"
+          class="form-control"
+          [(ngModel)]="purchaseItemId"
+          [placeholder]="'productBoxModels.filters.purchaseItemIdPlaceholder' | translate"
+        />
+      </div>
+
+      <div class="col-12 d-flex justify-content-end gap-2">
+        <button type="button" class="btn btn-outline-secondary" (click)="clearFilters()">
+          <i class="bi bi-x-circle me-1"></i>
+          {{ 'common.clear' | translate }}
+        </button>
+        <button type="button" class="btn btn-primary" (click)="applyFilters()">
+          <i class="bi bi-search me-1"></i>
+          {{ 'common.search' | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="text-center py-5">
+    <div class="spinner-border text-primary" aria-hidden="true"></div>
+    <p class="text-muted mt-3 mb-0">{{ 'productBoxModels.loading' | translate }}</p>
+  </div>
+} @else if (models().length === 0) {
+  <div class="card border-0 shadow-sm">
+    <div class="card-body text-center py-5">
+      <i class="bi bi-box-seam fs-1 text-muted d-block mb-3"></i>
+      <h2 class="h5">{{ 'productBoxModels.empty.title' | translate }}</h2>
+      <p class="text-muted">{{ 'productBoxModels.empty.description' | translate }}</p>
+      <button type="button" class="btn btn-primary" (click)="openCreateForm()">
+        <i class="bi bi-plus-lg me-1"></i>
+        {{ 'productBoxModels.newModel' | translate }}
+      </button>
+    </div>
+  </div>
+} @else {
+  <div class="card shadow-sm">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>{{ 'productBoxModels.table.name' | translate }}</th>
+            <th>{{ 'productBoxModels.table.association' | translate }}</th>
+            <th>{{ 'productBoxModels.table.dimensions' | translate }}</th>
+            <th>{{ 'productBoxModels.table.faces' | translate }}</th>
+            <th>{{ 'productBoxModels.table.created' | translate }}</th>
+            <th class="text-end">{{ 'productBoxModels.table.actions' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (model of models(); track model.id) {
+            <tr>
+              <td>
+                <div class="fw-semibold">{{ model.name }}</div>
+                @if (model.description) {
+                  <div class="text-muted small">{{ model.description }}</div>
+                }
+              </td>
+              <td>{{ modelAssociationLabel(model) }}</td>
+              <td>{{ dimensionsLabel(model) }}</td>
+              <td>{{ completedFacesLabel(model) }}</td>
+              <td>{{ model.createdAt | date:'mediumDate' }}</td>
+              <td class="text-end">
+                <div class="btn-group btn-group-sm" role="group">
+                  <button type="button" class="btn btn-outline-primary" (click)="openFaces(model.id)">
+                    <i class="bi bi-images me-1"></i>
+                    {{ 'productBoxModels.faces.button' | translate }}
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary" (click)="openEditForm(model.id)">
+                    <i class="bi bi-pencil me-1"></i>
+                    {{ 'common.edit' | translate }}
+                  </button>
+                  <button type="button" class="btn btn-outline-danger" [disabled]="deletingId() === model.id" (click)="requestDelete(model)">
+                    @if (deletingId() === model.id) {
+                      <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+                    } @else {
+                      <i class="bi bi-trash me-1"></i>
+                    }
+                    {{ 'common.delete' | translate }}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card-footer d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+      <div class="d-flex align-items-center gap-2">
+        <label class="form-label mb-0" for="productBoxPageSize">{{ 'common.rowsPerPage' | translate }}</label>
+        <select id="productBoxPageSize" class="form-select form-select-sm w-auto" [ngModel]="size()" (ngModelChange)="changePageSize($event)">
+          <option [ngValue]="5">5</option>
+          <option [ngValue]="10">10</option>
+          <option [ngValue]="20">20</option>
+          <option [ngValue]="50">50</option>
+        </select>
+      </div>
+      <div class="text-muted small">{{ pageLabel() }} · {{ totalElements() }} {{ 'common.total' | translate }}</div>
+      <div class="btn-group btn-group-sm">
+        <button type="button" class="btn btn-outline-secondary" [disabled]="first()" (click)="previousPage()">
+          {{ 'common.previous' | translate }}
+        </button>
+        <button type="button" class="btn btn-outline-secondary" [disabled]="last()" (click)="nextPage()">
+          {{ 'common.next' | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<app-product-box-model-form-modal
+  [open]="formVisible()"
+  [mode]="formMode()"
+  [model]="selectedModel()"
+  [saving]="saving()"
+  [inventoryItems]="inventoryItems()"
+  (closed)="closeForm()"
+  (save)="saveModel($event)"
+/>
+
+<app-product-box-faces-modal
+  [open]="!!modelForFaces()"
+  [model]="modelForFaces()"
+  (closed)="closeFaces()"
+  (facesChanged)="onFacesChanged()"
+/>
+
+<app-confirm-modal
+  [open]="!!modelToDelete()"
+  title="productBoxModels.confirmDeleteTitle"
+  [message]="deleteMessage()"
+  confirmButtonClass="btn-danger"
+  [loading]="!!deletingId()"
+  (cancel)="cancelDelete()"
+  (confirm)="confirmDelete()"
+/>

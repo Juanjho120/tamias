@@ -51,7 +51,8 @@
     "purchases": "Purchases",
     "documents": "Documents",
     "aiAssistant": "AI Assistant",
-    "users": "Users"
+    "users": "Users",
+    "productBoxModels": "3D box models"
   },
   "login": {
     "title": "Welcome",
@@ -1448,6 +1449,107 @@
       "profileUpdateError": "Could not update profile.",
       "passwordUpdated": "Password changed successfully.",
       "passwordUpdateError": "Could not change password."
+    }
+  },
+  "productBoxModels": {
+    "title": "3D box models",
+    "subtitle": "Manage metadata and per-face images to reconstruct product boxes.",
+    "newModel": "New box model",
+    "loading": "Loading box models...",
+    "confirmDeleteTitle": "Delete box model",
+    "confirmDeleteMessage": "Delete box model \"{{name}}\"? This will delete its S3 face images and mark the model as deleted.",
+    "filters": {
+      "search": "Search",
+      "searchPlaceholder": "Search by name or description",
+      "inventoryItem": "Inventory item",
+      "allInventoryItems": "All items",
+      "purchaseItemId": "Purchase item ID",
+      "purchaseItemIdPlaceholder": "Optional purchase item UUID"
+    },
+    "table": {
+      "name": "Name",
+      "association": "Association",
+      "dimensions": "Dimensions",
+      "faces": "Faces",
+      "created": "Created",
+      "actions": "Actions",
+      "standalone": "No association",
+      "facesCount": "{{count}} of {{total}} faces"
+    },
+    "empty": {
+      "title": "No box models found",
+      "description": "Create your first model to register dimensions and per-face images."
+    },
+    "pagination": {
+      "noItems": "No box models",
+      "pageOf": "Page {{page}} of {{totalPages}}"
+    },
+    "units": {
+      "cm": "cm",
+      "mm": "mm",
+      "in": "in"
+    },
+    "form": {
+      "createTitle": "Create box model",
+      "editTitle": "Edit box model",
+      "subtitle": "Fill in the main metadata. Face images are managed after saving the model.",
+      "name": "Name",
+      "description": "Description",
+      "width": "Width",
+      "height": "Height",
+      "depth": "Depth",
+      "unit": "Unit",
+      "inventoryItem": "Inventory item",
+      "noInventoryItem": "No inventory item",
+      "purchaseItemId": "Purchase item ID",
+      "purchaseItemIdPlaceholder": "Optional purchase item UUID",
+      "purchaseItemHelp": "MVP 14C allows manual purchase item association by UUID. Visual purchase integration is planned for 14E.",
+      "save": "Save model"
+    },
+    "validation": {
+      "nameRequired": "Name is required.",
+      "dimensionsRequired": "Width, height and depth must be greater than zero."
+    },
+    "faces": {
+      "button": "Faces",
+      "title": "Face images",
+      "help": "Upload one JPG, PNG or WEBP image for each face. The Three.js 3D viewer will be added in 14D.",
+      "loading": "Loading faces...",
+      "available": "Available",
+      "missing": "Pending",
+      "previewUnavailable": "No image",
+      "emptyFace": "No image has been uploaded for this face yet.",
+      "upload": "Upload image",
+      "replace": "Replace",
+      "uploading": "Uploading...",
+      "open": "Open",
+      "confirmDeleteTitle": "Delete face image",
+      "confirmDeleteMessage": "Delete image \"{{filename}}\"?",
+      "names": {
+        "front": "Front",
+        "back": "Back",
+        "left": "Left",
+        "right": "Right",
+        "top": "Top",
+        "bottom": "Bottom"
+      },
+      "messages": {
+        "loadError": "Unable to load model faces.",
+        "saved": "Face image saved successfully.",
+        "saveError": "Unable to save face image.",
+        "deleted": "Face image deleted successfully.",
+        "deleteError": "Unable to delete face image."
+      }
+    },
+    "messages": {
+      "loadError": "Unable to load box models.",
+      "referencesError": "Unable to load reference data.",
+      "detailError": "Unable to load box model details.",
+      "saveError": "Unable to save box model.",
+      "deleteError": "Unable to delete box model.",
+      "created": "Box model created successfully.",
+      "updated": "Box model updated successfully.",
+      "deleted": "Box model deleted successfully."
     }
   }
 }
