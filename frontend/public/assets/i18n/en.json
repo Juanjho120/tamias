@@ -870,6 +870,35 @@
         "updated": "Supply updated successfully.",
         "deleted": "Supply deleted successfully."
       }
+    },
+    "images": {
+      "button": "Images",
+      "title": "Reservation images",
+      "loading": "Loading images...",
+      "previewUnavailable": "Preview unavailable",
+      "urlExpiresIn": "URL expires in {{seconds}} seconds",
+      "confirmDeleteTitle": "Delete image",
+      "confirmDeleteMessage": "Delete image \"{{filename}}\"?",
+      "upload": {
+        "file": "Image file",
+        "help": "Allowed types: JPG, PNG, WEBP. The maximum size is controlled by the backend configuration.",
+        "noFilesSelected": "Select one or more images for this reservation.",
+        "selectedFiles": "{{count}} files selected",
+        "button": "Upload image",
+        "uploading": "Uploading..."
+      },
+      "empty": {
+        "title": "No images yet",
+        "description": "Upload check-in evidence, setup photos or other images related to this reservation."
+      },
+      "messages": {
+        "loadError": "Unable to load reservation images.",
+        "fileRequired": "Select an image file first.",
+        "uploaded": "Image uploaded successfully.",
+        "uploadError": "Unable to upload image.",
+        "deleted": "Image deleted successfully.",
+        "deleteError": "Unable to delete image."
+      }
     }
   },
   "tasks": {

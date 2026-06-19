@@ -869,6 +869,35 @@
         "updated": "Supply actualizado correctamente.",
         "deleted": "Supply eliminado correctamente."
       }
+    },
+    "images": {
+      "button": "Imágenes",
+      "title": "Imágenes de la reservación",
+      "loading": "Cargando imágenes...",
+      "previewUnavailable": "Vista previa no disponible",
+      "urlExpiresIn": "La URL expira en {{seconds}} segundos",
+      "confirmDeleteTitle": "Eliminar imagen",
+      "confirmDeleteMessage": "¿Eliminar la imagen \"{{filename}}\"?",
+      "upload": {
+        "file": "Archivo de imagen",
+        "help": "Tipos permitidos: JPG, PNG, WEBP. El tamaño máximo lo controla la configuración del backend.",
+        "noFilesSelected": "Selecciona una o varias imágenes para esta reservación.",
+        "selectedFiles": "{{count}} archivos seleccionados",
+        "button": "Subir imagen",
+        "uploading": "Subiendo..."
+      },
+      "empty": {
+        "title": "Aún no hay imágenes",
+        "description": "Sube evidencia de check-in, fotos de preparación u otras imágenes relacionadas con esta reservación."
+      },
+      "messages": {
+        "loadError": "No se pudieron cargar las imágenes de la reservación.",
+        "fileRequired": "Selecciona primero un archivo de imagen.",
+        "uploaded": "Imagen subida correctamente.",
+        "uploadError": "No se pudo subir la imagen.",
+        "deleted": "Imagen eliminada correctamente.",
+        "deleteError": "No se pudo eliminar la imagen."
+      }
     }
   },
   "tasks": {

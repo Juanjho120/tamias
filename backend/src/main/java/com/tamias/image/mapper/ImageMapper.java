@@ -7,6 +7,7 @@ import com.tamias.image.inventoryitem.entity.InventoryItemImage;
 import com.tamias.image.maintenance.entity.MaintenanceRecordImage;
 import com.tamias.image.property.entity.PropertyImage;
 import com.tamias.image.purchase.entity.PurchaseImage;
+import com.tamias.image.reservation.entity.ReservationImage;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -131,6 +132,37 @@ public class ImageMapper {
         return new ImageUploadResponse(
             entity.getId(),
             entity.getPurchaseList().getId(),
+            entity.getOriginalFilename(),
+            entity.getContentType(),
+            entity.getSizeBytes(),
+            null,
+            entity.getStatus(),
+            entity.getCreatedAt(),
+            fileStorageService.buildFileUrl(entity.getS3Key()),
+            fileStorageService.getDownloadUrlExpirationSeconds()
+        );
+    }
+
+    public ImageResponse toResponse(ReservationImage entity) {
+        return new ImageResponse(
+            entity.getId(),
+            entity.getReservation().getId(),
+            entity.getOriginalFilename(),
+            entity.getS3Key(),
+            entity.getContentType(),
+            entity.getSizeBytes(),
+            null,
+            entity.getStatus(),
+            entity.getCreatedAt(),
+            fileStorageService.buildFileUrl(entity.getS3Key()),
+            fileStorageService.getDownloadUrlExpirationSeconds()
+        );
+    }
+
+    public ImageUploadResponse toUploadResponse(ReservationImage entity) {
+        return new ImageUploadResponse(
+            entity.getId(),
+            entity.getReservation().getId(),
             entity.getOriginalFilename(),
             entity.getContentType(),
             entity.getSizeBytes(),

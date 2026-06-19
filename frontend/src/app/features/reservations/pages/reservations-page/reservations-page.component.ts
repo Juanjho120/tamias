@@ -2,6 +2,7 @@ import { DatePipe, NgClass } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '@ngx-translate/core';
+
 import { LanguageService } from '../../../../core/i18n/language.service';
 import { ApiError } from '../../../../core/models/api-error.model';
 import { PageResponse } from '../../../../core/models/page-response.model';
@@ -10,13 +11,14 @@ import { QuetzalCurrencyPipe } from '../../../../shared/pipes/quetzal-currency.p
 import { ToastService } from '../../../../shared/toast/toast.service';
 import { CancelReservationModalComponent } from '../../components/cancel-reservation-modal/cancel-reservation-modal.component';
 import { ReservationFormModalComponent } from '../../components/reservation-form-modal/reservation-form-modal.component';
+import { ReservationImagesModalComponent } from '../../components/reservation-images-modal/reservation-images-modal.component';
 import { ReservationSuppliesModalComponent } from '../../components/reservation-supplies-modal/reservation-supplies-modal.component';
 import {
+  RESERVATION_STATUSES,
   Reservation,
   ReservationRequest,
   ReservationStatus,
-  ReservationSummary,
-  RESERVATION_STATUSES
+  ReservationSummary
 } from '../../models/reservation.model';
 import { ReservationReferenceData, ReservationReferenceDataService } from '../../services/reservation-reference-data.service';
 import { ReservationService } from '../../services/reservation.service';
@@ -36,6 +38,7 @@ type ViewMode = 'list' | 'calendar';
     QuetzalCurrencyPipe,
     CancelReservationModalComponent,
     ReservationFormModalComponent,
+    ReservationImagesModalComponent,
     ReservationSuppliesModalComponent
   ],
   templateUrl: './reservations-page.component.html'
@@ -48,38 +51,31 @@ export class ReservationsPageComponent implements OnInit {
 
   readonly statuses = RESERVATION_STATUSES;
 
-  readonly loading = signal(false);
-  readonly saving = signal(false);
+  readonly loading = signal<boolean>(false);
+  readonly saving = signal<boolean>(false);
   readonly deletingId = signal<string | null>(null);
-  readonly cancelling = signal(false);
-  readonly loadingReferences = signal(false);
-
+  readonly cancelling = signal<boolean>(false);
+  readonly loadingReferences = signal<boolean>(false);
   readonly reservations = signal<ReservationSummary[]>([]);
   readonly selectedReservation = signal<Reservation | null>(null);
   readonly reservationToDelete = signal<ReservationSummary | null>(null);
   readonly reservationToCancel = signal<ReservationSummary | null>(null);
   readonly reservationForSupplies = signal<ReservationSummary | null>(null);
-
-  readonly references = signal<ReservationReferenceData>({
-    properties: [],
-    platforms: [],
-    inventoryItems: []
-  });
-
-  readonly formVisible = signal(false);
+  readonly reservationForImages = signal<ReservationSummary | null>(null);
+  readonly references = signal<ReservationReferenceData>({ properties: [], platforms: [], inventoryItems: [] });
+  readonly formVisible = signal<boolean>(false);
   readonly formMode = signal<FormMode>('create');
   readonly viewMode = signal<ViewMode>('list');
-
-  readonly propertyId = signal('');
+  readonly propertyId = signal<string>('');
   readonly status = signal<ReservationStatus | ''>('');
-  readonly startDate = signal(this.defaultStartDate());
-  readonly endDate = signal(this.defaultEndDate());
-  readonly page = signal(0);
-  readonly size = signal(10);
-  readonly totalElements = signal(0);
-  readonly totalPages = signal(0);
-  readonly first = signal(true);
-  readonly last = signal(true);
+  readonly startDate = signal<string>(this.defaultStartDate());
+  readonly endDate = signal<string>(this.defaultEndDate());
+  readonly page = signal<number>(0);
+  readonly size = signal<number>(10);
+  readonly totalElements = signal<number>(0);
+  readonly totalPages = signal<number>(0);
+  readonly first = signal<boolean>(true);
+  readonly last = signal<boolean>(true);
 
   readonly pageLabel = computed(() => {
     if (this.totalElements() === 0) {
@@ -106,6 +102,7 @@ export class ReservationsPageComponent implements OnInit {
 
   readonly cancelReservationTitle = computed(() => {
     const reservation = this.reservationToCancel();
+
     return reservation ? this.reservationDisplayName(reservation) : '';
   });
 
@@ -116,7 +113,6 @@ export class ReservationsPageComponent implements OnInit {
 
   loadReferences(): void {
     this.loadingReferences.set(true);
-
     this.referenceDataService.loadAll().subscribe({
       next: (references) => {
         this.references.set(references);
@@ -124,7 +120,9 @@ export class ReservationsPageComponent implements OnInit {
       },
       error: (error: unknown) => {
         this.loadingReferences.set(false);
-        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('reservations.messages.referencesError')));
+        this.toastService.error(
+          this.extractErrorMessage(error, this.languageService.instant('reservations.messages.referencesError'))
+        );
       }
     });
   }
@@ -218,7 +216,6 @@ export class ReservationsPageComponent implements OnInit {
 
   openEditForm(id: string): void {
     this.loading.set(true);
-
     this.reservationService.findById(id).subscribe({
       next: (reservation: Reservation) => {
         this.selectedReservation.set(reservation);
@@ -245,9 +242,7 @@ export class ReservationsPageComponent implements OnInit {
 
   saveReservation(request: ReservationRequest): void {
     const selectedReservation = this.selectedReservation();
-
     this.saving.set(true);
-
     const saveRequest = this.formMode() === 'edit' && selectedReservation
       ? this.reservationService.update(selectedReservation.id, request)
       : this.reservationService.create(request);
@@ -270,7 +265,6 @@ export class ReservationsPageComponent implements OnInit {
     });
   }
 
-
   openSupplies(reservation: ReservationSummary): void {
     this.reservationForSupplies.set(reservation);
   }
@@ -281,6 +275,14 @@ export class ReservationsPageComponent implements OnInit {
 
   onSuppliesChanged(): void {
     this.loadReservations();
+  }
+
+  openImages(reservation: ReservationSummary): void {
+    this.reservationForImages.set(reservation);
+  }
+
+  closeImages(): void {
+    this.reservationForImages.set(null);
   }
 
   requestCancel(reservation: ReservationSummary): void {
@@ -303,7 +305,6 @@ export class ReservationsPageComponent implements OnInit {
     }
 
     this.cancelling.set(true);
-
     this.reservationService.cancel(reservation.id, payload).subscribe({
       next: () => {
         this.cancelling.set(false);
@@ -338,7 +339,6 @@ export class ReservationsPageComponent implements OnInit {
     }
 
     this.deletingId.set(reservation.id);
-
     this.reservationService.delete(reservation.id).subscribe({
       next: () => {
         this.deletingId.set(null);
@@ -392,6 +392,7 @@ export class ReservationsPageComponent implements OnInit {
 
   private extractErrorMessage(error: unknown, fallback: string): string {
     const maybeHttpError = error as { error?: ApiError };
+
     return maybeHttpError.error?.message ?? fallback;
   }
 }

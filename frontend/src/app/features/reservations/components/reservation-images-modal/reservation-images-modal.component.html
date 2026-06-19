@@ -1,0 +1,135 @@
+@if (open) {
+  <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h2 class="modal-title h5 mb-1">{{ 'reservations.images.title' | translate }}</h2>
+
+            @if (reservationLabel()) {
+              <p class="text-muted small mb-0">{{ reservationLabel() }}</p>
+            }
+          </div>
+
+          <button
+            type="button"
+            class="btn-close"
+            [attr.aria-label]="'common.close' | translate"
+            [disabled]="uploading() || !!deletingId()"
+            (click)="close()"></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="card border-0 bg-body-tertiary mb-4">
+            <div class="card-body">
+              <label for="reservation-image-file" class="form-label fw-semibold">
+                {{ 'reservations.images.upload.file' | translate }}
+              </label>
+              <input
+                #fileInput
+                id="reservation-image-file"
+                type="file"
+                class="form-control"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                [disabled]="uploading()"
+                (change)="onFilesSelected($event)" />
+              <div class="form-text">{{ 'reservations.images.upload.help' | translate }}</div>
+              <div class="small text-muted mt-2">{{ filesSummary() }}</div>
+
+              <button
+                type="button"
+                class="btn btn-primary mt-3"
+                [disabled]="uploading() || selectedFiles().length === 0"
+                (click)="uploadSelected()">
+                @if (uploading()) {
+                  <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+                  {{ 'reservations.images.upload.uploading' | translate }}
+                } @else {
+                  <i class="bi bi-cloud-arrow-up me-1"></i>
+                  {{ 'reservations.images.upload.button' | translate }}
+                }
+              </button>
+            </div>
+          </div>
+
+          @if (loading()) {
+            <div class="p-5 text-center">
+              <div class="spinner-border text-primary" role="status"></div>
+              <div class="text-muted mt-3">{{ 'reservations.images.loading' | translate }}</div>
+            </div>
+          } @else if (images().length === 0) {
+            <div class="p-5 text-center border rounded-4 bg-body-tertiary">
+              <div class="d-inline-flex align-items-center justify-content-center rounded-4 bg-secondary-subtle text-secondary p-4 mb-3">
+                <i class="bi bi-images fs-1"></i>
+              </div>
+              <h3 class="h5">{{ 'reservations.images.empty.title' | translate }}</h3>
+              <p class="text-muted mb-0">{{ 'reservations.images.empty.description' | translate }}</p>
+            </div>
+          } @else {
+            <div class="row g-3">
+              @for (image of images(); track image.id) {
+                <div class="col-12 col-md-6 col-xl-4">
+                  <div class="card h-100 shadow-sm">
+                    @if (image.fileUrl) {
+                      <button type="button" class="ratio ratio-4x3 border-0 p-0 bg-body-tertiary" (click)="openImage(image)">
+                        <img [src]="image.fileUrl" [alt]="image.originalFilename" class="object-fit-cover rounded-top" />
+                      </button>
+                    } @else {
+                      <div class="ratio ratio-4x3 bg-body-tertiary d-flex align-items-center justify-content-center text-muted">
+                        {{ 'reservations.images.previewUnavailable' | translate }}
+                      </div>
+                    }
+
+                    <div class="card-body">
+                      <div class="fw-semibold text-truncate" [title]="image.originalFilename">{{ image.originalFilename }}</div>
+                      <div class="small text-muted">{{ image.createdAt | date:'medium' }}</div>
+                      <div class="small text-muted">{{ formatSize(image.sizeBytes) }}</div>
+                      <div class="small text-muted">
+                        {{ 'reservations.images.urlExpiresIn' | translate:{ seconds: image.fileUrlExpiresIn } }}
+                      </div>
+                    </div>
+
+                    <div class="card-footer bg-transparent d-flex justify-content-end">
+                      <button
+                        type="button"
+                        class="btn btn-outline-danger btn-sm"
+                        [disabled]="deletingId() === image.id"
+                        (click)="requestDelete(image)">
+                        @if (deletingId() === image.id) {
+                          <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+                        } @else {
+                          <i class="bi bi-trash me-1"></i>
+                        }
+                        {{ 'common.delete' | translate }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" [disabled]="uploading() || !!deletingId()" (click)="close()">
+            {{ 'common.close' | translate }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop fade show"></div>
+}
+
+<app-confirm-modal
+  [open]="!!imageToDelete()"
+  title="reservations.images.confirmDeleteTitle"
+  [message]="deleteMessage()"
+  confirmText="common.delete"
+  cancelText="common.cancel"
+  confirmButtonClass="btn-danger"
+  [loading]="!!deletingId()"
+  (confirm)="confirmDelete()"
+  (cancel)="cancelDelete()" />
