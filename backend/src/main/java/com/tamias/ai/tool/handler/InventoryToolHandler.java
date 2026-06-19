@@ -11,7 +11,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 @Component
-@Order(100)
+@Order(75)
 public class InventoryToolHandler extends AiToolRoutingSupport implements AiToolHandler {
 
     private final AiReadOnlyToolService readOnlyToolService;
@@ -31,7 +31,7 @@ public class InventoryToolHandler extends AiToolRoutingSupport implements AiTool
     }
 
     private Optional<AiToolAnswer> tryHandleInventoryQuestion(String question, String normalized) {
-        if (isInventoryItemTypeQuestion(normalized)) {
+        if (isInventoryItemTypeQuestion(normalized) || isPurchaseOnlyProductQuestion(normalized)) {
             return Optional.empty();
         }
 
@@ -99,5 +99,11 @@ public class InventoryToolHandler extends AiToolRoutingSupport implements AiTool
                 normalized,
                 "item", "items", "inventario", "inventory", "producto", "productos", "supply", "supplies", "repuesto", "repuestos", "material", "materiales"
             );
+    }
+
+    private boolean isPurchaseOnlyProductQuestion(String normalized) {
+        return containsAny(normalized, "producto", "productos")
+            && containsAny(normalized, "compra", "compras", "comprado", "comprados", "compre", "compré")
+            && !containsAny(normalized, "inventario", "inventory", "marca", "marcas", "usado", "usados", "uso", "usan", "frecuente", "frecuentes");
     }
 }

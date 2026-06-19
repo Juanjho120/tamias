@@ -23,7 +23,7 @@ public class InventoryToolRepository extends AiReadOnlyToolSupport {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         String search = nullableSearch(extractSearchText(
             userQuestion,
-            "inventario", "inventory", "item", "items", "supply", "supplies", "repuesto", "repuestos", "material", "materiales", "registrado", "registrados"
+            "inventario", "inventory", "item", "items", "producto", "productos", "supply", "supplies", "repuesto", "repuestos", "material", "materiales", "registrado", "registrados"
         ));
 
         List<Map<String, Object>> rows = query("""
@@ -179,14 +179,16 @@ public class InventoryToolRepository extends AiReadOnlyToolSupport {
             ? "Estos son los items de inventario agrupados por marca:"
             : "Encontré estos items relacionados con la marca “" + search + "”:");
 
-        for (Map<String, Object> row : rows) {
-            answer.append(System.lineSeparator())
-                .append("- ").append(blankToDash(value(row.get("itemName"))))
-                .append(" | marca: ").append(blankToDash(value(row.get("brandName"))))
-                .append(" | tipo: ").append(blankToDash(value(row.get("itemType"))))
-                .append(" | unidad: ").append(blankToDash(value(row.get("unit"))))
-                .append(" | estado: ").append(blankToDash(value(row.get("status"))))
-                .append(" | imágenes: ").append(blankToDash(value(row.get("imageCount"))));
+        if (search == null) {
+            appendItemsGroupedByBrand(answer, rows);
+        } else {
+            for (Map<String, Object> row : rows) {
+                answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("itemName"))))
+                    .append(" | marca: ").append(blankToDash(value(row.get("brandName"))))
+                    .append(" | tipo: ").append(blankToDash(value(row.get("itemType"))))
+                    .append(" | unidad: ").append(blankToDash(value(row.get("unit"))));
+            }
         }
 
         return AiToolAnswer.of(
@@ -365,7 +367,7 @@ public class InventoryToolRepository extends AiReadOnlyToolSupport {
 
     public AiToolAnswer inventoryReservationUsage(String userQuestion) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-        String search = nullableSearch(extractSearchText(userQuestion, "donde", "se", "ha", "han", "usado", "usados", "usaron", "usa", "usan", "uso", "reservacion", "reservaciones", "reserva", "reservas", "supply", "supplies", "item", "items"));
+        String search = nullableSearch(extractSearchText(userQuestion, "donde", "he", "se", "ha", "han", "usado", "usados", "usaron", "usa", "usan", "uso", "reservacion", "reservaciones", "reserva", "reservas", "supply", "supplies", "item", "items"));
 
         List<Map<String, Object>> rows = query("""
             SELECT rs.item_name_snapshot,
@@ -442,7 +444,7 @@ public class InventoryToolRepository extends AiReadOnlyToolSupport {
 
     public AiToolAnswer inventoryPurchaseUsage(String userQuestion) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-        String search = nullableSearch(extractSearchText(userQuestion, "donde", "se", "ha", "han", "usado", "usados", "uso", "comprado", "compre", "compras", "compra", "historial", "item", "items", "producto", "productos"));
+        String search = nullableSearch(extractSearchText(userQuestion, "donde", "he", "se", "ha", "han", "usado", "usados", "uso", "comprado", "compre", "compras", "compra", "historial", "item", "items", "producto", "productos"));
 
         List<Map<String, Object>> rows = query("""
             SELECT pi.item_name_snapshot,
@@ -518,7 +520,7 @@ public class InventoryToolRepository extends AiReadOnlyToolSupport {
 
     public AiToolAnswer inventoryMaintenanceUsage(String userQuestion) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-        String search = nullableSearch(extractSearchText(userQuestion, "donde", "se", "ha", "han", "usado", "usados", "usaron", "usa", "usan", "uso", "mantenimiento", "mantenimientos", "item", "items", "repuesto", "repuestos", "material", "materiales"));
+        String search = nullableSearch(extractSearchText(userQuestion, "donde", "he", "se", "ha", "han", "usado", "usados", "usaron", "usa", "usan", "uso", "mantenimiento", "mantenimientos", "item", "items", "repuesto", "repuestos", "material", "materiales"));
 
         List<Map<String, Object>> rows = query("""
             SELECT mri.item_name_snapshot,
@@ -591,6 +593,24 @@ public class InventoryToolRepository extends AiReadOnlyToolSupport {
             "%d maintenance item usage rows found.".formatted(rows.size()),
             rows
         );
+    }
+
+    private void appendItemsGroupedByBrand(StringBuilder answer, List<Map<String, Object>> rows) {
+        String currentBrand = null;
+        for (Map<String, Object> row : rows) {
+            String brandName = blankToDash(value(row.get("brandName")));
+            if (!brandName.equals(currentBrand)) {
+                if (currentBrand != null) {
+                    answer.append(System.lineSeparator());
+                }
+                answer.append(System.lineSeparator()).append(brandName);
+                currentBrand = brandName;
+            }
+            answer.append(System.lineSeparator())
+                .append("- ").append(blankToDash(value(row.get("itemName"))))
+                .append(" | tipo: ").append(blankToDash(value(row.get("itemType"))))
+                .append(" | unidad: ").append(blankToDash(value(row.get("unit"))));
+        }
     }
 
     private String itemName(Map<String, Object> row, String itemNameKey) {

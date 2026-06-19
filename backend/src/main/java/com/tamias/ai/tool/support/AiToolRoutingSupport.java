@@ -487,8 +487,10 @@ public abstract class AiToolRoutingSupport {
     protected boolean isInventoryQuestion(String value) {
         return containsAny(value,
                 "inventario", "inventory", "inventory item", "inventory items", "item de inventario", "items de inventario",
-                "item registrado", "items registrados", "supplies", "supply", "suministro", "suministros", "repuesto", "repuestos", "material", "materiales"
-        ) || (containsAny(value, "item", "items") && containsAny(value, "registrado", "registrados", "usado", "usados", "usaron", "usan", "uso", "nunca", "reservacion", "reservaciones", "mantenimiento", "mantenimientos", "compra", "compras", "frecuente", "frecuentes", "mas"));
+                "item registrado", "items registrados", "productos de inventario", "producto de inventario",
+                "supplies", "supply", "suministro", "suministros", "repuesto", "repuestos", "material", "materiales"
+        ) || (containsAny(value, "item", "items") && containsAny(value, "registrado", "registrados", "usado", "usados", "usaron", "usan", "uso", "nunca", "reservacion", "reservaciones", "mantenimiento", "mantenimientos", "compra", "compras", "frecuente", "frecuentes", "mas"))
+          || (containsAny(value, "producto", "productos") && containsAny(value, "inventario", "inventory", "registrado", "registrados", "usado", "usados", "usaron", "usan", "uso", "nunca", "frecuente", "frecuentes", "mas"));
     }
 
     protected boolean isInventoryWhereUsedQuestion(String value) {

@@ -24,7 +24,8 @@ public class EntityImageToolRepository extends AiReadOnlyToolSupport {
             userQuestion,
             "imagen", "imagenes", "imágenes", "image", "images", "foto", "fotos",
             "reservacion", "reservaciones", "reservación", "reservaciónes", "reserva", "reservas",
-            "tiene", "tienen", "con", "sin", "de", "del", "la", "el", "que", "qué", "cuales", "cuáles"
+            "tiene", "tienen", "con", "sin", "no", "ningun", "ningún", "ninguna",
+            "de", "del", "la", "el", "que", "qué", "cuales", "cuáles"
         ));
 
         List<Map<String, Object>> rows = query("""
@@ -102,9 +103,9 @@ public class EntityImageToolRepository extends AiReadOnlyToolSupport {
                 .append("- ").append(blankToDash(value(row.get("propertyName"))))
                 .append(" | código: ").append(blankToDash(value(row.get("reservationCode"))))
                 .append(" | check-in: ").append(blankToDash(value(row.get("checkIn"))))
-                .append(" | check-out: ").append(blankToDash(value(row.get("checkOut"))))
-                .append(" | imágenes: ").append(blankToDash(value(row.get("imageCount"))));
-            appendOptionalFilenames(answer, row);
+                .append(" | check-out: ").append(blankToDash(value(row.get("checkOut"))));
+            appendImageCount(answer, row, withoutImages);
+            appendFilenames(answer, row);
         }
 
         return AiToolAnswer.of(
@@ -122,7 +123,8 @@ public class EntityImageToolRepository extends AiReadOnlyToolSupport {
             userQuestion,
             "imagen", "imagenes", "imágenes", "image", "images", "foto", "fotos",
             "item", "items", "inventario", "inventory", "producto", "productos", "catalogo", "catálogo",
-            "tiene", "tienen", "con", "sin", "de", "del", "la", "el", "que", "qué", "cuales", "cuáles"
+            "tiene", "tienen", "con", "sin", "no", "ningun", "ningún", "ninguna",
+            "de", "del", "la", "el", "que", "qué", "cuales", "cuáles"
         ));
 
         List<Map<String, Object>> rows = query("""
@@ -187,9 +189,9 @@ public class EntityImageToolRepository extends AiReadOnlyToolSupport {
             answer.append(System.lineSeparator())
                 .append("- ").append(blankToDash(value(row.get("itemName"))))
                 .append(" | marca: ").append(blankToDash(value(row.get("brandName"))))
-                .append(" | tipo: ").append(blankToDash(value(row.get("itemType"))))
-                .append(" | imágenes: ").append(blankToDash(value(row.get("imageCount"))));
-            appendOptionalFilenames(answer, row);
+                .append(" | tipo: ").append(blankToDash(value(row.get("itemType"))));
+            appendImageCount(answer, row, withoutImages);
+            appendFilenames(answer, row);
         }
 
         return AiToolAnswer.of(
@@ -207,7 +209,8 @@ public class EntityImageToolRepository extends AiReadOnlyToolSupport {
             userQuestion,
             "imagen", "imagenes", "imágenes", "image", "images", "foto", "fotos",
             "compra", "compras", "purchase", "purchases", "lista", "listas", "listado", "listados",
-            "tiene", "tienen", "con", "sin", "de", "del", "la", "el", "que", "qué", "cuales", "cuáles"
+            "tiene", "tienen", "con", "sin", "no", "ningun", "ningún", "ninguna",
+            "de", "del", "la", "el", "que", "qué", "cuales", "cuáles"
         ));
 
         List<Map<String, Object>> rows = query("""
@@ -281,9 +284,9 @@ public class EntityImageToolRepository extends AiReadOnlyToolSupport {
                 .append(" | propiedad: ").append(blankToDash(value(row.get("propertyName"))))
                 .append(" | proveedor: ").append(blankToDash(value(row.get("supplierName"))))
                 .append(" | ciudad: ").append(blankToDash(value(row.get("cityName"))))
-                .append(" | estado: ").append(blankToDash(value(row.get("status"))))
-                .append(" | imágenes: ").append(blankToDash(value(row.get("imageCount"))));
-            appendOptionalFilenames(answer, row);
+                .append(" | estado: ").append(blankToDash(value(row.get("status"))));
+            appendImageCount(answer, row, withoutImages);
+            appendFilenames(answer, row);
         }
 
         return AiToolAnswer.of(
@@ -295,10 +298,22 @@ public class EntityImageToolRepository extends AiReadOnlyToolSupport {
         );
     }
 
-    private void appendOptionalFilenames(StringBuilder answer, Map<String, Object> row) {
+    private void appendImageCount(StringBuilder answer, Map<String, Object> row, boolean withoutImages) {
+        if (!withoutImages) {
+            answer.append(" | imágenes: ").append(blankToDash(value(row.get("imageCount"))));
+        }
+    }
+
+    private void appendFilenames(StringBuilder answer, Map<String, Object> row) {
         String filenames = value(row.get("filenames"));
-        if (filenames != null && !filenames.isBlank()) {
-            answer.append(" | archivos: ").append(filenames);
+        if (filenames == null || filenames.isBlank()) {
+            return;
+        }
+        for (String filename : filenames.split(",")) {
+            String cleanedFilename = filename.trim();
+            if (!cleanedFilename.isBlank()) {
+                answer.append(System.lineSeparator()).append("  - ").append(cleanedFilename);
+            }
         }
     }
 }
