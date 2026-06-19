@@ -197,7 +197,7 @@ public class DocumentRagToolRepository extends AiReadOnlyToolSupport {
 
     public AiToolAnswer failedDocuments() {
         List<Map<String, Object>> rows = documentRows(null, " AND d.processing_status = 'FAILED' ", null, DEFAULT_LIMIT, "d.created_at DESC");
-        return simpleDocumentRowsAnswer(rows, "document.failedProcessing", "Estos documentos fallaron al procesarse:", "No encontré documentos con procesamiento fallido.");
+        return simpleDocumentRowsAnswer(rows, "document.failedProcessing", "Estos documentos fallaron al procesarse:", "No encontré información sobre documentos que fallaron al procesarse. Si necesitas más detalles o tienes otra consulta, no dudes en preguntar.");
     }
 
     public AiToolAnswer processedDocuments() {
@@ -223,7 +223,7 @@ public class DocumentRagToolRepository extends AiReadOnlyToolSupport {
         List<Map<String, Object>> rows = documentRows(null,
                 " AND d.processing_status = 'PROCESSED' AND NOT EXISTS (SELECT 1 FROM document_chunks dcx WHERE dcx.document_id = d.id AND dcx.organization_id = d.organization_id AND dcx.vector_store_id IS NOT NULL) ",
                 null, DEFAULT_LIMIT, "d.created_at DESC");
-        return simpleDocumentRowsAnswer(rows, "document.processedNotIndexed", "Estos documentos están procesados pero no indexados para IA:", "No encontré documentos procesados pendientes de indexación IA.");
+        return simpleDocumentRowsAnswer(rows, "document.processedNotIndexed", "Estos documentos están procesados pero no indexados para IA:", "No encontré información sobre documentos que están procesados pero no indexados para IA. Si necesitas más detalles o tienes otra consulta, no dudes en preguntar.");
     }
 
     public AiToolAnswer documentCountByType() {

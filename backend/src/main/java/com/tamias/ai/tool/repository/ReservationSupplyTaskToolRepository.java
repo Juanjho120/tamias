@@ -684,11 +684,11 @@ public class ReservationSupplyTaskToolRepository extends AiReadOnlyToolSupport {
     }
 
     public AiToolAnswer completedTaskItems() {
-        List<Map<String, Object>> rows = taskItemRows(null, null, true, null, DEFAULT_LIMIT, "ti.completion_date DESC NULLS LAST, ti.updated_at DESC, ti.task_name ASC");
+        List<Map<String, Object>> rows = taskItemRows(null, null, true, null, DEFAULT_LIMIT, "p.name ASC, tl.due_date ASC NULLS LAST, tl.title ASC, COALESCE(ti.responsible_person, '') ASC, ti.sort_order ASC, ti.task_name ASC");
         if (rows.isEmpty()) {
             return AiToolAnswer.of("No encontré tareas específicas completadas.", "taskItem.completed", "Completed task items", "No completed task items found.", List.of());
         }
-        return taskItemRowsAnswer(rows, "taskItem.completed", "Estas tareas específicas ya están completadas:");
+        return groupedCompletedTaskItemsAnswer(rows);
     }
 
     public AiToolAnswer overdueTaskItems() {
@@ -734,7 +734,13 @@ public class ReservationSupplyTaskToolRepository extends AiReadOnlyToolSupport {
                 for (Map.Entry<String, List<Map<String, Object>>> reservationEntry : byReservation.entrySet()) {
                     boolean hasReservation = !"__NO_RESERVATION__".equals(reservationEntry.getKey());
                     if (hasReservation) {
-                        answer.append(System.lineSeparator()).append("   ").append(reservationEntry.getKey());
+                        String primaryGuest = blankToDash(value(reservationEntry.getValue().getFirst().get("primaryGuest")));
+                        answer.append(System.lineSeparator())
+                                .append("   ")
+                                .append(reservationEntry.getKey())
+                                .append(" (")
+                                .append(primaryGuest)
+                                .append(")");
                     }
 
                     Map<String, List<Map<String, Object>>> byTaskList = new LinkedHashMap<>();
@@ -757,6 +763,46 @@ public class ReservationSupplyTaskToolRepository extends AiReadOnlyToolSupport {
             }
         }
         return AiToolAnswer.of(answer.toString(), "taskItem.assignedSummary", "Task item assigned summary", "%d pending task item assignment rows found.".formatted(rows.size()), rows);
+    }
+
+    private AiToolAnswer groupedCompletedTaskItemsAnswer(List<Map<String, Object>> rows) {
+        StringBuilder answer = new StringBuilder("Estas tareas específicas ya están completadas:");
+        Map<String, List<Map<String, Object>>> byProperty = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            String property = blankToDash(value(row.get("propertyName")));
+            byProperty.computeIfAbsent(property, ignored -> new ArrayList<>()).add(row);
+        }
+
+        for (Map.Entry<String, List<Map<String, Object>>> propertyEntry : byProperty.entrySet()) {
+            answer.append(System.lineSeparator()).append("- ").append(propertyEntry.getKey());
+
+            Map<String, List<Map<String, Object>>> byTaskList = new LinkedHashMap<>();
+            for (Map<String, Object> row : propertyEntry.getValue()) {
+                String listKey = blankToDash(value(row.get("taskListTitle"))) + " | vence lista: " + blankToDash(value(row.get("dueDate")));
+                byTaskList.computeIfAbsent(listKey, ignored -> new ArrayList<>()).add(row);
+            }
+
+            for (Map.Entry<String, List<Map<String, Object>>> taskListEntry : byTaskList.entrySet()) {
+                answer.append(System.lineSeparator()).append("  - ").append(taskListEntry.getKey());
+
+                Map<String, List<Map<String, Object>>> byResponsible = new LinkedHashMap<>();
+                for (Map<String, Object> row : taskListEntry.getValue()) {
+                    String responsible = blankToDash(value(row.get("responsiblePerson")));
+                    byResponsible.computeIfAbsent(responsible, ignored -> new ArrayList<>()).add(row);
+                }
+
+                for (Map.Entry<String, List<Map<String, Object>>> responsibleEntry : byResponsible.entrySet()) {
+                    answer.append(System.lineSeparator()).append("    - ").append(responsibleEntry.getKey());
+                    for (Map<String, Object> row : responsibleEntry.getValue()) {
+                        answer.append(System.lineSeparator())
+                                .append("      - ")
+                                .append(blankToDash(value(row.get("taskName"))));
+                    }
+                }
+            }
+        }
+
+        return AiToolAnswer.of(answer.toString(), "taskItem.completed", "Completed task items", "%d completed task item rows found.".formatted(rows.size()), rows);
     }
 
     private AiToolAnswer groupedPendingTaskItemsAnswer(List<Map<String, Object>> rows, String toolName, String intro) {

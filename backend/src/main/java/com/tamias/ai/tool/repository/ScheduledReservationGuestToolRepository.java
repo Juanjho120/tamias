@@ -173,7 +173,7 @@ public class ScheduledReservationGuestToolRepository extends AiReadOnlyToolSuppo
                 }, "id", "propertyName", "title", "personName", "categoryName", "typeName", "startDate", "endDate", "nextDueDate", "frequency", "intervalValue", "status");
         if (rows.isEmpty()) {
             return AiToolAnswer.of(
-                    "No encontré mantenimientos programados activos con fecha de inicio futura después de hoy.",
+                    "No encontré información sobre próximos mantenimientos programados. Si necesitas más detalles o tienes otra consulta, no dudes en preguntar.",
                     "scheduledMaintenance.nextDue",
                     "Next scheduled maintenance",
                     "No upcoming scheduled maintenance rows found by start date.",
@@ -657,12 +657,20 @@ public class ScheduledReservationGuestToolRepository extends AiReadOnlyToolSuppo
         }
 
         StringBuilder answer = new StringBuilder("Estos mantenimientos programados ya están vencidos:");
+        Map<String, List<Map<String, Object>>> byProperty = new LinkedHashMap<>();
         for (Map<String, Object> row : rows) {
+            String property = blankToDash(value(row.get("propertyName")));
+            byProperty.computeIfAbsent(property, ignored -> new ArrayList<>()).add(row);
+        }
+        for (Map.Entry<String, List<Map<String, Object>>> propertyEntry : byProperty.entrySet()) {
             answer.append(System.lineSeparator())
-                    .append("- ").append(blankToDash(value(row.get("propertyName"))))
-                    .append(" | ").append(blankToDash(value(row.get("title"))))
-                    .append(" | vencía el ").append(blankToDash(value(row.get("nextDueDate"))))
-                    .append(" | días vencido: ").append(blankToDash(value(row.get("daysOverdue"))));
+                    .append("- ").append(propertyEntry.getKey());
+            for (Map<String, Object> row : propertyEntry.getValue()) {
+                answer.append(System.lineSeparator())
+                        .append("  - ").append(blankToDash(value(row.get("title"))))
+                        .append(" | vencía el ").append(blankToDash(value(row.get("nextDueDate"))))
+                        .append(" | días vencido: ").append(blankToDash(value(row.get("daysOverdue"))));
+            }
         }
         return AiToolAnswer.of(
                 answer.toString(),

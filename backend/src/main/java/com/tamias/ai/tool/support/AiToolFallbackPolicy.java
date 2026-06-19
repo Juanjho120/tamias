@@ -126,7 +126,18 @@ public final class AiToolFallbackPolicy {
                 "organization.userCount",
                 "organization.moduleUsageSummary",
                 "aiChat.usageSummary",
-                "aiChat.currentSessionSummary"
+                "aiChat.currentSessionSummary",
+                "scheduledMaintenance.nextDue",
+                "image.maintenanceImagesSummary",
+                "maintenance.withImages",
+                "maintenance.withoutImages",
+                "document.processedNotIndexed",
+                "document.failedProcessing",
+                "files.getImageDashboardSummary",
+                "files.getImageCountByModule",
+                "files.getTopImageModule",
+                "files.getImageStorageSummary",
+                "files.getFileNameList"
         ).contains(toolName);
     }
 

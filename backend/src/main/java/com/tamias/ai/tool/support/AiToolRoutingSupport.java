@@ -140,8 +140,7 @@ public abstract class AiToolRoutingSupport {
 
     protected AiToolAnswer readOnlyGuard() {
         return AiToolAnswer.of(
-                "Puedo ayudarte a revisar información que ya existe en TAMIAS, pero por seguridad todavía no creo, edito, elimino ni envío datos desde el asistente.\n"
-                        + "Dime qué quieres revisar y te ayudo a encontrarlo para que tú hagas el cambio desde el módulo correspondiente.",
+                "Puedo ayudarte a revisar información que ya existe en TAMIAS, pero por seguridad todavía no creo, edito, elimino ni envío datos desde el asistente.",
                 "assistant.readOnlyGuard",
                 "Read-only guard",
                 "The user asked for an action that would modify data. The assistant refused autonomous writes.",
@@ -542,6 +541,11 @@ public abstract class AiToolRoutingSupport {
         return isMaintenanceCostQuestion(value) && containsAny(value, "por propiedad", "propiedad genero", "propiedad tiene", "propiedades");
     }
 
+    protected boolean isMaintenanceTopCostByPropertyQuestion(String value) {
+        return isMaintenanceCostQuestion(value)
+                && containsAny(value, "propiedad tiene mas", "propiedad tiene más", "mas gastos", "más gastos", "mayor gasto", "mayores gastos", "gasto mas alto", "gasto más alto");
+    }
+
     protected boolean isMaintenanceCostByCategoryQuestion(String value) {
         return isMaintenanceCostQuestion(value) && containsAny(value, "por categoria", "categoria", "categorias");
     }
@@ -925,7 +929,7 @@ public abstract class AiToolRoutingSupport {
 
     protected boolean isPurchaseItemMostPurchasedQuestion(String value) {
         return isPurchaseAnalyticsQuestion(value)
-                && containsAny(value, "compro mas", "compro más", "mas seguido", "más seguido", "mas comprado", "más comprado", "compro con mas frecuencia", "top compras", "item compro mas");
+                && containsAny(value, "compro mas", "compro más", "compras mas", "compras más", "mas seguido", "más seguido", "mas comprado", "más comprado", "compro con mas frecuencia", "top compras", "item compro mas", "producto compro mas");
     }
 
     protected boolean isPurchaseItemLeastPurchasedQuestion(String value) {
@@ -1124,8 +1128,10 @@ public abstract class AiToolRoutingSupport {
     protected boolean isUnsupportedWriteAction(String value) {
         return startsWithAny(value,
                 "crea ", "crear ", "agrega ", "agregar ", "anade ", "anadir ", "registra ", "registrar ",
-                "actualiza ", "actualizar ", "edita ", "editar ", "modifica ", "modificar ", "elimina ",
-                "eliminar ", "borra ", "borrar ", "cancela ", "cancelar ", "envia ", "enviar ", "manda ", "mandar ", "programa ", "programar "
+                "actualiza ", "actualizar ", "edita ", "editar ", "modifica ", "modificar ", "cambia ", "cambiar ",
+                "elimina ", "eliminar ", "borra ", "borrar ", "cancela ", "cancelar ", "envia ", "enviar ",
+                "manda ", "mandar ", "programa ", "programar ", "marca ", "marcar ", "completa ", "completar ",
+                "finaliza ", "finalizar ", "asigna ", "asignar ", "activa ", "activar ", "desactiva ", "desactivar "
         );
     }
 

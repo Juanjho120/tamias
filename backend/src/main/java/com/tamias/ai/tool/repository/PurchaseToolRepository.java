@@ -46,11 +46,18 @@ public class PurchaseToolRepository extends AiReadOnlyToolSupport {
                        pl.purchase_date,
                        pl.status AS purchase_list_status,
                        p.name AS property_name,
-                       s.name AS supplier_name
+                       s.name AS supplier_name,
+                       b.name AS brand_name
                 FROM purchase_items pi
                 JOIN purchase_lists pl ON pl.id = pi.purchase_list_id
                 LEFT JOIN properties p ON p.id = pl.property_id
                 LEFT JOIN suppliers s ON s.id = pl.supplier_id
+                LEFT JOIN inventory_items ii ON ii.id = pi.inventory_item_id
+                                            AND ii.organization_id = pi.organization_id
+                                            AND ii.deleted_at IS NULL
+                LEFT JOIN brands b ON b.id = ii.brand_id
+                                  AND b.organization_id = ii.organization_id
+                                  AND b.deleted_at IS NULL
                 WHERE pi.organization_id = :organizationId
                   AND pl.organization_id = :organizationId
                   AND pl.deleted_at IS NULL
@@ -61,14 +68,14 @@ public class PurchaseToolRepository extends AiReadOnlyToolSupport {
                            SELECT 1
                            FROM unnest(string_to_array(CAST(:search AS TEXT), ' ')) AS token(value)
                            WHERE token.value <> ''
-                             AND translate(LOWER(CONCAT_WS(' ', pi.item_name_snapshot, pi.notes)), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
+                             AND translate(LOWER(CONCAT_WS(' ', pi.item_name_snapshot, pi.notes, ii.name, b.name)), 'áéíóúüñ', 'aeiouun') NOT LIKE CONCAT('%', token.value, '%')
                        )
                   )
                 ORDER BY CASE
                          WHEN CAST(:search AS TEXT) IS NOT NULL
-                              AND translate(LOWER(CONCAT_WS(' ', pi.item_name_snapshot, pi.notes)), 'áéíóúüñ', 'aeiouun') = CAST(:search AS TEXT) THEN 0
+                              AND translate(LOWER(CONCAT_WS(' ', pi.item_name_snapshot, pi.notes, ii.name, b.name)), 'áéíóúüñ', 'aeiouun') = CAST(:search AS TEXT) THEN 0
                          WHEN CAST(:search AS TEXT) IS NOT NULL
-                              AND translate(LOWER(CONCAT_WS(' ', pi.item_name_snapshot, pi.notes)), 'áéíóúüñ', 'aeiouun') LIKE CONCAT('%', CAST(:search AS TEXT), '%') THEN 1
+                              AND translate(LOWER(CONCAT_WS(' ', pi.item_name_snapshot, pi.notes, ii.name, b.name)), 'áéíóúüñ', 'aeiouun') LIKE CONCAT('%', CAST(:search AS TEXT), '%') THEN 1
                          ELSE 2
                          END,
                          pl.purchase_date DESC,
@@ -77,7 +84,7 @@ public class PurchaseToolRepository extends AiReadOnlyToolSupport {
                 """, q -> {
                     q.setParameter("organizationId", organizationId);
                     q.setParameter("search", search);
-                }, "id", "itemName", "quantity", "unit", "estimatedPrice", "purchased", "purchaseDate", "purchaseListStatus", "propertyName", "supplierName");
+                }, "id", "itemName", "quantity", "unit", "estimatedPrice", "purchased", "purchaseDate", "purchaseListStatus", "propertyName", "supplierName", "brandName");
 
         if (rows.isEmpty()) {
             return AiToolAnswer.of(
@@ -94,7 +101,7 @@ public class PurchaseToolRepository extends AiReadOnlyToolSupport {
         Map<String, Object> row = rows.get(0);
         String itemName = blankToDash(value(row.get("itemName")));
         String purchaseDate = blankToDash(value(row.get("purchaseDate")));
-        String answer = "La última vez que encontré comprado “" + itemName + "” fue el " + purchaseDate + ".\n"
+        String answer = "La última vez que compraste “" + itemName + "” fue el " + purchaseDate + ".\n"
                 + "Cantidad: " + blankToDash(value(row.get("quantity"))) + " " + blankToDash(value(row.get("unit"))) + ".\n"
                 + "Precio estimado: " + formatMoney(row.get("estimatedPrice")) + ".\n"
                 + "Propiedad: " + blankToDash(value(row.get("propertyName"))) + ".\n"

@@ -241,6 +241,32 @@ public class MaintenanceToolRepository extends AiReadOnlyToolSupport {
         return AiToolAnswer.of(answer.toString(), "maintenance.costByProperty", "Maintenance cost by property", "%d maintenance cost rows by property found.".formatted(rows.size()), rows);
     }
 
+    public AiToolAnswer maintenanceTopCostProperty() {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        List<Map<String, Object>> rows = query("""
+                SELECT p.name AS property_name,
+                       COUNT(mr.id) AS maintenance_count,
+                       COALESCE(SUM(mr.cost), 0) AS total_cost,
+                       COALESCE(AVG(mr.cost), 0) AS average_cost
+                FROM maintenance_records mr
+                JOIN properties p ON p.id = mr.property_id
+                WHERE mr.organization_id = :organizationId
+                  AND mr.deleted_at IS NULL
+                  AND mr.cost IS NOT NULL
+                GROUP BY p.name
+                ORDER BY total_cost DESC, maintenance_count DESC, p.name ASC
+                LIMIT 1
+                """, q -> q.setParameter("organizationId", organizationId),
+                "propertyName", "maintenanceCount", "totalCost", "averageCost");
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of("No encontré costos de mantenimiento por propiedad.", "maintenance.costByProperty", "Maintenance top cost property", "No maintenance cost rows found by property.", List.of());
+        }
+        Map<String, Object> row = rows.getFirst();
+        String answer = "La propiedad " + blankToDash(value(row.get("propertyName")))
+                + " ha tenido más gastos de mantenimiento con un total de " + formatMoney(row.get("totalCost"));
+        return AiToolAnswer.of(answer, "maintenance.costByProperty", "Maintenance top cost property", "Top maintenance cost property found.", rows);
+    }
+
     public AiToolAnswer maintenanceCostByCategory() {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         List<Map<String, Object>> rows = query("""

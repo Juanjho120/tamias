@@ -62,6 +62,9 @@ private Optional<AiToolAnswer> tryHandleDocumentAndRagQuestion(String question, 
         if (isDocumentCountByPropertyQuestion(normalized)) {
             return Optional.of(readOnlyToolService.documentCountByProperty());
         }
+        if (isDocumentFailedQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.failedDocuments());
+        }
         if (isDocumentProcessedNotIndexedQuestion(normalized)) {
             return Optional.of(readOnlyToolService.processedNotIndexedDocuments());
         }
@@ -70,9 +73,6 @@ private Optional<AiToolAnswer> tryHandleDocumentAndRagQuestion(String question, 
         }
         if (isDocumentIndexedQuestion(normalized)) {
             return Optional.of(readOnlyToolService.indexedDocuments());
-        }
-        if (isDocumentFailedQuestion(normalized)) {
-            return Optional.of(readOnlyToolService.failedDocuments());
         }
         if (isDocumentUnprocessedQuestion(normalized)) {
             return Optional.of(readOnlyToolService.unprocessedDocuments());

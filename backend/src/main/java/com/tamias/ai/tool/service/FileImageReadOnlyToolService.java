@@ -51,6 +51,22 @@ public class FileImageReadOnlyToolService {
         return repository.imageDashboardSummary();
     }
 
+    public AiToolAnswer imageCountByModule() {
+        return repository.imageCountByModule();
+    }
+
+    public AiToolAnswer topImageModule() {
+        return repository.topImageModule();
+    }
+
+    public AiToolAnswer imageStorageSummary() {
+        return repository.imageStorageSummary();
+    }
+
+    public AiToolAnswer fileNameList() {
+        return repository.fileNameList();
+    }
+
     public AiToolAnswer recentUploads() {
         return repository.recentUploads();
     }

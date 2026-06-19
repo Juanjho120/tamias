@@ -32,6 +32,9 @@ private Optional<AiToolAnswer> tryHandleMaintenanceAnalyticsQuestion(String ques
         if (isMaintenanceImageQuestion(normalized)) {
             return Optional.of(readOnlyToolService.maintenanceImagesSummary(containsAny(normalized, "sin imagen", "sin imagenes", "no tienen imagen", "no tiene imagen", "sin evidencia", "no tienen evidencia", "no tiene evidencia")));
         }
+        if (isMaintenanceTopCostByPropertyQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.maintenanceTopCostProperty());
+        }
         if (isMaintenanceCostByPropertyQuestion(normalized)) {
             return Optional.of(readOnlyToolService.maintenanceCostByProperty());
         }

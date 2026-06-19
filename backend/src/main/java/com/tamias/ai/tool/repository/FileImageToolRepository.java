@@ -288,85 +288,7 @@ public class FileImageToolRepository extends AiReadOnlyToolSupport {
 
 
     public AiToolAnswer imageDashboardSummary() {
-        UUID organizationId = currentUserService.getCurrentOrganizationId();
-        List<Map<String, Object>> rows = query("""
-                SELECT module_key,
-                       module_label,
-                       image_count,
-                       total_size_bytes,
-                       entity_count,
-                       entities_with_images,
-                       entity_count - entities_with_images AS entities_without_images
-                FROM (
-                    SELECT 'properties' AS module_key,
-                           'Propiedades' AS module_label,
-                           COUNT(pi.id) AS image_count,
-                           COALESCE(SUM(pi.size_bytes), 0) AS total_size_bytes,
-                           COUNT(DISTINCT p.id) AS entity_count,
-                           COUNT(DISTINCT CASE WHEN pi.id IS NOT NULL THEN p.id END) AS entities_with_images
-                    FROM properties p
-                    LEFT JOIN property_images pi ON pi.property_id = p.id
-                        AND pi.organization_id = p.organization_id
-                        AND pi.status = 'ACTIVE'
-                    WHERE p.organization_id = :organizationId
-                      AND p.deleted_at IS NULL
-                    UNION ALL
-                    SELECT 'maintenance' AS module_key,
-                           'Mantenimientos' AS module_label,
-                           COUNT(mri.id) AS image_count,
-                           COALESCE(SUM(mri.size_bytes), 0) AS total_size_bytes,
-                           COUNT(DISTINCT mr.id) AS entity_count,
-                           COUNT(DISTINCT CASE WHEN mri.id IS NOT NULL THEN mr.id END) AS entities_with_images
-                    FROM maintenance_records mr
-                    LEFT JOIN maintenance_record_images mri ON mri.maintenance_record_id = mr.id
-                        AND mri.organization_id = mr.organization_id
-                        AND mri.status = 'ACTIVE'
-                    WHERE mr.organization_id = :organizationId
-                      AND mr.deleted_at IS NULL
-                    UNION ALL
-                    SELECT 'inventory_items' AS module_key,
-                           'Items de inventario' AS module_label,
-                           COUNT(iii.id) AS image_count,
-                           COALESCE(SUM(iii.size_bytes), 0) AS total_size_bytes,
-                           COUNT(DISTINCT ii.id) AS entity_count,
-                           COUNT(DISTINCT CASE WHEN iii.id IS NOT NULL THEN ii.id END) AS entities_with_images
-                    FROM inventory_items ii
-                    LEFT JOIN inventory_item_images iii ON iii.inventory_item_id = ii.id
-                        AND iii.organization_id = ii.organization_id
-                        AND iii.status = 'ACTIVE'
-                    WHERE ii.organization_id = :organizationId
-                      AND ii.deleted_at IS NULL
-                    UNION ALL
-                    SELECT 'purchase_lists' AS module_key,
-                           'Listas de compra' AS module_label,
-                           COUNT(pui.id) AS image_count,
-                           COALESCE(SUM(pui.size_bytes), 0) AS total_size_bytes,
-                           COUNT(DISTINCT pl.id) AS entity_count,
-                           COUNT(DISTINCT CASE WHEN pui.id IS NOT NULL THEN pl.id END) AS entities_with_images
-                    FROM purchase_lists pl
-                    LEFT JOIN purchase_images pui ON pui.purchase_list_id = pl.id
-                        AND pui.organization_id = pl.organization_id
-                        AND pui.status = 'ACTIVE'
-                    WHERE pl.organization_id = :organizationId
-                      AND pl.deleted_at IS NULL
-                    UNION ALL
-                    SELECT 'reservations' AS module_key,
-                           'Reservaciones' AS module_label,
-                           COUNT(ri.id) AS image_count,
-                           COALESCE(SUM(ri.size_bytes), 0) AS total_size_bytes,
-                           COUNT(DISTINCT r.id) AS entity_count,
-                           COUNT(DISTINCT CASE WHEN ri.id IS NOT NULL THEN r.id END) AS entities_with_images
-                    FROM reservations r
-                    LEFT JOIN reservation_images ri ON ri.reservation_id = r.id
-                        AND ri.organization_id = r.organization_id
-                        AND ri.status = 'ACTIVE'
-                    WHERE r.organization_id = :organizationId
-                      AND r.deleted_at IS NULL
-                ) summary
-                ORDER BY image_count DESC, module_label ASC
-                """, q -> q.setParameter("organizationId", organizationId),
-                "moduleKey", "moduleLabel", "imageCount", "totalSizeBytes", "entityCount", "entitiesWithImages", "entitiesWithoutImages");
-
+        List<Map<String, Object>> rows = imageDashboardRows();
         long totalImages = rows.stream().mapToLong(row -> toLong(row.get("imageCount"))).sum();
         long totalBytes = rows.stream().mapToLong(row -> toLong(row.get("totalSizeBytes"))).sum();
         if (totalImages == 0) {
@@ -379,35 +301,131 @@ public class FileImageToolRepository extends AiReadOnlyToolSupport {
             );
         }
 
-        Map<String, Object> topModule = rows.get(0);
-        long topImageCount = toLong(topModule.get("imageCount"));
-        StringBuilder answer = new StringBuilder("El módulo con más imágenes es ")
-                .append(blankToDash(value(topModule.get("moduleLabel"))))
-                .append(", con ")
-                .append(topImageCount)
-                .append(topImageCount == 1 ? " imagen registrada." : " imágenes registradas.")
-                .append(System.lineSeparator())
-                .append(System.lineSeparator())
-                .append("Resumen de imágenes en TAMIAS:")
+        StringBuilder answer = new StringBuilder("Resumen de imágenes en TAMIAS:")
                 .append(System.lineSeparator())
                 .append("- Total de imágenes: ").append(totalImages)
                 .append(System.lineSeparator())
                 .append("- Storage estimado: ").append(formatBytes(totalBytes));
-        for (Map<String, Object> row : rows) {
-            answer.append(System.lineSeparator())
-                    .append("- ").append(blankToDash(value(row.get("moduleLabel"))))
-                    .append(": ").append(blankToDash(value(row.get("imageCount"))))
-                    .append(toLong(row.get("imageCount")) == 1 ? " imagen" : " imágenes")
-                    .append(" | entidades con imágenes: ").append(blankToDash(value(row.get("entitiesWithImages"))))
-                    .append(" | sin imágenes: ").append(blankToDash(value(row.get("entitiesWithoutImages"))))
-                    .append(" | tamaño: ").append(formatBytes(toLong(row.get("totalSizeBytes"))));
-        }
+        appendImageModuleRows(answer, rows, true);
 
         return AiToolAnswer.of(
                 answer.toString(),
                 "files.getImageDashboardSummary",
                 "Image dashboard summary",
                 "Image counts by module were calculated.",
+                rows
+        );
+    }
+
+    public AiToolAnswer imageCountByModule() {
+        List<Map<String, Object>> rows = imageDashboardRows();
+        long totalImages = rows.stream().mapToLong(row -> toLong(row.get("imageCount"))).sum();
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    "No encontré imágenes registradas en TAMIAS para tu organización.",
+                    "files.getImageCountByModule",
+                    "Image count by module",
+                    "No image module metadata was found.",
+                    List.of()
+            );
+        }
+
+        StringBuilder answer = new StringBuilder("Total de imágenes en TAMIAS por módulo:");
+        appendImageModuleRows(answer, rows, false);
+
+        return AiToolAnswer.of(
+                answer.toString(),
+                "files.getImageCountByModule",
+                "Image count by module",
+                "%d image module rows found with %d total images.".formatted(rows.size(), totalImages),
+                rows
+        );
+    }
+
+    public AiToolAnswer topImageModule() {
+        List<Map<String, Object>> rows = imageDashboardRows();
+        long totalImages = rows.stream().mapToLong(row -> toLong(row.get("imageCount"))).sum();
+        if (totalImages == 0 || rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    "No encontré imágenes registradas en TAMIAS para tu organización.",
+                    "files.getTopImageModule",
+                    "Top image module",
+                    "No active image metadata was found.",
+                    rows
+            );
+        }
+
+        Map<String, Object> topModule = rows.get(0);
+        long topImageCount = toLong(topModule.get("imageCount"));
+        String answer = "El módulo con más imágenes es "
+                + blankToDash(value(topModule.get("moduleLabel")))
+                + ", con "
+                + topImageCount
+                + (topImageCount == 1 ? " imagen registrada." : " imágenes registradas.");
+
+        return AiToolAnswer.of(
+                answer,
+                "files.getTopImageModule",
+                "Top image module",
+                "The module with the most images was selected.",
+                rows
+        );
+    }
+
+    public AiToolAnswer imageStorageSummary() {
+        List<Map<String, Object>> rows = imageDashboardRows();
+        long totalImages = rows.stream().mapToLong(row -> toLong(row.get("imageCount"))).sum();
+        long totalBytes = rows.stream().mapToLong(row -> toLong(row.get("totalSizeBytes"))).sum();
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    "No encontré storage registrado para imágenes en TAMIAS.",
+                    "files.getImageStorageSummary",
+                    "Image storage summary",
+                    "No image storage metadata was found.",
+                    List.of()
+            );
+        }
+
+        StringBuilder answer = new StringBuilder("Resumen de storage en TAMIAS:")
+                .append(System.lineSeparator())
+                .append("- Total de imágenes: ").append(totalImages)
+                .append(System.lineSeparator())
+                .append("- Storage estimado: ").append(formatBytes(totalBytes));
+        appendImageModuleRows(answer, rows, false);
+
+        return AiToolAnswer.of(
+                answer.toString(),
+                "files.getImageStorageSummary",
+                "Image storage summary",
+                "Image storage by module was calculated.",
+                rows
+        );
+    }
+
+    public AiToolAnswer fileNameList() {
+        List<Map<String, Object>> rows = fileMetadataRows(null, null, 50, "source_type ASC, display_name ASC, original_filename ASC");
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    "No encontré archivos registrados en TAMIAS.",
+                    "files.getFileNameList",
+                    "File name list",
+                    "No file metadata found.",
+                    List.of()
+            );
+        }
+
+        StringBuilder answer = new StringBuilder("Estos son los archivos registrados en TAMIAS:");
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ")
+                    .append(blankToDash(value(row.get("originalFilename"))));
+        }
+
+        return AiToolAnswer.of(
+                answer.toString(),
+                "files.getFileNameList",
+                "File name list",
+                "%d file names found.".formatted(rows.size()),
                 rows
         );
     }
@@ -449,7 +467,7 @@ public class FileImageToolRepository extends AiReadOnlyToolSupport {
         }
 
         StringBuilder answer = new StringBuilder("Estos son los archivos más grandes registrados:");
-        appendFileMetadataRows(answer, rows);
+        appendLargestFileRowsGrouped(answer, rows);
 
         return AiToolAnswer.of(
                 answer.toString(),
@@ -557,7 +575,7 @@ public class FileImageToolRepository extends AiReadOnlyToolSupport {
         List<Map<String, Object>> rows = maintenanceImageRows(null, DEFAULT_LIMIT);
         if (rows.isEmpty()) {
             return AiToolAnswer.of(
-                    "No encontré imágenes asociadas a mantenimientos.",
+                    "No encontré información sobre mantenimientos que tengan imágenes. Si necesitas más detalles o tienes otra consulta, no dudes en preguntar.",
                     "image.maintenanceImagesSummary",
                     "Maintenance image metadata",
                     "No maintenance images found.",
@@ -577,6 +595,135 @@ public class FileImageToolRepository extends AiReadOnlyToolSupport {
         );
     }
 
+
+    private List<Map<String, Object>> imageDashboardRows() {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        return query("""
+                SELECT module_key,
+                       module_label,
+                       image_count,
+                       total_size_bytes,
+                       entity_count,
+                       entities_with_images,
+                       entity_count - entities_with_images AS entities_without_images
+                FROM (
+                    SELECT 'properties' AS module_key,
+                           'Propiedades' AS module_label,
+                           COUNT(pi.id) AS image_count,
+                           COALESCE(SUM(pi.size_bytes), 0) AS total_size_bytes,
+                           COUNT(DISTINCT p.id) AS entity_count,
+                           COUNT(DISTINCT CASE WHEN pi.id IS NOT NULL THEN p.id END) AS entities_with_images
+                    FROM properties p
+                    LEFT JOIN property_images pi ON pi.property_id = p.id
+                        AND pi.organization_id = p.organization_id
+                        AND pi.status = 'ACTIVE'
+                    WHERE p.organization_id = :organizationId
+                      AND p.deleted_at IS NULL
+                    UNION ALL
+                    SELECT 'maintenance' AS module_key,
+                           'Mantenimientos' AS module_label,
+                           COUNT(mri.id) AS image_count,
+                           COALESCE(SUM(mri.size_bytes), 0) AS total_size_bytes,
+                           COUNT(DISTINCT mr.id) AS entity_count,
+                           COUNT(DISTINCT CASE WHEN mri.id IS NOT NULL THEN mr.id END) AS entities_with_images
+                    FROM maintenance_records mr
+                    LEFT JOIN maintenance_record_images mri ON mri.maintenance_record_id = mr.id
+                        AND mri.organization_id = mr.organization_id
+                        AND mri.status = 'ACTIVE'
+                    WHERE mr.organization_id = :organizationId
+                      AND mr.deleted_at IS NULL
+                    UNION ALL
+                    SELECT 'inventory_items' AS module_key,
+                           'Items de inventario' AS module_label,
+                           COUNT(iii.id) AS image_count,
+                           COALESCE(SUM(iii.size_bytes), 0) AS total_size_bytes,
+                           COUNT(DISTINCT ii.id) AS entity_count,
+                           COUNT(DISTINCT CASE WHEN iii.id IS NOT NULL THEN ii.id END) AS entities_with_images
+                    FROM inventory_items ii
+                    LEFT JOIN inventory_item_images iii ON iii.inventory_item_id = ii.id
+                        AND iii.organization_id = ii.organization_id
+                        AND iii.status = 'ACTIVE'
+                    WHERE ii.organization_id = :organizationId
+                      AND ii.deleted_at IS NULL
+                    UNION ALL
+                    SELECT 'purchase_lists' AS module_key,
+                           'Listas de compra' AS module_label,
+                           COUNT(pui.id) AS image_count,
+                           COALESCE(SUM(pui.size_bytes), 0) AS total_size_bytes,
+                           COUNT(DISTINCT pl.id) AS entity_count,
+                           COUNT(DISTINCT CASE WHEN pui.id IS NOT NULL THEN pl.id END) AS entities_with_images
+                    FROM purchase_lists pl
+                    LEFT JOIN purchase_images pui ON pui.purchase_list_id = pl.id
+                        AND pui.organization_id = pl.organization_id
+                        AND pui.status = 'ACTIVE'
+                    WHERE pl.organization_id = :organizationId
+                      AND pl.deleted_at IS NULL
+                    UNION ALL
+                    SELECT 'reservations' AS module_key,
+                           'Reservaciones' AS module_label,
+                           COUNT(ri.id) AS image_count,
+                           COALESCE(SUM(ri.size_bytes), 0) AS total_size_bytes,
+                           COUNT(DISTINCT r.id) AS entity_count,
+                           COUNT(DISTINCT CASE WHEN ri.id IS NOT NULL THEN r.id END) AS entities_with_images
+                    FROM reservations r
+                    LEFT JOIN reservation_images ri ON ri.reservation_id = r.id
+                        AND ri.organization_id = r.organization_id
+                        AND ri.status = 'ACTIVE'
+                    WHERE r.organization_id = :organizationId
+                      AND r.deleted_at IS NULL
+                ) summary
+                ORDER BY image_count DESC, module_label ASC
+                """, q -> q.setParameter("organizationId", organizationId),
+                "moduleKey", "moduleLabel", "imageCount", "totalSizeBytes", "entityCount", "entitiesWithImages", "entitiesWithoutImages");
+    }
+
+    private void appendImageModuleRows(StringBuilder answer, List<Map<String, Object>> rows, boolean includeEntityCounts) {
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ")
+                    .append(blankToDash(value(row.get("moduleLabel"))))
+                    .append(": ")
+                    .append(blankToDash(value(row.get("imageCount"))))
+                    .append(toLong(row.get("imageCount")) == 1 ? " imagen" : " imágenes");
+            if (includeEntityCounts) {
+                answer.append(" | entidades con imágenes: ")
+                        .append(blankToDash(value(row.get("entitiesWithImages"))))
+                        .append(" | sin imágenes: ")
+                        .append(blankToDash(value(row.get("entitiesWithoutImages"))));
+            }
+            answer.append(" | tamaño: ")
+                    .append(formatBytes(toLong(row.get("totalSizeBytes"))));
+        }
+    }
+
+    private void appendLargestFileRowsGrouped(StringBuilder answer, List<Map<String, Object>> rows) {
+        Map<String, List<Map<String, Object>>> groupedRows = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            String key = value(row.get("displayName"))
+                    + "\u0001" + value(row.get("sourceType"))
+                    + "\u0001" + value(row.get("propertyName"));
+            groupedRows.computeIfAbsent(key, ignored -> new java.util.ArrayList<>()).add(row);
+        }
+
+        for (List<Map<String, Object>> group : groupedRows.values()) {
+            Map<String, Object> first = group.get(0);
+            answer.append(System.lineSeparator())
+                    .append(System.lineSeparator())
+                    .append("- ")
+                    .append(blankToDash(value(first.get("displayName"))))
+                    .append(System.lineSeparator())
+                    .append(blankToDash(value(first.get("sourceType"))));
+            for (Map<String, Object> row : group) {
+                answer.append(System.lineSeparator())
+                        .append("  - archivo: ")
+                        .append(blankToDash(value(row.get("originalFilename"))))
+                        .append(" | tipo: ")
+                        .append(blankToDash(value(row.get("contentType"))))
+                        .append(" | tamaño: ")
+                        .append(formatBytes(toLong(row.get("sizeBytes"))));
+            }
+        }
+    }
 
     private List<Map<String, Object>> entityImageCountRows(boolean withoutImages, int limitPerModule) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();

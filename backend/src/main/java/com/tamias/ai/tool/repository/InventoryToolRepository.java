@@ -583,7 +583,7 @@ public class InventoryToolRepository extends AiReadOnlyToolSupport {
                 .append(" | registros: ").append(blankToDash(value(row.get("usageCount"))))
                 .append(" | cantidad total: ").append(blankToDash(value(row.get("totalQuantity")))).append(" ").append(blankToDash(value(row.get("unit"))))
                 .append(" | propiedades: ").append(blankToDash(value(row.get("properties"))))
-                .append(" | último uso: ").append(blankToDash(value(row.get("lastUsedAt"))));
+                .append(" | último uso: ").append(formatDateTimeMinutes(row.get("lastUsedAt")));
         }
 
         return AiToolAnswer.of(

@@ -664,6 +664,10 @@ public class AiReadOnlyToolService {
         return maintenanceReadOnlyToolService.maintenanceCostByProperty();
     }
 
+    public AiToolAnswer maintenanceTopCostProperty() {
+        return maintenanceReadOnlyToolService.maintenanceTopCostProperty();
+    }
+
     public AiToolAnswer maintenanceCostByCategory() {
         return maintenanceReadOnlyToolService.maintenanceCostByCategory();
     }
@@ -710,6 +714,22 @@ public class AiReadOnlyToolService {
 
     public AiToolAnswer imageDashboardSummary() {
         return fileImageReadOnlyToolService.imageDashboardSummary();
+    }
+
+    public AiToolAnswer imageCountByModule() {
+        return fileImageReadOnlyToolService.imageCountByModule();
+    }
+
+    public AiToolAnswer topImageModule() {
+        return fileImageReadOnlyToolService.topImageModule();
+    }
+
+    public AiToolAnswer imageStorageSummary() {
+        return fileImageReadOnlyToolService.imageStorageSummary();
+    }
+
+    public AiToolAnswer fileNameList() {
+        return fileImageReadOnlyToolService.fileNameList();
     }
 
     public AiToolAnswer recentUploads() {

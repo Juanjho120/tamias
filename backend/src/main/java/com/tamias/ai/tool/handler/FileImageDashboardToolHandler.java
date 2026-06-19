@@ -69,6 +69,10 @@ public class FileImageDashboardToolHandler extends AiToolRoutingSupport implemen
             ));
         }
 
+        if (isFileNameListQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.fileNameList());
+        }
+
         if (isCrossModuleImageOrFileDashboardQuestion(normalized)) {
             if (isLargestFileDashboardQuestion(normalized)) {
                 return Optional.of(readOnlyToolService.largestFiles());
@@ -79,11 +83,17 @@ public class FileImageDashboardToolHandler extends AiToolRoutingSupport implemen
             if (isEntitiesWithoutImagesDashboardQuestion(normalized)) {
                 return Optional.of(readOnlyToolService.entitiesWithoutImages());
             }
-            if (isModuleImageDashboardSummaryQuestion(normalized)) {
-                return Optional.of(readOnlyToolService.imageDashboardSummary());
-            }
             if (isEntitiesWithMostImagesDashboardQuestion(normalized)) {
                 return Optional.of(readOnlyToolService.entitiesWithMostImages());
+            }
+            if (isImageStorageDashboardQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.imageStorageSummary());
+            }
+            if (isTopImageModuleQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.topImageModule());
+            }
+            if (isImageCountByModuleQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.imageCountByModule());
             }
             return Optional.of(readOnlyToolService.imageDashboardSummary());
         }
@@ -149,9 +159,33 @@ public class FileImageDashboardToolHandler extends AiToolRoutingSupport implemen
                 || isEntitiesWithMostImagesDashboardQuestion(normalized);
     }
 
-    private boolean isModuleImageDashboardSummaryQuestion(String normalized) {
+    private boolean isTopImageModuleQuestion(String normalized) {
+        return containsAny(normalized, "modulo", "modulos", "módulo", "módulos")
+                && containsAny(normalized, "tiene mas", "tiene más", "con mas", "con más", "mas imagen", "más imagen", "mas imagenes", "más imágenes");
+    }
+
+    private boolean isImageCountByModuleQuestion(String normalized) {
         return containsAny(normalized, "modulo", "modulos", "módulo", "módulos", "por modulo", "por módulo")
-                && containsAny(normalized, "imagen", "imagenes", "image", "images", "foto", "fotos", "cantidad", "cuantas", "cuántas", "cuantos", "cuántos", "mas", "más");
+                && containsAny(normalized, "imagen", "imagenes", "image", "images", "foto", "fotos", "cantidad", "cuantas", "cuántas", "cuantos", "cuántos")
+                && !isTopImageModuleQuestion(normalized)
+                && !isImageStorageDashboardQuestion(normalized);
+    }
+
+    private boolean isImageStorageDashboardQuestion(String normalized) {
+        return containsAny(normalized, "storage", "almacenamiento", "espacio", "tamano", "tamaño", "peso")
+                && containsAny(normalized, "modulo", "modulos", "módulo", "módulos", "tamias", "imagen", "imagenes", "image", "images");
+    }
+
+    private boolean isFileNameListQuestion(String normalized) {
+        return containsAny(normalized, "archivo", "archivos", "file", "files")
+                && containsAny(normalized, "tengo", "tamias", "registrados", "listame", "lístame", "muestrame", "muéstrame")
+                && !isLargestFileDashboardQuestion(normalized)
+                && !isRecentUploadDashboardQuestion(normalized)
+                && !isImageStorageDashboardQuestion(normalized)
+                && !isFileStorageSummaryQuestion(normalized)
+                && !isFileByDocumentQuestion(normalized)
+                && !isFileByMaintenanceQuestion(normalized)
+                && !isFileByPropertyQuestion(normalized);
     }
 
     private boolean isRecentUploadDashboardQuestion(String normalized) {

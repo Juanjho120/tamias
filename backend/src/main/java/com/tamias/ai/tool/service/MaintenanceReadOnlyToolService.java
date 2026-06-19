@@ -47,6 +47,10 @@ public class MaintenanceReadOnlyToolService {
         return repository.maintenanceCostByProperty();
     }
 
+    public AiToolAnswer maintenanceTopCostProperty() {
+        return repository.maintenanceTopCostProperty();
+    }
+
     public AiToolAnswer maintenanceCostByCategory() {
         return repository.maintenanceCostByCategory();
     }

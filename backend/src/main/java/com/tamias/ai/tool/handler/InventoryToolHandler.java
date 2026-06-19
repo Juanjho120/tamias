@@ -31,7 +31,7 @@ public class InventoryToolHandler extends AiToolRoutingSupport implements AiTool
     }
 
     private Optional<AiToolAnswer> tryHandleInventoryQuestion(String question, String normalized) {
-        if (isInventoryItemTypeQuestion(normalized) || isPurchaseOnlyProductQuestion(normalized)) {
+        if (isInventoryItemTypeQuestion(normalized) || isPurchaseFrequencyQuestion(normalized) || isPurchaseOnlyProductQuestion(normalized)) {
             return Optional.empty();
         }
 
@@ -102,8 +102,14 @@ public class InventoryToolHandler extends AiToolRoutingSupport implements AiTool
     }
 
     private boolean isPurchaseOnlyProductQuestion(String normalized) {
-        return containsAny(normalized, "producto", "productos")
-            && containsAny(normalized, "compra", "compras", "comprado", "comprados", "compre", "compré")
-            && !containsAny(normalized, "inventario", "inventory", "marca", "marcas", "usado", "usados", "uso", "usan", "frecuente", "frecuentes");
+        return containsAny(normalized, "producto", "productos", "item", "items")
+            && containsAny(normalized, "compra", "compras", "comprado", "comprados", "compre", "compré", "compro")
+            && !containsAny(normalized, "inventario", "inventory", "marca", "marcas", "usado", "usados", "usaron", "uso", "usan", "frecuente", "frecuentes");
+    }
+
+    private boolean isPurchaseFrequencyQuestion(String normalized) {
+        return containsAny(normalized, "producto", "productos", "item", "items")
+            && containsAny(normalized, "compro", "compras", "compre", "compré", "comprado", "comprados")
+            && containsAny(normalized, "mas seguido", "más seguido", "menos seguido", "compro mas", "compro más", "compras mas", "compras más", "mas compro", "más compro");
     }
 }

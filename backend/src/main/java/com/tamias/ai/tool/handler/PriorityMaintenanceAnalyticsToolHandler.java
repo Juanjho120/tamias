@@ -29,6 +29,9 @@ private Optional<AiToolAnswer> tryHandlePriorityMaintenanceAnalyticsQuestion(Str
         if (!isMaintenanceAnalyticsQuestion(normalized)) {
             return Optional.empty();
         }
+        if (isMaintenanceTopCostByPropertyQuestion(normalized)) {
+            return Optional.of(readOnlyToolService.maintenanceTopCostProperty());
+        }
         if (isMaintenanceCostByPropertyQuestion(normalized)) {
             return Optional.of(readOnlyToolService.maintenanceCostByProperty());
         }

@@ -1039,7 +1039,18 @@ public abstract class AiReadOnlyToolSupport {
                        tl.due_date,
                        tl.status AS task_list_status,
                        p.name AS property_name,
-                       COALESCE(r.reservation_code, '') AS reservation_code
+                       COALESCE(r.reservation_code, '') AS reservation_code,
+                       COALESCE((
+                           SELECT g.full_name
+                           FROM reservation_guests rg
+                           JOIN guests g ON g.id = rg.guest_id
+                                        AND g.organization_id = rg.organization_id
+                                        AND g.deleted_at IS NULL
+                           WHERE rg.reservation_id = r.id
+                             AND rg.organization_id = ti.organization_id
+                           ORDER BY rg.is_primary DESC, g.full_name ASC
+                           LIMIT 1
+                       ), '') AS primary_guest
                 FROM task_items ti
                 JOIN task_lists tl ON tl.id = ti.task_list_id AND tl.organization_id = ti.organization_id
                 JOIN properties p ON p.id = tl.property_id AND p.organization_id = ti.organization_id
@@ -1092,7 +1103,7 @@ public abstract class AiReadOnlyToolSupport {
                 q.setParameter("overdueBefore", Date.valueOf(overdueBefore));
             }
             q.setParameter("limit", limit);
-        }, "id", "taskName", "responsiblePerson", "completed", "completionDate", "sortOrder", "taskListTitle", "dueDate", "taskListStatus", "propertyName", "reservationCode");
+        }, "id", "taskName", "responsiblePerson", "completed", "completionDate", "sortOrder", "taskListTitle", "dueDate", "taskListStatus", "propertyName", "reservationCode", "primaryGuest");
     }
 
     protected AiToolAnswer taskItemRowsAnswer(List<Map<String, Object>> rows, String toolName, String intro) {
@@ -2447,6 +2458,14 @@ public abstract class AiReadOnlyToolSupport {
             return text.substring(0, 19);
         }
         return text;
+    }
+
+    protected String formatDateTimeMinutes(Object value) {
+        String formatted = formatDateTime(value);
+        if (formatted.length() >= 16 && formatted.charAt(10) == ' ') {
+            return formatted.substring(0, 16);
+        }
+        return formatted;
     }
 
     protected List<String> splitCommaValues(String value) {
