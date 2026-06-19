@@ -1,6 +1,6 @@
 # 14D — Three.js Product Box Viewer
 
-Status: Implemented in this phase.
+Status: Completed.
 
 ## Goal
 
@@ -81,6 +81,20 @@ back   -> material[5]
 
 If a face image is missing, the viewer uses a neutral placeholder material and shows a small missing-faces notice.
 
+## Texture preprocessing added in 14D.1
+
+After 14D.1, the viewer does not pass the raw image directly to Three.js. Instead, it:
+
+1. loads the face image into an HTML canvas;
+2. detects useful image content using alpha transparency or border-background detection;
+3. crops padding/background;
+4. fits the crop to the target face aspect ratio;
+5. creates a `THREE.CanvasTexture` from the processed canvas.
+
+This improves images exported from background-removal tools, especially transparent PNG/WebP files with large padding or non-transparent images with dark border backgrounds.
+
+See `79-product-box-texture-crop-fit-14d1.md` for details.
+
 ## Resource cleanup
 
 `ProductBoxViewerComponent` must clean up:
@@ -138,3 +152,4 @@ Manual tests:
 8. Confirm missing faces show placeholders.
 9. Upload/replace face images and reopen the viewer.
 10. Open and close the viewer several times to confirm no UI freezing or repeated canvas stacking.
+11. Upload a transparent PNG/WebP with padding and confirm 14D.1 crop/fit improves the texture placement.

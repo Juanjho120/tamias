@@ -1,10 +1,11 @@
 # TAMIAS — Roadmap
 
-This roadmap reflects the current state after AI tool calling/orchestration, S3/image hard-delete work, inventory brand/image work, AI debug traces, smoke-test hardening and Product Box Models through the Three.js viewer phase.
+This roadmap reflects the current state after AI tool calling/orchestration, S3/image hard-delete work, inventory brand/image work, AI debug traces, smoke-test hardening and Product Box Models through the Three.js viewer texture crop/fit phase.
 
 ## Completed foundation
 
 ### Phase 0 — Project Setup
+
 Status: Completed.
 
 - Repository and documentation.
@@ -12,6 +13,7 @@ Status: Completed.
 - Local development setup.
 
 ### Phase 1 — Security and SaaS Foundation
+
 Status: Completed / MVP-ready.
 
 - Organizations.
@@ -27,6 +29,7 @@ Status: Completed / MVP-ready.
 - Mandatory password change.
 
 ### Phase 2 — Properties and Catalogs
+
 Status: Completed / MVP-ready.
 
 - Property management.
@@ -42,6 +45,7 @@ Status: Completed / MVP-ready.
 - Inventory Items.
 
 ### Phase 3 — Maintenance
+
 Status: Completed / MVP-ready.
 
 - Maintenance records.
@@ -56,6 +60,7 @@ Status: Completed / MVP-ready.
 - Dashboard/calendar integration.
 
 ### Phase 4 — Reservations and Tasks
+
 Status: Completed / MVP-ready.
 
 - Reservations.
@@ -69,6 +74,7 @@ Status: Completed / MVP-ready.
 - Related task lists modal.
 
 ### Phase 5 — Purchase Lists
+
 Status: Completed / MVP-ready.
 
 - Purchase lists.
@@ -83,6 +89,7 @@ Status: Completed / MVP-ready.
 - Purchase list form item editing.
 
 ### Phase 6 — Documents
+
 Status: Completed / MVP-ready.
 
 - Document upload.
@@ -94,6 +101,7 @@ Status: Completed / MVP-ready.
 - Chunking.
 
 ### Phase 7 — AI Document Search
+
 Status: Completed / MVP-ready.
 
 - Embeddings.
@@ -104,6 +112,7 @@ Status: Completed / MVP-ready.
 - Basic quality improvements.
 
 ### Phase 8 — MVP Hardening
+
 Status: Completed / partially superseded by security review phases.
 
 - Role-based access review.
@@ -114,6 +123,7 @@ Status: Completed / partially superseded by security review phases.
 ## Completed AI tool calling and orchestration track
 
 ### Phase 9 — AI Tool Calling and AI Orchestration
+
 Status: Completed through 9P-H.
 
 Completed sub-phases:
@@ -144,6 +154,7 @@ Completed sub-phases:
 ```
 
 ### 9P-I — RAG retrieval tuning
+
 Status: Conditional / optional / not started.
 
 Goals:
@@ -155,69 +166,101 @@ Goals:
 ## Completed implementation queue after initial MVP
 
 ### Phase 10A — Chat ownership security + quick AI UI fixes + last login
+
 Status: Completed.
+
 Documentation: `56-chat-ownership-quick-ai-ui-fixes-10a.md`
 
 ### Phase 10B — Typewriter animation for TAMI responses
+
 Status: Completed.
+
 Documentation: `57-ai-typewriter-response-10b.md`
 
 ### Phase 11A — S3 key strategy + filepath fields
+
 Status: Completed.
+
 Documentation: `58-s3-key-strategy-filepath-fields-11a.md`
 
 ### Phase 11B — Hard delete policy for entity images
+
 Status: Completed.
+
 Documentation: `59-hard-delete-entity-images-11b.md`
 
 ### Phase 11C — Hard delete policy for RAG documents
+
 Status: Completed.
+
 Documentation: `60-hard-delete-rag-documents-11c.md`
 
 ### Phase 11C.1 — Remove document soft-delete leftovers
+
 Status: Completed.
+
 Documentation: `65-remove-document-soft-delete-leftovers-11c1.md`
 
 ### Phase 12A — Associate brands directly with inventory items
+
 Status: Completed.
+
 Documentation: `61-inventory-item-brand-association-12a.md`
 
 ### Phase 12B — Inventory item images
+
 Status: Completed.
+
 Documentation: `62-inventory-item-images-12b.md`
 
 ### Phase 12C — Purchase list images
+
 Status: Completed.
+
 Documentation: `63-purchase-list-images-12c.md`
 
 ### Phase 12D — Reservation images
+
 Status: Completed.
+
 Documentation: `64-reservation-images-12d.md`
 
 ### Phase 12E — AI image and inventory brand tools
+
 Status: Completed.
+
 Documentation: `66-ai-image-brand-tools-12e.md`
 
 ### Phase 12 closure — Images, inventory brands and AI tools
+
 Status: Completed.
+
 Documentation: `67-phase-12-closure.md`
 
 ### Phase 13A — AI image/file dashboard tools
+
 Status: Completed.
+
 Documentation: `68-ai-image-file-dashboard-tools-13a.md`
 
 ### 9P-G — AI orchestration observability and persisted debug traces
+
 Status: Completed.
+
 Documentation: `69-ai-orchestration-observability-debug-traces-9p-g.md`
 
 ### 9P-H — Smoke test hardening and final fixes
+
 Status: Completed.
+
 Documentation: `70-ai-smoke-test-hardening-final-fixes-9p-h.md`
 
 ## Current implementation queue
 
 ### Phase 14 — Product Box Models
+
 Status: In progress.
+
 Documentation: `71-product-box-models-14.md`
 
 Purpose:
@@ -234,12 +277,15 @@ Sub-phases:
 14B Product Box Face Images — Completed
 14C Angular Product Box CRUD — Completed
 14D Three.js Product Box Viewer — Completed
+14D.1 Auto texture crop and fit — Completed
 14E Integration with Inventory/Purchases — Next
 14F AI awareness for Product Box Models
 ```
 
 ### Phase 14A — Product Box Models backend foundation
+
 Status: Completed.
+
 Documentation: `72-product-box-models-backend-foundation-14a.md`
 
 Implemented:
@@ -253,7 +299,9 @@ Implemented:
 - No face images, no S3, no Angular and no Three.js yet.
 
 ### Phase 14B — Product Box Face Images
+
 Status: Completed.
+
 Documentation: `76-product-box-face-images-14b.md`
 
 Implemented:
@@ -267,7 +315,9 @@ Implemented:
 - No Angular CRUD and no Three.js yet.
 
 ### Phase 14C — Angular Product Box CRUD
+
 Status: Completed.
+
 Documentation: `77-product-box-angular-crud-14c.md`
 
 Implemented:
@@ -278,7 +328,9 @@ Implemented:
 - No Three.js viewer yet.
 
 ### Phase 14D — Three.js Product Box Viewer
+
 Status: Completed.
+
 Documentation: `78-threejs-product-box-viewer-14d.md`
 
 Implemented:
@@ -290,9 +342,24 @@ Implemented:
 - Orbit controls for rotate/zoom.
 - Dynamic Three.js imports and cleanup of WebGL resources.
 
+### Phase 14D.1 — Auto texture crop and fit
+
+Status: Completed.
+
+Documentation: `79-product-box-texture-crop-fit-14d1.md`
+
+Implemented:
+
+- Canvas preprocessing before creating Three.js textures.
+- Alpha-based crop for transparent PNG/WebP images.
+- Border-background crop for non-transparent images.
+- Per-face aspect ratio fitting.
+- Original S3 images remain unchanged.
+
 ## Future phases after Product Box Models
 
 ### Phase 14E — Integration with Inventory/Purchases
+
 Status: Planned / next.
 
 Expected scope:
@@ -302,6 +369,7 @@ Expected scope:
 - Show indicator when an item already has a 3D box model.
 
 ### Phase 14F — AI awareness for Product Box Models
+
 Status: Planned.
 
 Expected scope:
@@ -311,7 +379,9 @@ Expected scope:
 - No OCR/vision.
 
 ### Phase 15 — Reports
+
 Status: Future.
+
 Documentation: `73-reports-15.md`
 
 Candidate scope:
@@ -323,7 +393,9 @@ Candidate scope:
 - PDF generation, likely with JasperReports after a dedicated design pass.
 
 ### Phase 16 — Notifications and reminders
+
 Status: Future.
+
 Documentation: `74-notifications-reminders-16.md`
 
 Candidate scope:
@@ -335,7 +407,9 @@ Candidate scope:
 - Notification preferences.
 
 ### Phase 17 — Blueprint Analysis
+
 Status: Future.
+
 Documentation: `75-blueprint-analysis-17.md`
 
 Candidate scope:

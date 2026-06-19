@@ -33,9 +33,10 @@ Use this sequence instead:
 
 ```text
 14A — Product Box Models backend foundation
-14B — Product Box Face Images — Completed
+14B — Product Box Face Images
 14C — Angular Product Box CRUD
 14D — Three.js Product Box Viewer
+14D.1 — Auto texture crop and fit
 14E — Integration with Inventory/Purchases
 14F — AI awareness for Product Box Models
 ```
@@ -101,7 +102,9 @@ deleted_at TIMESTAMP NULL
 deleted_by UUID NULL
 ```
 
-Do not add `property_id` in the MVP unless a real use case appears. The box model primarily describes a product/item, not a property. Property context can be inferred later through purchases/reservations/maintenance usage if needed.
+Do not add `property_id` in the MVP unless a real use case appears.
+
+The box model primarily describes a product/item, not a property. Property context can be inferred later through purchases/reservations/maintenance usage if needed.
 
 ### `product_box_model_faces`
 
@@ -232,10 +235,10 @@ Reason:
 ### 14A endpoints — metadata only
 
 ```text
-GET    /api/v1/product-box-models
-GET    /api/v1/product-box-models/{id}
-POST   /api/v1/product-box-models
-PUT    /api/v1/product-box-models/{id}
+GET /api/v1/product-box-models
+GET /api/v1/product-box-models/{id}
+POST /api/v1/product-box-models
+PUT /api/v1/product-box-models/{id}
 DELETE /api/v1/product-box-models/{id}
 ```
 
@@ -251,8 +254,8 @@ Use plural `box-models` because an item may eventually have more than one model,
 ### 14B endpoints — face images
 
 ```text
-POST   /api/v1/product-box-models/{id}/faces/{faceName}
-PUT    /api/v1/product-box-models/{id}/faces/{faceName}
+POST /api/v1/product-box-models/{id}/faces/{faceName}
+PUT /api/v1/product-box-models/{id}/faces/{faceName}
 DELETE /api/v1/product-box-models/{id}/faces/{faceName}
 ```
 
@@ -296,9 +299,7 @@ Do not create feature-specific translation services.
 
 ## Three.js plan
 
-Use Three.js only in the frontend.
-
-The viewer should:
+Use Three.js only in the frontend. The viewer should:
 
 - Accept dimensions and unit.
 - Accept a `faces` object keyed by `front`, `back`, `left`, `right`, `top`, `bottom`.
@@ -317,6 +318,7 @@ back
 - Use placeholder materials for missing faces.
 - Support orbit/rotation and zoom.
 - Dispose renderer, geometry, materials and textures in `ngOnDestroy`.
+- Preprocess textures in 14D.1 so transparent or border-background padding is cropped and fitted to the face ratio.
 
 ## Incremental implementation plan
 
@@ -351,6 +353,13 @@ Metadata CRUD only.
 - Render box with face textures.
 - Orbit controls and cleanup.
 
+### 14D.1 — Auto texture crop and fit
+
+- Frontend-only canvas preprocessing.
+- Crop transparent or border-background padding.
+- Fit each processed texture to the target face aspect ratio.
+- Do not modify original S3 images.
+
 ### 14E — Inventory/Purchase integration
 
 - Show models from inventory item context.
@@ -370,11 +379,14 @@ Metadata CRUD only.
 - Face images are stored in private S3, not PostgreSQL byte arrays.
 - Face image deletion leaves no S3 garbage after successful operations.
 - Angular renders a simple rectangular box dynamically using metadata + image URLs.
+- The viewer crops/fits texture padding without modifying original uploaded images.
 - The module does not break existing inventory, purchase, image, S3, AI or RAG behavior.
-
 
 ## Implementation status
 
 - 14A completed: backend metadata CRUD and `product_box_models`.
 - 14B completed: `product_box_model_faces`, S3 upload/replace/delete, hard-delete face rows and presigned URLs in model responses.
-- 14C is next: Angular CRUD for Product Box Models and face uploads.
+- 14C completed: Angular Product Box CRUD and face upload UI.
+- 14D completed: Three.js Product Box Viewer.
+- 14D.1 completed: Auto texture crop and fit in the viewer.
+- 14E next: Integration with Inventory/Purchases.

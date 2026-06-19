@@ -20,21 +20,34 @@ import {
 
 type ThreeModule = typeof import('three');
 type OrbitControlsModule = typeof import('three/examples/jsm/controls/OrbitControls.js');
-
 type DisposableTexture = import('three').Texture;
 type DisposableMaterial = import('three').Material;
 type DisposableGeometry = import('three').BufferGeometry;
+type OrbitControlsInstance = InstanceType<OrbitControlsModule['OrbitControls']>;
 
 type RuntimeState = {
   renderer: import('three').WebGLRenderer;
   scene: import('three').Scene;
   camera: import('three').PerspectiveCamera;
-  controls: InstanceType<OrbitControlsModule['OrbitControls']>;
+  controls: OrbitControlsInstance;
   geometries: DisposableGeometry[];
   materials: DisposableMaterial[];
   textures: DisposableTexture[];
   animationFrameId: number;
   resizeObserver: ResizeObserver | null;
+};
+
+type RgbColor = {
+  r: number;
+  g: number;
+  b: number;
+};
+
+type CropBounds = {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
 };
 
 @Component({
@@ -68,6 +81,12 @@ type RuntimeState = {
   ]
 })
 export class ProductBoxViewerComponent implements AfterViewInit, OnChanges, OnDestroy {
+  private static readonly MAX_PROCESSING_SIZE = 2048;
+  private static readonly MAX_TEXTURE_SIZE = 1024;
+  private static readonly MIN_TEXTURE_SIZE = 64;
+  private static readonly ALPHA_THRESHOLD = 24;
+  private static readonly BACKGROUND_TOLERANCE = 42;
+
   @Input() model: ProductBoxModel | null = null;
 
   @ViewChild('canvasHost') private readonly canvasHost?: ElementRef<HTMLDivElement>;
@@ -182,8 +201,8 @@ export class ProductBoxViewerComponent implements AfterViewInit, OnChanges, OnDe
 
     const width = Math.max(host.clientWidth, 1);
     const height = Math.max(host.clientHeight, 1);
-    const camera = new three.PerspectiveCamera(45, width / height, 0.1, 1000);
 
+    const camera = new three.PerspectiveCamera(45, width / height, 0.1, 1000);
     const normalizedDimensions = this.normalizedDimensions(model);
     const maxDimension = Math.max(normalizedDimensions.width, normalizedDimensions.height, normalizedDimensions.depth);
     camera.position.set(maxDimension * 1.4, maxDimension * 1.15, maxDimension * 1.75);
@@ -251,24 +270,16 @@ export class ProductBoxViewerComponent implements AfterViewInit, OnChanges, OnDe
   ): Promise<{ materials: import('three').MeshBasicMaterial[]; textures: DisposableTexture[] }> {
     const textures: DisposableTexture[] = [];
     const missingFaces: ProductBoxFaceName[] = [];
-
-    const materialFaceOrder: ProductBoxFaceName[] = [
-      'right',
-      'left',
-      'top',
-      'bottom',
-      'front',
-      'back'
-    ];
+    const materialFaceOrder: ProductBoxFaceName[] = ['right', 'left', 'top', 'bottom', 'front', 'back'];
 
     const materials = await Promise.all(
       materialFaceOrder.map(async (faceName) => {
         const face = model.faces?.[faceName] ?? null;
-        const texture = await this.loadFaceTexture(three, face);
+        const texture = await this.loadFaceTexture(three, model, faceName, face);
 
         if (texture) {
           textures.push(texture);
-          return new three.MeshBasicMaterial({ map: texture });
+          return new three.MeshBasicMaterial({ map: texture, transparent: true, alphaTest: 0.01 });
         }
 
         missingFaces.push(faceName);
@@ -276,48 +287,389 @@ export class ProductBoxViewerComponent implements AfterViewInit, OnChanges, OnDe
       })
     );
 
-    this.missingFaces.set(missingFaces.sort((a, b) => PRODUCT_BOX_FACE_NAMES.indexOf(a) - PRODUCT_BOX_FACE_NAMES.indexOf(b)));
+    this.missingFaces.set(
+      missingFaces.sort((a, b) => PRODUCT_BOX_FACE_NAMES.indexOf(a) - PRODUCT_BOX_FACE_NAMES.indexOf(b))
+    );
 
     return { materials, textures };
   }
 
   private async loadFaceTexture(
     three: ThreeModule,
+    model: ProductBoxModel,
+    faceName: ProductBoxFaceName,
     face: ProductBoxModelFace | null
   ): Promise<DisposableTexture | null> {
     if (!face?.imageUrl) {
       return null;
     }
 
-    return new Promise((resolve) => {
-      const loader = new three.TextureLoader();
-      loader.setCrossOrigin('anonymous');
-      loader.load(
-        face.imageUrl ?? '',
-        (texture) => {
-          texture.colorSpace = three.SRGBColorSpace;
-          texture.center.set(0.5, 0.5);
+    try {
+      const image = await this.loadImage(face.imageUrl);
+      const canvas = this.createFittedTextureCanvas(image, this.faceAspectRatio(model, faceName));
+      const texture = new three.CanvasTexture(canvas);
 
-          if (face.rotationDegrees) {
-            texture.rotation = three.MathUtils.degToRad(face.rotationDegrees);
-          }
+      texture.colorSpace = three.SRGBColorSpace;
+      texture.center.set(0.5, 0.5);
 
-          if (face.flipHorizontal) {
-            texture.repeat.x = -1;
-            texture.offset.x = 1;
-          }
+      if (face.rotationDegrees) {
+        texture.rotation = three.MathUtils.degToRad(face.rotationDegrees);
+      }
 
-          if (face.flipVertical) {
-            texture.repeat.y = -1;
-            texture.offset.y = 1;
-          }
+      if (face.flipHorizontal) {
+        texture.repeat.x = -1;
+        texture.offset.x = 1;
+      }
 
-          resolve(texture);
-        },
-        undefined,
-        () => resolve(null)
-      );
+      if (face.flipVertical) {
+        texture.repeat.y = -1;
+        texture.offset.y = 1;
+      }
+
+      texture.needsUpdate = true;
+      return texture;
+    } catch (error) {
+      console.warn(`[ProductBoxViewer] Failed to load texture for face ${faceName}`, error);
+      return null;
+    }
+  }
+
+  private loadImage(url: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.crossOrigin = 'anonymous';
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error('Image could not be loaded'));
+      image.src = url;
     });
+  }
+
+  private createFittedTextureCanvas(image: HTMLImageElement, targetAspectRatio: number): HTMLCanvasElement {
+    const sourceCanvas = this.createSourceCanvas(image);
+    const sourceContext = sourceCanvas.getContext('2d', { willReadFrequently: true });
+
+    if (!sourceContext) {
+      return sourceCanvas;
+    }
+
+    const imageData = sourceContext.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height);
+    const hasTransparency = this.hasMeaningfulTransparency(imageData);
+    const backgroundColor = this.estimateBorderColor(imageData, sourceCanvas.width, sourceCanvas.height);
+    const visibleBounds = this.findVisibleBounds(
+      imageData,
+      sourceCanvas.width,
+      sourceCanvas.height,
+      backgroundColor,
+      hasTransparency
+    );
+
+    if (!hasTransparency) {
+      this.clearBorderConnectedBackground(imageData, sourceCanvas.width, sourceCanvas.height, backgroundColor);
+      sourceContext.putImageData(imageData, 0, 0);
+    }
+
+    const fittedBounds = this.expandBoundsToAspectRatio(
+      visibleBounds,
+      sourceCanvas.width,
+      sourceCanvas.height,
+      targetAspectRatio
+    );
+    return this.drawBoundsToAspectCanvas(sourceCanvas, fittedBounds, targetAspectRatio);
+  }
+
+  private createSourceCanvas(image: HTMLImageElement): HTMLCanvasElement {
+    const naturalWidth = Math.max(image.naturalWidth || image.width || 1, 1);
+    const naturalHeight = Math.max(image.naturalHeight || image.height || 1, 1);
+    const scale = Math.min(1, ProductBoxViewerComponent.MAX_PROCESSING_SIZE / Math.max(naturalWidth, naturalHeight));
+    const width = Math.max(Math.round(naturalWidth * scale), 1);
+    const height = Math.max(Math.round(naturalHeight * scale), 1);
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (context) {
+      context.imageSmoothingEnabled = true;
+      context.imageSmoothingQuality = 'high';
+      context.drawImage(image, 0, 0, width, height);
+    }
+
+    return canvas;
+  }
+
+  private hasMeaningfulTransparency(imageData: ImageData): boolean {
+    const data = imageData.data;
+    const totalPixels = Math.max(data.length / 4, 1);
+    let transparentPixels = 0;
+
+    for (let index = 3; index < data.length; index += 4) {
+      if (data[index] < 250) {
+        transparentPixels += 1;
+      }
+    }
+
+    return transparentPixels / totalPixels > 0.001;
+  }
+
+  private estimateBorderColor(imageData: ImageData, width: number, height: number): RgbColor {
+    const data = imageData.data;
+    const step = Math.max(1, Math.floor(Math.max(width, height) / 256));
+    let r = 0;
+    let g = 0;
+    let b = 0;
+    let count = 0;
+
+    const addPixel = (x: number, y: number): void => {
+      const index = (y * width + x) * 4;
+      const alpha = data[index + 3];
+
+      if (alpha <= ProductBoxViewerComponent.ALPHA_THRESHOLD) {
+        return;
+      }
+
+      r += data[index];
+      g += data[index + 1];
+      b += data[index + 2];
+      count += 1;
+    };
+
+    for (let x = 0; x < width; x += step) {
+      addPixel(x, 0);
+      addPixel(x, height - 1);
+    }
+
+    for (let y = 0; y < height; y += step) {
+      addPixel(0, y);
+      addPixel(width - 1, y);
+    }
+
+    if (count === 0) {
+      return { r: 0, g: 0, b: 0 };
+    }
+
+    return {
+      r: r / count,
+      g: g / count,
+      b: b / count
+    };
+  }
+
+  private findVisibleBounds(
+    imageData: ImageData,
+    width: number,
+    height: number,
+    backgroundColor: RgbColor,
+    hasTransparency: boolean
+  ): CropBounds {
+    const data = imageData.data;
+    let minX = width;
+    let minY = height;
+    let maxX = -1;
+    let maxY = -1;
+
+    for (let y = 0; y < height; y += 1) {
+      for (let x = 0; x < width; x += 1) {
+        const index = (y * width + x) * 4;
+        const visible = hasTransparency
+          ? data[index + 3] > ProductBoxViewerComponent.ALPHA_THRESHOLD
+          : !this.isSimilarToBackground(data, index, backgroundColor);
+
+        if (visible) {
+          minX = Math.min(minX, x);
+          minY = Math.min(minY, y);
+          maxX = Math.max(maxX, x);
+          maxY = Math.max(maxY, y);
+        }
+      }
+    }
+
+    if (maxX < minX || maxY < minY) {
+      return { minX: 0, minY: 0, maxX: width - 1, maxY: height - 1 };
+    }
+
+    return { minX, minY, maxX, maxY };
+  }
+
+  private clearBorderConnectedBackground(imageData: ImageData, width: number, height: number, backgroundColor: RgbColor): void {
+    const data = imageData.data;
+    const visited = new Uint8Array(width * height);
+    const queue: number[] = [];
+
+    const enqueue = (x: number, y: number): void => {
+      if (x < 0 || y < 0 || x >= width || y >= height) {
+        return;
+      }
+
+      const pixelIndex = y * width + x;
+      if (visited[pixelIndex]) {
+        return;
+      }
+
+      const dataIndex = pixelIndex * 4;
+      if (data[dataIndex + 3] <= ProductBoxViewerComponent.ALPHA_THRESHOLD) {
+        visited[pixelIndex] = 1;
+        return;
+      }
+
+      if (!this.isSimilarToBackground(data, dataIndex, backgroundColor)) {
+        return;
+      }
+
+      visited[pixelIndex] = 1;
+      queue.push(pixelIndex);
+    };
+
+    for (let x = 0; x < width; x += 1) {
+      enqueue(x, 0);
+      enqueue(x, height - 1);
+    }
+
+    for (let y = 0; y < height; y += 1) {
+      enqueue(0, y);
+      enqueue(width - 1, y);
+    }
+
+    for (let pointer = 0; pointer < queue.length; pointer += 1) {
+      const pixelIndex = queue[pointer];
+      const x = pixelIndex % width;
+      const y = Math.floor(pixelIndex / width);
+      const dataIndex = pixelIndex * 4;
+      data[dataIndex + 3] = 0;
+
+      enqueue(x + 1, y);
+      enqueue(x - 1, y);
+      enqueue(x, y + 1);
+      enqueue(x, y - 1);
+    }
+  }
+
+  private isSimilarToBackground(data: Uint8ClampedArray, index: number, backgroundColor: RgbColor): boolean {
+    const redDiff = data[index] - backgroundColor.r;
+    const greenDiff = data[index + 1] - backgroundColor.g;
+    const blueDiff = data[index + 2] - backgroundColor.b;
+    const toleranceSquared = ProductBoxViewerComponent.BACKGROUND_TOLERANCE ** 2;
+
+    return redDiff * redDiff + greenDiff * greenDiff + blueDiff * blueDiff <= toleranceSquared;
+  }
+
+  private expandBoundsToAspectRatio(
+    bounds: CropBounds,
+    maxWidth: number,
+    maxHeight: number,
+    targetAspectRatio: number
+  ): CropBounds {
+    if (!Number.isFinite(targetAspectRatio) || targetAspectRatio <= 0) {
+      return bounds;
+    }
+
+    const currentWidth = bounds.maxX - bounds.minX + 1;
+    const currentHeight = bounds.maxY - bounds.minY + 1;
+    const currentAspectRatio = currentWidth / currentHeight;
+    const centerX = bounds.minX + currentWidth / 2;
+    const centerY = bounds.minY + currentHeight / 2;
+    let expandedWidth = currentWidth;
+    let expandedHeight = currentHeight;
+
+    if (currentAspectRatio < targetAspectRatio) {
+      expandedWidth = currentHeight * targetAspectRatio;
+    } else if (currentAspectRatio > targetAspectRatio) {
+      expandedHeight = currentWidth / targetAspectRatio;
+    }
+
+    expandedWidth = Math.min(expandedWidth, maxWidth);
+    expandedHeight = Math.min(expandedHeight, maxHeight);
+
+    let minX = centerX - expandedWidth / 2;
+    let maxX = centerX + expandedWidth / 2;
+    let minY = centerY - expandedHeight / 2;
+    let maxY = centerY + expandedHeight / 2;
+
+    if (minX < 0) {
+      maxX -= minX;
+      minX = 0;
+    }
+
+    if (maxX > maxWidth) {
+      minX -= maxX - maxWidth;
+      maxX = maxWidth;
+    }
+
+    if (minY < 0) {
+      maxY -= minY;
+      minY = 0;
+    }
+
+    if (maxY > maxHeight) {
+      minY -= maxY - maxHeight;
+      maxY = maxHeight;
+    }
+
+    return {
+      minX: Math.max(Math.floor(minX), 0),
+      minY: Math.max(Math.floor(minY), 0),
+      maxX: Math.min(Math.ceil(maxX) - 1, maxWidth - 1),
+      maxY: Math.min(Math.ceil(maxY) - 1, maxHeight - 1)
+    };
+  }
+
+  private drawBoundsToAspectCanvas(sourceCanvas: HTMLCanvasElement, bounds: CropBounds, targetAspectRatio: number): HTMLCanvasElement {
+    const outputCanvas = document.createElement('canvas');
+    const safeAspectRatio = Number.isFinite(targetAspectRatio) && targetAspectRatio > 0 ? targetAspectRatio : 1;
+
+    if (safeAspectRatio >= 1) {
+      outputCanvas.width = ProductBoxViewerComponent.MAX_TEXTURE_SIZE;
+      outputCanvas.height = Math.max(
+        Math.round(ProductBoxViewerComponent.MAX_TEXTURE_SIZE / safeAspectRatio),
+        ProductBoxViewerComponent.MIN_TEXTURE_SIZE
+      );
+    } else {
+      outputCanvas.height = ProductBoxViewerComponent.MAX_TEXTURE_SIZE;
+      outputCanvas.width = Math.max(
+        Math.round(ProductBoxViewerComponent.MAX_TEXTURE_SIZE * safeAspectRatio),
+        ProductBoxViewerComponent.MIN_TEXTURE_SIZE
+      );
+    }
+
+    const outputContext = outputCanvas.getContext('2d');
+    if (!outputContext) {
+      return sourceCanvas;
+    }
+
+    outputContext.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
+    outputContext.imageSmoothingEnabled = true;
+    outputContext.imageSmoothingQuality = 'high';
+    outputContext.drawImage(
+      sourceCanvas,
+      bounds.minX,
+      bounds.minY,
+      bounds.maxX - bounds.minX + 1,
+      bounds.maxY - bounds.minY + 1,
+      0,
+      0,
+      outputCanvas.width,
+      outputCanvas.height
+    );
+
+    return outputCanvas;
+  }
+
+  private faceAspectRatio(model: ProductBoxModel, faceName: ProductBoxFaceName): number {
+    const width = Math.max(Number(model.width) || 1, 1);
+    const height = Math.max(Number(model.height) || 1, 1);
+    const depth = Math.max(Number(model.depth) || 1, 1);
+
+    switch (faceName) {
+      case 'left':
+      case 'right':
+        return depth / height;
+      case 'top':
+      case 'bottom':
+        return width / depth;
+      case 'front':
+      case 'back':
+      default:
+        return width / height;
+    }
   }
 
   private normalizedDimensions(model: ProductBoxModel): { width: number; height: number; depth: number } {
