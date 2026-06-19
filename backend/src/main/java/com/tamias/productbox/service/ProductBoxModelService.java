@@ -6,15 +6,15 @@ import com.tamias.catalog.inventoryitem.repository.InventoryItemRepository;
 import com.tamias.common.dto.PageResponse;
 import com.tamias.common.exception.BadRequestException;
 import com.tamias.common.exception.NotFoundException;
+import com.tamias.document.storage.FileStorageService;
 import com.tamias.organization.repository.OrganizationRepository;
 import com.tamias.productbox.dto.ProductBoxModelRequest;
 import com.tamias.productbox.dto.ProductBoxModelResponse;
 import com.tamias.productbox.entity.ProductBoxModel;
+import com.tamias.productbox.entity.ProductBoxModelFace;
 import com.tamias.productbox.mapper.ProductBoxModelMapper;
 import com.tamias.productbox.repository.ProductBoxModelFaceRepository;
 import com.tamias.productbox.repository.ProductBoxModelRepository;
-import com.tamias.document.storage.FileStorageService;
-import com.tamias.productbox.entity.ProductBoxModelFace;
 import com.tamias.purchase.entity.PurchaseItem;
 import com.tamias.purchase.enums.PurchaseListStatus;
 import com.tamias.purchase.repository.PurchaseItemRepository;
@@ -23,6 +23,7 @@ import com.tamias.user.entity.User;
 import com.tamias.user.repository.UserRepository;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -74,14 +75,23 @@ public class ProductBoxModelService {
         Pageable pageable
     ) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-        String normalizedSearch = search == null || search.isBlank() ? null : search.trim();
-        Page<ProductBoxModel> page = productBoxModelRepository.search(
-            organizationId,
-            inventoryItemId,
-            purchaseItemId,
-            normalizedSearch,
-            pageable
-        );
+        String searchPattern = buildSearchPattern(search);
+
+        Page<ProductBoxModel> page = searchPattern == null
+            ? productBoxModelRepository.findAllAvailable(
+                organizationId,
+                inventoryItemId,
+                purchaseItemId,
+                pageable
+            )
+            : productBoxModelRepository.search(
+                organizationId,
+                inventoryItemId,
+                purchaseItemId,
+                searchPattern,
+                pageable
+            );
+
         return PageResponse.from(page.map(productBoxModelMapper::toResponse));
     }
 
@@ -103,6 +113,7 @@ public class ProductBoxModelService {
         entity.setOrganization(organization);
         entity.setCreatedBy(currentUser);
         entity.setUpdatedBy(currentUser);
+
         productBoxModelMapper.updateEntity(entity, request);
         setOptionalRelations(entity, request, organizationId);
 
@@ -155,8 +166,12 @@ public class ProductBoxModelService {
         InventoryItem inventoryItem = resolveInventoryItem(request.inventoryItemId(), organizationId);
         PurchaseItem purchaseItem = resolvePurchaseItem(request.purchaseItemId(), organizationId);
 
-        if (inventoryItem != null && purchaseItem != null && purchaseItem.getInventoryItem() != null
-            && !purchaseItem.getInventoryItem().getId().equals(inventoryItem.getId())) {
+        if (
+            inventoryItem != null
+                && purchaseItem != null
+                && purchaseItem.getInventoryItem() != null
+                && !purchaseItem.getInventoryItem().getId().equals(inventoryItem.getId())
+        ) {
             throw new BadRequestException("Purchase item is linked to a different inventory item");
         }
 
@@ -199,5 +214,13 @@ public class ProductBoxModelService {
     private User findCurrentUser() {
         return userRepository.findByIdAndDeletedAtIsNull(currentUserService.getCurrentUserId())
             .orElseThrow(() -> new NotFoundException("User not found"));
+    }
+
+    private String buildSearchPattern(String search) {
+        if (search == null || search.isBlank()) {
+            return null;
+        }
+
+        return "%" + search.trim().toLowerCase(Locale.ROOT) + "%";
     }
 }
