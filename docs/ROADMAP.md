@@ -1,6 +1,6 @@
 # TAMIAS — Roadmap
 
-This roadmap reflects the current state after AI tool calling/orchestration, S3/image hard-delete work, inventory brand/image work, AI debug traces, smoke-test hardening and the Product Box Models backend foundation.
+This roadmap reflects the current state after AI tool calling/orchestration, S3/image hard-delete work, inventory brand/image work, AI debug traces, smoke-test hardening and Product Box Models through the Three.js viewer phase.
 
 ## Completed foundation
 
@@ -232,9 +232,9 @@ Sub-phases:
 ```text
 14A Product Box Models backend foundation — Completed
 14B Product Box Face Images — Completed
-14C Angular Product Box CRUD — Next
-14D Three.js Product Box Viewer
-14E Integration with Inventory/Purchases
+14C Angular Product Box CRUD — Completed
+14D Three.js Product Box Viewer — Completed
+14E Integration with Inventory/Purchases — Next
 14F AI awareness for Product Box Models
 ```
 
@@ -267,16 +267,48 @@ Implemented:
 - No Angular CRUD and no Three.js yet.
 
 ### Phase 14C — Angular Product Box CRUD
-Status: Planned / implementation next.
+Status: Completed.
+Documentation: `77-product-box-angular-crud-14c.md`
+
+Implemented:
+
+- Angular list/form UI for Product Box Models.
+- Face upload controls for front/back/left/right/top/bottom.
+- Static i18n keys under `productBoxModels`.
+- No Three.js viewer yet.
+
+### Phase 14D — Three.js Product Box Viewer
+Status: Completed.
+Documentation: `78-threejs-product-box-viewer-14d.md`
+
+Implemented:
+
+- Reusable Angular Three.js viewer component.
+- Modal-based 3D preview from Product Box Models list.
+- Texture per face using presigned URLs.
+- Placeholder materials for missing faces.
+- Orbit controls for rotate/zoom.
+- Dynamic Three.js imports and cleanup of WebGL resources.
+
+## Future phases after Product Box Models
+
+### Phase 14E — Integration with Inventory/Purchases
+Status: Planned / next.
 
 Expected scope:
 
-- Angular list/form/detail UI for Product Box Models.
-- Face upload controls for front/back/left/right/top/bottom.
-- Static i18n keys under `productBoxModels`.
-- No Three.js viewer yet unless explicitly included in 14D.
+- Show Product Box Models from inventory item and purchase item contexts.
+- Allow creating a model from an existing item.
+- Show indicator when an item already has a 3D box model.
 
-## Future phases after Product Box Models
+### Phase 14F — AI awareness for Product Box Models
+Status: Planned.
+
+Expected scope:
+
+- Let TAMI answer metadata-only questions about Product Box Models.
+- No image interpretation.
+- No OCR/vision.
 
 ### Phase 15 — Reports
 Status: Future.

@@ -1549,6 +1549,16 @@
       "created": "Modelo de caja creado correctamente.",
       "updated": "Modelo de caja actualizado correctamente.",
       "deleted": "Modelo de caja eliminado correctamente."
+    },
+    "viewer": {
+      "button": "Ver 3D",
+      "title": "Vista 3D de caja",
+      "loading": "Renderizando modelo 3D...",
+      "renderError": "No se pudo renderizar el modelo 3D. Revisa que las imágenes sigan disponibles o vuelve a intentar.",
+      "controlsHelp": "Arrastra para rotar y usa la rueda para hacer zoom.",
+      "dimensions": "Medidas reales",
+      "missingFacesTitle": "Caras sin imagen; se muestran con material placeholder.",
+      "noModel": "No hay modelo seleccionado para visualizar."
     }
   }
 }

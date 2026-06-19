@@ -1,0 +1,44 @@
+<div class="product-box-viewer-shell border rounded bg-body-tertiary position-relative overflow-hidden">
+  <div #canvasHost class="product-box-viewer-canvas-host w-100"></div>
+
+  @if (loading()) {
+    <div class="product-box-viewer-loading position-absolute d-flex align-items-center justify-content-center bg-body bg-opacity-75">
+      <div class="text-center">
+        <div class="spinner-border text-primary mb-2" role="status">
+          <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
+        </div>
+        <div class="small text-muted">{{ 'productBoxModels.viewer.loading' | translate }}</div>
+      </div>
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <div class="product-box-viewer-error position-absolute d-flex align-items-center justify-content-center bg-body bg-opacity-75 p-4">
+      <div class="alert alert-warning mb-0">
+        <i class="bi bi-exclamation-triangle me-1"></i>
+        {{ errorMessage()! | translate }}
+      </div>
+    </div>
+  }
+</div>
+
+<div class="d-flex flex-column flex-lg-row gap-2 justify-content-between mt-2 small text-muted">
+  <span>
+    <i class="bi bi-arrows-move me-1"></i>
+    {{ 'productBoxModels.viewer.controlsHelp' | translate }}
+  </span>
+  <span>
+    {{ 'productBoxModels.viewer.dimensions' | translate }}: {{ dimensionsLabel() }}
+  </span>
+</div>
+
+@if (hasMissingFaces()) {
+  <div class="alert alert-info py-2 mt-3 mb-0 small">
+    <div class="fw-semibold mb-1">{{ 'productBoxModels.viewer.missingFacesTitle' | translate }}</div>
+    <div class="d-flex flex-wrap gap-2">
+      @for (faceName of missingFaces(); track faceName) {
+        <span class="badge text-bg-light border">{{ faceTranslationKey(faceName) | translate }}</span>
+      }
+    </div>
+  </div>
+}

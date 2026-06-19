@@ -1550,6 +1550,16 @@
       "created": "Box model created successfully.",
       "updated": "Box model updated successfully.",
       "deleted": "Box model deleted successfully."
+    },
+    "viewer": {
+      "button": "View 3D",
+      "title": "3D box viewer",
+      "loading": "Rendering 3D model...",
+      "renderError": "The 3D model could not be rendered. Check that the images are still available or try again.",
+      "controlsHelp": "Drag to rotate and use the mouse wheel to zoom.",
+      "dimensions": "Real dimensions",
+      "missingFacesTitle": "Faces without images are shown with placeholder materials.",
+      "noModel": "There is no selected model to preview."
     }
   }
 }

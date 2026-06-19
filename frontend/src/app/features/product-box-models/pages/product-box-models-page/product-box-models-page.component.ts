@@ -9,6 +9,7 @@ import { ConfirmModalComponent } from '../../../../shared/confirm-modal/confirm-
 import { ToastService } from '../../../../shared/toast/toast.service';
 import { ProductBoxFacesModalComponent } from '../../components/product-box-faces-modal/product-box-faces-modal.component';
 import { ProductBoxModelFormModalComponent } from '../../components/product-box-model-form-modal/product-box-model-form-modal.component';
+import { ProductBoxViewerModalComponent } from '../../components/product-box-viewer-modal/product-box-viewer-modal.component';
 import {
   PRODUCT_BOX_FACE_NAMES,
   ProductBoxInventoryItemOption,
@@ -31,7 +32,8 @@ type FormMode = 'create' | 'edit';
     TranslatePipe,
     ConfirmModalComponent,
     ProductBoxModelFormModalComponent,
-    ProductBoxFacesModalComponent
+    ProductBoxFacesModalComponent,
+    ProductBoxViewerModalComponent
   ],
   templateUrl: './product-box-models-page.component.html'
 })
@@ -49,6 +51,7 @@ export class ProductBoxModelsPageComponent implements OnInit {
   readonly inventoryItems = signal<ProductBoxInventoryItemOption[]>([]);
   readonly selectedModel = signal<ProductBoxModel | null>(null);
   readonly modelForFaces = signal<ProductBoxModel | null>(null);
+  readonly modelForViewer = signal<ProductBoxModel | null>(null);
   readonly modelToDelete = signal<ProductBoxModelSummary | null>(null);
   readonly formVisible = signal(false);
   readonly formMode = signal<FormMode>('create');
@@ -96,7 +99,9 @@ export class ProductBoxModelsPageComponent implements OnInit {
       },
       error: (error: unknown) => {
         this.loadingReferences.set(false);
-        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('productBoxModels.messages.referencesError')));
+        this.toastService.error(
+          this.extractErrorMessage(error, this.languageService.instant('productBoxModels.messages.referencesError'))
+        );
       }
     });
   }
@@ -119,7 +124,9 @@ export class ProductBoxModelsPageComponent implements OnInit {
         },
         error: (error: unknown) => {
           this.loading.set(false);
-          this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('productBoxModels.messages.loadError')));
+          this.toastService.error(
+            this.extractErrorMessage(error, this.languageService.instant('productBoxModels.messages.loadError'))
+          );
         }
       });
   }
@@ -178,7 +185,9 @@ export class ProductBoxModelsPageComponent implements OnInit {
       },
       error: (error: unknown) => {
         this.loading.set(false);
-        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('productBoxModels.messages.detailError')));
+        this.toastService.error(
+          this.extractErrorMessage(error, this.languageService.instant('productBoxModels.messages.detailError'))
+        );
       }
     });
   }
@@ -192,13 +201,35 @@ export class ProductBoxModelsPageComponent implements OnInit {
       },
       error: (error: unknown) => {
         this.loading.set(false);
-        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('productBoxModels.messages.detailError')));
+        this.toastService.error(
+          this.extractErrorMessage(error, this.languageService.instant('productBoxModels.messages.detailError'))
+        );
       }
     });
   }
 
   closeFaces(): void {
     this.modelForFaces.set(null);
+  }
+
+  openViewer(modelId: string): void {
+    this.loading.set(true);
+    this.productBoxModelService.findById(modelId).subscribe({
+      next: (model) => {
+        this.modelForViewer.set(model);
+        this.loading.set(false);
+      },
+      error: (error: unknown) => {
+        this.loading.set(false);
+        this.toastService.error(
+          this.extractErrorMessage(error, this.languageService.instant('productBoxModels.messages.detailError'))
+        );
+      }
+    });
+  }
+
+  closeViewer(): void {
+    this.modelForViewer.set(null);
   }
 
   closeForm(): void {
@@ -231,7 +262,9 @@ export class ProductBoxModelsPageComponent implements OnInit {
       },
       error: (error: unknown) => {
         this.saving.set(false);
-        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('productBoxModels.messages.saveError')));
+        this.toastService.error(
+          this.extractErrorMessage(error, this.languageService.instant('productBoxModels.messages.saveError'))
+        );
       }
     });
   }
@@ -259,17 +292,29 @@ export class ProductBoxModelsPageComponent implements OnInit {
       next: () => {
         this.deletingId.set(null);
         this.modelToDelete.set(null);
+        this.modelForViewer.update((current) => (current?.id === model.id ? null : current));
+        this.modelForFaces.update((current) => (current?.id === model.id ? null : current));
         this.toastService.success(this.languageService.instant('productBoxModels.messages.deleted'));
         this.loadModels();
       },
       error: (error: unknown) => {
         this.deletingId.set(null);
-        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('productBoxModels.messages.deleteError')));
+        this.toastService.error(
+          this.extractErrorMessage(error, this.languageService.instant('productBoxModels.messages.deleteError'))
+        );
       }
     });
   }
 
   onFacesChanged(): void {
+    const viewerModel = this.modelForViewer();
+    if (viewerModel) {
+      this.productBoxModelService.findById(viewerModel.id).subscribe({
+        next: (model) => this.modelForViewer.set(model),
+        error: () => this.modelForViewer.set(null)
+      });
+    }
+
     this.loadModels();
   }
 
@@ -300,7 +345,11 @@ export class ProductBoxModelsPageComponent implements OnInit {
   completedFacesLabel(model: ProductBoxModelSummary): string {
     const faces = model.faces ?? {};
     const count = PRODUCT_BOX_FACE_NAMES.filter((faceName) => !!faces[faceName]).length;
-    return this.languageService.instant('productBoxModels.table.facesCount', { count, total: PRODUCT_BOX_FACE_NAMES.length });
+
+    return this.languageService.instant('productBoxModels.table.facesCount', {
+      count,
+      total: PRODUCT_BOX_FACE_NAMES.length
+    });
   }
 
   private applyPage(response: PageResponse<ProductBoxModelSummary>): void {
