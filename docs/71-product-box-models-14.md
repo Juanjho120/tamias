@@ -36,7 +36,6 @@ Use this sequence instead:
 14B — Product Box Face Images
 14C — Angular Product Box CRUD
 14D — Three.js Product Box Viewer
-14D.1 — Auto texture crop and fit
 14E — Integration with Inventory/Purchases
 14F — AI awareness for Product Box Models
 ```
@@ -318,7 +317,6 @@ back
 - Use placeholder materials for missing faces.
 - Support orbit/rotation and zoom.
 - Dispose renderer, geometry, materials and textures in `ngOnDestroy`.
-- Preprocess textures in 14D.1 so transparent or border-background padding is cropped and fitted to the face ratio.
 
 ## Incremental implementation plan
 
@@ -353,13 +351,6 @@ Metadata CRUD only.
 - Render box with face textures.
 - Orbit controls and cleanup.
 
-### 14D.1 — Auto texture crop and fit
-
-- Frontend-only canvas preprocessing.
-- Crop transparent or border-background padding.
-- Fit each processed texture to the target face aspect ratio.
-- Do not modify original S3 images.
-
 ### 14E — Inventory/Purchase integration
 
 - Show models from inventory item context.
@@ -379,7 +370,6 @@ Metadata CRUD only.
 - Face images are stored in private S3, not PostgreSQL byte arrays.
 - Face image deletion leaves no S3 garbage after successful operations.
 - Angular renders a simple rectangular box dynamically using metadata + image URLs.
-- The viewer crops/fits texture padding without modifying original uploaded images.
 - The module does not break existing inventory, purchase, image, S3, AI or RAG behavior.
 
 ## Implementation status
@@ -388,5 +378,4 @@ Metadata CRUD only.
 - 14B completed: `product_box_model_faces`, S3 upload/replace/delete, hard-delete face rows and presigned URLs in model responses.
 - 14C completed: Angular Product Box CRUD and face upload UI.
 - 14D completed: Three.js Product Box Viewer.
-- 14D.1 completed: Auto texture crop and fit in the viewer.
 - 14E next: Integration with Inventory/Purchases.

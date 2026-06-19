@@ -1,6 +1,6 @@
 # TAMIAS — Roadmap
 
-This roadmap reflects the current state after AI tool calling/orchestration, S3/image hard-delete work, inventory brand/image work, AI debug traces, smoke-test hardening and Product Box Models through the Three.js viewer texture crop/fit phase.
+This roadmap reflects the current state after AI tool calling/orchestration, S3/image hard-delete work, inventory brand/image work, AI debug traces, smoke-test hardening and Product Box Models through the Three.js viewer phase.
 
 ## Completed foundation
 
@@ -277,7 +277,6 @@ Sub-phases:
 14B Product Box Face Images — Completed
 14C Angular Product Box CRUD — Completed
 14D Three.js Product Box Viewer — Completed
-14D.1 Auto texture crop and fit — Completed
 14E Integration with Inventory/Purchases — Next
 14F AI awareness for Product Box Models
 ```
@@ -341,20 +340,6 @@ Implemented:
 - Placeholder materials for missing faces.
 - Orbit controls for rotate/zoom.
 - Dynamic Three.js imports and cleanup of WebGL resources.
-
-### Phase 14D.1 — Auto texture crop and fit
-
-Status: Completed.
-
-Documentation: `79-product-box-texture-crop-fit-14d1.md`
-
-Implemented:
-
-- Canvas preprocessing before creating Three.js textures.
-- Alpha-based crop for transparent PNG/WebP images.
-- Border-background crop for non-transparent images.
-- Per-face aspect ratio fitting.
-- Original S3 images remain unchanged.
 
 ## Future phases after Product Box Models
 
