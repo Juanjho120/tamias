@@ -172,7 +172,7 @@ public class FileImageToolRepository extends AiReadOnlyToolSupport {
                     SELECT 'DOCUMENT' AS source_type, d.size_bytes
                     FROM documents d
                     WHERE d.organization_id = :organizationId
-                        UNION ALL
+                    UNION ALL
                     SELECT 'PROPERTY_IMAGE' AS source_type, pi.size_bytes
                     FROM property_images pi
                     WHERE pi.organization_id = :organizationId
@@ -182,6 +182,21 @@ public class FileImageToolRepository extends AiReadOnlyToolSupport {
                     FROM maintenance_record_images mri
                     WHERE mri.organization_id = :organizationId
                       AND mri.status = 'ACTIVE'
+                    UNION ALL
+                    SELECT 'INVENTORY_ITEM_IMAGE' AS source_type, iii.size_bytes
+                    FROM inventory_item_images iii
+                    WHERE iii.organization_id = :organizationId
+                      AND iii.status = 'ACTIVE'
+                    UNION ALL
+                    SELECT 'PURCHASE_IMAGE' AS source_type, pui.size_bytes
+                    FROM purchase_images pui
+                    WHERE pui.organization_id = :organizationId
+                      AND pui.status = 'ACTIVE'
+                    UNION ALL
+                    SELECT 'RESERVATION_IMAGE' AS source_type, ri.size_bytes
+                    FROM reservation_images ri
+                    WHERE ri.organization_id = :organizationId
+                      AND ri.status = 'ACTIVE'
                 ) files
                 GROUP BY source_type
                 ORDER BY source_type ASC
@@ -270,6 +285,219 @@ public class FileImageToolRepository extends AiReadOnlyToolSupport {
         );
     }
 
+
+    public AiToolAnswer imageDashboardSummary() {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        List<Map<String, Object>> rows = query("""
+                SELECT module_key,
+                       module_label,
+                       image_count,
+                       total_size_bytes,
+                       entity_count,
+                       entities_with_images,
+                       entity_count - entities_with_images AS entities_without_images
+                FROM (
+                    SELECT 'properties' AS module_key,
+                           'Propiedades' AS module_label,
+                           COUNT(pi.id) AS image_count,
+                           COALESCE(SUM(pi.size_bytes), 0) AS total_size_bytes,
+                           COUNT(DISTINCT p.id) AS entity_count,
+                           COUNT(DISTINCT CASE WHEN pi.id IS NOT NULL THEN p.id END) AS entities_with_images
+                    FROM properties p
+                    LEFT JOIN property_images pi ON pi.property_id = p.id
+                        AND pi.organization_id = p.organization_id
+                        AND pi.status = 'ACTIVE'
+                    WHERE p.organization_id = :organizationId
+                      AND p.deleted_at IS NULL
+                    UNION ALL
+                    SELECT 'maintenance' AS module_key,
+                           'Mantenimientos' AS module_label,
+                           COUNT(mri.id) AS image_count,
+                           COALESCE(SUM(mri.size_bytes), 0) AS total_size_bytes,
+                           COUNT(DISTINCT mr.id) AS entity_count,
+                           COUNT(DISTINCT CASE WHEN mri.id IS NOT NULL THEN mr.id END) AS entities_with_images
+                    FROM maintenance_records mr
+                    LEFT JOIN maintenance_record_images mri ON mri.maintenance_record_id = mr.id
+                        AND mri.organization_id = mr.organization_id
+                        AND mri.status = 'ACTIVE'
+                    WHERE mr.organization_id = :organizationId
+                      AND mr.deleted_at IS NULL
+                    UNION ALL
+                    SELECT 'inventory_items' AS module_key,
+                           'Items de inventario' AS module_label,
+                           COUNT(iii.id) AS image_count,
+                           COALESCE(SUM(iii.size_bytes), 0) AS total_size_bytes,
+                           COUNT(DISTINCT ii.id) AS entity_count,
+                           COUNT(DISTINCT CASE WHEN iii.id IS NOT NULL THEN ii.id END) AS entities_with_images
+                    FROM inventory_items ii
+                    LEFT JOIN inventory_item_images iii ON iii.inventory_item_id = ii.id
+                        AND iii.organization_id = ii.organization_id
+                        AND iii.status = 'ACTIVE'
+                    WHERE ii.organization_id = :organizationId
+                      AND ii.deleted_at IS NULL
+                    UNION ALL
+                    SELECT 'purchase_lists' AS module_key,
+                           'Listas de compra' AS module_label,
+                           COUNT(pui.id) AS image_count,
+                           COALESCE(SUM(pui.size_bytes), 0) AS total_size_bytes,
+                           COUNT(DISTINCT pl.id) AS entity_count,
+                           COUNT(DISTINCT CASE WHEN pui.id IS NOT NULL THEN pl.id END) AS entities_with_images
+                    FROM purchase_lists pl
+                    LEFT JOIN purchase_images pui ON pui.purchase_list_id = pl.id
+                        AND pui.organization_id = pl.organization_id
+                        AND pui.status = 'ACTIVE'
+                    WHERE pl.organization_id = :organizationId
+                      AND pl.deleted_at IS NULL
+                    UNION ALL
+                    SELECT 'reservations' AS module_key,
+                           'Reservaciones' AS module_label,
+                           COUNT(ri.id) AS image_count,
+                           COALESCE(SUM(ri.size_bytes), 0) AS total_size_bytes,
+                           COUNT(DISTINCT r.id) AS entity_count,
+                           COUNT(DISTINCT CASE WHEN ri.id IS NOT NULL THEN r.id END) AS entities_with_images
+                    FROM reservations r
+                    LEFT JOIN reservation_images ri ON ri.reservation_id = r.id
+                        AND ri.organization_id = r.organization_id
+                        AND ri.status = 'ACTIVE'
+                    WHERE r.organization_id = :organizationId
+                      AND r.deleted_at IS NULL
+                ) summary
+                ORDER BY image_count DESC, module_label ASC
+                """, q -> q.setParameter("organizationId", organizationId),
+                "moduleKey", "moduleLabel", "imageCount", "totalSizeBytes", "entityCount", "entitiesWithImages", "entitiesWithoutImages");
+
+        long totalImages = rows.stream().mapToLong(row -> toLong(row.get("imageCount"))).sum();
+        long totalBytes = rows.stream().mapToLong(row -> toLong(row.get("totalSizeBytes"))).sum();
+        if (totalImages == 0) {
+            return AiToolAnswer.of(
+                    "No encontré imágenes registradas en TAMIAS para tu organización.",
+                    "files.getImageDashboardSummary",
+                    "Image dashboard summary",
+                    "No active image metadata was found.",
+                    rows
+            );
+        }
+
+        StringBuilder answer = new StringBuilder("Resumen de imágenes en TAMIAS:")
+                .append(System.lineSeparator())
+                .append("- Total de imágenes: ").append(totalImages)
+                .append(System.lineSeparator())
+                .append("- Storage estimado: ").append(formatBytes(totalBytes));
+        for (Map<String, Object> row : rows) {
+            answer.append(System.lineSeparator())
+                    .append("- ").append(blankToDash(value(row.get("moduleLabel"))))
+                    .append(": ").append(blankToDash(value(row.get("imageCount"))))
+                    .append(toLong(row.get("imageCount")) == 1 ? " imagen" : " imágenes")
+                    .append(" | entidades con imágenes: ").append(blankToDash(value(row.get("entitiesWithImages"))))
+                    .append(" | sin imágenes: ").append(blankToDash(value(row.get("entitiesWithoutImages"))))
+                    .append(" | tamaño: ").append(formatBytes(toLong(row.get("totalSizeBytes"))));
+        }
+
+        return AiToolAnswer.of(
+                answer.toString(),
+                "files.getImageDashboardSummary",
+                "Image dashboard summary",
+                "Image counts by module were calculated.",
+                rows
+        );
+    }
+
+    public AiToolAnswer recentUploads() {
+        List<Map<String, Object>> rows = fileMetadataRows(null, null, DEFAULT_LIMIT, "created_at DESC");
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    "No encontré documentos ni imágenes subidas recientemente en TAMIAS.",
+                    "files.getRecentUploads",
+                    "Recent uploads",
+                    "No recent upload metadata was found.",
+                    List.of()
+            );
+        }
+
+        StringBuilder answer = new StringBuilder("Estos son los documentos o imágenes subidos recientemente:");
+        appendFileMetadataRows(answer, rows);
+
+        return AiToolAnswer.of(
+                answer.toString(),
+                "files.getRecentUploads",
+                "Recent uploads",
+                "%d recent upload rows found.".formatted(rows.size()),
+                rows
+        );
+    }
+
+    public AiToolAnswer largestFiles() {
+        List<Map<String, Object>> rows = fileMetadataRows(null, null, DEFAULT_LIMIT, "size_bytes DESC NULLS LAST, created_at DESC");
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    "No encontré documentos ni imágenes con metadata de tamaño en TAMIAS.",
+                    "files.getLargestFiles",
+                    "Largest files",
+                    "No file size metadata was found.",
+                    List.of()
+            );
+        }
+
+        StringBuilder answer = new StringBuilder("Estos son los archivos más grandes registrados:");
+        appendFileMetadataRows(answer, rows);
+
+        return AiToolAnswer.of(
+                answer.toString(),
+                "files.getLargestFiles",
+                "Largest files",
+                "%d largest file rows found.".formatted(rows.size()),
+                rows
+        );
+    }
+
+    public AiToolAnswer entitiesWithMostImages() {
+        List<Map<String, Object>> rows = entityImageCountRows(false, DEFAULT_LIMIT);
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    "No encontré entidades con imágenes registradas en TAMIAS.",
+                    "files.getEntitiesWithMostImages",
+                    "Entities with most images",
+                    "No entities with images were found.",
+                    List.of()
+            );
+        }
+
+        StringBuilder answer = new StringBuilder("Estas entidades tienen más imágenes registradas:");
+        appendEntityImageCountRows(answer, rows, false);
+
+        return AiToolAnswer.of(
+                answer.toString(),
+                "files.getEntitiesWithMostImages",
+                "Entities with most images",
+                "%d entities with image counts found.".formatted(rows.size()),
+                rows
+        );
+    }
+
+    public AiToolAnswer entitiesWithoutImages() {
+        List<Map<String, Object>> rows = entityImageCountRows(true, 5);
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(
+                    "No encontré entidades sin imágenes registradas en TAMIAS.",
+                    "files.getEntitiesWithoutImages",
+                    "Entities without images",
+                    "No entities without images were found.",
+                    List.of()
+            );
+        }
+
+        StringBuilder answer = new StringBuilder("Estas entidades no tienen imágenes registradas:");
+        appendEntityImageCountRows(answer, rows, true);
+
+        return AiToolAnswer.of(
+                answer.toString(),
+                "files.getEntitiesWithoutImages",
+                "Entities without images",
+                "%d entities without image rows found.".formatted(rows.size()),
+                rows
+        );
+    }
+
     public AiToolAnswer propertyImageMetadataSummary() {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         List<Map<String, Object>> rows = query("""
@@ -339,7 +567,180 @@ public class FileImageToolRepository extends AiReadOnlyToolSupport {
         );
     }
 
+
+    private List<Map<String, Object>> entityImageCountRows(boolean withoutImages, int limitPerModule) {
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+        String havingClause = withoutImages ? "WHERE image_count = 0" : "WHERE image_count > 0";
+        String ordering = withoutImages
+                ? "module_order ASC, module_label ASC, module_rank ASC"
+                : "image_count DESC, total_size_bytes DESC, module_order ASC, entity_label ASC";
+        String sql = """
+                WITH candidates AS (
+                    SELECT 1 AS module_order,
+                           'properties' AS module_key,
+                           'Propiedades' AS module_label,
+                           p.id AS entity_id,
+                           p.name AS entity_label,
+                           '' AS context_detail,
+                           COUNT(pi.id) AS image_count,
+                           COALESCE(SUM(pi.size_bytes), 0) AS total_size_bytes,
+                           MAX(pi.created_at) AS last_image_at,
+                           p.created_at AS sort_date
+                    FROM properties p
+                    LEFT JOIN property_images pi ON pi.property_id = p.id
+                        AND pi.organization_id = p.organization_id
+                        AND pi.status = 'ACTIVE'
+                    WHERE p.organization_id = :organizationId
+                      AND p.deleted_at IS NULL
+                    GROUP BY p.id, p.name, p.created_at
+                    UNION ALL
+                    SELECT 2 AS module_order,
+                           'maintenance' AS module_key,
+                           'Mantenimientos' AS module_label,
+                           mr.id AS entity_id,
+                           mr.title AS entity_label,
+                           CONCAT_WS(' | ', p.name, COALESCE(CAST(COALESCE(mr.performed_at, mr.scheduled_at, mr.created_at) AS TEXT), '')) AS context_detail,
+                           COUNT(mri.id) AS image_count,
+                           COALESCE(SUM(mri.size_bytes), 0) AS total_size_bytes,
+                           MAX(mri.created_at) AS last_image_at,
+                           COALESCE(mr.performed_at, mr.scheduled_at, mr.created_at) AS sort_date
+                    FROM maintenance_records mr
+                    JOIN properties p ON p.id = mr.property_id
+                        AND p.organization_id = mr.organization_id
+                        AND p.deleted_at IS NULL
+                    LEFT JOIN maintenance_record_images mri ON mri.maintenance_record_id = mr.id
+                        AND mri.organization_id = mr.organization_id
+                        AND mri.status = 'ACTIVE'
+                    WHERE mr.organization_id = :organizationId
+                      AND mr.deleted_at IS NULL
+                    GROUP BY mr.id, mr.title, p.name, mr.performed_at, mr.scheduled_at, mr.created_at
+                    UNION ALL
+                    SELECT 3 AS module_order,
+                           'inventory_items' AS module_key,
+                           'Items de inventario' AS module_label,
+                           ii.id AS entity_id,
+                           ii.name AS entity_label,
+                           CONCAT_WS(' | ', NULLIF(b.name, ''), NULLIF(ii.item_type, '')) AS context_detail,
+                           COUNT(iii.id) AS image_count,
+                           COALESCE(SUM(iii.size_bytes), 0) AS total_size_bytes,
+                           MAX(iii.created_at) AS last_image_at,
+                           ii.created_at AS sort_date
+                    FROM inventory_items ii
+                    LEFT JOIN brands b ON b.id = ii.brand_id
+                        AND b.organization_id = ii.organization_id
+                        AND b.deleted_at IS NULL
+                    LEFT JOIN inventory_item_images iii ON iii.inventory_item_id = ii.id
+                        AND iii.organization_id = ii.organization_id
+                        AND iii.status = 'ACTIVE'
+                    WHERE ii.organization_id = :organizationId
+                      AND ii.deleted_at IS NULL
+                    GROUP BY ii.id, ii.name, b.name, ii.item_type, ii.created_at
+                    UNION ALL
+                    SELECT 4 AS module_order,
+                           'purchase_lists' AS module_key,
+                           'Listas de compra' AS module_label,
+                           pl.id AS entity_id,
+                           CONCAT('Compra ', COALESCE(CAST(pl.purchase_date AS TEXT), 'sin fecha')) AS entity_label,
+                           CONCAT_WS(' | ', COALESCE(p.name, 'Sin propiedad'), NULLIF(s.name, ''), NULLIF(pl.status, '')) AS context_detail,
+                           COUNT(pui.id) AS image_count,
+                           COALESCE(SUM(pui.size_bytes), 0) AS total_size_bytes,
+                           MAX(pui.created_at) AS last_image_at,
+                           pl.purchase_date AS sort_date
+                    FROM purchase_lists pl
+                    LEFT JOIN properties p ON p.id = pl.property_id
+                        AND p.organization_id = pl.organization_id
+                        AND p.deleted_at IS NULL
+                    LEFT JOIN suppliers s ON s.id = pl.supplier_id
+                        AND s.organization_id = pl.organization_id
+                        AND s.deleted_at IS NULL
+                    LEFT JOIN purchase_images pui ON pui.purchase_list_id = pl.id
+                        AND pui.organization_id = pl.organization_id
+                        AND pui.status = 'ACTIVE'
+                    WHERE pl.organization_id = :organizationId
+                      AND pl.deleted_at IS NULL
+                    GROUP BY pl.id, pl.purchase_date, p.name, s.name, pl.status
+                    UNION ALL
+                    SELECT 5 AS module_order,
+                           'reservations' AS module_key,
+                           'Reservaciones' AS module_label,
+                           r.id AS entity_id,
+                           CONCAT('Reservación ', COALESCE(NULLIF(r.reservation_code, ''), CAST(r.check_in AS TEXT))) AS entity_label,
+                           CONCAT_WS(' | ', p.name, CAST(r.check_in AS TEXT), CAST(r.check_out AS TEXT), NULLIF(r.status, '')) AS context_detail,
+                           COUNT(ri.id) AS image_count,
+                           COALESCE(SUM(ri.size_bytes), 0) AS total_size_bytes,
+                           MAX(ri.created_at) AS last_image_at,
+                           r.check_in AS sort_date
+                    FROM reservations r
+                    JOIN properties p ON p.id = r.property_id
+                        AND p.organization_id = r.organization_id
+                        AND p.deleted_at IS NULL
+                    LEFT JOIN reservation_images ri ON ri.reservation_id = r.id
+                        AND ri.organization_id = r.organization_id
+                        AND ri.status = 'ACTIVE'
+                    WHERE r.organization_id = :organizationId
+                      AND r.deleted_at IS NULL
+                    GROUP BY r.id, r.reservation_code, p.name, r.check_in, r.check_out, r.status
+                ), filtered AS (
+                    SELECT *
+                    FROM candidates
+                    %s
+                ), ranked AS (
+                    SELECT *, ROW_NUMBER() OVER (PARTITION BY module_key ORDER BY sort_date DESC NULLS LAST, entity_label ASC) AS module_rank
+                    FROM filtered
+                )
+                SELECT module_key,
+                       module_label,
+                       entity_id,
+                       entity_label,
+                       context_detail,
+                       image_count,
+                       total_size_bytes,
+                       last_image_at,
+                       sort_date
+                FROM ranked
+                WHERE (:withoutImages = FALSE OR module_rank <= :limitPerModule)
+                ORDER BY %s
+                LIMIT :limit
+                """.formatted(havingClause, ordering);
+
+        return query(sql, q -> {
+            q.setParameter("organizationId", organizationId);
+            q.setParameter("withoutImages", withoutImages);
+            q.setParameter("limitPerModule", limitPerModule);
+            q.setParameter("limit", withoutImages ? limitPerModule * 5 : DEFAULT_LIMIT);
+        }, "moduleKey", "moduleLabel", "entityId", "entityLabel", "contextDetail", "imageCount", "totalSizeBytes", "lastImageAt", "sortDate");
+    }
+
+    private void appendEntityImageCountRows(StringBuilder answer, List<Map<String, Object>> rows, boolean withoutImages) {
+        String currentModule = null;
+        for (Map<String, Object> row : rows) {
+            String moduleLabel = blankToDash(value(row.get("moduleLabel")));
+            if (withoutImages && !moduleLabel.equals(currentModule)) {
+                answer.append(System.lineSeparator()).append(System.lineSeparator()).append(moduleLabel);
+                currentModule = moduleLabel;
+            }
+            answer.append(System.lineSeparator())
+                    .append("- ");
+            if (!withoutImages) {
+                answer.append(moduleLabel).append(": ");
+            }
+            answer.append(blankToDash(value(row.get("entityLabel"))));
+            String contextDetail = value(row.get("contextDetail"));
+            if (!contextDetail.isBlank()) {
+                answer.append(" | ").append(contextDetail);
+            }
+            if (!withoutImages) {
+                answer.append(" | imágenes: ").append(blankToDash(value(row.get("imageCount"))))
+                        .append(" | tamaño: ").append(formatBytes(toLong(row.get("totalSizeBytes"))));
+            }
+        }
+    }
+
     private List<Map<String, Object>> fileMetadataRows(String search, String propertySearch, int limit) {
+        return fileMetadataRows(search, propertySearch, limit, "created_at DESC");
+    }
+
+    private List<Map<String, Object>> fileMetadataRows(String search, String propertySearch, int limit, String orderBy) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         StringBuilder sql = new StringBuilder("""
                 SELECT *
@@ -358,7 +759,7 @@ public class FileImageToolRepository extends AiReadOnlyToolSupport {
                         AND p.organization_id = d.organization_id
                         AND p.deleted_at IS NULL
                     WHERE d.organization_id = :organizationId
-                        UNION ALL
+                    UNION ALL
                     SELECT 'PROPERTY_IMAGE' AS source_type,
                            p.name AS display_name,
                            pi.original_filename,
@@ -393,6 +794,69 @@ public class FileImageToolRepository extends AiReadOnlyToolSupport {
                         AND p.deleted_at IS NULL
                     WHERE mri.organization_id = :organizationId
                       AND mri.status = 'ACTIVE'
+                    UNION ALL
+                    SELECT 'INVENTORY_ITEM_IMAGE' AS source_type,
+                           ii.name AS display_name,
+                           iii.original_filename,
+                           iii.content_type,
+                           iii.size_bytes,
+                           iii.status,
+                           COALESCE(CONCAT_WS(' | ', NULLIF(b.name, ''), NULLIF(ii.item_type, '')), 'IMAGE') AS detail_status,
+                           'Catálogos' AS property_name,
+                           iii.created_at
+                    FROM inventory_item_images iii
+                    JOIN inventory_items ii ON ii.id = iii.inventory_item_id
+                        AND ii.organization_id = iii.organization_id
+                        AND ii.deleted_at IS NULL
+                    LEFT JOIN brands b ON b.id = ii.brand_id
+                        AND b.organization_id = ii.organization_id
+                        AND b.deleted_at IS NULL
+                    WHERE iii.organization_id = :organizationId
+                      AND iii.status = 'ACTIVE'
+                    UNION ALL
+                    SELECT 'PURCHASE_IMAGE' AS source_type,
+                           CONCAT('Compra ', COALESCE(CAST(pl.purchase_date AS TEXT), 'sin fecha')) AS display_name,
+                           pui.original_filename,
+                           pui.content_type,
+                           pui.size_bytes,
+                           pui.status,
+                           COALESCE(s.name, pl.status, 'IMAGE') AS detail_status,
+                           COALESCE(p.name, 'Sin propiedad') AS property_name,
+                           pui.created_at
+                    FROM purchase_images pui
+                    JOIN purchase_lists pl ON pl.id = pui.purchase_list_id
+                        AND pl.organization_id = pui.organization_id
+                        AND pl.deleted_at IS NULL
+                    LEFT JOIN properties p ON p.id = pl.property_id
+                        AND p.organization_id = pl.organization_id
+                        AND p.deleted_at IS NULL
+                    LEFT JOIN suppliers s ON s.id = pl.supplier_id
+                        AND s.organization_id = pl.organization_id
+                        AND s.deleted_at IS NULL
+                    WHERE pui.organization_id = :organizationId
+                      AND pui.status = 'ACTIVE'
+                    UNION ALL
+                    SELECT 'RESERVATION_IMAGE' AS source_type,
+                           CONCAT('Reservación ', COALESCE(NULLIF(r.reservation_code, ''), CAST(r.check_in AS TEXT))) AS display_name,
+                           ri.original_filename,
+                           ri.content_type,
+                           ri.size_bytes,
+                           ri.status,
+                           COALESCE(platform.name, r.status, 'IMAGE') AS detail_status,
+                           p.name AS property_name,
+                           ri.created_at
+                    FROM reservation_images ri
+                    JOIN reservations r ON r.id = ri.reservation_id
+                        AND r.organization_id = ri.organization_id
+                        AND r.deleted_at IS NULL
+                    JOIN properties p ON p.id = r.property_id
+                        AND p.organization_id = r.organization_id
+                        AND p.deleted_at IS NULL
+                    LEFT JOIN platforms platform ON platform.id = r.platform_id
+                        AND platform.organization_id = r.organization_id
+                        AND platform.deleted_at IS NULL
+                    WHERE ri.organization_id = :organizationId
+                      AND ri.status = 'ACTIVE'
                 ) files
                 WHERE 1 = 1
                 """);
@@ -417,7 +881,7 @@ public class FileImageToolRepository extends AiReadOnlyToolSupport {
                     )
                     """);
         }
-        sql.append("ORDER BY created_at DESC LIMIT :limit");
+        sql.append(" ORDER BY ").append(orderBy).append(" LIMIT :limit");
 
         return query(sql.toString(), q -> {
             q.setParameter("organizationId", organizationId);

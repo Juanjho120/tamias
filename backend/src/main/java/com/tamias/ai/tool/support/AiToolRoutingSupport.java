@@ -113,6 +113,11 @@ public abstract class AiToolRoutingSupport {
             case "file.byDocument" -> "Archivos de documentos";
             case "file.storageSummary" -> "Almacenamiento de archivos";
             case "file.orphanFileCandidates" -> "Candidatos de archivos huérfanos";
+            case "files.getImageDashboardSummary" -> "Resumen de imágenes";
+            case "files.getRecentUploads" -> "Subidas recientes";
+            case "files.getLargestFiles" -> "Archivos más grandes";
+            case "files.getEntitiesWithoutImages" -> "Entidades sin imágenes";
+            case "files.getEntitiesWithMostImages" -> "Entidades con más imágenes";
             case "image.propertyImagesSummary" -> "Imágenes de propiedades";
             case "image.maintenanceImagesSummary" -> "Imágenes de mantenimientos";
             case "dashboard.reservationSummary" -> "Dashboard de reservaciones";

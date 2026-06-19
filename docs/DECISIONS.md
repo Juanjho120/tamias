@@ -634,10 +634,10 @@ Reason:
 Decision:
 
 ```text
-Add a planned 13A phase for cross-module AI image/file dashboard questions before resuming 9P-G.
+Implement 13A cross-module AI image/file dashboard questions before resuming 9P-G.
 ```
 
-Planned examples:
+Implemented examples:
 
 ```text
 ¿Cuántas imágenes tengo por módulo?
@@ -646,6 +646,24 @@ Planned examples:
 ¿Qué imágenes se subieron recientemente?
 ¿Qué archivos ocupan más espacio?
 ```
+
+
+Implemented tools:
+
+```text
+files.getImageDashboardSummary
+files.getRecentUploads
+files.getLargestFiles
+files.getEntitiesWithoutImages
+files.getEntitiesWithMostImages
+```
+
+Implementation decision:
+
+- Extend the existing 9M `FileImageDashboardToolHandler`, `FileImageReadOnlyToolService` and `FileImageToolRepository`.
+- Do not create a parallel dashboard package for 13A.
+- Keep module-specific image tools in `EntityImageToolHandler`.
+- Include 12B/12C/12D image tables in file metadata and storage summary queries.
 
 Rules:
 

@@ -46,4 +46,24 @@ public class FileImageReadOnlyToolService {
     public AiToolAnswer maintenanceImageMetadataSummary() {
         return repository.maintenanceImageMetadataSummary();
     }
+
+    public AiToolAnswer imageDashboardSummary() {
+        return repository.imageDashboardSummary();
+    }
+
+    public AiToolAnswer recentUploads() {
+        return repository.recentUploads();
+    }
+
+    public AiToolAnswer largestFiles() {
+        return repository.largestFiles();
+    }
+
+    public AiToolAnswer entitiesWithoutImages() {
+        return repository.entitiesWithoutImages();
+    }
+
+    public AiToolAnswer entitiesWithMostImages() {
+        return repository.entitiesWithMostImages();
+    }
 }

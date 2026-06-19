@@ -1,6 +1,6 @@
 # 13A — AI image/file dashboard tools
 
-Status: Planned next.
+Status: Completed.
 
 ## Purpose
 
@@ -16,6 +16,37 @@ This phase builds on:
 - 12C — Purchase list images
 - 12D — Reservation images
 - 12E — AI image and inventory brand tools
+
+
+## Implementation summary
+
+Implemented in backend AI tools only. No frontend changes, no write actions and no database migrations are part of this phase.
+
+Implemented tools:
+
+```text
+files.getImageDashboardSummary
+files.getRecentUploads
+files.getLargestFiles
+files.getEntitiesWithoutImages
+files.getEntitiesWithMostImages
+```
+
+Implementation classes:
+
+```text
+backend/src/main/java/com/tamias/ai/tool/handler/FileImageDashboardToolHandler.java
+backend/src/main/java/com/tamias/ai/tool/service/AiReadOnlyToolService.java
+backend/src/main/java/com/tamias/ai/tool/service/FileImageReadOnlyToolService.java
+backend/src/main/java/com/tamias/ai/tool/repository/FileImageToolRepository.java
+backend/src/main/java/com/tamias/ai/tool/support/AiToolRoutingSupport.java
+```
+
+13A extends the existing 9M file/image/dashboard module instead of creating a duplicate package, because the existing handler already owns file/image/dashboard routing. Module-specific image questions stay owned by `EntityImageToolHandler`.
+
+Additional 13A update:
+
+- Existing `file.storageSummary` and `file.searchMetadata` now include the image tables added in 12B, 12C and 12D.
 
 ## User-facing questions
 
@@ -253,7 +284,7 @@ The route should not override specific module tools when the user asks about one
 
 ## After 13A
 
-After completing 13A, resume the existing AI orchestration roadmap:
+13A is complete. Resume the existing AI orchestration roadmap:
 
 ```text
 9P-G — AI orchestration observability and debug traces

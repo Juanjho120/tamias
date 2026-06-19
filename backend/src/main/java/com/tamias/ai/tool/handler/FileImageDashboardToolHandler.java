@@ -24,8 +24,7 @@ public class FileImageDashboardToolHandler extends AiToolRoutingSupport implemen
         return tryHandleFileImageDashboardQuestion(context.question(), context.normalizedQuestion());
     }
 
-
-private Optional<AiToolAnswer> tryHandleFileImageDashboardQuestion(String question, String normalized) {
+    private Optional<AiToolAnswer> tryHandleFileImageDashboardQuestion(String question, String normalized) {
         if (isDashboardAnalyticsQuestion(normalized)) {
             if (isDashboardAttentionTodayQuestion(normalized)) {
                 return Optional.of(readOnlyToolService.dashboardAttentionToday());
@@ -70,6 +69,25 @@ private Optional<AiToolAnswer> tryHandleFileImageDashboardQuestion(String questi
             ));
         }
 
+        if (isCrossModuleImageOrFileDashboardQuestion(normalized)) {
+            if (isLargestFileDashboardQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.largestFiles());
+            }
+            if (isRecentUploadDashboardQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.recentUploads());
+            }
+            if (isEntitiesWithoutImagesDashboardQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.entitiesWithoutImages());
+            }
+            if (isModuleImageDashboardSummaryQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.imageDashboardSummary());
+            }
+            if (isEntitiesWithMostImagesDashboardQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.entitiesWithMostImages());
+            }
+            return Optional.of(readOnlyToolService.imageDashboardSummary());
+        }
+
         if (isImageMetadataQuestion(normalized)) {
             if (isMaintenanceImageMetadataQuestion(normalized)) {
                 return Optional.of(readOnlyToolService.maintenanceImageMetadataSummary());
@@ -80,6 +98,12 @@ private Optional<AiToolAnswer> tryHandleFileImageDashboardQuestion(String questi
         }
 
         if (isFileMetadataQuestion(normalized)) {
+            if (isLargestFileDashboardQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.largestFiles());
+            }
+            if (isRecentUploadDashboardQuestion(normalized)) {
+                return Optional.of(readOnlyToolService.recentUploads());
+            }
             if (isFileStorageSummaryQuestion(normalized)) {
                 return Optional.of(readOnlyToolService.fileStorageSummary());
             }
@@ -99,5 +123,68 @@ private Optional<AiToolAnswer> tryHandleFileImageDashboardQuestion(String questi
         }
 
         return Optional.empty();
+    }
+
+    private boolean isCrossModuleImageOrFileDashboardQuestion(String normalized) {
+        boolean imageOrFile = containsAny(
+                normalized,
+                "imagen", "imagenes", "image", "images", "foto", "fotos",
+                "archivo", "archivos", "file", "files", "upload", "uploads", "subido", "subidos",
+                "almacenamiento", "storage", "espacio", "tamano", "tamaño", "peso", "pesados"
+        );
+        if (!imageOrFile) {
+            return false;
+        }
+
+        boolean crossModuleScope = containsAny(
+                normalized,
+                "tamias", "modulo", "modulos", "módulo", "módulos", "por modulo", "por módulo",
+                "entidad", "entidades", "general", "global", "todos", "todas", "total", "totales",
+                "dashboard", "resumen", "cuantas", "cuántas", "cuantos", "cuántos"
+        );
+        return crossModuleScope
+                || isLargestFileDashboardQuestion(normalized)
+                || isRecentUploadDashboardQuestion(normalized)
+                || isEntitiesWithoutImagesDashboardQuestion(normalized)
+                || isEntitiesWithMostImagesDashboardQuestion(normalized);
+    }
+
+    private boolean isModuleImageDashboardSummaryQuestion(String normalized) {
+        return containsAny(normalized, "modulo", "modulos", "módulo", "módulos", "por modulo", "por módulo")
+                && containsAny(normalized, "imagen", "imagenes", "image", "images", "foto", "fotos", "cantidad", "cuantas", "cuántas", "cuantos", "cuántos", "mas", "más");
+    }
+
+    private boolean isRecentUploadDashboardQuestion(String normalized) {
+        return containsAny(
+                normalized,
+                "reciente", "recientes", "ultimos", "últimos", "ultimas", "últimas",
+                "subido", "subidos", "subida", "subidas", "cargado", "cargados", "cargada", "cargadas",
+                "uploaded", "recent uploads"
+        );
+    }
+
+    private boolean isLargestFileDashboardQuestion(String normalized) {
+        return containsAny(
+                normalized,
+                "mas grande", "más grande", "mas grandes", "más grandes", "mayor tamano", "mayor tamaño",
+                "pesado", "pesados", "peso", "ocupan mas", "ocupan más", "espacio", "largest", "biggest"
+        );
+    }
+
+    private boolean isEntitiesWithoutImagesDashboardQuestion(String normalized) {
+        return containsAny(
+                normalized,
+                "sin imagen", "sin imagenes", "sin imágenes", "sin foto", "sin fotos",
+                "no tienen imagen", "no tienen imagenes", "no tienen imágenes", "no tienen foto", "no tienen fotos",
+                "missing images", "without images"
+        ) && containsAny(normalized, "entidad", "entidades", "modulo", "modulos", "módulo", "módulos", "tamias", "general", "global", "todos", "todas");
+    }
+
+    private boolean isEntitiesWithMostImagesDashboardQuestion(String normalized) {
+        return containsAny(
+                normalized,
+                "mas imagen", "más imagen", "mas imagenes", "más imágenes", "mas fotos", "más fotos",
+                "tienen mas", "tienen más", "con mas", "con más", "top", "ranking", "most images"
+        ) && containsAny(normalized, "entidad", "entidades", "propiedad", "propiedades", "item", "items", "reservacion", "reservaciones", "compra", "compras", "mantenimiento", "mantenimientos", "tamias");
     }
 }

@@ -708,6 +708,26 @@ public class AiReadOnlyToolService {
         return fileImageReadOnlyToolService.maintenanceImageMetadataSummary();
     }
 
+    public AiToolAnswer imageDashboardSummary() {
+        return fileImageReadOnlyToolService.imageDashboardSummary();
+    }
+
+    public AiToolAnswer recentUploads() {
+        return fileImageReadOnlyToolService.recentUploads();
+    }
+
+    public AiToolAnswer largestFiles() {
+        return fileImageReadOnlyToolService.largestFiles();
+    }
+
+    public AiToolAnswer entitiesWithoutImages() {
+        return fileImageReadOnlyToolService.entitiesWithoutImages();
+    }
+
+    public AiToolAnswer entitiesWithMostImages() {
+        return fileImageReadOnlyToolService.entitiesWithMostImages();
+    }
+
     public AiToolAnswer dashboardReservationSummary() {
         return dashboardReadOnlyToolService.dashboardReservationSummary();
     }

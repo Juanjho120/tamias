@@ -325,7 +325,7 @@ Goals:
 
 ### Phase 13A — AI image/file dashboard tools
 
-Status: Planned next.
+Status: Completed.
 
 Documentation: `68-ai-image-file-dashboard-tools-13a.md`
 
@@ -342,11 +342,11 @@ Goals:
 
 ---
 
-## AI phases to resume after 13A
+## Next AI phases
 
 ### 9P-G — AI orchestration observability and debug traces
 
-Status: Planned after 13A.
+Status: Planned next.
 
 Goals:
 
