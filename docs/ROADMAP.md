@@ -1,8 +1,6 @@
 # TAMIAS — Roadmap
 
-This roadmap reflects the current state after the AI tool calling and orchestration phases, the completed implementation queue for UX, security, S3 storage, image handling, inventory brands, AI image/brand tools, AI debug traces and AI smoke-test hardening.
-
----
+This roadmap reflects the current state after AI tool calling/orchestration, S3/image hard-delete work, inventory brand/image work, AI debug traces and smoke-test hardening.
 
 ## Completed foundation
 
@@ -122,6 +120,8 @@ Status: Completed / partially superseded by security review phases.
 - Backend and frontend hardening.
 - Error handling consistency.
 
+## Completed AI tool calling and orchestration track
+
 ### Phase 9 — AI Tool Calling and AI Orchestration
 
 Status: Completed through 9P-H.
@@ -153,178 +153,81 @@ Completed sub-phases:
 9P-H AI smoke test hardening and final fixes
 ```
 
----
+### 9P-I — RAG retrieval tuning
 
-## Completed implementation queue before deeper AI observability
+Status: Conditional / optional / not started.
 
-These phases were implemented before and during the deeper AI observability track because they changed security, file ownership, storage paths, documents, images, inventory items, purchases, reservations and AI chat behavior.
+Goals:
+
+- Tune threshold, topK, metadata filters, property-aware retrieval and chunk quality only if PDFs/documents still show retrieval issues.
+- Do not start this phase for structured-tool routing, parameter extraction or formatting problems.
+- Keep 9P-I optional for now.
+
+## Completed implementation queue after initial MVP
 
 ### Phase 10A — Chat ownership security + quick AI UI fixes + last login
 
 Status: Completed.
-
 Documentation: `56-chat-ownership-quick-ai-ui-fixes-10a.md`
-
-Goals:
-
-- Restrict AI chat sessions and messages to the authenticated owner user.
-- Ensure AI history tools do not expose another user's chat history.
-- Add `users.last_login` and update it after successful login.
-- Send AI message with Enter.
-- Insert newline with Shift + Enter.
-- Rename visible assistant label from `ASISTENTE` to `TAMI`.
-- Auto-collapse mobile sidebar after selecting a route.
 
 ### Phase 10B — Typewriter animation for TAMI responses
 
 Status: Completed.
-
 Documentation: `57-ai-typewriter-response-10b.md`
-
-Goals:
-
-- Keep backend response complete/non-streaming.
-- Simulate typewriter animation in Angular.
-- Preserve sources, tool evidence and grounded status.
 
 ### Phase 11A — S3 key strategy + filepath fields
 
 Status: Completed.
-
 Documentation: `58-s3-key-strategy-filepath-fields-11a.md`
-
-Goals:
-
-- Replace year/month upload paths with module/entity paths.
-- Add `filepath` to document and image relationship tables.
-- Store full bucket + folder path in `filepath`, without filename.
-- Keep `organizationId` as the first level inside the bucket.
 
 ### Phase 11B — Hard delete policy for entity images
 
 Status: Completed.
-
 Documentation: `59-hard-delete-entity-images-11b.md`
-
-Goals:
-
-- Remove soft-delete behavior from image relationship tables.
-- Clean schema by removing `deleted_at` from image tables where present.
-- Delete S3 object and database row when an image is removed.
 
 ### Phase 11C — Hard delete policy for RAG documents
 
 Status: Completed.
-
 Documentation: `60-hard-delete-rag-documents-11c.md`
-
-Goals:
-
-- Remove soft-delete behavior from RAG documents.
-- Delete S3 object, Chroma vectors, document chunks and document row.
-- Abort deletion if S3 or Chroma cleanup fails.
 
 ### Phase 11C.1 — Remove document soft-delete leftovers
 
 Status: Completed.
-
 Documentation: `65-remove-document-soft-delete-leftovers-11c1.md`
-
-Goals:
-
-- Remove `documents.deleted_at` and `documents.deleted_by`.
-- Remove `Document.deletedAt` and `Document.deletedBy`.
-- Remove `DELETED` from `DocumentStatus`.
-- Remove stale `d.deleted_at IS NULL` predicates from AI metadata queries.
-- Remove stale image soft-delete predicates against image tables already migrated to hard delete.
 
 ### Phase 12A — Associate brands directly with inventory items
 
 Status: Completed.
-
 Documentation: `61-inventory-item-brand-association-12a.md`
-
-Goals:
-
-- Add brand association to `inventory_items`.
-- Remove `brand_id` from `purchase_items`.
-- Display searchable inventory items as `{item name} - {brand}`.
-- Keep inventory item catalog table name and brand in separate columns.
-- Show item + brand in selectors/modals where disambiguation is needed.
 
 ### Phase 12B — Inventory item images
 
 Status: Completed.
-
 Documentation: `62-inventory-item-images-12b.md`
-
-Goals:
-
-- Add `inventory_item_images`.
-- Add image upload/delete UI to Inventory Items catalog.
-- Use hard delete and S3 key strategy with organization prefix.
-- Use the same image modal pattern as properties and maintenance.
-- Use static i18n files for all modal labels/messages.
 
 ### Phase 12C — Purchase list images
 
 Status: Completed.
-
 Documentation: `63-purchase-list-images-12c.md`
-
-Goals:
-
-- Add `purchase_images` with `purchase_list_id`.
-- Add image upload/delete UI to Purchase Lists.
-- Use hard delete and S3 key strategy with organization prefix.
-- Use the same image modal pattern as properties and maintenance.
-- Use static i18n files for all modal labels/messages.
 
 ### Phase 12D — Reservation images
 
 Status: Completed.
-
 Documentation: `64-reservation-images-12d.md`
-
-Goals:
-
-- Add `reservation_images` with `reservation_id`.
-- Add image upload/delete UI to Reservations.
-- Use hard delete and S3 key strategy with organization prefix.
-- Use the same image modal pattern as properties and maintenance.
-- Use static i18n files for all modal labels/messages.
 
 ### Phase 12E — AI image and inventory brand tools
 
 Status: Completed.
-
 Documentation: `66-ai-image-brand-tools-12e.md`
-
-Goals:
-
-- Add read-only AI tools for reservation images, inventory item images and purchase list images.
-- Update inventory tools to include item brand in relevant answers.
-- Add tools to query inventory items by brand.
-- Route `productos` questions to inventory when the user is asking about inventory, brands or usage rather than purchase analytics.
-- Avoid RAG fallback for structured inventory/image questions when system tools can answer.
 
 ### Phase 12 closure — Images, inventory brands and AI tools
 
 Status: Completed.
-
 Documentation: `67-phase-12-closure.md`
-
-Goals:
-
-- Record final hard-delete image policy.
-- Record final S3/filepath policy.
-- Record final image modal UX and i18n policy.
-- Record final AI tool evidence expectations for image, brand and inventory questions.
 
 ### Phase 13A — AI image/file dashboard tools
 
 Status: Completed.
-
 Documentation: `68-ai-image-file-dashboard-tools-13a.md`
 
 Goals:
@@ -338,78 +241,96 @@ Goals:
 - Reuse or extend existing 9M file/image/dashboard tools when possible.
 - Keep all tools read-only and organization-scoped.
 
----
-
-## Latest AI observability and hardening phases
-
 ### 9P-G — AI orchestration observability and persisted debug traces
 
 Status: Completed.
-
 Documentation: `69-ai-orchestration-observability-debug-traces-9p-g.md`
-
-Goals:
-
-- Persist one debug trace row per assistant/TAMI response.
-- Add `ai_chat_message_debugs` referencing the assistant `ai_chat_messages.id`.
-- Add `users.ai_chat_debug` to control whether debug is included in API responses.
-- Capture selected handler, primary tool, all tools, sanitized params, RAG usage and answer source.
-- Keep `answerSource` separate from tool names.
-- Show debug only to the authenticated chat owner when `ai_chat_debug = true`.
-- Keep normal TAMI answers unchanged for users without debug enabled.
 
 ### 9P-H — Smoke test hardening and final fixes
 
 Status: Completed.
-
 Documentation: `70-ai-smoke-test-hardening-final-fixes-9p-h.md`
 
-Goals:
+## Current implementation queue
 
-- Run the AI smoke-test matrix after persisted debug traces.
-- Validate guardrails, routing, parameter extraction, formatting, RAG fallback and debug persistence.
-- Fix regressions found during smoke testing with targeted backend AI changes.
-- Keep the AI assistant read-only.
-- Keep tool-first behavior for structured TAMIAS data.
-- Keep RAG for document-content questions.
-- Leave `9P-I` conditional instead of starting RAG tuning automatically.
+### Phase 14 — Product Box Models
 
-Fix areas covered:
+Status: Planned / design ready.
+Documentation: `71-product-box-models-14.md`
 
-- Read-only guard routing for write/action prompts.
-- Maintenance date formatting and cost summary formatting.
-- Scheduled maintenance grouping and empty-result messages.
-- Maintenance images empty-result behavior.
-- Task grouping and assigned-task primary guest display.
-- Purchase last-purchased searches by brand.
-- Routing for most-purchased item/product prompts.
-- Document metadata routing for failed vs processed-not-indexed documents.
-- Image dashboard prompt-specific formats.
-- Largest files and file-name listing formats.
+Purpose:
 
-### 9P-I — RAG retrieval tuning
+- Add a module to register simple rectangular product box/package models.
+- Store dimensions and metadata in PostgreSQL.
+- Store face images in private S3 using the existing organization-first key strategy.
+- Render the box dynamically in Angular using Three.js.
 
-Status: Conditional / not started.
+Sub-phases:
 
-Goals:
+```text
+14A Product Box Models backend foundation
+14B Product Box Face Images
+14C Angular Product Box CRUD
+14D Three.js Product Box Viewer
+14E Integration with Inventory/Purchases
+14F AI awareness for Product Box Models
+```
 
-- Tune threshold, topK, metadata filters, property-aware retrieval and chunk quality only if PDFs/documents still show retrieval issues.
-- Do not start this phase for structured-tool routing or formatting problems.
+### Phase 14A — Product Box Models backend foundation
 
----
+Status: Planned / implementation next.
+Documentation: `72-product-box-models-backend-foundation-14a.md`
 
-## Future phases
+Scope:
 
-### Reports, notifications and advanced AI
+- Backend metadata CRUD only.
+- Flyway migration for `product_box_models`.
+- Entity, repository, DTOs, mapper, service and controller.
+- Organization scoping.
+- Optional inventory item / purchase item association.
+- No face images, no S3, no Angular and no Three.js yet.
+
+## Future phases after Product Box Models
+
+### Phase 15 — Reports
 
 Status: Future.
+Documentation: `73-reports-15.md`
 
-Possible features:
+Candidate scope:
 
-- JasperReports PDF reports.
+- Operational reports.
+- Maintenance cost reports.
+- Purchase cost reports.
+- Reservation summaries.
+- PDF generation, likely with JasperReports after a dedicated design pass.
+
+### Phase 16 — Notifications and reminders
+
+Status: Future.
+Documentation: `74-notifications-reminders-16.md`
+
+Candidate scope:
+
 - Email notifications.
-- Advanced reminders.
-- Blueprint analysis with OCR and vision models.
+- Scheduled maintenance reminders.
+- Reservation check-in/check-out reminders.
+- Task due reminders.
+- Notification preferences.
+
+### Phase 17 — Blueprint Analysis
+
+Status: Future.
+Documentation: `75-blueprint-analysis-17.md`
+
+Candidate scope:
+
+- Blueprint/floor plan upload and analysis.
+- OCR/vision-assisted extraction only after a dedicated design phase.
+- Measurement search and AI metadata awareness when reliable enough.
+
+### Later candidates
+
 - AI agents by business domain.
 - Formal inventory stock control.
 - Platform integrations.
