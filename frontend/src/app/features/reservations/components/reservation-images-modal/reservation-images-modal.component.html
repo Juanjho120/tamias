@@ -22,34 +22,68 @@
         <div class="modal-body">
           <div class="card border-0 bg-body-tertiary mb-4">
             <div class="card-body">
-              <label for="reservation-image-file" class="form-label fw-semibold">
-                {{ 'reservations.images.upload.file' | translate }}
-              </label>
-              <input
-                #fileInput
-                id="reservation-image-file"
-                type="file"
-                class="form-control"
-                accept="image/jpeg,image/png,image/webp"
-                multiple
-                [disabled]="uploading()"
-                (change)="onFilesSelected($event)" />
-              <div class="form-text">{{ 'reservations.images.upload.help' | translate }}</div>
-              <div class="small text-muted mt-2">{{ filesSummary() }}</div>
+              <div class="row g-3 align-items-end">
+                <div class="col-12 col-lg-7">
+                  <label for="reservation-image-file" class="form-label fw-semibold">
+                    {{ 'reservations.images.upload.file' | translate }}
+                  </label>
 
-              <button
-                type="button"
-                class="btn btn-primary mt-3"
-                [disabled]="uploading() || selectedFiles().length === 0"
-                (click)="uploadSelected()">
-                @if (uploading()) {
-                  <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
-                  {{ 'reservations.images.upload.uploading' | translate }}
-                } @else {
-                  <i class="bi bi-cloud-arrow-up me-1"></i>
-                  {{ 'reservations.images.upload.button' | translate }}
-                }
-              </button>
+                  <input
+                    #fileInput
+                    id="reservation-image-file"
+                    type="file"
+                    class="form-control"
+                    accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                    multiple
+                    [disabled]="uploading()"
+                    (change)="onFilesSelected($event)" />
+
+                  <div class="form-text">{{ 'reservations.images.upload.help' | translate }}</div>
+                  <div class="small text-muted mt-2">{{ filesSummary() }}</div>
+                </div>
+
+                <div class="col-12 col-lg-5 d-flex justify-content-lg-end gap-2">
+                  <button
+                    type="button"
+                    class="btn btn-outline-secondary"
+                    [disabled]="uploading() || selectedFiles().length === 0"
+                    (click)="clearUploadSelection()">
+                    {{ 'common.clear' | translate }}
+                  </button>
+
+                  <button
+                    type="button"
+                    class="btn btn-primary"
+                    [disabled]="uploading() || selectedFiles().length === 0"
+                    (click)="uploadSelected()">
+                    @if (uploading()) {
+                      <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+                      {{ 'reservations.images.upload.uploading' | translate }}
+                    } @else {
+                      <i class="bi bi-upload me-1"></i>
+                      {{ 'reservations.images.upload.button' | translate }}
+                    }
+                  </button>
+                </div>
+              </div>
+
+              @if (selectedPreviews().length > 0) {
+                <div class="mt-3 d-flex flex-column gap-2">
+                  @for (preview of selectedPreviews(); track preview.url) {
+                    <div class="d-flex align-items-center gap-3">
+                      <img
+                        [src]="preview.url"
+                        [alt]="preview.fileName"
+                        class="reservation-image-upload-preview rounded border">
+
+                      <div class="min-w-0">
+                        <div class="fw-semibold text-truncate" [title]="preview.fileName">{{ preview.fileName }}</div>
+                        <div class="small text-muted">{{ formatSize(preview.sizeBytes) }}</div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
             </div>
           </div>
 
@@ -63,6 +97,7 @@
               <div class="d-inline-flex align-items-center justify-content-center rounded-4 bg-secondary-subtle text-secondary p-4 mb-3">
                 <i class="bi bi-images fs-1"></i>
               </div>
+
               <h3 class="h5">{{ 'reservations.images.empty.title' | translate }}</h3>
               <p class="text-muted mb-0">{{ 'reservations.images.empty.description' | translate }}</p>
             </div>
@@ -85,9 +120,12 @@
                       <div class="fw-semibold text-truncate" [title]="image.originalFilename">{{ image.originalFilename }}</div>
                       <div class="small text-muted">{{ image.createdAt | date:'medium' }}</div>
                       <div class="small text-muted">{{ formatSize(image.sizeBytes) }}</div>
-                      <div class="small text-muted">
-                        {{ 'reservations.images.urlExpiresIn' | translate:{ seconds: image.fileUrlExpiresIn } }}
-                      </div>
+
+                      @if (image.fileUrlExpiresIn) {
+                        <div class="small text-muted">
+                          {{ 'reservations.images.urlExpiresIn' | translate:{ seconds: image.fileUrlExpiresIn } }}
+                        </div>
+                      }
                     </div>
 
                     <div class="card-footer bg-transparent d-flex justify-content-end">

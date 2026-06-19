@@ -14,7 +14,6 @@ import {
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
-
 import { LanguageService } from '../../../../core/i18n/language.service';
 import { ApiError } from '../../../../core/models/api-error.model';
 import { ConfirmModalComponent } from '../../../../shared/confirm-modal/confirm-modal.component';
@@ -23,11 +22,26 @@ import { ReservationImage } from '../../models/reservation-image.model';
 import { ReservationSummary } from '../../models/reservation.model';
 import { ReservationImageService } from '../../services/reservation-image.service';
 
+interface SelectedImagePreview {
+  fileName: string;
+  sizeBytes: number;
+  url: string;
+}
+
 @Component({
   selector: 'app-reservation-images-modal',
   standalone: true,
   imports: [DatePipe, TranslatePipe, ConfirmModalComponent],
-  templateUrl: './reservation-images-modal.component.html'
+  templateUrl: './reservation-images-modal.component.html',
+  styles: [
+    `
+      .reservation-image-upload-preview {
+        height: 72px;
+        object-fit: cover;
+        width: 96px;
+      }
+    `
+  ]
 })
 export class ReservationImagesModalComponent implements OnChanges {
   @Input() open = false;
@@ -41,15 +55,16 @@ export class ReservationImagesModalComponent implements OnChanges {
   private readonly toastService = inject(ToastService);
   private readonly languageService = inject(LanguageService);
 
-  readonly loading = signal<boolean>(false);
-  readonly uploading = signal<boolean>(false);
+  readonly loading = signal(false);
+  readonly uploading = signal(false);
   readonly deletingId = signal<string | null>(null);
   readonly images = signal<ReservationImage[]>([]);
   readonly selectedFiles = signal<File[]>([]);
+  readonly selectedPreviews = signal<SelectedImagePreview[]>([]);
   readonly imageToDelete = signal<ReservationImage | null>(null);
+
   readonly deleteMessage = computed(() => {
     const image = this.imageToDelete();
-
     if (!image) {
       return '';
     }
@@ -83,6 +98,7 @@ export class ReservationImagesModalComponent implements OnChanges {
       return;
     }
 
+    this.clearUploadSelection();
     this.closed.emit();
   }
 
@@ -112,8 +128,26 @@ export class ReservationImagesModalComponent implements OnChanges {
 
   onFilesSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files ?? []);
 
-    this.selectedFiles.set(Array.from(input.files ?? []));
+    this.revokeSelectedPreviews();
+    this.selectedFiles.set(files);
+    this.selectedPreviews.set(
+      files.map((file) => ({
+        fileName: file.name,
+        sizeBytes: file.size,
+        url: URL.createObjectURL(file)
+      }))
+    );
+  }
+
+  clearUploadSelection(): void {
+    this.selectedFiles.set([]);
+    this.revokeSelectedPreviews();
+
+    if (this.fileInput?.nativeElement) {
+      this.fileInput.nativeElement.value = '';
+    }
   }
 
   uploadSelected(): void {
@@ -129,12 +163,7 @@ export class ReservationImagesModalComponent implements OnChanges {
     forkJoin(files.map((file) => this.reservationImageService.upload(reservationId, file))).subscribe({
       next: () => {
         this.uploading.set(false);
-        this.selectedFiles.set([]);
-
-        if (this.fileInput?.nativeElement) {
-          this.fileInput.nativeElement.value = '';
-        }
-
+        this.clearUploadSelection();
         this.toastService.success(this.languageService.instant('reservations.images.messages.uploaded'));
         this.imagesChanged.emit();
         this.loadImages();
@@ -209,7 +238,9 @@ export class ReservationImagesModalComponent implements OnChanges {
       return files[0].name;
     }
 
-    return this.languageService.instant('reservations.images.upload.selectedFiles', { count: files.length });
+    return this.languageService.instant('reservations.images.upload.selectedFiles', {
+      count: files.length
+    });
   }
 
   reservationLabel(): string {
@@ -219,11 +250,9 @@ export class ReservationImagesModalComponent implements OnChanges {
       return '';
     }
 
-    const parts = [
-      reservation.reservationCode,
-      reservation.propertyName,
-      `${reservation.checkIn} → ${reservation.checkOut}`
-    ].filter(Boolean);
+    const parts = [reservation.reservationCode, reservation.propertyName, `${reservation.checkIn} → ${reservation.checkOut}`].filter(
+      Boolean
+    );
 
     return parts.join(' · ');
   }
@@ -241,12 +270,13 @@ export class ReservationImagesModalComponent implements OnChanges {
       return `${(sizeBytes / 1024).toFixed(1)} KB`;
     }
 
-    return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
+    return `${(sizeBytes / (1024 * 1024)).toFixed(2)} MB`;
   }
 
   private resetState(): void {
     this.images.set([]);
     this.selectedFiles.set([]);
+    this.revokeSelectedPreviews();
     this.loading.set(false);
     this.uploading.set(false);
     this.deletingId.set(null);
@@ -254,9 +284,16 @@ export class ReservationImagesModalComponent implements OnChanges {
     this.loadedReservationId = null;
   }
 
+  private revokeSelectedPreviews(): void {
+    for (const preview of this.selectedPreviews()) {
+      URL.revokeObjectURL(preview.url);
+    }
+
+    this.selectedPreviews.set([]);
+  }
+
   private extractErrorMessage(error: unknown, fallback: string): string {
     const maybeHttpError = error as { error?: ApiError };
-
     return maybeHttpError.error?.message ?? fallback;
   }
 }

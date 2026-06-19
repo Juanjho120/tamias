@@ -1,8 +1,19 @@
 import { DatePipe } from '@angular/common';
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, computed, inject, signal } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  EventEmitter,
+  Input,
+  OnChanges,
+  Output,
+  SimpleChanges,
+  ViewChild,
+  computed,
+  inject,
+  signal
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
-
 import { LanguageService } from '../../../../core/i18n/language.service';
 import { ApiError } from '../../../../core/models/api-error.model';
 import { ConfirmModalComponent } from '../../../../shared/confirm-modal/confirm-modal.component';
@@ -10,6 +21,12 @@ import { ToastService } from '../../../../shared/toast/toast.service';
 import { CatalogItem } from '../../models/catalog.model';
 import { InventoryItemImage } from '../../models/inventory-item-image.model';
 import { InventoryItemImageService } from '../../services/inventory-item-image.service';
+
+interface SelectedImagePreview {
+  fileName: string;
+  sizeBytes: number;
+  url: string;
+}
 
 @Component({
   selector: 'app-inventory-item-images-modal',
@@ -27,6 +44,12 @@ import { InventoryItemImageService } from '../../services/inventory-item-image.s
         object-fit: cover;
         width: 100%;
       }
+
+      .inventory-item-image-upload-preview {
+        height: 72px;
+        object-fit: cover;
+        width: 96px;
+      }
     `
   ]
 })
@@ -35,20 +58,23 @@ export class InventoryItemImagesModalComponent implements OnChanges {
   @Input() inventoryItem: CatalogItem | null = null;
   @Output() closed = new EventEmitter<void>();
 
+  @ViewChild('fileInput') private readonly fileInput?: ElementRef<HTMLInputElement>;
+
   private readonly imageService = inject(InventoryItemImageService);
   private readonly toastService = inject(ToastService);
   private readonly languageService = inject(LanguageService);
 
   readonly images = signal<InventoryItemImage[]>([]);
   readonly selectedFiles = signal<File[]>([]);
+  readonly selectedPreviews = signal<SelectedImagePreview[]>([]);
   readonly loading = signal(false);
   readonly uploading = signal(false);
   readonly deletingId = signal<string | null>(null);
   readonly settingCoverId = signal<string | null>(null);
   readonly imageToDelete = signal<InventoryItemImage | null>(null);
+
   readonly deleteMessage = computed(() => {
     const image = this.imageToDelete();
-
     if (!image) {
       return '';
     }
@@ -91,13 +117,33 @@ export class InventoryItemImagesModalComponent implements OnChanges {
       return files[0].name;
     }
 
-    return this.languageService.instant('catalogs.items.inventoryItems.images.upload.selectedFiles', { count: files.length });
+    return this.languageService.instant('catalogs.items.inventoryItems.images.upload.selectedFiles', {
+      count: files.length
+    });
   }
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files ?? []);
 
-    this.selectedFiles.set(Array.from(input.files ?? []));
+    this.revokeSelectedPreviews();
+    this.selectedFiles.set(files);
+    this.selectedPreviews.set(
+      files.map((file) => ({
+        fileName: file.name,
+        sizeBytes: file.size,
+        url: URL.createObjectURL(file)
+      }))
+    );
+  }
+
+  clearUploadSelection(): void {
+    this.selectedFiles.set([]);
+    this.revokeSelectedPreviews();
+
+    if (this.fileInput?.nativeElement) {
+      this.fileInput.nativeElement.value = '';
+    }
   }
 
   uploadSelected(): void {
@@ -116,7 +162,7 @@ export class InventoryItemImagesModalComponent implements OnChanges {
     ).subscribe({
       next: () => {
         this.uploading.set(false);
-        this.selectedFiles.set([]);
+        this.clearUploadSelection();
         this.toastService.success(this.languageService.instant('catalogs.items.inventoryItems.images.messages.uploaded'));
         this.loadImages();
       },
@@ -195,7 +241,24 @@ export class InventoryItemImagesModalComponent implements OnChanges {
       return;
     }
 
+    this.clearUploadSelection();
     this.closed.emit();
+  }
+
+  formatSize(sizeBytes: number | null | undefined): string {
+    if (sizeBytes == null) {
+      return '—';
+    }
+
+    if (sizeBytes < 1024) {
+      return `${sizeBytes} B`;
+    }
+
+    if (sizeBytes < 1024 * 1024) {
+      return `${(sizeBytes / 1024).toFixed(1)} KB`;
+    }
+
+    return `${(sizeBytes / (1024 * 1024)).toFixed(2)} MB`;
   }
 
   private loadImages(): void {
@@ -222,6 +285,7 @@ export class InventoryItemImagesModalComponent implements OnChanges {
   private resetState(): void {
     this.images.set([]);
     this.selectedFiles.set([]);
+    this.revokeSelectedPreviews();
     this.loading.set(false);
     this.uploading.set(false);
     this.deletingId.set(null);
@@ -229,9 +293,16 @@ export class InventoryItemImagesModalComponent implements OnChanges {
     this.imageToDelete.set(null);
   }
 
+  private revokeSelectedPreviews(): void {
+    for (const preview of this.selectedPreviews()) {
+      URL.revokeObjectURL(preview.url);
+    }
+
+    this.selectedPreviews.set([]);
+  }
+
   private extractErrorMessage(error: unknown, fallback: string): string {
     const maybeHttpError = error as { error?: ApiError };
-
     return maybeHttpError.error?.message ?? fallback;
   }
 }

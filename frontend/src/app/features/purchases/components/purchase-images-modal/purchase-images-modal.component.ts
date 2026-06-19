@@ -14,7 +14,6 @@ import {
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
-
 import { LanguageService } from '../../../../core/i18n/language.service';
 import { ApiError } from '../../../../core/models/api-error.model';
 import { ConfirmModalComponent } from '../../../../shared/confirm-modal/confirm-modal.component';
@@ -23,11 +22,26 @@ import { PurchaseImage } from '../../models/purchase-image.model';
 import { PurchaseListSummary } from '../../models/purchase-list.model';
 import { PurchaseImageService } from '../../services/purchase-image.service';
 
+interface SelectedImagePreview {
+  fileName: string;
+  sizeBytes: number;
+  url: string;
+}
+
 @Component({
   selector: 'app-purchase-images-modal',
   standalone: true,
   imports: [DatePipe, TranslatePipe, ConfirmModalComponent],
-  templateUrl: './purchase-images-modal.component.html'
+  templateUrl: './purchase-images-modal.component.html',
+  styles: [
+    `
+      .purchase-image-upload-preview {
+        height: 72px;
+        object-fit: cover;
+        width: 96px;
+      }
+    `
+  ]
 })
 export class PurchaseImagesModalComponent implements OnChanges {
   @Input() open = false;
@@ -41,15 +55,16 @@ export class PurchaseImagesModalComponent implements OnChanges {
   private readonly toastService = inject(ToastService);
   private readonly languageService = inject(LanguageService);
 
-  readonly loading = signal<boolean>(false);
-  readonly uploading = signal<boolean>(false);
+  readonly loading = signal(false);
+  readonly uploading = signal(false);
   readonly deletingId = signal<string | null>(null);
   readonly images = signal<PurchaseImage[]>([]);
   readonly selectedFiles = signal<File[]>([]);
+  readonly selectedPreviews = signal<SelectedImagePreview[]>([]);
   readonly imageToDelete = signal<PurchaseImage | null>(null);
+
   readonly deleteMessage = computed(() => {
     const image = this.imageToDelete();
-
     if (!image) {
       return '';
     }
@@ -83,6 +98,7 @@ export class PurchaseImagesModalComponent implements OnChanges {
       return;
     }
 
+    this.clearUploadSelection();
     this.closed.emit();
   }
 
@@ -112,8 +128,26 @@ export class PurchaseImagesModalComponent implements OnChanges {
 
   onFilesSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files ?? []);
 
-    this.selectedFiles.set(Array.from(input.files ?? []));
+    this.revokeSelectedPreviews();
+    this.selectedFiles.set(files);
+    this.selectedPreviews.set(
+      files.map((file) => ({
+        fileName: file.name,
+        sizeBytes: file.size,
+        url: URL.createObjectURL(file)
+      }))
+    );
+  }
+
+  clearUploadSelection(): void {
+    this.selectedFiles.set([]);
+    this.revokeSelectedPreviews();
+
+    if (this.fileInput?.nativeElement) {
+      this.fileInput.nativeElement.value = '';
+    }
   }
 
   uploadSelected(): void {
@@ -129,12 +163,7 @@ export class PurchaseImagesModalComponent implements OnChanges {
     forkJoin(files.map((file) => this.purchaseImageService.upload(purchaseListId, file))).subscribe({
       next: () => {
         this.uploading.set(false);
-        this.selectedFiles.set([]);
-
-        if (this.fileInput?.nativeElement) {
-          this.fileInput.nativeElement.value = '';
-        }
-
+        this.clearUploadSelection();
         this.toastService.success(this.languageService.instant('purchases.images.messages.uploaded'));
         this.imagesChanged.emit();
         this.loadImages();
@@ -209,7 +238,9 @@ export class PurchaseImagesModalComponent implements OnChanges {
       return files[0].name;
     }
 
-    return this.languageService.instant('purchases.images.upload.selectedFiles', { count: files.length });
+    return this.languageService.instant('purchases.images.upload.selectedFiles', {
+      count: files.length
+    });
   }
 
   purchaseListLabel(): string {
@@ -220,7 +251,6 @@ export class PurchaseImagesModalComponent implements OnChanges {
     }
 
     const parts = [purchaseList.purchaseDate, purchaseList.supplierName, purchaseList.propertyName].filter(Boolean);
-
     return parts.join(' · ');
   }
 
@@ -237,12 +267,13 @@ export class PurchaseImagesModalComponent implements OnChanges {
       return `${(sizeBytes / 1024).toFixed(1)} KB`;
     }
 
-    return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
+    return `${(sizeBytes / (1024 * 1024)).toFixed(2)} MB`;
   }
 
   private resetState(): void {
     this.images.set([]);
     this.selectedFiles.set([]);
+    this.revokeSelectedPreviews();
     this.loading.set(false);
     this.uploading.set(false);
     this.deletingId.set(null);
@@ -250,9 +281,16 @@ export class PurchaseImagesModalComponent implements OnChanges {
     this.loadedPurchaseListId = null;
   }
 
+  private revokeSelectedPreviews(): void {
+    for (const preview of this.selectedPreviews()) {
+      URL.revokeObjectURL(preview.url);
+    }
+
+    this.selectedPreviews.set([]);
+  }
+
   private extractErrorMessage(error: unknown, fallback: string): string {
     const maybeHttpError = error as { error?: ApiError };
-
     return maybeHttpError.error?.message ?? fallback;
   }
 }
