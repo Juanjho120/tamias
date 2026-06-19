@@ -1,9 +1,23 @@
 import { DatePipe } from '@angular/common';
-import { Component, ElementRef, EventEmitter, Input, OnChanges, Output, SimpleChanges, ViewChild, inject, signal } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  EventEmitter,
+  Input,
+  OnChanges,
+  Output,
+  SimpleChanges,
+  ViewChild,
+  computed,
+  inject,
+  signal
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
+
 import { LanguageService } from '../../../../core/i18n/language.service';
 import { ApiError } from '../../../../core/models/api-error.model';
+import { ConfirmModalComponent } from '../../../../shared/confirm-modal/confirm-modal.component';
 import { ToastService } from '../../../../shared/toast/toast.service';
 import { PurchaseImage } from '../../models/purchase-image.model';
 import { PurchaseListSummary } from '../../models/purchase-list.model';
@@ -12,13 +26,12 @@ import { PurchaseImageService } from '../../services/purchase-image.service';
 @Component({
   selector: 'app-purchase-images-modal',
   standalone: true,
-  imports: [DatePipe, TranslatePipe],
+  imports: [DatePipe, TranslatePipe, ConfirmModalComponent],
   templateUrl: './purchase-images-modal.component.html'
 })
 export class PurchaseImagesModalComponent implements OnChanges {
   @Input() open = false;
   @Input() purchaseList: PurchaseListSummary | null = null;
-
   @Output() closed = new EventEmitter<void>();
   @Output() imagesChanged = new EventEmitter<void>();
 
@@ -33,6 +46,18 @@ export class PurchaseImagesModalComponent implements OnChanges {
   readonly deletingId = signal<string | null>(null);
   readonly images = signal<PurchaseImage[]>([]);
   readonly selectedFiles = signal<File[]>([]);
+  readonly imageToDelete = signal<PurchaseImage | null>(null);
+  readonly deleteMessage = computed(() => {
+    const image = this.imageToDelete();
+
+    if (!image) {
+      return '';
+    }
+
+    return this.languageService.instant('purchases.images.confirmDeleteMessage', {
+      filename: image.originalFilename
+    });
+  });
 
   private loadedPurchaseListId: string | null = null;
 
@@ -57,11 +82,13 @@ export class PurchaseImagesModalComponent implements OnChanges {
     if (this.uploading() || this.deletingId()) {
       return;
     }
+
     this.closed.emit();
   }
 
   loadImages(): void {
     const purchaseListId = this.purchaseList?.id;
+
     if (!purchaseListId) {
       this.images.set([]);
       return;
@@ -85,6 +112,7 @@ export class PurchaseImagesModalComponent implements OnChanges {
 
   onFilesSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
+
     this.selectedFiles.set(Array.from(input.files ?? []));
   }
 
@@ -102,9 +130,11 @@ export class PurchaseImagesModalComponent implements OnChanges {
       next: () => {
         this.uploading.set(false);
         this.selectedFiles.set([]);
+
         if (this.fileInput?.nativeElement) {
           this.fileInput.nativeElement.value = '';
         }
+
         this.toastService.success(this.languageService.instant('purchases.images.messages.uploaded'));
         this.imagesChanged.emit();
         this.loadImages();
@@ -118,16 +148,27 @@ export class PurchaseImagesModalComponent implements OnChanges {
     });
   }
 
-  deleteImage(image: PurchaseImage): void {
-    const purchaseListId = this.purchaseList?.id;
-    if (!purchaseListId) {
+  requestDelete(image: PurchaseImage): void {
+    if (this.deletingId()) {
       return;
     }
 
-    const confirmed = window.confirm(
-      this.languageService.instant('purchases.images.confirmDeleteMessage', { filename: image.originalFilename })
-    );
-    if (!confirmed) {
+    this.imageToDelete.set(image);
+  }
+
+  cancelDelete(): void {
+    if (this.deletingId()) {
+      return;
+    }
+
+    this.imageToDelete.set(null);
+  }
+
+  confirmDelete(): void {
+    const purchaseListId = this.purchaseList?.id;
+    const image = this.imageToDelete();
+
+    if (!purchaseListId || !image || this.deletingId()) {
       return;
     }
 
@@ -135,6 +176,7 @@ export class PurchaseImagesModalComponent implements OnChanges {
     this.purchaseImageService.delete(purchaseListId, image.id).subscribe({
       next: () => {
         this.deletingId.set(null);
+        this.imageToDelete.set(null);
         this.toastService.success(this.languageService.instant('purchases.images.messages.deleted'));
         this.imagesChanged.emit();
         this.loadImages();
@@ -152,26 +194,33 @@ export class PurchaseImagesModalComponent implements OnChanges {
     if (!image.fileUrl) {
       return;
     }
+
     window.open(image.fileUrl, '_blank', 'noopener');
   }
 
   filesSummary(): string {
     const files = this.selectedFiles();
+
     if (files.length === 0) {
       return this.languageService.instant('purchases.images.upload.noFilesSelected');
     }
+
     if (files.length === 1) {
       return files[0].name;
     }
+
     return this.languageService.instant('purchases.images.upload.selectedFiles', { count: files.length });
   }
 
   purchaseListLabel(): string {
     const purchaseList = this.purchaseList;
+
     if (!purchaseList) {
       return '';
     }
+
     const parts = [purchaseList.purchaseDate, purchaseList.supplierName, purchaseList.propertyName].filter(Boolean);
+
     return parts.join(' · ');
   }
 
@@ -179,12 +228,15 @@ export class PurchaseImagesModalComponent implements OnChanges {
     if (sizeBytes == null) {
       return '—';
     }
+
     if (sizeBytes < 1024) {
       return `${sizeBytes} B`;
     }
+
     if (sizeBytes < 1024 * 1024) {
       return `${(sizeBytes / 1024).toFixed(1)} KB`;
     }
+
     return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
@@ -194,11 +246,13 @@ export class PurchaseImagesModalComponent implements OnChanges {
     this.loading.set(false);
     this.uploading.set(false);
     this.deletingId.set(null);
+    this.imageToDelete.set(null);
     this.loadedPurchaseListId = null;
   }
 
   private extractErrorMessage(error: unknown, fallback: string): string {
     const maybeHttpError = error as { error?: ApiError };
+
     return maybeHttpError.error?.message ?? fallback;
   }
 }

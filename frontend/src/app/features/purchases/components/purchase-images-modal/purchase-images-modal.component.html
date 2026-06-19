@@ -5,10 +5,12 @@
         <div class="modal-header">
           <div>
             <h2 class="modal-title h5 mb-1">{{ 'purchases.images.title' | translate }}</h2>
+
             @if (purchaseListLabel()) {
               <p class="text-muted small mb-0">{{ purchaseListLabel() }}</p>
             }
           </div>
+
           <button
             type="button"
             class="btn-close"
@@ -93,7 +95,7 @@
                         type="button"
                         class="btn btn-outline-danger btn-sm"
                         [disabled]="deletingId() === image.id"
-                        (click)="deleteImage(image)">
+                        (click)="requestDelete(image)">
                         @if (deletingId() === image.id) {
                           <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
                         } @else {
@@ -117,5 +119,17 @@
       </div>
     </div>
   </div>
+
   <div class="modal-backdrop fade show"></div>
 }
+
+<app-confirm-modal
+  [open]="!!imageToDelete()"
+  title="purchases.images.confirmDeleteTitle"
+  [message]="deleteMessage()"
+  confirmText="common.delete"
+  cancelText="common.cancel"
+  confirmButtonClass="btn-danger"
+  [loading]="!!deletingId()"
+  (confirm)="confirmDelete()"
+  (cancel)="cancelDelete()" />

@@ -1,5 +1,6 @@
 @if (open) {
   <div class="modal-backdrop fade show"></div>
+
   <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content">
@@ -8,6 +9,7 @@
             <h2 class="modal-title h5 mb-0">{{ 'catalogs.items.inventoryItems.images.title' | translate }}</h2>
             <p class="text-muted small mb-0">{{ itemDisplayName() }}</p>
           </div>
+
           <button
             type="button"
             class="btn-close"
@@ -34,6 +36,7 @@
 
               <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mt-3">
                 <span class="text-muted small">{{ filesSummary() }}</span>
+
                 <button
                   type="button"
                   class="btn btn-primary"
@@ -68,22 +71,26 @@
                 <div class="col-12 col-md-6 col-xl-4">
                   <div class="card inventory-item-image-card">
                     <img [src]="image.fileUrl" [alt]="image.originalFilename" class="card-img-top inventory-item-image-preview">
+
                     <div class="card-body">
                       <div class="d-flex justify-content-between align-items-start gap-2">
                         <div>
                           <h3 class="h6 mb-1 text-truncate" [title]="image.originalFilename">{{ image.originalFilename }}</h3>
                           <p class="text-muted small mb-0">{{ image.createdAt | date:'medium' }}</p>
                         </div>
+
                         @if (image.cover) {
                           <span class="badge text-bg-primary">{{ 'catalogs.items.inventoryItems.images.cover' | translate }}</span>
                         }
                       </div>
                     </div>
+
                     <div class="card-footer bg-white d-flex justify-content-between gap-2">
                       <a class="btn btn-outline-secondary btn-sm" [href]="image.fileUrl" target="_blank" rel="noopener">
                         <i class="bi bi-box-arrow-up-right me-1"></i>
                         {{ 'catalogs.items.inventoryItems.images.open' | translate }}
                       </a>
+
                       <div class="btn-group">
                         <button
                           type="button"
@@ -97,11 +104,12 @@
                           }
                           {{ 'catalogs.items.inventoryItems.images.setCover' | translate }}
                         </button>
+
                         <button
                           type="button"
                           class="btn btn-outline-danger btn-sm"
                           [disabled]="deletingId() === image.id || !!settingCoverId()"
-                          (click)="deleteImage(image)">
+                          (click)="requestDelete(image)">
                           @if (deletingId() === image.id) {
                             <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
                           } @else {
@@ -119,7 +127,11 @@
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" [disabled]="uploading() || !!deletingId() || !!settingCoverId()" (click)="close()">
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            [disabled]="uploading() || !!deletingId() || !!settingCoverId()"
+            (click)="close()">
             {{ 'common.close' | translate }}
           </button>
         </div>
@@ -127,3 +139,14 @@
     </div>
   </div>
 }
+
+<app-confirm-modal
+  [open]="!!imageToDelete()"
+  title="catalogs.items.inventoryItems.images.confirmDeleteTitle"
+  [message]="deleteMessage()"
+  confirmText="common.delete"
+  cancelText="common.cancel"
+  confirmButtonClass="btn-danger"
+  [loading]="!!deletingId()"
+  (confirm)="confirmDelete()"
+  (cancel)="cancelDelete()" />
