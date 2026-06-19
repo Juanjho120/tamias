@@ -19,6 +19,10 @@ public class InventoryReadOnlyToolService {
         return repository.inventorySearch(userQuestion);
     }
 
+    public AiToolAnswer inventoryItemsByBrand(String userQuestion) {
+        return repository.inventoryItemsByBrand(userQuestion);
+    }
+
     public AiToolAnswer inventoryFrequentlyUsed() {
         return repository.inventoryFrequentlyUsed();
     }

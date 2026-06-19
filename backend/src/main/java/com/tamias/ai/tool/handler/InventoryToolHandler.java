@@ -3,6 +3,7 @@ package com.tamias.ai.tool.handler;
 import com.tamias.ai.tool.AiToolAnswer;
 import com.tamias.ai.tool.context.AiToolRequestContext;
 import com.tamias.ai.tool.service.AiReadOnlyToolService;
+import com.tamias.ai.tool.service.InventoryReadOnlyToolService;
 import com.tamias.ai.tool.support.AiToolRoutingSupport;
 import java.util.List;
 import java.util.Optional;
@@ -14,9 +15,14 @@ import org.springframework.stereotype.Component;
 public class InventoryToolHandler extends AiToolRoutingSupport implements AiToolHandler {
 
     private final AiReadOnlyToolService readOnlyToolService;
+    private final InventoryReadOnlyToolService inventoryReadOnlyToolService;
 
-    public InventoryToolHandler(AiReadOnlyToolService readOnlyToolService) {
+    public InventoryToolHandler(
+        AiReadOnlyToolService readOnlyToolService,
+        InventoryReadOnlyToolService inventoryReadOnlyToolService
+    ) {
         this.readOnlyToolService = readOnlyToolService;
+        this.inventoryReadOnlyToolService = inventoryReadOnlyToolService;
     }
 
     @Override
@@ -24,52 +30,74 @@ public class InventoryToolHandler extends AiToolRoutingSupport implements AiTool
         return tryHandleInventoryQuestion(context.question(), context.normalizedQuestion());
     }
 
-
-private Optional<AiToolAnswer> tryHandleInventoryQuestion(String question, String normalized) {
+    private Optional<AiToolAnswer> tryHandleInventoryQuestion(String question, String normalized) {
         if (isInventoryItemTypeQuestion(normalized)) {
             return Optional.empty();
         }
-        if (!isInventoryQuestion(normalized) && !isInventoryWhereUsedQuestion(normalized)) {
+
+        if (!isInventoryQuestion(normalized) && !isInventoryWhereUsedQuestion(normalized) && !isInventoryBrandQuestion(normalized)) {
             return Optional.empty();
         }
+
+        if (isInventoryBrandQuestion(normalized)) {
+            return Optional.of(inventoryReadOnlyToolService.inventoryItemsByBrand(question));
+        }
+
         if (isInventoryWhereUsedQuestion(normalized)) {
             List<AiToolAnswer> answers = List.of(
-                    readOnlyToolService.inventoryMaintenanceUsage(question),
-                    readOnlyToolService.inventoryReservationUsage(question),
-                    readOnlyToolService.inventoryPurchaseUsage(question)
+                readOnlyToolService.inventoryMaintenanceUsage(question),
+                readOnlyToolService.inventoryReservationUsage(question),
+                readOnlyToolService.inventoryPurchaseUsage(question)
             );
             return Optional.of(combine(
-                    "inventory.whereUsed",
-                    "Inventory where-used lookup",
-                    "Maintenance, reservation and purchase usage were consulted for the requested item.",
-                    "Busqué dónde aparece ese item dentro de mantenimientos, reservaciones y compras.",
-                    answers
+                "inventory.whereUsed",
+                "Inventory where-used lookup",
+                "Maintenance, reservation and purchase usage were consulted for the requested item.",
+                "Busqué dónde aparece ese item dentro de mantenimientos, reservaciones y compras.",
+                answers
             ));
         }
+
         if (isInventoryUnusedQuestion(normalized)) {
             return Optional.of(readOnlyToolService.inventoryUnusedItems());
         }
+
         if (isInventoryReservationUsageQuestion(normalized) && isInventoryFrequentlyUsedQuestion(normalized)) {
             return Optional.of(readOnlyToolService.inventoryReservationUsage(""));
         }
+
         if (isInventoryMaintenanceUsageQuestion(normalized) && isInventoryFrequentlyUsedQuestion(normalized)) {
             return Optional.of(readOnlyToolService.inventoryMaintenanceUsage(""));
         }
+
         if (isInventoryPurchaseUsageQuestion(normalized) && isInventoryFrequentlyUsedQuestion(normalized)) {
             return Optional.of(readOnlyToolService.inventoryPurchaseUsage(""));
         }
+
         if (isInventoryReservationUsageQuestion(normalized)) {
             return Optional.of(readOnlyToolService.inventoryReservationUsage(question));
         }
+
         if (isInventoryMaintenanceUsageQuestion(normalized)) {
             return Optional.of(readOnlyToolService.inventoryMaintenanceUsage(question));
         }
+
         if (isInventoryPurchaseUsageQuestion(normalized)) {
             return Optional.of(readOnlyToolService.inventoryPurchaseUsage(question));
         }
+
         if (isInventoryFrequentlyUsedQuestion(normalized)) {
             return Optional.of(readOnlyToolService.inventoryFrequentlyUsed());
         }
+
         return Optional.of(readOnlyToolService.inventorySearch(question));
+    }
+
+    private boolean isInventoryBrandQuestion(String normalized) {
+        return containsAny(normalized, "marca", "marcas", "brand", "brands")
+            && containsAny(
+                normalized,
+                "item", "items", "inventario", "inventory", "producto", "productos", "supply", "supplies", "repuesto", "repuestos", "material", "materiales"
+            );
     }
 }
