@@ -2,15 +2,29 @@ package com.tamias.productbox.mapper;
 
 import com.tamias.catalog.brand.entity.Brand;
 import com.tamias.catalog.inventoryitem.entity.InventoryItem;
+import com.tamias.document.storage.FileStorageService;
+import com.tamias.productbox.dto.ProductBoxModelFaceResponse;
 import com.tamias.productbox.dto.ProductBoxModelRequest;
 import com.tamias.productbox.dto.ProductBoxModelResponse;
 import com.tamias.productbox.entity.ProductBoxModel;
+import com.tamias.productbox.entity.ProductBoxModelFace;
+import com.tamias.productbox.enums.ProductBoxFaceName;
 import com.tamias.purchase.entity.PurchaseItem;
 import com.tamias.purchase.entity.PurchaseList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
 @Component
 public class ProductBoxModelMapper {
+
+    private final FileStorageService fileStorageService;
+
+    public ProductBoxModelMapper(FileStorageService fileStorageService) {
+        this.fileStorageService = fileStorageService;
+    }
 
     public void updateEntity(ProductBoxModel entity, ProductBoxModelRequest request) {
         entity.setName(request.name().trim());
@@ -43,8 +57,55 @@ public class ProductBoxModelMapper {
             entity.getDepth(),
             entity.getUnit(),
             entity.getCreatedAt(),
-            entity.getUpdatedAt()
+            entity.getUpdatedAt(),
+            toFaceMap(entity)
         );
+    }
+
+    public ProductBoxModelFaceResponse toFaceResponse(ProductBoxModelFace entity) {
+        return new ProductBoxModelFaceResponse(
+            entity.getId(),
+            entity.getFaceName().getValue(),
+            entity.getS3Key(),
+            entity.getFilepath(),
+            entity.getOriginalFilename(),
+            entity.getContentType(),
+            entity.getSizeBytes(),
+            entity.getRotationDegrees(),
+            entity.getFlipHorizontal(),
+            entity.getFlipVertical(),
+            entity.getCreatedAt(),
+            entity.getUpdatedAt(),
+            fileStorageService.buildFileUrl(entity.getS3Key()),
+            fileStorageService.getDownloadUrlExpirationSeconds()
+        );
+    }
+
+    private Map<String, ProductBoxModelFaceResponse> toFaceMap(ProductBoxModel entity) {
+        if (entity.getFaces() == null || entity.getFaces().isEmpty()) {
+            return Map.of();
+        }
+
+        return entity.getFaces()
+            .stream()
+            .sorted(Comparator.comparingInt(face -> faceOrder(face.getFaceName())))
+            .collect(Collectors.toMap(
+                face -> face.getFaceName().getValue(),
+                this::toFaceResponse,
+                (first, second) -> first,
+                LinkedHashMap::new
+            ));
+    }
+
+    private int faceOrder(ProductBoxFaceName faceName) {
+        return switch (faceName) {
+            case FRONT -> 0;
+            case BACK -> 1;
+            case LEFT -> 2;
+            case RIGHT -> 3;
+            case TOP -> 4;
+            case BOTTOM -> 5;
+        };
     }
 
     private String normalizeNullable(String value) {

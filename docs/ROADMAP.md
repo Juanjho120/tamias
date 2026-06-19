@@ -231,8 +231,8 @@ Sub-phases:
 
 ```text
 14A Product Box Models backend foundation — Completed
-14B Product Box Face Images — Next
-14C Angular Product Box CRUD
+14B Product Box Face Images — Completed
+14C Angular Product Box CRUD — Next
 14D Three.js Product Box Viewer
 14E Integration with Inventory/Purchases
 14F AI awareness for Product Box Models
@@ -253,16 +253,28 @@ Implemented:
 - No face images, no S3, no Angular and no Three.js yet.
 
 ### Phase 14B — Product Box Face Images
+Status: Completed.
+Documentation: `76-product-box-face-images-14b.md`
+
+Implemented:
+
+- Flyway migration for `product_box_model_faces`.
+- Upload/replace/delete one face image per box face.
+- Private S3 storage using organization-first keys.
+- Hard delete face rows and S3 objects.
+- Presigned URLs in model detail responses.
+- Parent model delete removes face S3 objects and face rows before soft-deleting the parent.
+- No Angular CRUD and no Three.js yet.
+
+### Phase 14C — Angular Product Box CRUD
 Status: Planned / implementation next.
 
 Expected scope:
 
-- Flyway migration for `product_box_model_faces`.
-- Upload/replace/delete one face image.
-- Private S3 storage using organization-first keys.
-- Hard delete face rows and S3 objects.
-- Presigned URLs in model detail responses.
-- No Angular CRUD and no Three.js yet.
+- Angular list/form/detail UI for Product Box Models.
+- Face upload controls for front/back/left/right/top/bottom.
+- Static i18n keys under `productBoxModels`.
+- No Three.js viewer yet unless explicitly included in 14D.
 
 ## Future phases after Product Box Models
 

@@ -1,6 +1,6 @@
 # 14 — Product Box Models
 
-Status: **Planned / design ready**
+Status: **In progress**
 
 ## Purpose
 
@@ -33,7 +33,7 @@ Use this sequence instead:
 
 ```text
 14A — Product Box Models backend foundation
-14B — Product Box Face Images
+14B — Product Box Face Images — Completed
 14C — Angular Product Box CRUD
 14D — Three.js Product Box Viewer
 14E — Integration with Inventory/Purchases
@@ -371,3 +371,10 @@ Metadata CRUD only.
 - Face image deletion leaves no S3 garbage after successful operations.
 - Angular renders a simple rectangular box dynamically using metadata + image URLs.
 - The module does not break existing inventory, purchase, image, S3, AI or RAG behavior.
+
+
+## Implementation status
+
+- 14A completed: backend metadata CRUD and `product_box_models`.
+- 14B completed: `product_box_model_faces`, S3 upload/replace/delete, hard-delete face rows and presigned URLs in model responses.
+- 14C is next: Angular CRUD for Product Box Models and face uploads.

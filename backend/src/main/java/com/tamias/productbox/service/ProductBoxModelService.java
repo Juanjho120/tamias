@@ -11,7 +11,10 @@ import com.tamias.productbox.dto.ProductBoxModelRequest;
 import com.tamias.productbox.dto.ProductBoxModelResponse;
 import com.tamias.productbox.entity.ProductBoxModel;
 import com.tamias.productbox.mapper.ProductBoxModelMapper;
+import com.tamias.productbox.repository.ProductBoxModelFaceRepository;
 import com.tamias.productbox.repository.ProductBoxModelRepository;
+import com.tamias.document.storage.FileStorageService;
+import com.tamias.productbox.entity.ProductBoxModelFace;
 import com.tamias.purchase.entity.PurchaseItem;
 import com.tamias.purchase.enums.PurchaseListStatus;
 import com.tamias.purchase.repository.PurchaseItemRepository;
@@ -19,6 +22,7 @@ import com.tamias.security.service.CurrentUserService;
 import com.tamias.user.entity.User;
 import com.tamias.user.repository.UserRepository;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -30,28 +34,34 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProductBoxModelService {
 
     private final ProductBoxModelRepository productBoxModelRepository;
+    private final ProductBoxModelFaceRepository productBoxModelFaceRepository;
     private final OrganizationRepository organizationRepository;
     private final InventoryItemRepository inventoryItemRepository;
     private final PurchaseItemRepository purchaseItemRepository;
     private final UserRepository userRepository;
     private final CurrentUserService currentUserService;
+    private final FileStorageService fileStorageService;
     private final ProductBoxModelMapper productBoxModelMapper;
 
     public ProductBoxModelService(
         ProductBoxModelRepository productBoxModelRepository,
+        ProductBoxModelFaceRepository productBoxModelFaceRepository,
         OrganizationRepository organizationRepository,
         InventoryItemRepository inventoryItemRepository,
         PurchaseItemRepository purchaseItemRepository,
         UserRepository userRepository,
         CurrentUserService currentUserService,
+        FileStorageService fileStorageService,
         ProductBoxModelMapper productBoxModelMapper
     ) {
         this.productBoxModelRepository = productBoxModelRepository;
+        this.productBoxModelFaceRepository = productBoxModelFaceRepository;
         this.organizationRepository = organizationRepository;
         this.inventoryItemRepository = inventoryItemRepository;
         this.purchaseItemRepository = purchaseItemRepository;
         this.userRepository = userRepository;
         this.currentUserService = currentUserService;
+        this.fileStorageService = fileStorageService;
         this.productBoxModelMapper = productBoxModelMapper;
     }
 
@@ -118,6 +128,17 @@ public class ProductBoxModelService {
     public void delete(UUID id) {
         ProductBoxModel entity = findEntity(id);
         User currentUser = findCurrentUser();
+        UUID organizationId = currentUserService.getCurrentOrganizationId();
+
+        List<ProductBoxModelFace> faces = productBoxModelFaceRepository
+            .findByProductBoxModel_IdAndOrganization_IdOrderByFaceNameAsc(id, organizationId);
+
+        for (ProductBoxModelFace face : faces) {
+            fileStorageService.delete(face.getS3Key());
+        }
+
+        productBoxModelFaceRepository.deleteAll(faces);
+
         entity.setDeletedAt(OffsetDateTime.now());
         entity.setDeletedBy(currentUser);
         entity.setUpdatedBy(currentUser);

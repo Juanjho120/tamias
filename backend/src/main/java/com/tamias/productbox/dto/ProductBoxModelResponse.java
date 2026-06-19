@@ -3,6 +3,7 @@ package com.tamias.productbox.dto;
 import com.tamias.productbox.enums.ProductBoxUnit;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 public record ProductBoxModelResponse(
@@ -21,6 +22,7 @@ public record ProductBoxModelResponse(
     BigDecimal depth,
     ProductBoxUnit unit,
     OffsetDateTime createdAt,
-    OffsetDateTime updatedAt
+    OffsetDateTime updatedAt,
+    Map<String, ProductBoxModelFaceResponse> faces
 ) {
 }

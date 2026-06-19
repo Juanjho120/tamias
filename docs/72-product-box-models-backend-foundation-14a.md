@@ -249,3 +249,8 @@ In 14B, deleting a model must delete all face S3 objects first and then delete/h
 cd backend
 ./mvnw test
 ```
+
+
+## Implementation notes
+
+14A is completed. It introduced `product_box_models`, backend metadata CRUD, optional inventory/purchase associations, organization scoping and soft delete for the parent business entity. Face images are intentionally handled in 14B.
