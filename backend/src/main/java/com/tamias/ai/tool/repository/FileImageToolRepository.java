@@ -4,6 +4,7 @@ import com.tamias.ai.tool.AiToolAnswer;
 import com.tamias.ai.tool.support.AiReadOnlyToolSupport;
 import com.tamias.security.service.CurrentUserService;
 import jakarta.persistence.EntityManager;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -378,7 +379,16 @@ public class FileImageToolRepository extends AiReadOnlyToolSupport {
             );
         }
 
-        StringBuilder answer = new StringBuilder("Resumen de imágenes en TAMIAS:")
+        Map<String, Object> topModule = rows.get(0);
+        long topImageCount = toLong(topModule.get("imageCount"));
+        StringBuilder answer = new StringBuilder("El módulo con más imágenes es ")
+                .append(blankToDash(value(topModule.get("moduleLabel"))))
+                .append(", con ")
+                .append(topImageCount)
+                .append(topImageCount == 1 ? " imagen registrada." : " imágenes registradas.")
+                .append(System.lineSeparator())
+                .append(System.lineSeparator())
+                .append("Resumen de imágenes en TAMIAS:")
                 .append(System.lineSeparator())
                 .append("- Total de imágenes: ").append(totalImages)
                 .append(System.lineSeparator())
@@ -415,7 +425,7 @@ public class FileImageToolRepository extends AiReadOnlyToolSupport {
         }
 
         StringBuilder answer = new StringBuilder("Estos son los documentos o imágenes subidos recientemente:");
-        appendFileMetadataRows(answer, rows);
+        appendGroupedFileMetadataRows(answer, rows);
 
         return AiToolAnswer.of(
                 answer.toString(),
@@ -573,7 +583,7 @@ public class FileImageToolRepository extends AiReadOnlyToolSupport {
         String havingClause = withoutImages ? "WHERE image_count = 0" : "WHERE image_count > 0";
         String ordering = withoutImages
                 ? "module_order ASC, module_label ASC, module_rank ASC"
-                : "image_count DESC, total_size_bytes DESC, module_order ASC, entity_label ASC";
+                : "module_order ASC, image_count DESC, total_size_bytes DESC, entity_label ASC";
         String sql = """
                 WITH candidates AS (
                     SELECT 1 AS module_order,
@@ -715,16 +725,18 @@ public class FileImageToolRepository extends AiReadOnlyToolSupport {
         String currentModule = null;
         for (Map<String, Object> row : rows) {
             String moduleLabel = blankToDash(value(row.get("moduleLabel")));
-            if (withoutImages && !moduleLabel.equals(currentModule)) {
-                answer.append(System.lineSeparator()).append(System.lineSeparator()).append(moduleLabel);
+            if (!moduleLabel.equals(currentModule)) {
+                answer.append(System.lineSeparator())
+                        .append(System.lineSeparator())
+                        .append("- ")
+                        .append(moduleLabel)
+                        .append(":");
                 currentModule = moduleLabel;
             }
+
             answer.append(System.lineSeparator())
-                    .append("- ");
-            if (!withoutImages) {
-                answer.append(moduleLabel).append(": ");
-            }
-            answer.append(blankToDash(value(row.get("entityLabel"))));
+                    .append("  - ")
+                    .append(blankToDash(value(row.get("entityLabel"))));
             String contextDetail = value(row.get("contextDetail"));
             if (!contextDetail.isBlank()) {
                 answer.append(" | ").append(contextDetail);
@@ -732,6 +744,38 @@ public class FileImageToolRepository extends AiReadOnlyToolSupport {
             if (!withoutImages) {
                 answer.append(" | imágenes: ").append(blankToDash(value(row.get("imageCount"))))
                         .append(" | tamaño: ").append(formatBytes(toLong(row.get("totalSizeBytes"))));
+            }
+        }
+    }
+
+    private void appendGroupedFileMetadataRows(StringBuilder answer, List<Map<String, Object>> rows) {
+        Map<String, List<Map<String, Object>>> groupedRows = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            String key = value(row.get("displayName"))
+                    + "\u0001" + value(row.get("sourceType"))
+                    + "\u0001" + value(row.get("propertyName"));
+            groupedRows.computeIfAbsent(key, ignored -> new java.util.ArrayList<>()).add(row);
+        }
+
+        for (List<Map<String, Object>> group : groupedRows.values()) {
+            Map<String, Object> first = group.get(0);
+            answer.append(System.lineSeparator())
+                    .append(System.lineSeparator())
+                    .append("- ")
+                    .append(blankToDash(value(first.get("displayName"))))
+                    .append(" | origen: ")
+                    .append(blankToDash(value(first.get("sourceType"))))
+                    .append(" | propiedad: ")
+                    .append(blankToDash(value(first.get("propertyName"))));
+
+            for (Map<String, Object> row : group) {
+                answer.append(System.lineSeparator())
+                        .append("  - archivo: ")
+                        .append(blankToDash(value(row.get("originalFilename"))))
+                        .append(" | tipo: ")
+                        .append(blankToDash(value(row.get("contentType"))))
+                        .append(" | tamaño: ")
+                        .append(formatBytes(toLong(row.get("sizeBytes"))));
             }
         }
     }
