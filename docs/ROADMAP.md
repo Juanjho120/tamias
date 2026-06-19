@@ -1,6 +1,6 @@
 # TAMIAS — Roadmap
 
-This roadmap reflects the current state after the AI tool calling and orchestration phases up to 9P-F, plus the completed implementation queue for UX, security, S3 storage, image handling, inventory brands and AI image/brand tools.
+This roadmap reflects the current state after the AI tool calling and orchestration phases, the completed implementation queue for UX, security, S3 storage, image handling, inventory brands, AI image/brand tools, AI debug traces and AI smoke-test hardening.
 
 ---
 
@@ -124,7 +124,7 @@ Status: Completed / partially superseded by security review phases.
 
 ### Phase 9 — AI Tool Calling and AI Orchestration
 
-Status: Completed through 9P-F.
+Status: Completed through 9P-H.
 
 Completed sub-phases:
 
@@ -149,13 +149,15 @@ Completed sub-phases:
 9P-D Tool/RAG fallback
 9P-E LLM-driven planning
 9P-F AI orchestration smoke tests and RAG diagnostics
+9P-G AI orchestration observability and persisted debug traces
+9P-H AI smoke test hardening and final fixes
 ```
 
 ---
 
 ## Completed implementation queue before deeper AI observability
 
-These phases were implemented before resuming deeper AI observability because they changed security, file ownership, storage paths, documents, images, inventory items, purchases, reservations and AI chat behavior.
+These phases were implemented before and during the deeper AI observability track because they changed security, file ownership, storage paths, documents, images, inventory items, purchases, reservations and AI chat behavior.
 
 ### Phase 10A — Chat ownership security + quick AI UI fixes + last login
 
@@ -338,11 +340,11 @@ Goals:
 
 ---
 
-## Next AI phases
+## Latest AI observability and hardening phases
 
 ### 9P-G — AI orchestration observability and persisted debug traces
 
-Status: Completed / validation pending.
+Status: Completed.
 
 Documentation: `69-ai-orchestration-observability-debug-traces-9p-g.md`
 
@@ -358,21 +360,41 @@ Goals:
 
 ### 9P-H — Smoke test hardening and final fixes
 
-Status: Planned after 9P-G.
+Status: Completed.
+
+Documentation: `70-ai-smoke-test-hardening-final-fixes-9p-h.md`
 
 Goals:
 
-- Re-run smoke tests.
-- Document applied fixes.
-- Fix regressions found after observability.
+- Run the AI smoke-test matrix after persisted debug traces.
+- Validate guardrails, routing, parameter extraction, formatting, RAG fallback and debug persistence.
+- Fix regressions found during smoke testing with targeted backend AI changes.
+- Keep the AI assistant read-only.
+- Keep tool-first behavior for structured TAMIAS data.
+- Keep RAG for document-content questions.
+- Leave `9P-I` conditional instead of starting RAG tuning automatically.
+
+Fix areas covered:
+
+- Read-only guard routing for write/action prompts.
+- Maintenance date formatting and cost summary formatting.
+- Scheduled maintenance grouping and empty-result messages.
+- Maintenance images empty-result behavior.
+- Task grouping and assigned-task primary guest display.
+- Purchase last-purchased searches by brand.
+- Routing for most-purchased item/product prompts.
+- Document metadata routing for failed vs processed-not-indexed documents.
+- Image dashboard prompt-specific formats.
+- Largest files and file-name listing formats.
 
 ### 9P-I — RAG retrieval tuning
 
-Status: Conditional.
+Status: Conditional / not started.
 
 Goals:
 
-- Tune threshold, topK, metadata filters, property-aware retrieval and chunk quality if PDFs/documents still show retrieval issues.
+- Tune threshold, topK, metadata filters, property-aware retrieval and chunk quality only if PDFs/documents still show retrieval issues.
+- Do not start this phase for structured-tool routing or formatting problems.
 
 ---
 

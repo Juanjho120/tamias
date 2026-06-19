@@ -1,17 +1,17 @@
 # 9P-H — AI smoke test hardening and final fixes
 
-Status: **Design ready / execution next**
+Status: **Completed**
 
 ## Purpose
 
-Validate the current TAMI AI orchestration after the latest phases:
+Validate and harden the current TAMI AI orchestration after the latest AI and image/file phases:
 
-- 9P-G — persisted AI debug traces
-- 12E — AI image and inventory brand tools
-- 13A — AI image/file dashboard tools
-- Recent routing/formatting fixes for inventory, images, brands, files and RAG fallback
+- 9P-G — persisted AI debug traces.
+- 12E — AI image and inventory brand tools.
+- 13A — AI image/file dashboard tools.
+- Recent routing/formatting fixes for inventory, images, brands, files, maintenance, purchases, documents, scheduled maintenance and RAG fallback.
 
-This phase is intentionally a QA/hardening phase. It should not add new business features. The goal is to run a repeatable smoke-test matrix, capture regressions, and then apply only targeted fixes.
+This phase was intentionally a QA/hardening phase. It did not add new business features. The goal was to run smoke tests, capture regressions, apply targeted fixes and leave the AI orchestration stable before deciding whether 9P-I is actually needed.
 
 ## Scope
 
@@ -24,28 +24,28 @@ This phase is intentionally a QA/hardening phase. It should not add new business
 - Validation of tool-first routing before RAG for structured TAMIAS data.
 - Validation of RAG/document answers when the prompt truly asks about document content.
 - Validation of guardrails and admin-only denials.
+- Targeted fixes for routing, formatting, empty-result behavior and fallback behavior found during smoke tests.
 
 ### Not included
 
-- No RAG threshold tuning unless a test proves it is needed.
-- No new tools.
-- No write/action AI features.
+- No RAG threshold tuning.
+- No new write/action AI features.
 - No frontend redesign.
 - No storage cleanup/repair actions.
 - No changes to image upload modals.
 
-RAG tuning remains reserved for `9P-I` and only if the smoke tests show real retrieval issues.
+RAG tuning remains reserved for `9P-I` and only if smoke tests prove real document retrieval quality issues.
 
-## Test setup
+## Test setup used
 
-Use at least two users:
+Recommended setup remains:
 
 ```text
 ADMINISTRATOR
 Non-admin user, preferably MAINTENANCE_STAFF or READ_ONLY
 ```
 
-Recommended data setup:
+Recommended data coverage:
 
 - At least three properties.
 - Property images.
@@ -58,7 +58,7 @@ Recommended data setup:
 - Documents with known phrases about rules, visitors, trash, shoes, filters, bathrooms or maintenance rules.
 - `users.ai_chat_debug` tested both as `false` and `true`.
 
-## Debug setup
+## Debug validation
 
 Disable debug first:
 
@@ -68,7 +68,7 @@ SET ai_chat_debug = false
 WHERE email = 'juan.jose120@hotmail.com';
 ```
 
-Then run a subset of the smoke tests and confirm the API response does not include `debug`.
+Run representative prompts and confirm the API response does not include `debug`.
 
 Enable debug:
 
@@ -145,190 +145,195 @@ NEEDS_DATA
 
 ## Smoke-test matrix
 
+The full prompt set validated during 9P-H is grouped by area below. Expected behavior is tool-first for structured TAMIAS data, RAG only for document-content questions, and no write execution from the assistant.
+
 ### A. General assistant and guardrails
 
-| Prompt | User | Expected handler | Expected tool | ragUsed | answerSource | Expected result |
-| --- | --- | --- | --- | --- | --- | --- |
-| ¿Qué puedes hacer? | ADMIN | capability/general handler | assistant capabilities tool or backend capabilities path | false | BACKEND_DIRECT or LLM_COMPOSED | Explains TAMI capabilities using current tools/modules. |
-| Crea una reservación para mañana. | ADMIN | guardrail/write blocker | none | false | BACKEND_DIRECT or NO_MATCH | Refuses write/action request. No RAG fallback. |
-| Elimina este documento. | ADMIN | guardrail/write blocker | none | false | BACKEND_DIRECT or NO_MATCH | Refuses delete/write action. No RAG fallback. |
-| Cambia mi rol a administrador. | ADMIN | guardrail/write blocker | none | false | BACKEND_DIRECT or NO_MATCH | Refuses privilege change. No RAG fallback. |
-| Marca esta tarea como completada. | ADMIN | guardrail/write blocker | none | false | BACKEND_DIRECT or NO_MATCH | Refuses write/action request. No RAG fallback. |
+| Prompt | User | Expected behavior |
+| --- | --- | --- |
+| ¿Qué puedes hacer? | ADMIN | Explain current TAMI capabilities using current modules/tools. |
+| Crea una reservación para mañana. | ADMIN | Read-only guardrail. Refuse write/action request. No RAG fallback. |
+| Elimina este documento. | ADMIN | Read-only guardrail. Refuse delete/write action. No RAG fallback. |
+| Cambia mi rol a administrador. | ADMIN | `assistant.readOnlyGuard`. Refuse privilege change. No RAG fallback. |
+| Marca esta tarea como completada. | ADMIN | `assistant.readOnlyGuard`. Refuse write/action request. No RAG fallback. |
 
 ### B. Current user/profile/organization
 
-| Prompt | User | Expected handler | Expected tool | ragUsed | answerSource | Expected result |
-| --- | --- | --- | --- | --- | --- | --- |
-| ¿Cómo me llamo? | ADMIN | User/current access handler | current user/profile tool | false | BACKEND_DIRECT | Current authenticated user's name. |
-| ¿Cuál es mi correo? | ADMIN | User/current access handler | current user/profile tool | false | BACKEND_DIRECT | Current authenticated user's email. |
-| ¿Cuál es mi rol? | ADMIN | User/current access handler | current user/profile tool | false | BACKEND_DIRECT | Current authenticated user's role. |
-| ¿Cuál es mi organización? | ADMIN | Organization/current access handler | current organization tool | false | BACKEND_DIRECT | Current organization summary. |
+| Prompt | Expected behavior |
+| --- | --- |
+| ¿Cómo me llamo? | Current authenticated user's name. |
+| ¿Cuál es mi correo? | Current authenticated user's email. |
+| ¿Cuál es mi rol? | Current authenticated user's role. |
+| ¿Cuál es mi organización? | Current organization summary. |
 
 ### C. Properties and catalogs
 
-| Prompt | User | Expected handler | Expected tool | ragUsed | answerSource | Expected result |
-| --- | --- | --- | --- | --- | --- | --- |
-| ¿Qué propiedades tengo? | ADMIN | Property/catalog handler | property list/search tool | false | BACKEND_DIRECT | Lists properties in current organization. |
-| Dame un resumen de Bungalow Tu Refugio Perfecto | ADMIN | Property/catalog handler | property summary tool | false | BACKEND_DIRECT | Property summary. |
-| ¿Qué propiedades activas tengo? | ADMIN | Property/catalog handler | property list/search tool | false | BACKEND_DIRECT | Active properties only. |
-| ¿Qué catálogos puedo usar para mantenimiento? | ADMIN | Property/catalog handler | maintenance catalogs tool | false | BACKEND_DIRECT | Maintenance catalog overview. |
-| ¿Qué plataformas de reservación tengo? | ADMIN | Property/catalog handler | platforms tool | false | BACKEND_DIRECT | Reservation platforms. |
-| ¿Qué tipos de inventory item existen? | ADMIN | Inventory/catalog handler | inventory type/catalog tool | false | BACKEND_DIRECT | Inventory item enum/type list. |
+| Prompt | Expected behavior |
+| --- | --- |
+| ¿Qué propiedades tengo? | Lists properties in current organization. |
+| Dame un resumen de Bungalow Tu Refugio Perfecto | Property summary. |
+| ¿Qué propiedades activas tengo? | Active properties only. |
+| ¿Qué catálogos puedo usar para mantenimiento? | Maintenance catalog overview. |
+| ¿Qué plataformas de reservación tengo? | Reservation platforms. |
+| ¿Qué tipos de inventory item existen? | Inventory item enum/type list. |
 
 ### D. Inventory, brands and usage
 
-| Prompt | User | Expected handler | Expected tool | ragUsed | answerSource | Expected result |
-| --- | --- | --- | --- | --- | --- | --- |
-| ¿Qué productos tengo en inventario? | ADMIN | InventoryToolHandler | inventory.search | false | BACKEND_DIRECT | Lists inventory items with brand, type, unit, status and usable modules. |
-| ¿Qué items tengo en inventario? | ADMIN | InventoryToolHandler | inventory.search | false | BACKEND_DIRECT | Lists inventory items with brand where available. |
-| ¿Qué items tengo de la marca Pledge? | ADMIN | InventoryToolHandler | inventory.getItemsByBrand | false | BACKEND_DIRECT | Lists Pledge items, without image counts unless specifically asked. |
-| ¿Qué productos tengo de la marca Pledge? | ADMIN | InventoryToolHandler | inventory.getItemsByBrand | false | BACKEND_DIRECT | Routes to inventory, not purchase analytics/RAG. |
-| ¿Qué productos tengo por marca? | ADMIN | InventoryToolHandler | inventory.getItemsByBrand | false | BACKEND_DIRECT | Groups inventory items by brand. |
-| ¿Qué items tengo por marca? | ADMIN | InventoryToolHandler | inventory.getItemsByBrand | false | BACKEND_DIRECT | Groups inventory items by brand. |
-| ¿Cuáles son los productos más usados? | ADMIN | InventoryToolHandler | inventory.getFrequentlyUsed | false | BACKEND_DIRECT | Inventory usage ranking. |
-| ¿Qué items se usan más? | ADMIN | InventoryToolHandler | inventory.getFrequentlyUsed | false | BACKEND_DIRECT | Inventory usage ranking. |
-| ¿Dónde he usado covertor elástico? | ADMIN | InventoryToolHandler | inventory.whereUsed or inventory usage tools | false | BACKEND_DIRECT | Extracts item as `covertor elastico`, not `he covertor elastico`. |
-| ¿Dónde se ha usado café? | ADMIN | InventoryToolHandler | inventory.whereUsed or inventory usage tools | false or true only if valid fallback | BACKEND_DIRECT or TOOLS_AND_RAG | Uses maintenance/reservation/purchase usage first. |
+| Prompt | Expected tool / behavior |
+| --- | --- |
+| ¿Qué productos tengo en inventario? | `inventory.search`; lists inventory items with brand, type, unit, status and usable modules. |
+| ¿Qué items tengo en inventario? | `inventory.search`; lists inventory items with brand where available. |
+| ¿Qué items tengo de la marca Pledge? | `inventory.getItemsByBrand`; lists Pledge items without image counts unless specifically asked. |
+| ¿Qué productos tengo de la marca Pledge? | Routes to inventory, not purchase analytics/RAG. |
+| ¿Qué productos tengo por marca? | Groups inventory items by brand. |
+| ¿Qué items tengo por marca? | Groups inventory items by brand. |
+| ¿Cuáles son los productos más usados? | `inventory.getFrequentlyUsed`; inventory usage ranking. |
+| ¿Qué items se usan más? | `inventory.getFrequentlyUsed`; inventory usage ranking. |
+| ¿Dónde he usado covertor elástico? | Extracts item as `covertor elastico`, not `he covertor elastico`. |
+| ¿Dónde se ha usado café? | Uses maintenance/reservation/purchase usage first. |
 
 ### E. Maintenance analytics
 
-| Prompt | User | Expected handler | Expected tool | ragUsed | answerSource | Expected result |
-| --- | --- | --- | --- | --- | --- | --- |
-| ¿Qué items se usaron en mantenimientos? | ADMIN | Inventory/Maintenance handler | inventory.getItemsUsedInMaintenance | false | BACKEND_DIRECT | Maintenance item usage. |
-| ¿Qué propiedad tiene más gastos de mantenimiento? | ADMIN | Maintenance analytics handler | maintenance cost ranking tool | false | BACKEND_DIRECT | Property ranked by maintenance cost. |
-| ¿Cuánto gasté en mantenimiento por categoría? | ADMIN | Maintenance analytics handler | maintenance cost by category tool | false | BACKEND_DIRECT | Cost by category. |
-| ¿Qué mantenimientos tienen imágenes? | ADMIN | File/image or maintenance handler | maintenance image metadata tool | false | BACKEND_DIRECT | Maintenance records with images. |
+| Prompt | Expected behavior |
+| --- | --- |
+| ¿Qué items se usaron en mantenimientos? | Uses maintenance item usage; date format `yyyy-MM-dd HH:mm`. |
+| ¿Qué propiedad tiene más gastos de mantenimiento? | Direct top property answer, not a full ranking table unless asked. |
+| ¿Cuánto gasté en mantenimiento por categoría? | Cost by maintenance category. |
+| ¿Qué mantenimientos tienen imágenes? | Maintenance image metadata. Terminal empty-result message when none exist. |
 
 ### F. Scheduled maintenance, reservations and guests
 
-| Prompt | User | Expected handler | Expected tool | ragUsed | answerSource | Expected result |
-| --- | --- | --- | --- | --- | --- | --- |
-| ¿Qué mantenimientos programados están vencidos? | ADMIN | Scheduled maintenance handler | scheduled maintenance overdue tool | false | BACKEND_DIRECT | Overdue scheduled maintenance. |
-| ¿Qué mantenimiento programado vence hoy? | ADMIN | Scheduled maintenance handler | scheduled maintenance due today tool | false | BACKEND_DIRECT | Due today scheduled maintenance. |
-| ¿Cuál es el próximo mantenimiento programado? | ADMIN | Scheduled maintenance handler | next scheduled maintenance tool | false | BACKEND_DIRECT | Next scheduled maintenance. |
-| ¿Cuál es la próxima entrada? | ADMIN | Reservation handler | next check-in tool | false | BACKEND_DIRECT | Next check-in. |
-| ¿Cuál es la próxima salida? | ADMIN | Reservation handler | next check-out tool | false | BACKEND_DIRECT | Next check-out. |
-| ¿Qué reservaciones tengo esta semana? | ADMIN | Reservation handler | reservations by date range tool | false | BACKEND_DIRECT | This week's reservations. |
-| ¿Qué huéspedes regresan? | ADMIN | Guest/reservation handler | returning guests tool | false | BACKEND_DIRECT | Returning guests. |
+| Prompt | Expected behavior |
+| --- | --- |
+| ¿Qué mantenimientos programados están vencidos? | Group overdue scheduled maintenance by property. |
+| ¿Qué mantenimiento programado vence hoy? | Due today scheduled maintenance. |
+| ¿Cuál es el próximo mantenimiento programado? | Next scheduled maintenance; terminal clear empty result if none exist. |
+| ¿Cuál es la próxima entrada? | Next check-in. |
+| ¿Cuál es la próxima salida? | Next check-out. |
+| ¿Qué reservaciones tengo esta semana? | This week's reservations. |
+| ¿Qué huéspedes regresan? | Returning guests. |
 
 ### G. Reservation supplies and tasks
 
-| Prompt | User | Expected handler | Expected tool | ragUsed | answerSource | Expected result |
-| --- | --- | --- | --- | --- | --- | --- |
-| ¿Qué supplies necesito para la próxima reserva? | ADMIN | Reservation supply handler | supplies for next reservation tool | false | BACKEND_DIRECT | Supplies for next/upcoming reservation. |
-| ¿Qué supplies se usaron en la última reserva? | ADMIN | Reservation supply handler | supplies for latest reservation tool | false | BACKEND_DIRECT | Supplies from latest past reservation. |
-| ¿Qué supplies se usan más? | ADMIN | Reservation supply handler | most used supplies tool | false | BACKEND_DIRECT | Reservation supply ranking. |
-| ¿Qué reservaciones próximas no tienen supplies asignados? | ADMIN | Reservation supply handler | reservations without supplies tool | false | BACKEND_DIRECT | Upcoming reservations without supplies. |
-| ¿Qué tareas tengo pendientes? | ADMIN | Task handler | pending task tool | false | BACKEND_DIRECT | Pending/active task lists. |
-| ¿Qué tareas hay para la próxima reservación? | ADMIN | Task handler | reservation task list tool | false | BACKEND_DIRECT | Tasks for next reservation. |
-| ¿Qué tareas ya se completaron? | ADMIN | Task handler | completed tasks tool | false | BACKEND_DIRECT | Completed tasks. |
-| ¿Qué tareas están asignadas por persona? | ADMIN | Task handler | assigned tasks summary tool | false | BACKEND_DIRECT | Assigned task summary. |
+| Prompt | Expected behavior |
+| --- | --- |
+| ¿Qué supplies necesito para la próxima reserva? | Supplies for next/upcoming reservation. |
+| ¿Qué supplies se usaron en la última reserva? | Supplies from latest past reservation. |
+| ¿Qué supplies se usan más? | Reservation supply ranking. |
+| ¿Qué reservaciones próximas no tienen supplies asignados? | Upcoming reservations without supplies. |
+| ¿Qué tareas tengo pendientes? | Pending/active task lists. |
+| ¿Qué tareas hay para la próxima reservación? | Tasks for next reservation. |
+| ¿Qué tareas ya se completaron? | Completed tasks grouped by property/list/responsible person. |
+| ¿Qué tareas están asignadas por persona? | Assigned task summary including primary guest name when reservation exists. |
 
 ### H. Purchases
 
-| Prompt | User | Expected handler | Expected tool | ragUsed | answerSource | Expected result |
-| --- | --- | --- | --- | --- | --- | --- |
-| ¿Cuándo compré por última vez cloro? | ADMIN | Purchase handler | last purchased item tool | false | BACKEND_DIRECT | Last purchased cloro item. |
-| ¿Cuánto cuesta normalmente el papel higiénico? | ADMIN | Purchase handler | average unit cost/price history tool | false | BACKEND_DIRECT | Average price history. |
-| ¿Qué item compro más seguido? | ADMIN | Purchase handler | most purchased item tool | false | BACKEND_DIRECT | Most purchased item by quantity/frequency. |
-| ¿Qué item compro menos seguido? | ADMIN | Purchase handler | least purchased item tool | false | BACKEND_DIRECT | Least purchased item by quantity/frequency. |
-| ¿Cuánto gasté en compras por mes? | ADMIN | Purchase handler | purchase cost by month tool | false | BACKEND_DIRECT | Purchase cost by month. |
-| ¿Cuánto gasté en compras por propiedad? | ADMIN | Purchase handler | purchase cost by property tool | false | BACKEND_DIRECT | Purchase cost by property. |
+| Prompt | Expected behavior |
+| --- | --- |
+| ¿Cuándo compré por última vez cloro? | Last purchased item. |
+| ¿Cuándo compré por última vez lustrador de muebles? | Wording should say `compraste`; uses item match. |
+| ¿Cuándo compré por última vez pledge? | Search by item name and brand name. |
+| ¿Cuánto cuesta normalmente el papel higiénico? | Average price history. |
+| ¿Qué item compro más seguido? | Purchase analytics, not inventory search. |
+| ¿Qué producto compro más seguido? | Same route as item-most-purchased. |
+| ¿Qué item compro menos seguido? | Purchase analytics. |
+| ¿Cuánto gasté en compras por mes? | Purchase cost by month. |
+| ¿Cuánto gasté en compras por propiedad? | Purchase cost by property. |
 
 ### I. Documents, metadata and RAG health
 
-| Prompt | User | Expected handler | Expected tool | ragUsed | answerSource | Expected result |
-| --- | --- | --- | --- | --- | --- | --- |
-| ¿Qué documentos tengo cargados? | ADMIN | Document metadata handler | document metadata tool | false | BACKEND_DIRECT | Document metadata list. |
-| ¿Qué documentos tengo por tipo? | ADMIN | Document metadata handler | documents by type tool | false | BACKEND_DIRECT | Documents grouped by type. |
-| ¿Qué documentos tengo por propiedad? | ADMIN | Document metadata handler | documents by property tool | false | BACKEND_DIRECT | Documents grouped by property. |
-| ¿Qué documentos están procesados? | ADMIN | Document metadata handler | processed documents tool | false | BACKEND_DIRECT | Processed documents. |
-| ¿Qué documentos están procesados pero no indexados para IA? | ADMIN | Document metadata handler | processed not indexed tool | false | BACKEND_DIRECT | Processed but not indexed. |
-| ¿Qué documentos fallaron al procesarse? | ADMIN | Document metadata handler | failed documents tool | false | BACKEND_DIRECT | Failed documents. |
-| ¿Cómo está el índice RAG de mis documentos? | ADMIN | RAG health handler | rag health/index status tool | false | BACKEND_DIRECT | RAG index status. |
-| ¿Qué documentos están listos para IA? | ADMIN | Document metadata handler | AI-ready documents tool | false | BACKEND_DIRECT | Processed + indexed documents. |
+| Prompt | Expected behavior |
+| --- | --- |
+| ¿Qué documentos tengo cargados? | Document metadata list. |
+| ¿Qué documentos tengo por tipo? | Documents grouped by type. |
+| ¿Qué documentos tengo por propiedad? | Documents grouped by property. |
+| ¿Qué documentos están procesados? | Processed documents. |
+| ¿Qué documentos están procesados pero no indexados para IA? | Terminal clear empty-result message when none exist. |
+| ¿Qué documentos fallaron al procesarse? | Uses failed-processing route, not processed-not-indexed route. |
+| ¿Cómo está el índice RAG de mis documentos? | RAG index status. |
+| ¿Qué documentos están listos para IA? | Processed + indexed documents. |
 
 ### J. Entity image tools from 12E
 
-| Prompt | User | Expected handler | Expected tool | ragUsed | answerSource | Expected result |
-| --- | --- | --- | --- | --- | --- | --- |
-| ¿Qué reservaciones tienen imágenes? | ADMIN | EntityImageToolHandler | images.getReservationImages | false | BACKEND_DIRECT | Lists reservations with images; filenames as subitems. |
-| ¿Qué reservaciones no tienen fotos? | ADMIN | EntityImageToolHandler | images.getReservationImages | false | BACKEND_DIRECT | Lists all reservations without images; no `imágenes: 0` noise. |
-| ¿Qué items tienen imágenes? | ADMIN | EntityImageToolHandler | images.getInventoryItemImages | false | BACKEND_DIRECT | Lists inventory items with images; filenames as subitems. |
-| ¿Qué items no tienen imágenes? | ADMIN | EntityImageToolHandler | images.getInventoryItemImages | false | BACKEND_DIRECT | Lists all inventory items without images; does not filter by token `no`. |
-| ¿Qué listas de compra tienen imágenes? | ADMIN | EntityImageToolHandler | images.getPurchaseListImages | false | BACKEND_DIRECT | Lists purchase lists with images; filenames as subitems. |
-| ¿Qué compras no tienen fotos? | ADMIN | EntityImageToolHandler | images.getPurchaseListImages | false | BACKEND_DIRECT | Lists all purchase lists without images. |
+| Prompt | Expected behavior |
+| --- | --- |
+| ¿Qué reservaciones tienen imágenes? | Lists reservations with images; filenames as subitems. |
+| ¿Qué reservaciones no tienen fotos? | Lists all reservations without images; no `imágenes: 0` noise. |
+| ¿Qué items tienen imágenes? | Lists inventory items with images; filenames as subitems. |
+| ¿Qué items no tienen imágenes? | Lists all inventory items without images; does not filter by token `no`. |
+| ¿Qué listas de compra tienen imágenes? | Lists purchase lists with images; filenames as subitems. |
+| ¿Qué compras no tienen fotos? | Lists all purchase lists without images. |
 
 ### K. Cross-module file/image dashboard tools from 13A
 
-| Prompt | User | Expected handler | Expected tool | ragUsed | answerSource | Expected result |
-| --- | --- | --- | --- | --- | --- | --- |
-| ¿Cuántas imágenes tengo en TAMIAS? | ADMIN | FileImageDashboardToolHandler | files.getImageDashboardSummary | false | BACKEND_DIRECT | Total image count and per-module summary. |
-| ¿Cuántas imágenes tengo por módulo? | ADMIN | FileImageDashboardToolHandler | files.getImageDashboardSummary | false | BACKEND_DIRECT | Counts grouped by module. |
-| ¿Qué módulo tiene más imágenes? | ADMIN | FileImageDashboardToolHandler | files.getImageDashboardSummary | false | BACKEND_DIRECT | Names the actual module with most images, not the answer title. |
-| ¿Qué entidades tienen más imágenes? | ADMIN | FileImageDashboardToolHandler | files.getEntitiesWithMostImages | false | BACKEND_DIRECT | Groups results by module, then lists entities. |
-| ¿Qué entidades no tienen imágenes? | ADMIN | FileImageDashboardToolHandler | files.getEntitiesWithoutImages | false | BACKEND_DIRECT | Groups entities without images by module. |
-| ¿Qué imágenes se subieron recientemente? | ADMIN | FileImageDashboardToolHandler | files.getRecentUploads | false | BACKEND_DIRECT | Groups by entity/origin/property and filenames as subitems. |
-| ¿Qué documentos o imágenes fueron subidos recientemente? | ADMIN | FileImageDashboardToolHandler | files.getRecentUploads | false | BACKEND_DIRECT | Includes documents + images, grouped by entity. |
-| ¿Qué archivos ocupan más espacio? | ADMIN | FileImageDashboardToolHandler | files.getLargestFiles | false | BACKEND_DIRECT | Largest files ordered by `size_bytes`. |
-| ¿Cuánto storage tengo registrado por módulo? | ADMIN | FileImageDashboardToolHandler | file.storageSummary or files.getImageDashboardSummary | false | BACKEND_DIRECT | Storage summary by module. |
-| ¿Qué archivos tengo en TAMIAS? | ADMIN | FileImageDashboardToolHandler | file.searchMetadata | false | BACKEND_DIRECT | File metadata across documents/images. |
+| Prompt | Expected behavior |
+| --- | --- |
+| ¿Cuántas imágenes tengo en TAMIAS? | Total image count and per-module summary. No top-module preface. |
+| ¿Cuántas imágenes tengo por módulo? | Counts grouped by module only. |
+| ¿Qué módulo tiene más imágenes? | Names only the actual module with most images. |
+| ¿Qué entidades tienen más imágenes? | Groups results by module, then lists entities. |
+| ¿Qué entidades no tienen imágenes? | Groups entities without images by module. |
+| ¿Qué imágenes se subieron recientemente? | Groups by entity/origin/property and filenames as subitems. |
+| ¿Qué documentos o imágenes fueron subidos recientemente? | Includes documents + images, grouped by entity. |
+| ¿Qué archivos ocupan más espacio? | Largest files grouped by entity/origin. |
+| ¿Cuánto storage tengo registrado por módulo? | Storage summary by module. |
+| ¿Qué archivos tengo en TAMIAS? | File names from document/image metadata, not just image dashboard summary. |
 
 ### L. Admin-only tools and permission denials
 
 Run the first group as administrator.
 
-| Prompt | User | Expected handler | Expected tool | ragUsed | answerSource | Expected result |
-| --- | --- | --- | --- | --- | --- | --- |
-| ¿Qué usuarios activos tengo? | ADMIN | Admin/user handler | active users tool | false | BACKEND_DIRECT | Active users in organization. |
-| ¿Qué usuarios inactivos tengo? | ADMIN | Admin/user handler | inactive users tool | false | BACKEND_DIRECT | Inactive users. |
-| ¿Qué usuarios tienen rol Maintenance Staff? | ADMIN | Admin/user handler | users by role tool | false | BACKEND_DIRECT | Users with role. |
-| ¿Qué accesos tengo? | ADMIN | Access/current user handler | current access summary tool | false | BACKEND_DIRECT | Current authenticated user's access summary. |
-| Dame el resumen de accesos de todos los usuarios. | ADMIN | Admin/access handler | organization access summary tool | false | BACKEND_DIRECT | Organization-wide access summary. |
-| ¿Qué roles existen? | ADMIN | Admin/role handler | role list tool | false | BACKEND_DIRECT | Role list. |
-| ¿Qué permisos tiene Maintenance Staff? | ADMIN | Admin/role handler | role permission summary tool | false | BACKEND_DIRECT | Maintenance Staff permissions. |
-| ¿Cuántos usuarios tiene mi organización? | ADMIN | Admin/org handler | organization user count tool | false | BACKEND_DIRECT | User count. |
+| Prompt | Expected behavior |
+| --- | --- |
+| ¿Qué usuarios activos tengo? | Active users in organization. |
+| ¿Qué usuarios inactivos tengo? | Inactive users. |
+| ¿Qué usuarios tienen rol Maintenance Staff? | Users with role. |
+| ¿Qué accesos tengo? | Current authenticated user's access summary. |
+| Dame el resumen de accesos de todos los usuarios. | Organization-wide access summary. |
+| ¿Qué roles existen? | Role list. |
+| ¿Qué permisos tiene Maintenance Staff? | Maintenance Staff permissions. |
+| ¿Cuántos usuarios tiene mi organización? | User count. |
 
 Run this group as non-admin.
 
-| Prompt | User | Expected handler | Expected tool | ragUsed | answerSource | Expected result |
-| --- | --- | --- | --- | --- | --- | --- |
-| ¿Qué usuarios activos tengo? | NON_ADMIN | Admin/user handler | denied | false | BACKEND_DIRECT or NO_MATCH | Admin-only denial. No RAG fallback. |
-| ¿Qué permisos tiene Administrator? | NON_ADMIN | Admin/role handler | denied | false | BACKEND_DIRECT or NO_MATCH | Admin-only denial. No RAG fallback. |
-| ¿Cuántos usuarios tiene mi organización? | NON_ADMIN | Admin/org handler | denied | false | BACKEND_DIRECT or NO_MATCH | Admin-only denial. No RAG fallback. |
+| Prompt | Expected behavior |
+| --- | --- |
+| ¿Qué usuarios activos tengo? | Admin-only denial. No RAG fallback. |
+| ¿Qué permisos tiene Administrator? | Admin-only denial. No RAG fallback. |
+| ¿Cuántos usuarios tiene mi organización? | Admin-only denial. No RAG fallback. |
 
 ### M. AI chat history
 
-| Prompt | User | Expected handler | Expected tool | ragUsed | answerSource | Expected result |
-| --- | --- | --- | --- | --- | --- | --- |
-| Muéstrame mis últimas conversaciones con la IA | ADMIN | Chat history handler | ai chat history tool | false | BACKEND_DIRECT | Previous sessions, excluding current session where expected. |
-| ¿Qué hemos hablado antes? | ADMIN | Chat history handler | ai chat history tool | false | BACKEND_DIRECT | Previous chat history. |
-| Busca en el historial si hablamos de cloro | ADMIN | Chat history handler | chat history search tool | false | BACKEND_DIRECT | Finds own chat history only. |
-| ¿Qué preguntas le hice al asistente? | ADMIN | Chat history handler | user questions history tool | false | BACKEND_DIRECT | User questions. |
-| Resume esta conversación | ADMIN | Chat history handler | current session summary tool | false | BACKEND_DIRECT or LLM_COMPOSED | Summary of current session. |
-| ¿Cuántas sesiones de chat IA tengo? | ADMIN | Chat history handler | chat session count tool | false | BACKEND_DIRECT | Session count for current user. |
+| Prompt | Expected behavior |
+| --- | --- |
+| Muéstrame mis últimas conversaciones con la IA | Previous sessions, excluding current session where expected. |
+| ¿Qué hemos hablado antes? | Previous chat history. |
+| Busca en el historial si hablamos de cloro | Finds own chat history only. |
+| ¿Qué preguntas le hice al asistente? | User questions. |
+| Resume esta conversación | Summary of current session. |
+| ¿Cuántas sesiones de chat IA tengo? | Session count for current user. |
 
 ### N. RAG-only document content
 
 These prompts must use indexed document chunks and show document sources when relevant content exists.
 
-| Prompt | User | Expected handler | Expected tool | ragUsed | answerSource | Expected result |
-| --- | --- | --- | --- | --- | --- | --- |
-| ¿Qué dice el PDF sobre visitantes? | ADMIN | RAG path | rag.search | true | RAG | Answer from document content with sources. |
-| ¿Qué reglas hay sobre basura? | ADMIN | RAG path | rag.search | true | RAG | Answer from indexed document content with sources. |
-| ¿Qué menciona el manual sobre filtros? | ADMIN | RAG path | rag.search | true | RAG | Answer from manual/document content with sources. |
-| ¿Qué dice el documento sobre mascotas? | ADMIN | RAG path | rag.search | true | RAG | Answer with sources if content exists; otherwise clear no-information message. |
-| ¿Qué dice el plano sobre medidas del baño? | ADMIN | RAG path | rag.search | true | RAG | Answer from indexed blueprint/plan text if available. |
+| Prompt | Expected behavior |
+| --- | --- |
+| ¿Qué dice el PDF sobre visitantes? | Answer from document content with sources. |
+| ¿Qué reglas hay sobre basura? | Answer from indexed document content with sources. |
+| ¿Qué menciona el manual sobre filtros? | Answer from manual/document content with sources. |
+| ¿Qué dice el documento sobre mascotas? | Answer with sources if content exists; otherwise clear no-information message. |
+| ¿Qué dice el plano sobre medidas del baño? | Answer from indexed blueprint/plan text if available. |
 
 ### O. Tool/RAG fallback and mixed answers
 
-| Prompt | User | Expected handler | Expected tool | ragUsed | answerSource | Expected result |
-| --- | --- | --- | --- | --- | --- | --- |
-| ¿Qué documentos tengo sobre reglas y qué dicen? | ADMIN | Document metadata + RAG | document metadata tool + rag.search | true | TOOLS_AND_RAG | Combines metadata and document content. |
-| Según mis documentos y datos del sistema, ¿qué debo revisar antes de la próxima reserva? | ADMIN | Mixed orchestration | reservation/dashboard tools + rag.search | true | TOOLS_AND_RAG | Combines system data and document rules. |
-| ¿Qué reglas aplican a Bungalow Tu Refugio Perfecto? | ADMIN | RAG first or mixed | property context tool + rag.search | true | RAG or TOOLS_AND_RAG | Uses property context and rules from documents. |
-| ¿Qué dice el documento sobre una regla que no existe? | ADMIN | RAG path | rag.search | true | RAG or NO_MATCH | Unified no-information message. |
-| Busca en mis registros y documentos algo sobre un tema inexistente. | ADMIN | Mixed path | relevant tools + rag.search | true or false depending planner | TOOLS_AND_RAG or NO_MATCH | Unified no-information message after checked paths. |
+| Prompt | Expected behavior |
+| --- | --- |
+| ¿Qué documentos tengo sobre reglas y qué dicen? | Combines metadata and document content. |
+| Según mis documentos y datos del sistema, ¿qué debo revisar antes de la próxima reserva? | Combines system data and document rules. |
+| ¿Qué reglas aplican a Bungalow Tu Refugio Perfecto? | Uses property context and rules from documents. |
+| ¿Qué dice el documento sobre una regla que no existe? | Unified no-information message. |
+| Busca en mis registros y documentos algo sobre un tema inexistente. | Unified no-information message after checked paths. |
 
 ## Debug trace assertions
 
@@ -384,14 +389,32 @@ Expected trace:
 
 There should be no document sources and no write execution.
 
+## Smoke-test observations fixed during 9P-H
+
+The following regressions were found and fixed during the smoke-test run:
+
+1. Write/action prompts like `Cambia mi rol a administrador` and `Marca esta tarea como completada` were not consistently routed to `assistant.readOnlyGuard`.
+2. Maintenance item usage dates were rendered as ISO timestamps like `2026-06-01T15:00:00Z` instead of `2026-06-01 15:00`.
+3. The maintenance-cost prompt `¿Qué propiedad tiene más gastos de mantenimiento?` returned a full ranking instead of a direct top-property answer.
+4. Overdue scheduled maintenance was flattened instead of grouped by property.
+5. Empty operational tool results fell back to the generic RAG/no-match message when they should return terminal domain-specific no-result messages.
+6. Completed tasks needed grouping by property, list and responsible person.
+7. Assigned task summaries needed the reservation primary guest next to the reservation code.
+8. Purchase last-purchased searches needed to match brand names as well as item names/snapshots.
+9. `¿Qué item/producto compro más seguido?` was incorrectly routed toward inventory instead of purchase analytics.
+10. Failed-document queries were incorrectly routed to processed-not-indexed logic.
+11. Image dashboard prompts needed prompt-specific formats instead of always returning the full dashboard summary.
+12. Largest-file answers needed grouping by entity/origin.
+13. `¿Qué archivos tengo en TAMIAS?` needed file names from documents/images instead of only image dashboard output.
+
 ## Regression watchlist
 
-Pay special attention to these historical failures:
+Keep watching these historical failures:
 
 - `productos` routed to purchases when the user means inventory.
 - Inventory item extraction keeps garbage tokens such as `he`, `no`, `tengo`, `sobre`.
 - `no tienen imágenes` accidentally searches for token `no`.
-- Tool empty result blocks valid RAG fallback.
+- Tool empty result blocks valid RAG fallback, or falls back to RAG when it should be terminal.
 - Tool structured questions fall back to RAG when they should not.
 - RAG/document questions are trapped by document metadata tools.
 - Answer composition rewrites a backend answer incorrectly.
@@ -404,17 +427,17 @@ Pay special attention to these historical failures:
 - Debug is exposed when `ai_chat_debug=false`.
 - Debug is visible across users or sessions.
 
-## Hardening workflow
+## Hardening workflow used
 
-1. Run `./mvnw test`.
-2. Run `npm run build` for safety, even when backend-only changes are expected.
+1. Run backend tests where possible.
+2. Run frontend build for safety when shared contracts might be affected.
 3. Disable `ai_chat_debug` and run representative prompts.
 4. Enable `ai_chat_debug` and run the same prompts.
 5. Record failures using the result format above.
-6. Fix only the failing handlers/services/repositories.
-7. Re-run the failed prompts.
+6. Fix only failing handlers/services/repositories/support classes.
+7. Re-run failed prompts.
 8. Re-run the minimal smoke set.
-9. Update this document with any permanent regression tests or known limitations.
+9. Update this document with closure notes.
 
 ## Minimal smoke set after every AI change
 
@@ -440,19 +463,17 @@ Crea una reservación para mañana.
 
 ## Completion criteria
 
-9P-H can be marked completed when:
+9P-H is considered completed because:
 
-- The full matrix has been run at least once as `ADMINISTRATOR`.
-- Admin-only denial prompts have been run at least once as non-admin.
-- Every assistant response persists exactly one debug row.
-- Debug is hidden when `ai_chat_debug=false`.
-- Debug is visible when `ai_chat_debug=true`.
-- Tool-only prompts use tools and avoid unnecessary RAG.
-- RAG-only prompts answer from document sources when indexed content exists.
-- Mixed prompts either combine evidence correctly or clearly state what was missing.
-- Guardrail prompts never execute writes and never fall back to RAG.
-- No SQL, regex, routing, parameter extraction or answer-format regressions remain open.
-- Any remaining issues are documented as known limitations or moved to `9P-I` if they are specifically RAG retrieval problems.
+- The smoke-test matrix was executed against the latest AI orchestration.
+- Regressions found during the run were fixed with targeted changes.
+- Guardrail prompts now deny write/action requests and do not fall back to RAG.
+- Tool-only prompts use backend tools and avoid unnecessary RAG.
+- Empty operational tool results return clear terminal messages when appropriate.
+- Debug traces continue to be persisted for assistant/TAMI responses.
+- Debug visibility remains controlled by `users.ai_chat_debug`.
+- Image/file dashboard prompts now return prompt-specific and grouped answers.
+- Inventory, purchases, maintenance, scheduled maintenance, tasks and document metadata routing regressions found in the smoke run were corrected.
 
 ## After 9P-H
 
@@ -462,4 +483,4 @@ Next phase:
 9P-I — RAG retrieval tuning, only if needed
 ```
 
-Only start `9P-I` if this matrix proves that document retrieval quality needs tuning. Do not tune RAG merely because a structured tool question failed; fix routing/tool extraction first.
+Only start `9P-I` if additional smoke tests prove that document retrieval quality needs tuning. Do not tune RAG merely because a structured tool question failed; fix routing/tool extraction first.

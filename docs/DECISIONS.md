@@ -344,28 +344,13 @@ Bucket example:
 ```text
 tamias-dev-files/
   {organizationId}/
-    properties/
-      {propertyId}/
-        Image1.jpg
-        Image2.jpg
-    reservations/
-      {reservationId}/
-        Image1.jpg
-    catalogs/
-      inventory_items/
-        {inventoryItemId}/
-          Image1.jpg
-    maintenance/
-      {maintenanceRecordId}/
-        Image1.jpg
-    purchases/
-      {purchaseListId}/
-        Image1.jpg
-    documents/
-      Document1.pdf
-      Document2.pdf
-      {propertyId}/
-        Document1.pdf
+    properties/{propertyId}/Image1.jpg
+    reservations/{reservationId}/Image1.jpg
+    catalogs/inventory_items/{inventoryItemId}/Image1.jpg
+    maintenance/{maintenanceRecordId}/Image1.jpg
+    purchases/{purchaseListId}/Image1.jpg
+    documents/Document1.pdf
+    documents/{propertyId}/Document1.pdf
 ```
 
 Rules:
@@ -381,9 +366,6 @@ Examples:
 ```text
 s3_key: {organizationId}/properties/{propertyId}/uuid_Image1.jpg
 filepath: tamias-dev-files/{organizationId}/properties/{propertyId}
-```
-
-```text
 s3_key: {organizationId}/documents/{propertyId}/uuid_Document1.pdf
 filepath: tamias-dev-files/{organizationId}/documents/{propertyId}
 ```
@@ -540,7 +522,7 @@ Rules:
 - Do not use native browser dialogs such as `window.confirm`.
 - Restrict image file pickers to JPG, PNG and WEBP:
 
-```html
+```text
 accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
 ```
 
@@ -730,7 +712,6 @@ Reason:
 - A per-message trace keeps chat history and troubleshooting linked.
 - The `ai_chat_debug` flag protects normal users from noisy diagnostic output while allowing controlled developer/admin troubleshooting.
 
-
 ---
 
 ## 26. AI debug traces are persisted by assistant message
@@ -752,3 +733,43 @@ Rules:
 Reason:
 
 This keeps normal chat responses clean while making routing/tool/RAG/composition issues auditable during development and QA.
+
+---
+
+## 27. AI smoke-test hardening closes routing/formatting regressions before RAG tuning
+
+Decision:
+
+```text
+Complete 9P-H after targeted smoke-test fixes and keep 9P-I conditional.
+```
+
+Rules:
+
+- Smoke-test failures should be categorized before changing RAG behavior.
+- Structured TAMIAS questions should first be fixed in routing, parameter extraction, tool queries or answer formatting.
+- RAG tuning must not be used to compensate for broken structured-tool routing.
+- Guardrail/write prompts must route to read-only denial and must not fall back to RAG.
+- Empty operational tool results should return terminal domain-specific no-result messages when RAG cannot add value.
+- Image/file dashboard prompts should return prompt-specific formats, not always the full dashboard summary.
+- Purchases, inventory, maintenance, scheduled maintenance, tasks, documents and file/image dashboard tools must keep organization-scoped queries and backend-direct answers where applicable.
+- The minimal smoke set in `70-ai-smoke-test-hardening-final-fixes-9p-h.md` should be run after every future AI-related change.
+
+Fix areas completed during 9P-H:
+
+- Read-only guard routing for write/action prompts.
+- Maintenance item date formatting.
+- Direct answer for top maintenance cost by property.
+- Grouped overdue scheduled maintenance output.
+- Terminal no-result messages for scheduled maintenance, maintenance images and document metadata cases.
+- Completed/assigned task grouping, including reservation primary guest display.
+- Purchase last-purchased search by brand.
+- Most-purchased item/product routing to purchase analytics.
+- Correct failed-document routing.
+- Prompt-specific image dashboard summaries, storage summaries, file name lists and largest-file grouping.
+
+Reason:
+
+- The 9P-H smoke run showed that most issues were routing, extraction, formatting or terminal no-result behavior, not RAG retrieval quality.
+- Closing 9P-H creates a stable checkpoint before deciding whether 9P-I is needed.
+- Keeping 9P-I conditional prevents unnecessary RAG tuning while structured AI tools are already answering the relevant operational questions.
