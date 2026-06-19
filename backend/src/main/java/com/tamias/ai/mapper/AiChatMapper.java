@@ -1,5 +1,6 @@
 package com.tamias.ai.mapper;
 
+import com.tamias.ai.dto.AiChatMessageDebugResponse;
 import com.tamias.ai.dto.AiChatMessageResponse;
 import com.tamias.ai.dto.AiChatSessionResponse;
 import com.tamias.ai.dto.AiChatSessionSummaryResponse;
@@ -29,6 +30,10 @@ public class AiChatMapper {
     }
 
     public AiChatSessionResponse toResponse(AiChatSession entity, List<AiChatMessage> messages) {
+        return toResponse(entity, messages, java.util.Map.of());
+    }
+
+    public AiChatSessionResponse toResponse(AiChatSession entity, List<AiChatMessage> messages, java.util.Map<java.util.UUID, AiChatMessageDebugResponse> debugByMessageId) {
         var property = entity.getProperty();
         var createdBy = entity.getCreatedBy();
 
@@ -41,17 +46,24 @@ public class AiChatMapper {
                 createdBy != null ? createdBy.getFirstName() + " " + createdBy.getLastName() : null,
                 entity.getCreatedAt(),
                 entity.getUpdatedAt(),
-                messages.stream().map(this::toMessageResponse).toList()
+                messages.stream()
+                        .map(message -> toMessageResponse(message, debugByMessageId.get(message.getId())))
+                        .toList()
         );
     }
 
     public AiChatMessageResponse toMessageResponse(AiChatMessage entity) {
+        return toMessageResponse(entity, null);
+    }
+
+    public AiChatMessageResponse toMessageResponse(AiChatMessage entity, AiChatMessageDebugResponse debug) {
         return new AiChatMessageResponse(
                 entity.getId(),
                 entity.getChatSession().getId(),
                 entity.getRole(),
                 entity.getContent(),
-                entity.getCreatedAt()
+                entity.getCreatedAt(),
+                debug
         );
     }
 }

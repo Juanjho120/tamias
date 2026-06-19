@@ -12,7 +12,8 @@ public record AiChatResponse(
     Boolean grounded,
     Integer sourceCount,
     List<AiSourceResponse> sources,
-    List<AiToolEvidenceResponse> toolEvidence
+    List<AiToolEvidenceResponse> toolEvidence,
+    AiChatMessageDebugResponse debug
 ) {
     public AiChatResponse(
         UUID chatSessionId,
@@ -24,7 +25,21 @@ public record AiChatResponse(
         Integer sourceCount,
         List<AiSourceResponse> sources
     ) {
-        this(chatSessionId, userMessageId, assistantMessageId, question, answer, grounded, sourceCount, sources, List.of());
+        this(chatSessionId, userMessageId, assistantMessageId, question, answer, grounded, sourceCount, sources, List.of(), null);
+    }
+
+    public AiChatResponse(
+        UUID chatSessionId,
+        UUID userMessageId,
+        UUID assistantMessageId,
+        String question,
+        String answer,
+        Boolean grounded,
+        Integer sourceCount,
+        List<AiSourceResponse> sources,
+        List<AiToolEvidenceResponse> toolEvidence
+    ) {
+        this(chatSessionId, userMessageId, assistantMessageId, question, answer, grounded, sourceCount, sources, toolEvidence, null);
     }
 
     public AiChatResponse {

@@ -1,13 +1,16 @@
 package com.tamias.ai.service;
 
+import com.tamias.ai.dto.AiChatMessageDebugResponse;
 import com.tamias.ai.dto.AiChatRequest;
 import com.tamias.ai.dto.AiChatResponse;
 import com.tamias.ai.dto.AiSearchRequest;
 import com.tamias.ai.dto.AiSearchResponse;
 import com.tamias.ai.dto.AiSourceResponse;
+import com.tamias.ai.dto.AiToolDebugTrace;
 import com.tamias.ai.dto.AiToolEvidenceResponse;
 import com.tamias.ai.entity.AiChatMessage;
 import com.tamias.ai.entity.AiChatSession;
+import com.tamias.ai.enums.AiAnswerSource;
 import com.tamias.ai.enums.AiChatMessageRole;
 import com.tamias.ai.tool.AiToolAnswer;
 import com.tamias.ai.tool.AiToolCallingService;
@@ -17,8 +20,10 @@ import com.tamias.ai.planning.AiAnswerCompositionService;
 import com.tamias.ai.planning.AiExecutionPlan;
 import com.tamias.ai.planning.AiPlanningService;
 import com.tamias.security.service.CurrentUserService;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
@@ -37,6 +42,7 @@ public class AiRagService {
     private final ChatClient chatClient;
     private final CurrentUserService currentUserService;
     private final AiChatSessionService chatSessionService;
+    private final AiChatDebugTraceService debugTraceService;
     private final AiToolCallingService toolCallingService;
     private final AiPlanningService planningService;
     private final AiAnswerCompositionService answerCompositionService;
@@ -48,6 +54,7 @@ public class AiRagService {
             ChatModel chatModel,
             CurrentUserService currentUserService,
             AiChatSessionService chatSessionService,
+            AiChatDebugTraceService debugTraceService,
             AiToolCallingService toolCallingService,
             AiPlanningService planningService,
             AiAnswerCompositionService answerCompositionService,
@@ -58,6 +65,7 @@ public class AiRagService {
         this.chatClient = ChatClient.create(chatModel);
         this.currentUserService = currentUserService;
         this.chatSessionService = chatSessionService;
+        this.debugTraceService = debugTraceService;
         this.toolCallingService = toolCallingService;
         this.planningService = planningService;
         this.answerCompositionService = answerCompositionService;
@@ -148,6 +156,17 @@ public class AiRagService {
                 AiChatMessageRole.ASSISTANT,
                 answer
         );
+        AiChatMessageDebugResponse debug = persistDebug(
+                assistantMessage,
+                buildDebugTrace(
+                        toolResult,
+                        plan,
+                        toolEvidence.isEmpty() ? AiAnswerSource.RAG : AiAnswerSource.TOOLS_AND_RAG,
+                        true,
+                        null,
+                        null
+                )
+        );
 
         return new AiChatResponse(
                 session.getId(),
@@ -158,7 +177,8 @@ public class AiRagService {
                 true,
                 sources.size(),
                 sources,
-                toolEvidence
+                toolEvidence,
+                debug
         );
     }
 
@@ -207,6 +227,17 @@ public class AiRagService {
                     AiChatMessageRole.ASSISTANT,
                     answer
             );
+            AiChatMessageDebugResponse debug = persistDebug(
+                    assistantMessage,
+                    buildDebugTrace(
+                            toolResult,
+                            plan,
+                            toolEvidence.isEmpty() ? AiAnswerSource.RAG : AiAnswerSource.TOOLS_AND_RAG,
+                            true,
+                            null,
+                            null
+                    )
+            );
             return new AiChatResponse(
                     session.getId(),
                     userMessage.getId(),
@@ -216,7 +247,8 @@ public class AiRagService {
                     true,
                     sources.size(),
                     sources,
-                    toolEvidence
+                    toolEvidence,
+                    debug
             );
         }
 
@@ -303,6 +335,17 @@ public class AiRagService {
                 AiChatMessageRole.ASSISTANT,
                 finalAnswer
         );
+        AiChatMessageDebugResponse debug = persistDebug(
+                assistantMessage,
+                buildDebugTrace(
+                        result,
+                        plan,
+                        answerSourceForToolAnswer(result, answer, finalAnswer),
+                        false,
+                        result.shouldAttemptRagFallback() ? "Tool result allowed RAG fallback but final response used backend answer." : null,
+                        null
+                )
+        );
 
         return new AiChatResponse(
                 session.getId(),
@@ -313,7 +356,8 @@ public class AiRagService {
                 answer.grounded(),
                 0,
                 List.of(),
-                answer.evidence()
+                answer.evidence(),
+                debug
         );
     }
 
@@ -332,6 +376,17 @@ public class AiRagService {
                 AiChatMessageRole.ASSISTANT,
                 fallbackAnswer
         );
+        AiChatMessageDebugResponse debug = persistDebug(
+                assistantMessage,
+                buildDebugTrace(
+                        toolResult,
+                        plan,
+                        toolResult.status() == AiToolResultStatus.ERROR ? AiAnswerSource.ERROR : AiAnswerSource.NO_MATCH,
+                        plan != null && plan.wantsRag(),
+                        "No tool/RAG path returned enough information.",
+                        toolResult.status() == AiToolResultStatus.ERROR ? fallbackAnswer : null
+                )
+        );
 
         return new AiChatResponse(
                 session.getId(),
@@ -342,7 +397,8 @@ public class AiRagService {
                 false,
                 sources == null ? 0 : sources.size(),
                 sources == null ? List.of() : sources,
-                toolEvidence == null ? List.of() : toolEvidence
+                toolEvidence == null ? List.of() : toolEvidence,
+                debug
         );
     }
 
@@ -381,6 +437,78 @@ public class AiRagService {
                 """.formatted(toolResult.answer().answer()).trim();
     }
 
+
+    private AiChatMessageDebugResponse persistDebug(AiChatMessage assistantMessage, AiToolDebugTrace trace) {
+        debugTraceService.saveTrace(assistantMessage, trace);
+        return debugTraceService.findDebugForMessageIfEnabled(assistantMessage).orElse(null);
+    }
+
+    private AiToolDebugTrace buildDebugTrace(
+            AiToolResult toolResult,
+            AiExecutionPlan plan,
+            AiAnswerSource answerSource,
+            boolean ragUsed,
+            String fallbackReason,
+            String errorMessage
+    ) {
+        Map<String, Object> params = new LinkedHashMap<>();
+        if (toolResult != null && toolResult.params() != null) {
+            params.putAll(toolResult.params());
+        }
+        if (plan != null) {
+            params.put("planDecision", plan.safeDecision().name());
+            params.put("planConfidence", plan.confidence());
+            params.put("planLlmGenerated", plan.llmGenerated());
+        }
+
+        List<String> toolNames = toolNamesFromResult(toolResult);
+        String toolName = toolNames.isEmpty() ? null : toolNames.get(0);
+        String handler = toolResult != null ? toolResult.handler() : null;
+        if ((handler == null || handler.isBlank()) && toolName != null && toolName.startsWith("assistant.llm")) {
+            handler = "AiPlanningService";
+        }
+
+        return new AiToolDebugTrace(
+                handler,
+                toolName,
+                toolNames,
+                params,
+                ragUsed,
+                answerSource,
+                planSummary(plan),
+                fallbackReason,
+                errorMessage
+        );
+    }
+
+    private List<String> toolNamesFromResult(AiToolResult toolResult) {
+        if (toolResult == null) {
+            return List.of();
+        }
+        if (toolResult.toolNames() != null && !toolResult.toolNames().isEmpty()) {
+            return toolResult.toolNames();
+        }
+        if (toolResult.answer() == null || toolResult.answer().evidence() == null) {
+            return List.of();
+        }
+        return toolResult.answer().evidence().stream()
+                .map(AiToolEvidenceResponse::toolName)
+                .filter(toolName -> toolName != null && !toolName.isBlank())
+                .distinct()
+                .toList();
+    }
+
+    private AiAnswerSource answerSourceForToolAnswer(AiToolResult result, AiToolAnswer backendAnswer, String finalAnswer) {
+        if (result.status() == AiToolResultStatus.ERROR) {
+            return AiAnswerSource.ERROR;
+        }
+        if (backendAnswer == null) {
+            return AiAnswerSource.NO_MATCH;
+        }
+        return Objects.equals(finalAnswer, backendAnswer.answer())
+                ? AiAnswerSource.BACKEND_DIRECT
+                : AiAnswerSource.LLM_COMPOSED;
+    }
 
     private AiToolResult toolResultForRagContext(AiToolResult toolResult, AiExecutionPlan plan) {
         if (toolResult == null || toolResult.status() == AiToolResultStatus.NOT_APPLICABLE || plan == null) {

@@ -1,6 +1,6 @@
 # 9P-G — AI orchestration observability and persisted debug traces
 
-Status: **Design ready / implementation next**
+Status: **Implemented / validation pending**
 
 ## Context
 
@@ -476,3 +476,39 @@ Then only if needed:
 ```text
 9P-I — RAG retrieval tuning
 ```
+
+
+## Implementation notes
+
+Implemented in backend only.
+
+- `V31__create_ai_chat_message_debugs.sql` adds `users.ai_chat_debug` and creates `ai_chat_message_debugs`.
+- `AiChatMessageDebug` persists one consolidated trace per assistant/TAMI message.
+- `AiChatDebugTraceService` always saves traces but only exposes them when the current user has `ai_chat_debug = true`.
+- `AiToolCallingService` now attaches handler/tool metadata to `AiToolResult`.
+- `AiRagService` persists debug traces immediately after saving the assistant message.
+- `AiChatResponse` and `AiChatMessageResponse` include an optional `debug` object.
+- Existing users default to `ai_chat_debug = false`, so normal chat responses stay clean.
+
+## Validation prompts
+
+Use these after enabling `users.ai_chat_debug = true` for the target user:
+
+```sql
+UPDATE users
+SET ai_chat_debug = true
+WHERE email = '<your-user-email>';
+```
+
+Suggested prompts:
+
+- ¿Qué productos tengo de la marca Pledge?
+- ¿Qué imágenes se subieron recientemente?
+- ¿Qué documentos hablan sobre reglas de la casa?
+- ¿Qué items no tienen imágenes?
+
+Expected behavior:
+
+- Normal users do not receive `debug` in responses.
+- Debug-enabled users receive `debug` only for their own chat messages.
+- Every assistant message has one row in `ai_chat_message_debugs`.

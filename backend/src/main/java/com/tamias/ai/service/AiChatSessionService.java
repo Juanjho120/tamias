@@ -1,5 +1,6 @@
 package com.tamias.ai.service;
 
+import com.tamias.ai.dto.AiChatMessageDebugResponse;
 import com.tamias.ai.dto.AiChatMessageResponse;
 import com.tamias.ai.dto.AiChatSessionCreateRequest;
 import com.tamias.ai.dto.AiChatSessionResponse;
@@ -22,7 +23,9 @@ import com.tamias.security.service.CurrentUserService;
 import com.tamias.user.entity.User;
 import com.tamias.user.repository.UserRepository;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +40,7 @@ public class AiChatSessionService {
     private final UserRepository userRepository;
     private final CurrentUserService currentUserService;
     private final AiChatMapper mapper;
+    private final AiChatDebugTraceService debugTraceService;
 
     public AiChatSessionService(
             AiChatSessionRepository sessionRepository,
@@ -45,7 +49,8 @@ public class AiChatSessionService {
             PropertyRepository propertyRepository,
             UserRepository userRepository,
             CurrentUserService currentUserService,
-            AiChatMapper mapper
+            AiChatMapper mapper,
+            AiChatDebugTraceService debugTraceService
     ) {
         this.sessionRepository = sessionRepository;
         this.messageRepository = messageRepository;
@@ -54,6 +59,7 @@ public class AiChatSessionService {
         this.userRepository = userRepository;
         this.currentUserService = currentUserService;
         this.mapper = mapper;
+        this.debugTraceService = debugTraceService;
     }
 
     @Transactional(readOnly = true)
@@ -75,7 +81,7 @@ public class AiChatSessionService {
         AiChatSession session = findEntity(sessionId);
         List<AiChatMessage> messages = messageRepository
                 .findByChatSession_IdAndOrganization_IdOrderByCreatedAtAsc(session.getId(), organizationId);
-        return mapper.toResponse(session, messages);
+        return mapper.toResponse(session, messages, debugByMessageId(messages));
     }
 
     @Transactional(readOnly = true)
@@ -85,7 +91,7 @@ public class AiChatSessionService {
         return messageRepository
                 .findByChatSession_IdAndOrganization_IdOrderByCreatedAtAsc(session.getId(), organizationId)
                 .stream()
-                .map(mapper::toMessageResponse)
+                .map(message -> mapper.toMessageResponse(message, debugTraceService.findDebugForMessageIfEnabled(message).orElse(null)))
                 .toList();
     }
 
@@ -154,6 +160,18 @@ public class AiChatSessionService {
         UUID currentUserId = currentUserService.getCurrentUserId();
         return sessionRepository.findByIdAndOrganization_IdAndCreatedBy_Id(sessionId, organizationId, currentUserId)
                 .orElseThrow(() -> new NotFoundException("AI chat session not found"));
+    }
+
+    private Map<UUID, AiChatMessageDebugResponse> debugByMessageId(List<AiChatMessage> messages) {
+        if (messages == null || messages.isEmpty() || !debugTraceService.isDebugEnabledForCurrentUser()) {
+            return Map.of();
+        }
+
+        return messages.stream()
+                .map(message -> debugTraceService.findDebugForMessageIfEnabled(message)
+                        .map(debug -> Map.entry(message.getId(), debug)))
+                .flatMap(java.util.Optional::stream)
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     private String buildDefaultTitle(String question) {

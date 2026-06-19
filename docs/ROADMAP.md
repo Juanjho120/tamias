@@ -342,7 +342,7 @@ Goals:
 
 ### 9P-G — AI orchestration observability and persisted debug traces
 
-Status: Design ready / implementation next.
+Status: Completed / validation pending.
 
 Documentation: `69-ai-orchestration-observability-debug-traces-9p-g.md`
 

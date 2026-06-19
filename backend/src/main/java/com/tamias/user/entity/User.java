@@ -16,6 +16,7 @@ import lombok.Setter;
 @Entity
 @Table(name = "users")
 public class User extends AuditableEntity {
+
     @Column(name = "first_name", nullable = false, length = 100)
     private String firstName;
 
@@ -30,6 +31,9 @@ public class User extends AuditableEntity {
 
     @Column(name = "password_change_required", nullable = false)
     private boolean passwordChangeRequired = false;
+
+    @Column(name = "ai_chat_debug", nullable = false)
+    private boolean aiChatDebug = false;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)

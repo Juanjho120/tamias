@@ -729,3 +729,26 @@ Reason:
 - Persisted traces make debugging reproducible instead of relying only on screenshots or manual guesses.
 - A per-message trace keeps chat history and troubleshooting linked.
 - The `ai_chat_debug` flag protects normal users from noisy diagnostic output while allowing controlled developer/admin troubleshooting.
+
+
+---
+
+## 26. AI debug traces are persisted by assistant message
+
+Decision:
+
+```text
+Persist one debug trace per assistant/TAMI response in ai_chat_message_debugs.
+```
+
+Rules:
+
+- The trace references `ai_chat_messages.id` for the assistant response.
+- The trace stores handler, primary tool, all tools used, params, RAG usage and answer source.
+- Traces are always persisted for observability.
+- Traces are only exposed in API responses when `users.ai_chat_debug = true` for the current user.
+- `answer_source` identifies the final answer path; tools remain in `tool_name`/`tool_names`.
+
+Reason:
+
+This keeps normal chat responses clean while making routing/tool/RAG/composition issues auditable during development and QA.
