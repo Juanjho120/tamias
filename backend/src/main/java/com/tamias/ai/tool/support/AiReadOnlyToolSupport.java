@@ -1210,7 +1210,6 @@ public abstract class AiReadOnlyToolSupport {
                                                      AND mri.organization_id = mr.organization_id
                 LEFT JOIN maintenance_record_images img ON img.maintenance_record_id = mr.id
                                                        AND img.organization_id = mr.organization_id
-                                                       AND img.deleted_at IS NULL
                                                        AND img.status = 'ACTIVE'
                 WHERE mr.organization_id = :organizationId
                   AND mr.deleted_at IS NULL
@@ -2258,8 +2257,7 @@ public abstract class AiReadOnlyToolSupport {
             answer.append(System.lineSeparator())
                     .append("- ").append(blankToDash(value(row.get("fullName"))))
                     .append(" | correo: ").append(blankToDash(value(row.get("email"))))
-                    .append(" | rol: ").append(blankToDash(value(row.get("roleCode"))))
-                    .append(" | estado: ").append(blankToDash(value(row.get("userStatus"))));
+                    .append(" | rol: ").append(blankToDash(value(row.get("roleCode"))));
         }
     }
 
