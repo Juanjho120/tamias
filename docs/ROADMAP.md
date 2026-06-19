@@ -1,12 +1,13 @@
 # TAMIAS — Roadmap
 
-This roadmap reflects the current state after the AI tool calling and orchestration phases up to 9P-F, plus the new implementation queue for UX, security, S3 storage, image handling, inventory brands, and future AI observability.
+This roadmap reflects the current state after the AI tool calling and orchestration phases up to 9P-F, plus the completed implementation queue for UX, security, S3 storage, image handling, inventory brands and AI image/brand tools.
 
 ---
 
 ## Completed foundation
 
 ### Phase 0 — Project Setup
+
 Status: Completed.
 
 - Repository and documentation.
@@ -14,6 +15,7 @@ Status: Completed.
 - Local development setup.
 
 ### Phase 1 — Security and SaaS Foundation
+
 Status: Completed / MVP-ready.
 
 - Organizations.
@@ -29,6 +31,7 @@ Status: Completed / MVP-ready.
 - Mandatory password change.
 
 ### Phase 2 — Properties and Catalogs
+
 Status: Completed / MVP-ready.
 
 - Property management.
@@ -44,6 +47,7 @@ Status: Completed / MVP-ready.
 - Inventory Items.
 
 ### Phase 3 — Maintenance
+
 Status: Completed / MVP-ready.
 
 - Maintenance records.
@@ -58,6 +62,7 @@ Status: Completed / MVP-ready.
 - Dashboard/calendar integration.
 
 ### Phase 4 — Reservations and Tasks
+
 Status: Completed / MVP-ready.
 
 - Reservations.
@@ -71,6 +76,7 @@ Status: Completed / MVP-ready.
 - Related task lists modal.
 
 ### Phase 5 — Purchase Lists
+
 Status: Completed / MVP-ready.
 
 - Purchase lists.
@@ -85,6 +91,7 @@ Status: Completed / MVP-ready.
 - Purchase list form item editing.
 
 ### Phase 6 — Documents
+
 Status: Completed / MVP-ready.
 
 - Document upload.
@@ -96,6 +103,7 @@ Status: Completed / MVP-ready.
 - Chunking.
 
 ### Phase 7 — AI Document Search
+
 Status: Completed / MVP-ready.
 
 - Embeddings.
@@ -106,6 +114,7 @@ Status: Completed / MVP-ready.
 - Basic quality improvements.
 
 ### Phase 8 — MVP Hardening
+
 Status: Completed / partially superseded by security review phases.
 
 - Role-based access review.
@@ -114,40 +123,42 @@ Status: Completed / partially superseded by security review phases.
 - Error handling consistency.
 
 ### Phase 9 — AI Tool Calling and AI Orchestration
+
 Status: Completed through 9P-F.
 
 Completed sub-phases:
 
 ```text
-9B     Backend read-only AI tools
-9C     AI Assistant integration
-9D     AI Assistant frontend UX
-9G     Property and catalog read-only tools
-9H     Inventory and maintenance analytics tools
-9I     Scheduled maintenance, reservation and guest tools
-9J     Reservation supply and task tools
-9K     Purchase analytics tools
-9L     Document metadata and RAG health tools
-9M     File, image and dashboard analytics tools
-9N     Admin user, role and organization tools
-9O     AI chat session history tools
-9P-A   AI orchestration safe refactor
-9P-B   AI tool handler split
-9P-C   AI read-only domain service split
+9B Backend read-only AI tools
+9C AI Assistant integration
+9D AI Assistant frontend UX
+9G Property and catalog read-only tools
+9H Inventory and maintenance analytics tools
+9I Scheduled maintenance, reservation and guest tools
+9J Reservation supply and task tools
+9K Purchase analytics tools
+9L Document metadata and RAG health tools
+9M File, image and dashboard analytics tools
+9N Admin user, role and organization tools
+9O AI chat session history tools
+9P-A AI orchestration safe refactor
+9P-B AI tool handler split
+9P-C AI read-only domain service split
 9P-C.1 AI tool package reorganization
 9P-C.2 AI tool repository split
-9P-D   Tool/RAG fallback
-9P-E   LLM-driven planning
-9P-F   AI orchestration smoke tests and RAG diagnostics
+9P-D Tool/RAG fallback
+9P-E LLM-driven planning
+9P-F AI orchestration smoke tests and RAG diagnostics
 ```
 
 ---
 
-## Current implementation queue
+## Completed implementation queue before deeper AI observability
 
-These phases must be implemented before continuing with deeper AI observability, because they change security, file ownership, storage paths, documents, images, inventory items, purchases, reservations and AI chat behavior.
+These phases were implemented before resuming deeper AI observability because they changed security, file ownership, storage paths, documents, images, inventory items, purchases, reservations and AI chat behavior.
 
 ### Phase 10A — Chat ownership security + quick AI UI fixes + last login
+
 Status: Completed.
 
 Documentation: `56-chat-ownership-quick-ai-ui-fixes-10a.md`
@@ -163,6 +174,7 @@ Goals:
 - Auto-collapse mobile sidebar after selecting a route.
 
 ### Phase 10B — Typewriter animation for TAMI responses
+
 Status: Completed.
 
 Documentation: `57-ai-typewriter-response-10b.md`
@@ -174,6 +186,7 @@ Goals:
 - Preserve sources, tool evidence and grounded status.
 
 ### Phase 11A — S3 key strategy + filepath fields
+
 Status: Completed.
 
 Documentation: `58-s3-key-strategy-filepath-fields-11a.md`
@@ -183,8 +196,10 @@ Goals:
 - Replace year/month upload paths with module/entity paths.
 - Add `filepath` to document and image relationship tables.
 - Store full bucket + folder path in `filepath`, without filename.
+- Keep `organizationId` as the first level inside the bucket.
 
 ### Phase 11B — Hard delete policy for entity images
+
 Status: Completed.
 
 Documentation: `59-hard-delete-entity-images-11b.md`
@@ -196,6 +211,7 @@ Goals:
 - Delete S3 object and database row when an image is removed.
 
 ### Phase 11C — Hard delete policy for RAG documents
+
 Status: Completed.
 
 Documentation: `60-hard-delete-rag-documents-11c.md`
@@ -206,8 +222,8 @@ Goals:
 - Delete S3 object, Chroma vectors, document chunks and document row.
 - Abort deletion if S3 or Chroma cleanup fails.
 
-
 ### Phase 11C.1 — Remove document soft-delete leftovers
+
 Status: Completed.
 
 Documentation: `65-remove-document-soft-delete-leftovers-11c1.md`
@@ -221,7 +237,8 @@ Goals:
 - Remove stale image soft-delete predicates against image tables already migrated to hard delete.
 
 ### Phase 12A — Associate brands directly with inventory items
-Status: Planned.
+
+Status: Completed.
 
 Documentation: `61-inventory-item-brand-association-12a.md`
 
@@ -230,9 +247,12 @@ Goals:
 - Add brand association to `inventory_items`.
 - Remove `brand_id` from `purchase_items`.
 - Display searchable inventory items as `{item name} - {brand}`.
+- Keep inventory item catalog table name and brand in separate columns.
+- Show item + brand in selectors/modals where disambiguation is needed.
 
 ### Phase 12B — Inventory item images
-Status: Planned.
+
+Status: Completed.
 
 Documentation: `62-inventory-item-images-12b.md`
 
@@ -240,10 +260,13 @@ Goals:
 
 - Add `inventory_item_images`.
 - Add image upload/delete UI to Inventory Items catalog.
+- Use hard delete and S3 key strategy with organization prefix.
 - Use the same image modal pattern as properties and maintenance.
+- Use static i18n files for all modal labels/messages.
 
 ### Phase 12C — Purchase list images
-Status: Planned.
+
+Status: Completed.
 
 Documentation: `63-purchase-list-images-12c.md`
 
@@ -251,10 +274,13 @@ Goals:
 
 - Add `purchase_images` with `purchase_list_id`.
 - Add image upload/delete UI to Purchase Lists.
-- Use hard delete and new S3 key strategy.
+- Use hard delete and S3 key strategy with organization prefix.
+- Use the same image modal pattern as properties and maintenance.
+- Use static i18n files for all modal labels/messages.
 
 ### Phase 12D — Reservation images
-Status: Planned.
+
+Status: Completed.
 
 Documentation: `64-reservation-images-12d.md`
 
@@ -262,14 +288,65 @@ Goals:
 
 - Add `reservation_images` with `reservation_id`.
 - Add image upload/delete UI to Reservations.
-- Use hard delete and new S3 key strategy.
+- Use hard delete and S3 key strategy with organization prefix.
+- Use the same image modal pattern as properties and maintenance.
+- Use static i18n files for all modal labels/messages.
+
+### Phase 12E — AI image and inventory brand tools
+
+Status: Completed.
+
+Documentation: `66-ai-image-brand-tools-12e.md`
+
+Goals:
+
+- Add read-only AI tools for reservation images, inventory item images and purchase list images.
+- Update inventory tools to include item brand in relevant answers.
+- Add tools to query inventory items by brand.
+- Route `productos` questions to inventory when the user is asking about inventory, brands or usage rather than purchase analytics.
+- Avoid RAG fallback for structured inventory/image questions when system tools can answer.
+
+### Phase 12 closure — Images, inventory brands and AI tools
+
+Status: Completed.
+
+Documentation: `67-phase-12-closure.md`
+
+Goals:
+
+- Record final hard-delete image policy.
+- Record final S3/filepath policy.
+- Record final image modal UX and i18n policy.
+- Record final AI tool evidence expectations for image, brand and inventory questions.
 
 ---
 
-## AI phases to resume after 10A–13A scope
+## Next phase
+
+### Phase 13A — AI image/file dashboard tools
+
+Status: Planned next.
+
+Documentation: `68-ai-image-file-dashboard-tools-13a.md`
+
+Goals:
+
+- Add cross-module AI tools for image/file dashboard questions.
+- Answer image counts by module.
+- Answer entities with most images.
+- Answer entities without images.
+- Answer recent uploads.
+- Answer largest files / storage summaries from metadata.
+- Reuse or extend existing 9M file/image/dashboard tools when possible.
+- Keep all tools read-only and organization-scoped.
+
+---
+
+## AI phases to resume after 13A
 
 ### 9P-G — AI orchestration observability and debug traces
-Status: Planned after phases 10A–13A.
+
+Status: Planned after 13A.
 
 Goals:
 
@@ -277,6 +354,7 @@ Goals:
 - Make failures easier to diagnose without guessing whether the issue is planner, router, tool, RAG or answer composition.
 
 ### 9P-H — Smoke test hardening and final fixes
+
 Status: Planned after 9P-G.
 
 Goals:
@@ -286,6 +364,7 @@ Goals:
 - Fix regressions found after observability.
 
 ### 9P-I — RAG retrieval tuning
+
 Status: Conditional.
 
 Goals:
@@ -297,6 +376,7 @@ Goals:
 ## Future phases
 
 ### Reports, notifications and advanced AI
+
 Status: Future.
 
 Possible features:

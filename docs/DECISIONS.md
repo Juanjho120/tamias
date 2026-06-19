@@ -379,19 +379,13 @@ Rules:
 Examples:
 
 ```text
-s3_key:
-{organizationId}/properties/{propertyId}/uuid_Image1.jpg
-
-filepath:
-tamias-dev-files/{organizationId}/properties/{propertyId}
+s3_key: {organizationId}/properties/{propertyId}/uuid_Image1.jpg
+filepath: tamias-dev-files/{organizationId}/properties/{propertyId}
 ```
 
 ```text
-s3_key:
-{organizationId}/documents/{propertyId}/uuid_Document1.pdf
-
-filepath:
-tamias-dev-files/{organizationId}/documents/{propertyId}
+s3_key: {organizationId}/documents/{propertyId}/uuid_Document1.pdf
+filepath: tamias-dev-files/{organizationId}/documents/{propertyId}
 ```
 
 Reason:
@@ -424,9 +418,11 @@ inventory_item_images
 
 Rules:
 
-- Deleting an image deletes the S3 object.
-- Deleting an image physically deletes the database row.
+- Deleting an image deletes the S3 object first.
+- Deleting an image physically deletes the database row after successful storage delete.
+- If storage/S3 deletion fails, the DB row must not be deleted.
 - Schema cleanup should remove `deleted_at` from image relationship tables where present.
+- New entity image tables must not add `deleted_at` or `deleted_by`.
 - No orphan image records or orphan S3 objects should remain after a successful delete.
 
 ---
@@ -473,6 +469,8 @@ Rules:
 - Remove `purchase_items.brand_id`.
 - Purchase items should derive/display brand from their referenced inventory item.
 - Inventory item search labels should show `{item name} - {brand}` when brand exists.
+- Inventory item catalog tables should keep item name and brand in separate columns.
+- Modals/selectors that need disambiguation should show item + brand.
 
 Reason:
 
@@ -511,3 +509,153 @@ Rules:
 - Update `users.last_login` only after successful authentication.
 - Use the same timestamp style as the existing audit fields.
 - Surface the value in access summaries where useful.
+
+---
+
+## 21. Image upload modal UX consistency
+
+Decision:
+
+```text
+All entity image upload modals should use the same UX baseline.
+```
+
+Applies to:
+
+```text
+properties
+maintenance records
+inventory items
+purchase lists
+reservations
+```
+
+Rules:
+
+- Show previews for selected images before upload.
+- Provide a Clear button to reset selected files/previews.
+- Align Clear and Upload buttons on the right side of the modal.
+- Use the Bootstrap upload icon `bi bi-upload` for upload actions.
+- Use the app's `ConfirmModalComponent` for delete confirmation.
+- Do not use native browser dialogs such as `window.confirm`.
+- Restrict image file pickers to JPG, PNG and WEBP:
+
+```html
+accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+```
+
+Reason:
+
+- Keeps UX consistent across modules.
+- Avoids ugly/native browser confirmations.
+- Prevents accidental non-image file selection where possible.
+- Matches the pattern already established by properties and maintenance images.
+
+---
+
+## 22. Frontend i18n strategy for image modules
+
+Decision:
+
+```text
+Use static JSON translation files for image modal labels and messages.
+```
+
+Translation files:
+
+```text
+frontend/public/assets/i18n/es.json
+frontend/public/assets/i18n/en.json
+```
+
+Rules:
+
+- Do not create feature-specific translation services.
+- Do not register feature translations dynamically from code.
+- Do not hardcode Spanish or English labels/messages in templates/components.
+- Use the existing `LanguageService` and `TranslateService` flow.
+
+Image modal translation namespaces:
+
+```text
+properties.images
+maintenance.images
+catalogs.items.inventoryItems.images
+purchases.images
+reservations.images
+```
+
+Reason:
+
+- The app already has a working i18n architecture.
+- Static JSON keeps translations predictable and easy to review.
+- Feature code should not own translation registration.
+
+---
+
+## 23. AI image and inventory brand tools
+
+Decision:
+
+```text
+Add read-only AI tools for image metadata and inventory brand queries.
+```
+
+Tools:
+
+```text
+images.getReservationImages
+images.getInventoryItemImages
+images.getPurchaseListImages
+inventory.getItemsByBrand
+```
+
+Rules:
+
+- Tools must remain read-only.
+- Tools must enforce `organization_id` filtering.
+- Tools must not expose presigned image URLs unless a future requirement explicitly asks for it.
+- Tools must not delete, generate or edit images.
+- Image tools should prefer structured database metadata over RAG.
+- Inventory tools should include item brand where relevant.
+- Questions about `productos` should route to inventory when the context is inventory, brand, usage or generic product catalog.
+- Questions clearly about purchased products should still route to purchase analytics.
+
+Reason:
+
+- TAMI should answer operational questions from structured TAMIAS data before falling back to documents.
+- Image metadata is now distributed across several modules and needs a controlled read-only access layer.
+- Brand ownership moved to inventory items, so AI answers should reflect that domain model.
+
+---
+
+## 24. AI image/file dashboard tools
+
+Decision:
+
+```text
+Add a planned 13A phase for cross-module AI image/file dashboard questions before resuming 9P-G.
+```
+
+Planned examples:
+
+```text
+¿Cuántas imágenes tengo por módulo?
+¿Qué entidades tienen más imágenes?
+¿Qué entidades no tienen imágenes?
+¿Qué imágenes se subieron recientemente?
+¿Qué archivos ocupan más espacio?
+```
+
+Rules:
+
+- Reuse or extend existing 9M file/image/dashboard tools when possible.
+- Keep tools read-only.
+- Keep all queries organization-scoped.
+- Do not add cleanup/repair actions in 13A.
+
+Reason:
+
+- 12B–12E added new image tables and module-specific image tools.
+- 13A should provide cross-module visibility before deeper AI observability work.
+- This creates a cleaner checkpoint before 9P-G/H/I.

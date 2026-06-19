@@ -1,5 +1,7 @@
 # 12E — AI image and inventory brand tools
 
+Status: Completed.
+
 ## Objetivo
 
 Agregar nuevas tools read-only para que TAMI pueda responder preguntas sobre:
@@ -23,6 +25,8 @@ Esta fase no agrega nuevas tablas ni endpoints REST. Se apoya en las tablas crea
 - Actualización de respuestas de inventory tools para incluir `brandName`.
 - Routing AI para detectar preguntas sobre imágenes de reservaciones, compras e items.
 - Routing AI para detectar preguntas de items por marca.
+- Ajustes de routing para que preguntas con `productos` puedan caer en inventory cuando el contexto sea inventario/marca/uso general, sin robar preguntas claramente de compras.
+- Limpieza de términos de control en extractores para evitar búsquedas incorrectas como `no`, `he`, `tienen`, `fotos` o `imagenes`.
 
 ### No incluido
 
@@ -126,7 +130,7 @@ Consulta principal:
 
 - `inventory_items`
 - `brands`
-- `inventory_item_images` para conteo de imágenes.
+- `inventory_item_images` para conteo interno cuando la respuesta lo necesite.
 
 Siempre filtra por `organization_id` y excluye inventory items/brands con `deleted_at`.
 
@@ -141,11 +145,76 @@ Las siguientes tools de inventario ahora incluyen `brandName` cuando existe:
 - `inventory.getItemsUsedInPurchases`
 - `inventory.getItemsUsedInMaintenance`
 
+## Routing esperado
+
+Preguntas que deben ir a inventory:
+
+```text
+¿Qué productos tengo en inventario?
+¿Qué productos tengo de la marca Pledge?
+¿Qué items tengo por marca?
+¿Qué productos tengo por marca?
+¿Cuáles son los productos más usados?
+¿Dónde he usado covertor elástico?
+```
+
+Preguntas que pueden seguir yendo a purchase analytics cuando el contexto sea claramente compras:
+
+```text
+¿Qué productos he comprado?
+¿Qué productos compré en La Torre?
+¿Cuáles son los productos más comprados?
+```
+
+## Formato de respuesta esperado
+
+### Imágenes existentes
+
+Cuando una entidad tiene imágenes, el resumen de la entidad debe ir en la línea principal y los archivos deben listarse como subitems:
+
+```text
+Estas reservaciones tienen imágenes registradas:
+- Bungalow Tu Refugio Perfecto | código: JHK59745 | check-in: 2026-07-01 | check-out: 2026-07-08 | imágenes: 1
+  - a3a417_051d2e2ead9c4e19939170196db54fd.jpg
+```
+
+No colocar los archivos inline como `| archivos: ...` cuando hay nombres de archivo disponibles.
+
+### Entidades sin imágenes
+
+Cuando la pregunta sea por entidades sin imágenes, no mostrar `| imágenes: 0` porque es redundante:
+
+```text
+Estas listas de compra no tienen imágenes registradas:
+- fecha: 2026-06-08 | propiedad: — | proveedor: La Torre | ciudad: Guatemala | estado: OPEN
+```
+
+### Items por marca específica
+
+```text
+Encontré estos items relacionados con la marca “pledge”:
+- Limpiador Multisuperficies | marca: Pledge | tipo: MATERIAL | unidad: —
+- Lustrador de Muebles y Madera | marca: Pledge | tipo: MATERIAL | unidad: —
+```
+
+No incluir `estado` ni `imágenes` en esta respuesta salvo que la pregunta lo pida explícitamente.
+
+### Items agrupados por marca
+
+```text
+Estos son los items de inventario agrupados por marca:
+
+LG
+- Estufa | tipo: SUPPLY | unidad: —
+
+Pledge
+- Limpiador Multisuperficies | tipo: MATERIAL | unidad: —
+- Lustrador de Muebles y Madera | tipo: MATERIAL | unidad: —
+```
+
 ## Seguridad multi-tenant
 
-Todas las consultas usan `currentUserService.getCurrentOrganizationId()` y filtran por `organization_id`.
-
-No se debe retornar información de otra organización.
+Todas las consultas usan `currentUserService.getCurrentOrganizationId()` y filtran por `organization_id`. No se debe retornar información de otra organización.
 
 ## Estado de imágenes
 
@@ -153,7 +222,7 @@ Las queries de imágenes usan imágenes con `status = 'ACTIVE'`.
 
 Las tablas de imágenes usan hard delete. Si una imagen se elimina desde la aplicación, no debería quedar registro físico disponible para estas tools.
 
-## Ejemplos de preguntas para validación manual
+## Validación manual
 
 ### Imágenes de reservaciones
 
