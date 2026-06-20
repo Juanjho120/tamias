@@ -333,7 +333,11 @@ export class ProductBoxFacesModalComponent implements OnChanges {
   }
 
   hasProcessedTexture(face: ProductBoxModelFace | null): boolean {
-    return !!(face?.processedImageKey || face?.processedImageUrl);
+    return !!(face?.processedImageKey || face?.processedImageUrl || this.hasAcceptedOpenCvTexture(face));
+  }
+
+  hasAcceptedOpenCvTexture(face: ProductBoxModelFace | null): boolean {
+    return face?.activeTextureSource === 'opencv_processed' && !!(face.imageKey || face.imageUrl);
   }
 
   canAcceptProcessedTexture(face: ProductBoxModelFace | null): boolean {
@@ -344,6 +348,18 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     return this.hasProcessedTexture(face)
       && !this.isAiEnhancedActive(face)
       && face?.aiEnhancementStatus !== 'PROCESSING';
+  }
+
+  aiEnhancementButtonTitle(face: ProductBoxModelFace | null): string {
+    if (!face || !this.hasProcessedTexture(face)) {
+      return this.languageService.instant('productBoxModels.aiTexture.needsProcessed');
+    }
+
+    if (this.isAiEnhancedActive(face)) {
+      return this.languageService.instant('productBoxModels.aiTexture.active');
+    }
+
+    return this.languageService.instant(face.aiEnhancedImageUrl ? 'productBoxModels.aiTexture.regenerate' : 'productBoxModels.aiTexture.generate');
   }
 
   canAcceptAiEnhancedTexture(face: ProductBoxModelFace | null): boolean {

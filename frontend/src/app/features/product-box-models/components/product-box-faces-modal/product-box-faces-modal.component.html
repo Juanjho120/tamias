@@ -96,6 +96,24 @@
                         }
 
                         @if (currentFace) {
+                          <button
+                            type="button"
+                            class="btn btn-outline-primary btn-sm"
+                            [disabled]="!canGenerateAiEnhancedTexture(currentFace) || enhancingFace() === faceName || acceptingAiFace() === faceName || discardingAiFace() === faceName || detectingFace() === faceName || processingFace() === faceName || acceptingFace() === faceName || deletingFace() === faceName"
+                            [title]="aiEnhancementButtonTitle(currentFace)"
+                            (click)="generateAiEnhancedTexture(faceName)"
+                          >
+                            @if (enhancingFace() === faceName) {
+                              <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                              {{ 'productBoxModels.aiTexture.generating' | translate }}
+                            } @else {
+                              <i class="bi bi-stars me-1"></i>
+                              {{ (currentFace?.aiEnhancedImageUrl ? 'productBoxModels.aiTexture.regenerate' : 'productBoxModels.aiTexture.generate') | translate }}
+                            }
+                          </button>
+                        }
+
+                        @if (currentFace) {
                           <button type="button" class="btn btn-outline-danger btn-sm" [disabled]="deletingFace() === faceName || detectingFace() === faceName || processingFace() === faceName || acceptingFace() === faceName || enhancingFace() === faceName || acceptingAiFace() === faceName || discardingAiFace() === faceName" (click)="requestDelete(faceName)">
                             @if (deletingFace() === faceName) {
                               <span class="spinner-border spinner-border-sm me-1" role="status"></span>
@@ -298,11 +316,12 @@
                             </div>
                           }
 
-                          @if (hasProcessedTexture(currentFace)) {
+                          @if (currentFace) {
                             <button
                               type="button"
                               class="btn btn-outline-primary btn-sm mt-2 w-100"
-                              [disabled]="enhancingFace() === faceName || acceptingAiFace() === faceName || discardingAiFace() === faceName || detectingFace() === faceName || processingFace() === faceName || acceptingFace() === faceName || deletingFace() === faceName"
+                              [disabled]="!canGenerateAiEnhancedTexture(currentFace) || enhancingFace() === faceName || acceptingAiFace() === faceName || discardingAiFace() === faceName || detectingFace() === faceName || processingFace() === faceName || acceptingFace() === faceName || deletingFace() === faceName"
+                              [title]="aiEnhancementButtonTitle(currentFace)"
                               (click)="generateAiEnhancedTexture(faceName)"
                             >
                               @if (enhancingFace() === faceName) {

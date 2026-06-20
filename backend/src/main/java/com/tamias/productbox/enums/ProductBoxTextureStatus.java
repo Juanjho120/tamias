@@ -5,8 +5,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import com.tamias.common.exception.BadRequestException;
 import java.util.Arrays;
 
-public enum ProductBoxTextureStatus {
-    UPLOADED("UPLOADED"),
+public enum ProductBoxTextureStatus {UPLOADED("UPLOADED"),
     POINTS_SELECTED("POINTS_SELECTED"),
     PROCESSED("PROCESSED"),
     ACCEPTED("ACCEPTED"),
