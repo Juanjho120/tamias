@@ -249,7 +249,18 @@ export class ProductBoxFacesModalComponent implements OnChanges {
   onTexturePointsChanged(faceName: ProductBoxFaceName, points: ProductBoxTextureProcessRequest): void {
     const face = this.face(faceName);
     const safePoints = face ? this.sanitizeProcessPoints(face, points) : points;
+
+    if (!safePoints) {
+      return;
+    }
+
+    const currentPoints = this.processPoints()[faceName];
     this.markFreshEditor(faceName, false);
+
+    if (currentPoints && this.sameProcessPoints(currentPoints, safePoints)) {
+      return;
+    }
+
     this.processPoints.update((current) => ({ ...current, [faceName]: safePoints }));
   }
 
@@ -298,7 +309,7 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     const modelId = this.model?.id;
     const face = this.face(faceName);
 
-    if (!modelId || !face?.processedImageUrl || this.acceptingFace() || this.enhancingFace() || this.acceptingAiFace() || this.discardingAiFace()) {
+    if (!modelId || !this.hasProcessedTexture(face) || this.acceptingFace() || this.enhancingFace() || this.acceptingAiFace() || this.discardingAiFace()) {
       return;
     }
 
@@ -321,14 +332,18 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     });
   }
 
+  hasProcessedTexture(face: ProductBoxModelFace | null): boolean {
+    return !!(face?.processedImageKey || face?.processedImageUrl);
+  }
+
   canAcceptProcessedTexture(face: ProductBoxModelFace | null): boolean {
-    return !!face?.processedImageUrl && face.processedImageKey !== face.imageKey;
+    return this.hasProcessedTexture(face) && face?.processedImageKey !== face?.imageKey;
   }
 
   canGenerateAiEnhancedTexture(face: ProductBoxModelFace | null): boolean {
-    return !!face?.processedImageUrl
+    return this.hasProcessedTexture(face)
       && !this.isAiEnhancedActive(face)
-      && face.aiEnhancementStatus !== 'PROCESSING';
+      && face?.aiEnhancementStatus !== 'PROCESSING';
   }
 
   canAcceptAiEnhancedTexture(face: ProductBoxModelFace | null): boolean {
@@ -516,7 +531,7 @@ export class ProductBoxFacesModalComponent implements OnChanges {
       return null;
     }
 
-    return this.processPoints()[faceName] ?? this.parsePointsJson(this.face(faceName)?.pointsJson ?? null);
+    return this.processPoints()[faceName] ?? null;
   }
 
   private isBusy(): boolean {
@@ -633,6 +648,19 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     }
 
     return Math.max(min, Math.min(max, value));
+  }
+
+
+  private sameProcessPoints(first: ProductBoxTextureProcessRequest, second: ProductBoxTextureProcessRequest): boolean {
+    return this.samePoint(first.topLeft, second.topLeft)
+      && this.samePoint(first.topRight, second.topRight)
+      && this.samePoint(first.bottomRight, second.bottomRight)
+      && this.samePoint(first.bottomLeft, second.bottomLeft)
+      && (first.enhancementMode ?? null) === (second.enhancementMode ?? null);
+  }
+
+  private samePoint(first: ProductBoxTexturePoint, second: ProductBoxTexturePoint): boolean {
+    return Math.trunc(first.x) === Math.trunc(second.x) && Math.trunc(first.y) === Math.trunc(second.y);
   }
 
   private resetState(): void {

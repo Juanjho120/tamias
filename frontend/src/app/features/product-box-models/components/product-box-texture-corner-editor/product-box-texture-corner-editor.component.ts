@@ -78,6 +78,7 @@ export class ProductBoxTextureCornerEditorComponent implements OnChanges {
   });
 
   private appliedInitialPointsFingerprint: string | null = null;
+  private emittedPointsFingerprint: string | null = null;
 
   readonly cornerEntries = computed(() => {
     const corners = this.normalizedCorners();
@@ -94,12 +95,12 @@ export class ProductBoxTextureCornerEditorComponent implements OnChanges {
     if (changes['imageUrl']) {
       this.imageReady.set(false);
       this.appliedInitialPointsFingerprint = null;
+      this.emittedPointsFingerprint = null;
       this.normalizedCorners.set(this.defaultCorners());
     }
 
     if (changes['initialPoints'] && !this.draggingCorner()) {
       this.applyInitialPointsIfChanged();
-      this.emitRealPoints();
     }
   }
 
@@ -205,12 +206,20 @@ export class ProductBoxTextureCornerEditorComponent implements OnChanges {
 
     const corners = this.normalizedCorners();
 
-    this.pointsChanged.emit({
+    const request: ProductBoxTextureProcessRequest = {
       topLeft: this.toRealPoint(corners.topLeft, width, height),
       topRight: this.toRealPoint(corners.topRight, width, height),
       bottomRight: this.toRealPoint(corners.bottomRight, width, height),
       bottomLeft: this.toRealPoint(corners.bottomLeft, width, height)
-    });
+    };
+    const fingerprint = this.pointsFingerprint(request);
+
+    if (fingerprint === this.emittedPointsFingerprint) {
+      return;
+    }
+
+    this.emittedPointsFingerprint = fingerprint;
+    this.pointsChanged.emit(request);
   }
 
   private toNormalizedCorners(points: ProductBoxTextureProcessRequest): NormalizedCorners {
