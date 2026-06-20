@@ -215,7 +215,7 @@ public class ProductBoxModelFaceService {
         face.setProcessedWidthPx(processedTexture.widthPx());
         face.setProcessedHeightPx(processedTexture.heightPx());
         face.setTargetAspectRatio(processedTexture.targetAspectRatio());
-        face.setPointsJson(toJson(processedTexture.appliedPoints()));
+        face.setPointsJson(toJson(request));
         face.setTextureStatus(ProductBoxTextureStatus.PROCESSED);
         face.setProcessingError(null);
         face.setProcessedAt(OffsetDateTime.now());

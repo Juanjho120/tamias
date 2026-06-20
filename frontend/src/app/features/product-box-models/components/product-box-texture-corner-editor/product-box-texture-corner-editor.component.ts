@@ -77,6 +77,8 @@ export class ProductBoxTextureCornerEditorComponent implements OnChanges {
       .join(' ');
   });
 
+  private appliedInitialPointsFingerprint: string | null = null;
+
   readonly cornerEntries = computed(() => {
     const corners = this.normalizedCorners();
 
@@ -91,24 +93,21 @@ export class ProductBoxTextureCornerEditorComponent implements OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['imageUrl']) {
       this.imageReady.set(false);
-    }
-
-    if (changes['initialPoints'] && this.initialPoints) {
-      this.normalizedCorners.set(this.toNormalizedCorners(this.initialPoints));
-      this.emitRealPoints();
-      return;
-    }
-
-    if (changes['imageUrl'] && this.imageUrl) {
+      this.appliedInitialPointsFingerprint = null;
       this.normalizedCorners.set(this.defaultCorners());
+    }
+
+    if (changes['initialPoints'] && !this.draggingCorner()) {
+      this.applyInitialPointsIfChanged();
+      this.emitRealPoints();
     }
   }
 
   onImageLoad(): void {
     this.imageReady.set(true);
 
-    if (this.initialPoints) {
-      this.normalizedCorners.set(this.toNormalizedCorners(this.initialPoints));
+    if (!this.applyInitialPointsIfChanged() && !this.initialPoints) {
+      this.normalizedCorners.set(this.defaultCorners());
     }
 
     this.emitRealPoints();
@@ -150,6 +149,28 @@ export class ProductBoxTextureCornerEditorComponent implements OnChanges {
 
     this.draggingCorner.set(null);
     this.emitRealPoints();
+  }
+
+  private applyInitialPointsIfChanged(): boolean {
+    if (!this.initialPoints) {
+      this.appliedInitialPointsFingerprint = null;
+      return false;
+    }
+
+    const fingerprint = this.pointsFingerprint(this.initialPoints);
+    if (fingerprint === this.appliedInitialPointsFingerprint) {
+      return true;
+    }
+
+    this.normalizedCorners.set(this.toNormalizedCorners(this.initialPoints));
+    this.appliedInitialPointsFingerprint = fingerprint;
+    return true;
+  }
+
+  private pointsFingerprint(points: ProductBoxTextureProcessRequest): string {
+    return [points.topLeft, points.topRight, points.bottomRight, points.bottomLeft]
+      .map((point) => `${Math.round(point.x * 1000) / 1000},${Math.round(point.y * 1000) / 1000}`)
+      .join('|');
   }
 
   private updateCornerFromPointer(corner: CornerName, event: PointerEvent): void {

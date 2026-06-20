@@ -76,7 +76,7 @@
                           />
                         </label>
 
-                        @if (currentFace?.originalImageUrl) {
+                        @if (currentFace?.originalImageUrl && !currentFace?.processedImageUrl) {
                           <button type="button" class="btn btn-outline-info btn-sm" [disabled]="processingFace() === faceName || acceptingFace() === faceName || deletingFace() === faceName" (click)="toggleTextureEditor(faceName)">
                             <i class="bi bi-bounding-box-circles me-1"></i>
                             {{ (isTextureEditorOpen(faceName) ? 'productBoxModels.textureEditor.hideEditor' : 'productBoxModels.textureEditor.adjustCorners') | translate }}
@@ -215,7 +215,7 @@
                               [imageWidth]="currentFace?.originalWidthPx ?? null"
                               [imageHeight]="currentFace?.originalHeightPx ?? null"
                               [disabled]="processingFace() === faceName || acceptingFace() === faceName || deletingFace() === faceName"
-                              [initialPoints]="initialPoints(currentFace)"
+                              [initialPoints]="initialPoints(faceName)"
                               (pointsChanged)="onTexturePointsChanged(faceName, $event)"
                             />
                           </div>

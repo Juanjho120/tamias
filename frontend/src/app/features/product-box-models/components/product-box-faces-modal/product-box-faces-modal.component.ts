@@ -58,6 +58,7 @@ export class ProductBoxFacesModalComponent implements OnChanges {
   readonly faces = signal<Partial<Record<ProductBoxFaceName, ProductBoxModelFace>>>({});
   readonly faceToDelete = signal<ProductBoxFaceName | null>(null);
   readonly processPoints = signal<Partial<Record<ProductBoxFaceName, ProductBoxTextureProcessRequest>>>({});
+  readonly freshEditorFaces = signal<Partial<Record<ProductBoxFaceName, boolean>>>({});
 
   readonly deleteMessage = computed(() => {
     const faceName = this.faceToDelete();
@@ -124,12 +125,17 @@ export class ProductBoxFacesModalComponent implements OnChanges {
   }
 
   toggleTextureEditor(faceName: ProductBoxFaceName): void {
-    this.editingTextureFace.update((current) => current === faceName ? null : faceName);
-    const face = this.face(faceName);
-    const savedPoints = this.parsePointsJson(face?.pointsJson ?? null);
-    if (savedPoints) {
-      this.processPoints.update((current) => ({ ...current, [faceName]: savedPoints }));
+    if (this.editingTextureFace() === faceName) {
+      this.editingTextureFace.set(null);
+      return;
     }
+
+    this.markFreshEditor(faceName, false);
+    const existingPoints = this.processPoints()[faceName] ?? this.parsePointsJson(this.face(faceName)?.pointsJson ?? null);
+    if (existingPoints) {
+      this.processPoints.update((current) => ({ ...current, [faceName]: existingPoints }));
+    }
+    this.editingTextureFace.set(faceName);
   }
 
   uploadFace(faceName: ProductBoxFaceName, event: Event): void {
@@ -175,6 +181,8 @@ export class ProductBoxFacesModalComponent implements OnChanges {
       next: () => {
         this.uploadingOriginalFace.set(null);
         input.value = '';
+        this.clearProcessPoints(faceName);
+        this.markFreshEditor(faceName, true);
         this.editingTextureFace.set(faceName);
         this.toastService.success(this.languageService.instant('productBoxModels.textureEditor.messages.originalUploaded'));
         this.facesChanged.emit();
@@ -191,6 +199,7 @@ export class ProductBoxFacesModalComponent implements OnChanges {
   onTexturePointsChanged(faceName: ProductBoxFaceName, points: ProductBoxTextureProcessRequest): void {
     const face = this.face(faceName);
     const safePoints = face ? this.sanitizeProcessPoints(face, points) : points;
+    this.markFreshEditor(faceName, false);
     this.processPoints.update((current) => ({ ...current, [faceName]: safePoints }));
   }
 
@@ -263,10 +272,8 @@ export class ProductBoxFacesModalComponent implements OnChanges {
       return;
     }
 
-    const savedPoints = this.parsePointsJson(face.pointsJson ?? null);
-    if (savedPoints) {
-      this.processPoints.update((current) => ({ ...current, [faceName]: savedPoints }));
-    }
+    this.clearProcessPoints(faceName);
+    this.markFreshEditor(faceName, true);
     this.editingTextureFace.set(faceName);
   }
 
@@ -301,6 +308,7 @@ export class ProductBoxFacesModalComponent implements OnChanges {
           delete next[faceName];
           return next;
         });
+        this.markFreshEditor(faceName, false);
         if (this.editingTextureFace() === faceName) {
           this.editingTextureFace.set(null);
         }
@@ -335,8 +343,27 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     return `${(sizeBytes / (1024 * 1024)).toFixed(2)} MB`;
   }
 
-  initialPoints(face: ProductBoxModelFace | null): ProductBoxTextureProcessRequest | null {
-    return this.parsePointsJson(face?.pointsJson ?? null);
+  initialPoints(faceName: ProductBoxFaceName): ProductBoxTextureProcessRequest | null {
+    if (this.freshEditorFaces()[faceName]) {
+      return null;
+    }
+
+    return this.processPoints()[faceName] ?? this.parsePointsJson(this.face(faceName)?.pointsJson ?? null);
+  }
+
+  private clearProcessPoints(faceName: ProductBoxFaceName): void {
+    this.processPoints.update((current) => {
+      const next = { ...current };
+      delete next[faceName];
+      return next;
+    });
+  }
+
+  private markFreshEditor(faceName: ProductBoxFaceName, fresh: boolean): void {
+    this.freshEditorFaces.update((current) => ({
+      ...current,
+      [faceName]: fresh
+    }));
   }
 
   private rehydrateSavedPoints(faces: Partial<Record<ProductBoxFaceName, ProductBoxModelFace>>): void {
@@ -428,6 +455,7 @@ export class ProductBoxFacesModalComponent implements OnChanges {
   private resetState(): void {
     this.faces.set({});
     this.processPoints.set({});
+    this.freshEditorFaces.set({});
     this.loading.set(false);
     this.uploadingFace.set(null);
     this.uploadingOriginalFace.set(null);
