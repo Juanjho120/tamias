@@ -51,6 +51,7 @@ export class ProductBoxFacesModalComponent implements OnChanges {
   readonly loading = signal(false);
   readonly uploadingFace = signal<ProductBoxFaceName | null>(null);
   readonly uploadingOriginalFace = signal<ProductBoxFaceName | null>(null);
+  readonly detectingFace = signal<ProductBoxFaceName | null>(null);
   readonly processingFace = signal<ProductBoxFaceName | null>(null);
   readonly acceptingFace = signal<ProductBoxFaceName | null>(null);
   readonly deletingFace = signal<ProductBoxFaceName | null>(null);
@@ -82,15 +83,17 @@ export class ProductBoxFacesModalComponent implements OnChanges {
 
     const modelId = this.model?.id;
     const shouldLoad = !!modelId && (changes['open'] || changes['model']) && modelId !== this.loadedModelId;
+
     if (shouldLoad) {
       this.loadFaces();
     }
   }
 
   close(): void {
-    if (this.uploadingFace() || this.uploadingOriginalFace() || this.processingFace() || this.acceptingFace() || this.deletingFace()) {
+    if (this.isBusy()) {
       return;
     }
+
     this.closed.emit();
   }
 
@@ -103,6 +106,7 @@ export class ProductBoxFacesModalComponent implements OnChanges {
 
     this.loadedModelId = modelId;
     this.loading.set(true);
+
     this.productBoxModelService.findById(modelId).subscribe({
       next: (model) => {
         this.faces.set(model.faces ?? {});
@@ -132,9 +136,11 @@ export class ProductBoxFacesModalComponent implements OnChanges {
 
     this.markFreshEditor(faceName, false);
     const existingPoints = this.processPoints()[faceName] ?? this.parsePointsJson(this.face(faceName)?.pointsJson ?? null);
+
     if (existingPoints) {
       this.processPoints.update((current) => ({ ...current, [faceName]: existingPoints }));
     }
+
     this.editingTextureFace.set(faceName);
   }
 
@@ -142,6 +148,7 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0] ?? null;
     const modelId = this.model?.id;
+
     if (!modelId || !file) {
       return;
     }
@@ -172,11 +179,13 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0] ?? null;
     const modelId = this.model?.id;
+
     if (!modelId || !file) {
       return;
     }
 
     this.uploadingOriginalFace.set(faceName);
+
     this.productBoxModelService.uploadOriginalTexture(modelId, faceName, file).subscribe({
       next: () => {
         this.uploadingOriginalFace.set(null);
@@ -196,6 +205,44 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     });
   }
 
+  detectContour(faceName: ProductBoxFaceName): void {
+    const modelId = this.model?.id;
+    const face = this.face(faceName);
+
+    if (!modelId || !face?.originalImageUrl || this.detectingFace() || this.processingFace() || this.acceptingFace()) {
+      return;
+    }
+
+    this.detectingFace.set(faceName);
+
+    this.productBoxModelService.detectTextureContour(modelId, faceName).subscribe({
+      next: (response) => {
+        this.detectingFace.set(null);
+
+        if (response.detected && response.points) {
+          const safePoints = this.sanitizeProcessPoints(face, response.points) ?? response.points;
+          this.processPoints.update((current) => ({ ...current, [faceName]: safePoints }));
+          this.markFreshEditor(faceName, false);
+          this.editingTextureFace.set(faceName);
+          this.toastService.success(this.languageService.instant('productBoxModels.textureEditor.messages.contourDetected'));
+        } else {
+          this.clearProcessPoints(faceName);
+          this.markFreshEditor(faceName, true);
+          this.editingTextureFace.set(faceName);
+          this.toastService.error(response.message ?? this.languageService.instant('productBoxModels.textureEditor.messages.contourNotDetected'));
+        }
+
+        this.facesChanged.emit();
+        this.loadFaces();
+      },
+      error: (error: unknown) => {
+        this.detectingFace.set(null);
+        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('productBoxModels.textureEditor.messages.contourDetectError')));
+        this.loadFaces();
+      }
+    });
+  }
+
   onTexturePointsChanged(faceName: ProductBoxFaceName, points: ProductBoxTextureProcessRequest): void {
     const face = this.face(faceName);
     const safePoints = face ? this.sanitizeProcessPoints(face, points) : points;
@@ -207,6 +254,7 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     const modelId = this.model?.id;
     const points = this.processPoints()[faceName];
     const face = this.face(faceName);
+
     if (!modelId || !face?.originalImageUrl || !points || this.processingFace() || this.acceptingFace()) {
       return;
     }
@@ -217,9 +265,15 @@ export class ProductBoxFacesModalComponent implements OnChanges {
       return;
     }
 
-    this.processPoints.update((current) => ({ ...current, [faceName]: safePoints }));
+    const request: ProductBoxTextureProcessRequest = {
+      ...safePoints,
+      enhancementMode: face.enhancementMode ?? 'basic'
+    };
+
+    this.processPoints.update((current) => ({ ...current, [faceName]: request }));
     this.processingFace.set(faceName);
-    this.productBoxModelService.processTexture(modelId, faceName, safePoints).subscribe({
+
+    this.productBoxModelService.processTexture(modelId, faceName, request).subscribe({
       next: () => {
         this.processingFace.set(null);
         if (this.editingTextureFace() === faceName) {
@@ -240,11 +294,13 @@ export class ProductBoxFacesModalComponent implements OnChanges {
   acceptProcessedTexture(faceName: ProductBoxFaceName): void {
     const modelId = this.model?.id;
     const face = this.face(faceName);
+
     if (!modelId || !face?.processedImageUrl || this.acceptingFace()) {
       return;
     }
 
     this.acceptingFace.set(faceName);
+
     this.productBoxModelService.acceptProcessedTexture(modelId, faceName).subscribe({
       next: () => {
         this.acceptingFace.set(null);
@@ -268,6 +324,7 @@ export class ProductBoxFacesModalComponent implements OnChanges {
 
   retryTexture(faceName: ProductBoxFaceName): void {
     const face = this.face(faceName);
+
     if (!face?.originalImageUrl || this.processingFace() || this.acceptingFace()) {
       return;
     }
@@ -281,6 +338,7 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     if (this.deletingFace()) {
       return;
     }
+
     this.faceToDelete.set(faceName);
   }
 
@@ -288,17 +346,20 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     if (this.deletingFace()) {
       return;
     }
+
     this.faceToDelete.set(null);
   }
 
   confirmDelete(): void {
     const modelId = this.model?.id;
     const faceName = this.faceToDelete();
+
     if (!modelId || !faceName || this.deletingFace()) {
       return;
     }
 
     this.deletingFace.set(faceName);
+
     this.productBoxModelService.deleteTexture(modelId, faceName).subscribe({
       next: () => {
         this.deletingFace.set(null);
@@ -309,9 +370,11 @@ export class ProductBoxFacesModalComponent implements OnChanges {
           return next;
         });
         this.markFreshEditor(faceName, false);
+
         if (this.editingTextureFace() === faceName) {
           this.editingTextureFace.set(null);
         }
+
         this.toastService.success(this.languageService.instant('productBoxModels.faces.messages.deleted'));
         this.facesChanged.emit();
         this.loadFaces();
@@ -327,6 +390,7 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     if (!imageUrl) {
       return;
     }
+
     window.open(imageUrl, '_blank', 'noopener');
   }
 
@@ -334,12 +398,15 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     if (sizeBytes == null) {
       return '—';
     }
+
     if (sizeBytes < 1024) {
       return `${sizeBytes} B`;
     }
+
     if (sizeBytes < 1024 * 1024) {
       return `${(sizeBytes / 1024).toFixed(1)} KB`;
     }
+
     return `${(sizeBytes / (1024 * 1024)).toFixed(2)} MB`;
   }
 
@@ -351,6 +418,17 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     return this.processPoints()[faceName] ?? this.parsePointsJson(this.face(faceName)?.pointsJson ?? null);
   }
 
+  private isBusy(): boolean {
+    return !!(
+      this.uploadingFace()
+      || this.uploadingOriginalFace()
+      || this.detectingFace()
+      || this.processingFace()
+      || this.acceptingFace()
+      || this.deletingFace()
+    );
+  }
+
   private clearProcessPoints(faceName: ProductBoxFaceName): void {
     this.processPoints.update((current) => {
       const next = { ...current };
@@ -360,20 +438,19 @@ export class ProductBoxFacesModalComponent implements OnChanges {
   }
 
   private markFreshEditor(faceName: ProductBoxFaceName, fresh: boolean): void {
-    this.freshEditorFaces.update((current) => ({
-      ...current,
-      [faceName]: fresh
-    }));
+    this.freshEditorFaces.update((current) => ({ ...current, [faceName]: fresh }));
   }
 
   private rehydrateSavedPoints(faces: Partial<Record<ProductBoxFaceName, ProductBoxModelFace>>): void {
     const next: Partial<Record<ProductBoxFaceName, ProductBoxTextureProcessRequest>> = {};
+
     for (const faceName of this.faceNames) {
       const parsed = this.parsePointsJson(faces[faceName]?.pointsJson ?? null);
       if (parsed) {
         next[faceName] = parsed;
       }
     }
+
     this.processPoints.set(next);
   }
 
@@ -390,12 +467,13 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     } catch {
       return null;
     }
+
     return null;
   }
 
   private isValidPointRequest(value: ProductBoxTextureProcessRequest): boolean {
     return ['topLeft', 'topRight', 'bottomRight', 'bottomLeft'].every((key) => {
-      const point = value[key as keyof ProductBoxTextureProcessRequest];
+      const point = value[key as keyof ProductBoxTextureProcessRequest] as ProductBoxTexturePoint;
       return Number.isFinite(point?.x) && Number.isFinite(point?.y);
     });
   }
@@ -412,18 +490,18 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     }
 
     const treatAsNormalized = this.arePointsNormalized(points);
-
     return {
       topLeft: this.sanitizePoint(points.topLeft, width, height, treatAsNormalized),
       topRight: this.sanitizePoint(points.topRight, width, height, treatAsNormalized),
       bottomRight: this.sanitizePoint(points.bottomRight, width, height, treatAsNormalized),
-      bottomLeft: this.sanitizePoint(points.bottomLeft, width, height, treatAsNormalized)
+      bottomLeft: this.sanitizePoint(points.bottomLeft, width, height, treatAsNormalized),
+      enhancementMode: points.enhancementMode ?? face.enhancementMode ?? 'basic'
     };
   }
 
   private arePointsNormalized(points: ProductBoxTextureProcessRequest): boolean {
     return ['topLeft', 'topRight', 'bottomRight', 'bottomLeft'].every((key) => {
-      const point = points[key as keyof ProductBoxTextureProcessRequest];
+      const point = points[key as keyof ProductBoxTextureProcessRequest] as ProductBoxTexturePoint;
       return point.x >= 0 && point.x <= 1 && point.y >= 0 && point.y <= 1;
     });
   }
@@ -449,6 +527,7 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     if (!Number.isFinite(value)) {
       return min;
     }
+
     return Math.max(min, Math.min(max, value));
   }
 
@@ -459,6 +538,7 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     this.loading.set(false);
     this.uploadingFace.set(null);
     this.uploadingOriginalFace.set(null);
+    this.detectingFace.set(null);
     this.processingFace.set(null);
     this.acceptingFace.set(null);
     this.deletingFace.set(null);

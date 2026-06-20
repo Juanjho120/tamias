@@ -1,9 +1,11 @@
 export type ProductBoxUnit = 'cm' | 'mm' | 'in';
 export type ProductBoxFaceName = 'front' | 'back' | 'left' | 'right' | 'top' | 'bottom';
 export type ProductBoxTextureStatus = 'UPLOADED' | 'POINTS_SELECTED' | 'PROCESSED' | 'ACCEPTED' | 'FAILED';
+export type ProductBoxTextureEnhancementMode = 'none' | 'basic' | 'strong';
 
 export const PRODUCT_BOX_UNITS: ProductBoxUnit[] = ['cm', 'mm', 'in'];
 export const PRODUCT_BOX_FACE_NAMES: ProductBoxFaceName[] = ['front', 'back', 'left', 'right', 'top', 'bottom'];
+export const PRODUCT_BOX_TEXTURE_ENHANCEMENT_MODES: ProductBoxTextureEnhancementMode[] = ['none', 'basic', 'strong'];
 
 export interface ProductBoxTexturePoint {
   x: number;
@@ -15,6 +17,14 @@ export interface ProductBoxTextureProcessRequest {
   topRight: ProductBoxTexturePoint;
   bottomRight: ProductBoxTexturePoint;
   bottomLeft: ProductBoxTexturePoint;
+  enhancementMode?: ProductBoxTextureEnhancementMode | null;
+}
+
+export interface ProductBoxTextureContourDetectionResponse {
+  detected: boolean;
+  confidence: number | null;
+  points: ProductBoxTextureProcessRequest | null;
+  message: string | null;
 }
 
 export interface ProductBoxModelFace {
@@ -30,7 +40,6 @@ export interface ProductBoxModelFace {
   flipVertical: boolean;
   imageUrl: string | null;
   imageUrlExpiresIn: number | null;
-
   originalImageKey: string | null;
   originalFilepath: string | null;
   originalUploadFilename: string | null;
@@ -39,7 +48,6 @@ export interface ProductBoxModelFace {
   originalWidthPx: number | null;
   originalHeightPx: number | null;
   originalImageUrl: string | null;
-
   processedImageKey: string | null;
   processedFilepath: string | null;
   processedFilename: string | null;
@@ -48,14 +56,15 @@ export interface ProductBoxModelFace {
   processedWidthPx: number | null;
   processedHeightPx: number | null;
   processedImageUrl: string | null;
-
   targetAspectRatio: number | null;
   pointsJson: string | null;
   textureStatus: ProductBoxTextureStatus | null;
   processingError: string | null;
   processedAt: string | null;
   acceptedAt: string | null;
-
+  autoDetectedPoints: boolean | null;
+  contourConfidence: number | null;
+  enhancementMode: ProductBoxTextureEnhancementMode | null;
   createdAt: string;
   updatedAt: string | null;
 }

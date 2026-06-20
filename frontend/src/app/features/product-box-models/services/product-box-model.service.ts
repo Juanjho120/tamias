@@ -9,6 +9,7 @@ import {
   ProductBoxModelFilters,
   ProductBoxModelRequest,
   ProductBoxModelSummary,
+  ProductBoxTextureContourDetectionResponse,
   ProductBoxTextureProcessRequest
 } from '../models/product-box-model.model';
 
@@ -75,16 +76,19 @@ export class ProductBoxModelService {
     );
   }
 
-  uploadOriginalTexture(
-    id: string,
-    faceName: ProductBoxFaceName,
-    file: File
-  ): Observable<ProductBoxModelFace> {
+  uploadOriginalTexture(id: string, faceName: ProductBoxFaceName, file: File): Observable<ProductBoxModelFace> {
     const formData = new FormData();
     formData.append('file', file);
     return this.apiService.post<ProductBoxModelFace>(
       `/product-box-models/${id}/faces/${faceName}/texture/original`,
       formData
+    );
+  }
+
+  detectTextureContour(id: string, faceName: ProductBoxFaceName): Observable<ProductBoxTextureContourDetectionResponse> {
+    return this.apiService.post<ProductBoxTextureContourDetectionResponse>(
+      `/product-box-models/${id}/faces/${faceName}/texture/detect-contour`,
+      {}
     );
   }
 
@@ -122,9 +126,11 @@ export class ProductBoxModelService {
   ): FormData {
     const formData = new FormData();
     formData.append('file', file);
+
     if (rotationDegrees !== null) {
       formData.append('rotationDegrees', String(rotationDegrees));
     }
+
     formData.append('flipHorizontal', String(flipHorizontal));
     formData.append('flipVertical', String(flipVertical));
     return formData;

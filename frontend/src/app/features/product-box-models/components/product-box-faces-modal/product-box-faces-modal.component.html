@@ -10,7 +10,7 @@
               <div class="text-body-secondary small">{{ model.name }}</div>
             }
           </div>
-          <button type="button" class="btn-close" [disabled]="uploadingFace() || uploadingOriginalFace() || processingFace() || acceptingFace() || deletingFace()" (click)="close()"></button>
+          <button type="button" class="btn-close" [disabled]="uploadingFace() || uploadingOriginalFace() || detectingFace() || processingFace() || acceptingFace() || deletingFace()" (click)="close()"></button>
         </div>
 
         <div class="modal-body">
@@ -42,7 +42,7 @@
                       </div>
 
                       <div class="d-flex gap-2 flex-wrap">
-                        <label class="btn btn-outline-primary btn-sm mb-0" [class.disabled]="uploadingOriginalFace() === faceName || processingFace() === faceName || acceptingFace() === faceName || deletingFace() === faceName">
+                        <label class="btn btn-outline-primary btn-sm mb-0" [class.disabled]="uploadingOriginalFace() === faceName || detectingFace() === faceName || processingFace() === faceName || acceptingFace() === faceName || deletingFace() === faceName">
                           @if (uploadingOriginalFace() === faceName) {
                             <span class="spinner-border spinner-border-sm me-1" role="status"></span>
                             {{ 'productBoxModels.textureEditor.uploadingOriginal' | translate }}
@@ -54,12 +54,12 @@
                             type="file"
                             class="d-none"
                             accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-                            [disabled]="uploadingOriginalFace() === faceName || processingFace() === faceName || acceptingFace() === faceName || deletingFace() === faceName"
+                            [disabled]="uploadingOriginalFace() === faceName || detectingFace() === faceName || processingFace() === faceName || acceptingFace() === faceName || deletingFace() === faceName"
                             (change)="uploadOriginalTexture(faceName, $event)"
                           />
                         </label>
 
-                        <label class="btn btn-outline-secondary btn-sm mb-0" [class.disabled]="uploadingFace() === faceName || acceptingFace() === faceName || deletingFace() === faceName">
+                        <label class="btn btn-outline-secondary btn-sm mb-0" [class.disabled]="uploadingFace() === faceName || detectingFace() === faceName || acceptingFace() === faceName || deletingFace() === faceName">
                           @if (uploadingFace() === faceName) {
                             <span class="spinner-border spinner-border-sm me-1" role="status"></span>
                             {{ 'productBoxModels.faces.uploading' | translate }}
@@ -71,20 +71,32 @@
                             type="file"
                             class="d-none"
                             accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-                            [disabled]="uploadingFace() === faceName || acceptingFace() === faceName || deletingFace() === faceName"
+                            [disabled]="uploadingFace() === faceName || detectingFace() === faceName || acceptingFace() === faceName || deletingFace() === faceName"
                             (change)="uploadFace(faceName, $event)"
                           />
                         </label>
 
                         @if (currentFace?.originalImageUrl && !currentFace?.processedImageUrl) {
-                          <button type="button" class="btn btn-outline-info btn-sm" [disabled]="processingFace() === faceName || acceptingFace() === faceName || deletingFace() === faceName" (click)="toggleTextureEditor(faceName)">
+                          <button type="button" class="btn btn-outline-info btn-sm" [disabled]="detectingFace() === faceName || processingFace() === faceName || acceptingFace() === faceName || deletingFace() === faceName" (click)="toggleTextureEditor(faceName)">
                             <i class="bi bi-bounding-box-circles me-1"></i>
                             {{ (isTextureEditorOpen(faceName) ? 'productBoxModels.textureEditor.hideEditor' : 'productBoxModels.textureEditor.adjustCorners') | translate }}
                           </button>
                         }
 
+                        @if (currentFace?.originalImageUrl) {
+                          <button type="button" class="btn btn-outline-info btn-sm" [disabled]="detectingFace() === faceName || processingFace() === faceName || acceptingFace() === faceName || deletingFace() === faceName" (click)="detectContour(faceName)">
+                            @if (detectingFace() === faceName) {
+                              <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                              {{ 'productBoxModels.textureEditor.detectingContour' | translate }}
+                            } @else {
+                              <i class="bi bi-search me-1"></i>
+                              {{ 'productBoxModels.textureEditor.detectContour' | translate }}
+                            }
+                          </button>
+                        }
+
                         @if (currentFace) {
-                          <button type="button" class="btn btn-outline-danger btn-sm" [disabled]="deletingFace() === faceName || processingFace() === faceName || acceptingFace() === faceName" (click)="requestDelete(faceName)">
+                          <button type="button" class="btn btn-outline-danger btn-sm" [disabled]="deletingFace() === faceName || detectingFace() === faceName || processingFace() === faceName || acceptingFace() === faceName" (click)="requestDelete(faceName)">
                             @if (deletingFace() === faceName) {
                               <span class="spinner-border spinner-border-sm me-1" role="status"></span>
                             } @else {
@@ -127,6 +139,9 @@
                                 @if (currentFace?.originalWidthPx && currentFace?.originalHeightPx) {
                                   · {{ currentFace?.originalWidthPx }} × {{ currentFace?.originalHeightPx }} px
                                 }
+                                @if (currentFace?.autoDetectedPoints && currentFace?.contourConfidence !== null) {
+                                  · {{ 'productBoxModels.textureEditor.contourConfidence' | translate }}: {{ currentFace?.contourConfidence }}
+                                }
                               </div>
                             </div>
                             <button type="button" class="btn btn-link btn-sm px-0" (click)="openImage(currentFace?.originalImageUrl)">
@@ -150,6 +165,9 @@
                                 @if (currentFace?.processedWidthPx && currentFace?.processedHeightPx) {
                                   · {{ currentFace?.processedWidthPx }} × {{ currentFace?.processedHeightPx }} px
                                 }
+                                @if (currentFace?.enhancementMode) {
+                                  · {{ 'productBoxModels.textureEditor.enhancementMode' | translate }}: {{ currentFace?.enhancementMode }}
+                                }
                               </div>
                               @if (currentFace?.processedAt) {
                                 <div class="text-body-secondary">{{ currentFace?.processedAt | date:'medium' }}</div>
@@ -163,7 +181,7 @@
                                 <button
                                   type="button"
                                   class="btn btn-success btn-sm"
-                                  [disabled]="acceptingFace() === faceName || processingFace() === faceName || deletingFace() === faceName"
+                                  [disabled]="acceptingFace() === faceName || detectingFace() === faceName || processingFace() === faceName || deletingFace() === faceName"
                                   (click)="acceptProcessedTexture(faceName)"
                                 >
                                   @if (acceptingFace() === faceName) {
@@ -184,7 +202,7 @@
                                 <button
                                   type="button"
                                   class="btn btn-outline-info btn-sm"
-                                  [disabled]="processingFace() === faceName || acceptingFace() === faceName || deletingFace() === faceName"
+                                  [disabled]="detectingFace() === faceName || processingFace() === faceName || acceptingFace() === faceName || deletingFace() === faceName"
                                   (click)="retryTexture(faceName)"
                                 >
                                   <i class="bi bi-arrow-repeat me-1"></i>
@@ -214,7 +232,7 @@
                               [imageUrl]="currentFace?.originalImageUrl ?? null"
                               [imageWidth]="currentFace?.originalWidthPx ?? null"
                               [imageHeight]="currentFace?.originalHeightPx ?? null"
-                              [disabled]="processingFace() === faceName || acceptingFace() === faceName || deletingFace() === faceName"
+                              [disabled]="detectingFace() === faceName || processingFace() === faceName || acceptingFace() === faceName || deletingFace() === faceName"
                               [initialPoints]="initialPoints(faceName)"
                               (pointsChanged)="onTexturePointsChanged(faceName, $event)"
                             />
@@ -259,7 +277,7 @@
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" [disabled]="uploadingFace() || uploadingOriginalFace() || processingFace() || acceptingFace() || deletingFace()" (click)="close()">
+          <button type="button" class="btn btn-secondary" [disabled]="uploadingFace() || uploadingOriginalFace() || detectingFace() || processingFace() || acceptingFace() || deletingFace()" (click)="close()">
             {{ 'common.close' | translate }}
           </button>
         </div>

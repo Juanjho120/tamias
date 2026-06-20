@@ -13,7 +13,7 @@ import {
 import { TranslatePipe } from '@ngx-translate/core';
 import { ProductBoxTexturePoint, ProductBoxTextureProcessRequest } from '../../models/product-box-model.model';
 
-type CornerName = keyof ProductBoxTextureProcessRequest;
+type CornerName = 'topLeft' | 'topRight' | 'bottomRight' | 'bottomLeft';
 type NormalizedCorners = Record<CornerName, ProductBoxTexturePoint>;
 
 @Component({
