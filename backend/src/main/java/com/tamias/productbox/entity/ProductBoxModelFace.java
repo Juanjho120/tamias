@@ -123,6 +123,15 @@ public class ProductBoxModelFace extends AuditableEntity {
     @Column(name = "accepted_at")
     private OffsetDateTime acceptedAt;
 
+    @Column(name = "auto_detected_points", nullable = false)
+    private Boolean autoDetectedPoints = false;
+
+    @Column(name = "contour_confidence", precision = 5, scale = 4)
+    private BigDecimal contourConfidence;
+
+    @Column(name = "enhancement_mode", nullable = false, length = 20)
+    private String enhancementMode = "basic";
+
     @Column(name = "rotation_degrees", precision = 10, scale = 2)
     private BigDecimal rotationDegrees;
 

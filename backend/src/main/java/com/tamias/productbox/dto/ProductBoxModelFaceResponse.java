@@ -41,5 +41,9 @@ public record ProductBoxModelFaceResponse(
     ProductBoxTextureStatus textureStatus,
     String processingError,
     OffsetDateTime processedAt,
-    OffsetDateTime acceptedAt
-) { }
+    OffsetDateTime acceptedAt,
+    Boolean autoDetectedPoints,
+    BigDecimal contourConfidence,
+    String enhancementMode
+) {
+}

@@ -1584,6 +1584,15 @@
       "accepting": "Accepting...",
       "retryAdjustment": "Retry adjustment",
       "acceptedHelp": "The accepted processed texture is applied as the active texture for the 3D model.",
+      "detectContour": "Detect contour",
+      "detectingContour": "Detecting contour...",
+      "contourConfidence": "confidence",
+      "enhancementMode": "enhancement",
+      "enhancementModes": {
+        "none": "none",
+        "basic": "basic",
+        "strong": "strong"
+      },
       "points": {
         "topLeft": "Top left",
         "topRight": "Top right",
@@ -1601,7 +1610,10 @@
         "processed": "Texture processed successfully.",
         "processError": "Could not process the texture.",
         "accepted": "Texture accepted and applied to the 3D model.",
-        "acceptError": "Could not accept the processed texture."
+        "acceptError": "Could not accept the processed texture.",
+        "contourDetected": "Contour detected. Review the points and adjust if needed.",
+        "contourNotDetected": "No reliable contour was detected. Adjust the corners manually.",
+        "contourDetectError": "The image contour could not be detected."
       }
     }
   }

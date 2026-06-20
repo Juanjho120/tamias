@@ -7,10 +7,12 @@ import com.tamias.common.exception.NotFoundException;
 import com.tamias.document.storage.FileStorageService;
 import com.tamias.image.service.ImageValidationService;
 import com.tamias.productbox.dto.ProductBoxModelFaceResponse;
+import com.tamias.productbox.dto.ProductBoxTextureContourDetectionResponse;
 import com.tamias.productbox.dto.ProductBoxTextureProcessRequest;
 import com.tamias.productbox.entity.ProductBoxModel;
 import com.tamias.productbox.entity.ProductBoxModelFace;
 import com.tamias.productbox.enums.ProductBoxFaceName;
+import com.tamias.productbox.enums.ProductBoxTextureEnhancementMode;
 import com.tamias.productbox.enums.ProductBoxTextureStatus;
 import com.tamias.productbox.mapper.ProductBoxModelMapper;
 import com.tamias.productbox.repository.ProductBoxModelFaceRepository;
@@ -78,6 +80,7 @@ public class ProductBoxModelFaceService {
     public List<ProductBoxModelFaceResponse> findAll(UUID productBoxModelId) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         validateProductBoxModel(productBoxModelId, organizationId);
+
         return productBoxModelFaceRepository
             .findByProductBoxModel_IdAndOrganization_IdOrderByFaceNameAsc(productBoxModelId, organizationId)
             .stream()
@@ -111,8 +114,12 @@ public class ProductBoxModelFaceService {
         ImageDimensions dimensions = readDimensions(file);
         var storedFile = fileStorageService.store(
             file,
-            productBoxModel.getOrganization().getId() + "/catalogs/product_box_models/" + productBoxModel.getId()
-                + "/faces/" + faceName.getValue() + "/original"
+            productBoxModel.getOrganization().getId()
+                + "/catalogs/product_box_models/"
+                + productBoxModel.getId()
+                + "/faces/"
+                + faceName.getValue()
+                + "/original"
         );
 
         if (face == null) {
@@ -143,10 +150,61 @@ public class ProductBoxModelFaceService {
         face.setPointsJson(null);
         face.setProcessingError(null);
         face.setProcessedAt(null);
+        face.setAutoDetectedPoints(false);
+        face.setContourConfidence(null);
+        face.setEnhancementMode(ProductBoxTextureEnhancementMode.BASIC.getValue());
         face.setTextureStatus(ProductBoxTextureStatus.UPLOADED);
         face.setUpdatedBy(currentUser);
 
         return productBoxModelMapper.toFaceResponse(productBoxModelFaceRepository.save(face));
+    }
+
+    @Transactional(noRollbackFor = BadRequestException.class)
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF')")
+    public ProductBoxTextureContourDetectionResponse detectContour(UUID productBoxModelId, String faceNameValue) {
+        ProductBoxModelFace face = findFace(productBoxModelId, faceNameValue);
+        User currentUser = findCurrentUser();
+
+        if (face.getOriginalS3Key() == null || face.getOriginalS3Key().isBlank()) {
+            throw new BadRequestException("Original product box face image is required before detecting contour");
+        }
+
+        Resource originalResource = fileStorageService.loadAsResource(face.getOriginalS3Key());
+        ProductBoxTextureProcessingService.DetectedProductBoxContour detection;
+
+        try {
+            detection = productBoxTextureProcessingService.detectContour(
+                originalResource,
+                face.getOriginalWidthPx(),
+                face.getOriginalHeightPx()
+            );
+        } catch (RuntimeException ex) {
+            face.setAutoDetectedPoints(false);
+            face.setContourConfidence(BigDecimal.ZERO.setScale(4, RoundingMode.HALF_UP));
+            face.setProcessingError(truncate(ex.getMessage(), 1000));
+            face.setUpdatedBy(currentUser);
+            productBoxModelFaceRepository.save(face);
+            throw ex;
+        }
+
+        face.setAutoDetectedPoints(detection.detected());
+        face.setContourConfidence(detection.confidence());
+        face.setProcessingError(detection.detected() ? null : detection.message());
+
+        if (detection.detected() && detection.points() != null) {
+            face.setPointsJson(toJson(detection.points()));
+            face.setTextureStatus(ProductBoxTextureStatus.POINTS_SELECTED);
+        }
+
+        face.setUpdatedBy(currentUser);
+        productBoxModelFaceRepository.save(face);
+
+        return new ProductBoxTextureContourDetectionResponse(
+            detection.detected(),
+            detection.confidence(),
+            detection.points(),
+            detection.message()
+        );
     }
 
     @Transactional(noRollbackFor = BadRequestException.class)
@@ -167,6 +225,7 @@ public class ProductBoxModelFaceService {
 
         Resource originalResource = fileStorageService.loadAsResource(face.getOriginalS3Key());
         ProductBoxTextureProcessingService.ProcessedProductBoxTexture processedTexture;
+
         try {
             processedTexture = productBoxTextureProcessingService.process(
                 originalResource,
@@ -193,8 +252,12 @@ public class ProductBoxModelFaceService {
 
         var storedFile = fileStorageService.store(
             processedFile,
-            productBoxModel.getOrganization().getId() + "/catalogs/product_box_models/" + productBoxModel.getId()
-                + "/faces/" + faceName.getValue() + "/processed"
+            productBoxModel.getOrganization().getId()
+                + "/catalogs/product_box_models/"
+                + productBoxModel.getId()
+                + "/faces/"
+                + faceName.getValue()
+                + "/processed"
         );
 
         String previousProcessedS3Key = face.getProcessedS3Key();
@@ -219,6 +282,7 @@ public class ProductBoxModelFaceService {
         face.setTextureStatus(ProductBoxTextureStatus.PROCESSED);
         face.setProcessingError(null);
         face.setProcessedAt(OffsetDateTime.now());
+        face.setEnhancementMode(processedTexture.enhancementMode().getValue());
         face.setUpdatedBy(currentUser);
 
         return productBoxModelMapper.toFaceResponse(productBoxModelFaceRepository.save(face));
@@ -280,8 +344,11 @@ public class ProductBoxModelFaceService {
 
         var storedFile = fileStorageService.store(
             file,
-            productBoxModel.getOrganization().getId() + "/catalogs/product_box_models/" + productBoxModel.getId()
-                + "/faces/" + faceName.getValue()
+            productBoxModel.getOrganization().getId()
+                + "/catalogs/product_box_models/"
+                + productBoxModel.getId()
+                + "/faces/"
+                + faceName.getValue()
         );
 
         if (existingFace != null) {
@@ -293,6 +360,7 @@ public class ProductBoxModelFaceService {
                     throw ex;
                 }
             }
+
             existingFace.setOriginalFilename(normalizeOriginalFilename(file));
             existingFace.setS3Key(storedFile.storageKey());
             existingFace.setFilepath(storedFile.filepath());
@@ -386,6 +454,7 @@ public class ProductBoxModelFaceService {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         validateProductBoxModel(productBoxModelId, organizationId);
         ProductBoxFaceName faceName = ProductBoxFaceName.fromValue(faceNameValue);
+
         return productBoxModelFaceRepository
             .findByProductBoxModel_IdAndOrganization_IdAndFaceName(productBoxModelId, organizationId, faceName)
             .orElseThrow(() -> new NotFoundException("Product box model face not found"));
@@ -406,6 +475,7 @@ public class ProductBoxModelFaceService {
         List<String> keysToDelete = new ArrayList<>();
         addDraftKeyIfPresent(keysToDelete, face, face.getProcessedS3Key());
         addDraftKeyIfPresent(keysToDelete, face, face.getOriginalS3Key());
+
         try {
             for (String storageKey : keysToDelete) {
                 fileStorageService.delete(storageKey);
@@ -423,15 +493,11 @@ public class ProductBoxModelFaceService {
     }
 
     private boolean shouldDeleteDraftKey(ProductBoxModelFace face, String storageKey) {
-        return storageKey != null
-            && !storageKey.isBlank()
-            && !storageKey.equals(face.getS3Key());
+        return storageKey != null && !storageKey.isBlank() && !storageKey.equals(face.getS3Key());
     }
 
     private boolean shouldDeleteActiveKey(String activeStorageKey, String acceptedStorageKey) {
-        return activeStorageKey != null
-            && !activeStorageKey.isBlank()
-            && !activeStorageKey.equals(acceptedStorageKey);
+        return activeStorageKey != null && !activeStorageKey.isBlank() && !activeStorageKey.equals(acceptedStorageKey);
     }
 
     private void deleteAllStorageKeys(ProductBoxModelFace face) {
@@ -439,6 +505,7 @@ public class ProductBoxModelFaceService {
         addIfPresent(keysToDelete, face.getS3Key());
         addIfPresent(keysToDelete, face.getOriginalS3Key());
         addIfPresent(keysToDelete, face.getProcessedS3Key());
+
         for (String storageKey : keysToDelete) {
             fileStorageService.delete(storageKey);
         }
@@ -475,13 +542,16 @@ public class ProductBoxModelFaceService {
             case FRONT, BACK, TOP, BOTTOM -> productBoxModel.getWidth();
             case LEFT, RIGHT -> productBoxModel.getDepth();
         };
+
         BigDecimal targetHeight = switch (faceName) {
             case FRONT, BACK, LEFT, RIGHT -> productBoxModel.getHeight();
             case TOP, BOTTOM -> productBoxModel.getDepth();
         };
+
         if (targetWidth == null || targetHeight == null || BigDecimal.ZERO.compareTo(targetHeight) == 0) {
             throw new BadRequestException("Invalid product box dimensions");
         }
+
         return targetWidth.divide(targetHeight, 6, RoundingMode.HALF_UP);
     }
 

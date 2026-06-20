@@ -4,6 +4,7 @@ import com.tamias.common.dto.PageResponse;
 import com.tamias.productbox.dto.ProductBoxModelFaceResponse;
 import com.tamias.productbox.dto.ProductBoxModelRequest;
 import com.tamias.productbox.dto.ProductBoxModelResponse;
+import com.tamias.productbox.dto.ProductBoxTextureContourDetectionResponse;
 import com.tamias.productbox.dto.ProductBoxTextureProcessRequest;
 import com.tamias.productbox.service.ProductBoxModelFaceService;
 import com.tamias.productbox.service.ProductBoxModelService;
@@ -102,6 +103,14 @@ public class ProductBoxModelController {
         @RequestPart("file") MultipartFile file
     ) {
         return productBoxModelFaceService.uploadOriginal(id, faceName, file);
+    }
+
+    @PostMapping("/{id}/faces/{faceName}/texture/detect-contour")
+    public ProductBoxTextureContourDetectionResponse detectFaceTextureContour(
+        @PathVariable UUID id,
+        @PathVariable String faceName
+    ) {
+        return productBoxModelFaceService.detectContour(id, faceName);
     }
 
     @PostMapping("/{id}/faces/{faceName}/texture/process")

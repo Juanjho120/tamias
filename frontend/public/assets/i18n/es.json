@@ -1583,6 +1583,15 @@
       "accepting": "Aceptando...",
       "retryAdjustment": "Reintentar ajuste",
       "acceptedHelp": "La textura procesada aceptada se aplica como textura activa del modelo 3D.",
+      "detectContour": "Detectar contorno",
+      "detectingContour": "Detectando contorno...",
+      "contourConfidence": "confianza",
+      "enhancementMode": "mejora",
+      "enhancementModes": {
+        "none": "sin mejora",
+        "basic": "básica",
+        "strong": "fuerte"
+      },
       "points": {
         "topLeft": "Superior izquierda",
         "topRight": "Superior derecha",
@@ -1600,7 +1609,10 @@
         "processed": "Textura procesada correctamente.",
         "processError": "No se pudo procesar la textura.",
         "accepted": "Textura aceptada y aplicada al modelo 3D.",
-        "acceptError": "No se pudo aceptar la textura procesada."
+        "acceptError": "No se pudo aceptar la textura procesada.",
+        "contourDetected": "Contorno detectado. Revisa los puntos y ajusta si es necesario.",
+        "contourNotDetected": "No se detectó un contorno confiable. Ajusta las esquinas manualmente.",
+        "contourDetectError": "No se pudo detectar el contorno de la imagen."
       }
     }
   }

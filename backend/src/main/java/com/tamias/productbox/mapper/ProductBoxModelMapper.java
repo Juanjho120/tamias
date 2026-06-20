@@ -99,7 +99,10 @@ public class ProductBoxModelMapper {
             entity.getTextureStatus(),
             entity.getProcessingError(),
             entity.getProcessedAt(),
-            entity.getAcceptedAt()
+            entity.getAcceptedAt(),
+            entity.getAutoDetectedPoints(),
+            entity.getContourConfidence(),
+            entity.getEnhancementMode()
         );
     }
 
@@ -135,8 +138,6 @@ public class ProductBoxModelMapper {
     }
 
     private String buildUrl(String storageKey) {
-        return storageKey == null || storageKey.isBlank()
-            ? null
-            : fileStorageService.buildFileUrl(storageKey);
+        return storageKey == null || storageKey.isBlank() ? null : fileStorageService.buildFileUrl(storageKey);
     }
 }
