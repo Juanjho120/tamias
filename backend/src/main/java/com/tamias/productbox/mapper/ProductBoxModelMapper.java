@@ -76,8 +76,30 @@ public class ProductBoxModelMapper {
             entity.getFlipVertical(),
             entity.getCreatedAt(),
             entity.getUpdatedAt(),
-            fileStorageService.buildFileUrl(entity.getS3Key()),
-            fileStorageService.getDownloadUrlExpirationSeconds()
+            buildUrl(entity.getS3Key()),
+            fileStorageService.getDownloadUrlExpirationSeconds(),
+            entity.getOriginalS3Key(),
+            entity.getOriginalFilepath(),
+            entity.getOriginalUploadFilename(),
+            entity.getOriginalContentType(),
+            entity.getOriginalSizeBytes(),
+            entity.getOriginalWidthPx(),
+            entity.getOriginalHeightPx(),
+            buildUrl(entity.getOriginalS3Key()),
+            entity.getProcessedS3Key(),
+            entity.getProcessedFilepath(),
+            entity.getProcessedFilename(),
+            entity.getProcessedContentType(),
+            entity.getProcessedSizeBytes(),
+            entity.getProcessedWidthPx(),
+            entity.getProcessedHeightPx(),
+            buildUrl(entity.getProcessedS3Key()),
+            entity.getTargetAspectRatio(),
+            entity.getPointsJson(),
+            entity.getTextureStatus(),
+            entity.getProcessingError(),
+            entity.getProcessedAt(),
+            entity.getAcceptedAt()
         );
     }
 
@@ -110,5 +132,11 @@ public class ProductBoxModelMapper {
 
     private String normalizeNullable(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private String buildUrl(String storageKey) {
+        return storageKey == null || storageKey.isBlank()
+            ? null
+            : fileStorageService.buildFileUrl(storageKey);
     }
 }

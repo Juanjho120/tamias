@@ -22,6 +22,7 @@ import com.tamias.security.service.CurrentUserService;
 import com.tamias.user.entity.User;
 import com.tamias.user.repository.UserRepository;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -76,21 +77,9 @@ public class ProductBoxModelService {
     ) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         String searchPattern = buildSearchPattern(search);
-
         Page<ProductBoxModel> page = searchPattern == null
-            ? productBoxModelRepository.findAllAvailable(
-                organizationId,
-                inventoryItemId,
-                purchaseItemId,
-                pageable
-            )
-            : productBoxModelRepository.search(
-                organizationId,
-                inventoryItemId,
-                purchaseItemId,
-                searchPattern,
-                pageable
-            );
+            ? productBoxModelRepository.findAllAvailable(organizationId, inventoryItemId, purchaseItemId, pageable)
+            : productBoxModelRepository.search(organizationId, inventoryItemId, purchaseItemId, searchPattern, pageable);
 
         return PageResponse.from(page.map(productBoxModelMapper::toResponse));
     }
@@ -113,7 +102,6 @@ public class ProductBoxModelService {
         entity.setOrganization(organization);
         entity.setCreatedBy(currentUser);
         entity.setUpdatedBy(currentUser);
-
         productBoxModelMapper.updateEntity(entity, request);
         setOptionalRelations(entity, request, organizationId);
 
@@ -140,16 +128,14 @@ public class ProductBoxModelService {
         ProductBoxModel entity = findEntity(id);
         User currentUser = findCurrentUser();
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-
         List<ProductBoxModelFace> faces = productBoxModelFaceRepository
             .findByProductBoxModel_IdAndOrganization_IdOrderByFaceNameAsc(id, organizationId);
 
         for (ProductBoxModelFace face : faces) {
-            fileStorageService.delete(face.getS3Key());
+            deleteAllStorageKeys(face);
         }
 
         productBoxModelFaceRepository.deleteAll(faces);
-
         entity.setDeletedAt(OffsetDateTime.now());
         entity.setDeletedBy(currentUser);
         entity.setUpdatedBy(currentUser);
@@ -220,7 +206,23 @@ public class ProductBoxModelService {
         if (search == null || search.isBlank()) {
             return null;
         }
-
         return "%" + search.trim().toLowerCase(Locale.ROOT) + "%";
+    }
+
+    private void deleteAllStorageKeys(ProductBoxModelFace face) {
+        List<String> keysToDelete = new ArrayList<>();
+        addIfPresent(keysToDelete, face.getS3Key());
+        addIfPresent(keysToDelete, face.getOriginalS3Key());
+        addIfPresent(keysToDelete, face.getProcessedS3Key());
+
+        for (String storageKey : keysToDelete) {
+            fileStorageService.delete(storageKey);
+        }
+    }
+
+    private void addIfPresent(List<String> storageKeys, String storageKey) {
+        if (storageKey != null && !storageKey.isBlank() && !storageKeys.contains(storageKey)) {
+            storageKeys.add(storageKey);
+        }
     }
 }

@@ -93,6 +93,35 @@ public class ProductBoxModelController {
         return productBoxModelFaceService.findByFaceName(id, faceName);
     }
 
+    @PostMapping(value = "/{id}/faces/{faceName}/texture/original", consumes = "multipart/form-data")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ProductBoxModelFaceResponse uploadOriginalFaceTexture(
+        @PathVariable UUID id,
+        @PathVariable String faceName,
+        @RequestPart("file") MultipartFile file
+    ) {
+        return productBoxModelFaceService.uploadOriginal(id, faceName, file);
+    }
+
+    @GetMapping("/{id}/faces/{faceName}/texture/original/file")
+    public ResponseEntity<Resource> getOriginalFaceFile(
+        @PathVariable UUID id,
+        @PathVariable String faceName
+    ) {
+        Resource resource = productBoxModelFaceService.getOriginalFile(id, faceName);
+        return ResponseEntity.ok()
+            .contentType(productBoxModelFaceService.getOriginalMediaType(id, faceName))
+            .cacheControl(CacheControl.noCache())
+            .header(
+                HttpHeaders.CONTENT_DISPOSITION,
+                ContentDisposition.inline()
+                    .filename(resource.getFilename() != null ? resource.getFilename() : "image")
+                    .build()
+                    .toString()
+            )
+            .body(resource);
+    }
+
     @PostMapping(value = "/{id}/faces/{faceName}", consumes = "multipart/form-data")
     @ResponseStatus(HttpStatus.CREATED)
     public ProductBoxModelFaceResponse uploadFace(
