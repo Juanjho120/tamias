@@ -29,7 +29,9 @@ public class ProductBoxTextureProcessingService {
         Resource originalResource,
         ProductBoxModel productBoxModel,
         ProductBoxFaceName faceName,
-        ProductBoxTextureProcessRequest request
+        ProductBoxTextureProcessRequest request,
+        Integer coordinateWidthPx,
+        Integer coordinateHeightPx
     ) {
         ensureOpenCvLoaded();
 
@@ -48,14 +50,21 @@ public class ProductBoxTextureProcessingService {
                 throw new BadRequestException("Original product box texture image could not be decoded");
             }
 
-            validatePoints(request, source.width(), source.height());
+            ProductBoxTextureProcessRequest sourceCoordinateRequest = toSourceCoordinateRequest(
+                request,
+                source.width(),
+                source.height(),
+                coordinateWidthPx,
+                coordinateHeightPx
+            );
+            validatePoints(sourceCoordinateRequest, source.width(), source.height());
 
             TargetTextureSize targetSize = calculateTargetSize(productBoxModel, faceName);
             sourcePoints = new MatOfPoint2f(
-                toPoint(request.topLeft()),
-                toPoint(request.topRight()),
-                toPoint(request.bottomRight()),
-                toPoint(request.bottomLeft())
+                toPoint(sourceCoordinateRequest.topLeft()),
+                toPoint(sourceCoordinateRequest.topRight()),
+                toPoint(sourceCoordinateRequest.bottomRight()),
+                toPoint(sourceCoordinateRequest.bottomLeft())
             );
             targetPoints = new MatOfPoint2f(
                 new Point(0, 0),
@@ -87,7 +96,8 @@ public class ProductBoxTextureProcessingService {
                 PROCESSED_CONTENT_TYPE,
                 targetSize.width(),
                 targetSize.height(),
-                targetSize.aspectRatio()
+                targetSize.aspectRatio(),
+                sourceCoordinateRequest
             );
         } catch (IOException ex) {
             throw new BadRequestException("Original product box texture image could not be read");
@@ -99,6 +109,57 @@ public class ProductBoxTextureProcessingService {
             release(targetPoints);
             release(encoded);
         }
+    }
+
+
+    private ProductBoxTextureProcessRequest toSourceCoordinateRequest(
+        ProductBoxTextureProcessRequest request,
+        int sourceWidth,
+        int sourceHeight,
+        Integer coordinateWidthPx,
+        Integer coordinateHeightPx
+    ) {
+        int coordinateWidth = normalizeCoordinateDimension(coordinateWidthPx, sourceWidth);
+        int coordinateHeight = normalizeCoordinateDimension(coordinateHeightPx, sourceHeight);
+
+        return new ProductBoxTextureProcessRequest(
+            toSourceCoordinatePoint(request.topLeft(), sourceWidth, sourceHeight, coordinateWidth, coordinateHeight),
+            toSourceCoordinatePoint(request.topRight(), sourceWidth, sourceHeight, coordinateWidth, coordinateHeight),
+            toSourceCoordinatePoint(request.bottomRight(), sourceWidth, sourceHeight, coordinateWidth, coordinateHeight),
+            toSourceCoordinatePoint(request.bottomLeft(), sourceWidth, sourceHeight, coordinateWidth, coordinateHeight)
+        );
+    }
+
+    private int normalizeCoordinateDimension(Integer coordinateDimension, int sourceDimension) {
+        if (coordinateDimension == null || coordinateDimension <= 0) {
+            return sourceDimension;
+        }
+        return coordinateDimension;
+    }
+
+    private ProductBoxTexturePointRequest toSourceCoordinatePoint(
+        ProductBoxTexturePointRequest point,
+        int sourceWidth,
+        int sourceHeight,
+        int coordinateWidth,
+        int coordinateHeight
+    ) {
+        BigDecimal x = scaleAndClamp(point.x(), coordinateWidth, sourceWidth);
+        BigDecimal y = scaleAndClamp(point.y(), coordinateHeight, sourceHeight);
+        return new ProductBoxTexturePointRequest(x, y);
+    }
+
+    private BigDecimal scaleAndClamp(BigDecimal value, int coordinateDimension, int sourceDimension) {
+        double raw = value != null ? value.doubleValue() : 0.0;
+        double scaled = raw;
+
+        if (coordinateDimension > 1 && sourceDimension > 1 && coordinateDimension != sourceDimension) {
+            scaled = raw * ((sourceDimension - 1.0) / (coordinateDimension - 1.0));
+        }
+
+        double max = Math.max(0, sourceDimension - 1.0);
+        double clamped = Math.max(0.0, Math.min(max, Math.round(scaled)));
+        return BigDecimal.valueOf(clamped);
     }
 
     private static synchronized void ensureOpenCvLoaded() {
@@ -195,7 +256,8 @@ public class ProductBoxTextureProcessingService {
         String contentType,
         Integer widthPx,
         Integer heightPx,
-        BigDecimal targetAspectRatio
+        BigDecimal targetAspectRatio,
+        ProductBoxTextureProcessRequest appliedPoints
     ) { }
 
     private record TargetTextureSize(

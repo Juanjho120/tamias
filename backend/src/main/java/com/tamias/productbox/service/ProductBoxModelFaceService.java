@@ -172,7 +172,9 @@ public class ProductBoxModelFaceService {
                 originalResource,
                 productBoxModel,
                 faceName,
-                request
+                request,
+                face.getOriginalWidthPx(),
+                face.getOriginalHeightPx()
             );
         } catch (RuntimeException ex) {
             face.setTextureStatus(ProductBoxTextureStatus.FAILED);
@@ -213,7 +215,7 @@ public class ProductBoxModelFaceService {
         face.setProcessedWidthPx(processedTexture.widthPx());
         face.setProcessedHeightPx(processedTexture.heightPx());
         face.setTargetAspectRatio(processedTexture.targetAspectRatio());
-        face.setPointsJson(toJson(request));
+        face.setPointsJson(toJson(processedTexture.appliedPoints()));
         face.setTextureStatus(ProductBoxTextureStatus.PROCESSED);
         face.setProcessingError(null);
         face.setProcessedAt(OffsetDateTime.now());
