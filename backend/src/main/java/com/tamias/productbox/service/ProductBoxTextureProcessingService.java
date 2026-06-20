@@ -13,12 +13,15 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import org.opencv.core.Core;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
+import org.opencv.core.Rect;
 import org.opencv.core.RotatedRect;
+import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.CLAHE;
@@ -155,6 +158,7 @@ public class ProductBoxTextureProcessingService {
             Imgproc.cvtColor(source, gray, Imgproc.COLOR_BGR2GRAY);
 
             List<ContourCandidate> candidates = new ArrayList<>();
+            candidates.addAll(findCandidatesWithGrabCut(source, source.width(), source.height()));
             candidates.addAll(findCandidatesWithCanny(gray, source.width(), source.height()));
             candidates.addAll(findCandidatesWithAdaptiveThreshold(gray, source.width(), source.height()));
 
@@ -187,6 +191,106 @@ public class ProductBoxTextureProcessingService {
             release(source);
             release(gray);
         }
+    }
+
+
+    private List<ContourCandidate> findCandidatesWithGrabCut(Mat source, int width, int height) {
+        Mat resized = null;
+        Mat mask = null;
+        Mat backgroundModel = null;
+        Mat foregroundModel = null;
+        Mat sureForeground = new Mat();
+        Mat probableForeground = new Mat();
+        Mat foregroundMask = new Mat();
+        Mat cleanedMask = new Mat();
+        Mat kernel = null;
+        Mat hierarchy = new Mat();
+        List<MatOfPoint> contours = new ArrayList<>();
+        List<ContourCandidate> candidates = new ArrayList<>();
+
+        try {
+            double scale = Math.min(1.0, 900.0 / Math.max(width, height));
+            if (scale < 1.0) {
+                resized = new Mat();
+                Imgproc.resize(source, resized, new Size(Math.round(width * scale), Math.round(height * scale)), 0, 0, Imgproc.INTER_AREA);
+            } else {
+                resized = source.clone();
+            }
+
+            int resizedWidth = resized.width();
+            int resizedHeight = resized.height();
+            int insetX = Math.max(2, (int) Math.round(resizedWidth * 0.08));
+            int insetY = Math.max(2, (int) Math.round(resizedHeight * 0.025));
+            Rect initialRectangle = new Rect(
+                    insetX,
+                    insetY,
+                    Math.max(2, resizedWidth - (insetX * 2)),
+                    Math.max(2, resizedHeight - (insetY * 2))
+            );
+
+            mask = new Mat(resizedHeight, resizedWidth, CvType.CV_8UC1, new Scalar(Imgproc.GC_BGD));
+            backgroundModel = new Mat(1, 65, CvType.CV_64FC1);
+            foregroundModel = new Mat(1, 65, CvType.CV_64FC1);
+
+            Imgproc.grabCut(
+                    resized,
+                    mask,
+                    initialRectangle,
+                    backgroundModel,
+                    foregroundModel,
+                    5,
+                    Imgproc.GC_INIT_WITH_RECT
+            );
+
+            Core.inRange(mask, new Scalar(Imgproc.GC_FGD), new Scalar(Imgproc.GC_FGD), sureForeground);
+            Core.inRange(mask, new Scalar(Imgproc.GC_PR_FGD), new Scalar(Imgproc.GC_PR_FGD), probableForeground);
+            Core.bitwise_or(sureForeground, probableForeground, foregroundMask);
+
+            kernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(9, 9));
+            Imgproc.morphologyEx(foregroundMask, cleanedMask, Imgproc.MORPH_CLOSE, kernel, new Point(-1, -1), 2);
+            Imgproc.morphologyEx(cleanedMask, cleanedMask, Imgproc.MORPH_OPEN, kernel, new Point(-1, -1), 1);
+
+            Imgproc.findContours(cleanedMask, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+            double imageArea = Math.max(1.0, width * (double) height);
+            double inverseScale = scale > 0 ? 1.0 / scale : 1.0;
+
+            for (MatOfPoint contour : contours) {
+                MatOfPoint scaledContour = scaleContour(contour, inverseScale);
+                try {
+                    ContourCandidate candidate = toCandidate(scaledContour, imageArea, 1.45);
+                    if (candidate != null) {
+                        candidates.add(candidate);
+                    }
+                } finally {
+                    scaledContour.release();
+                }
+            }
+
+            return candidates;
+        } catch (RuntimeException ex) {
+            return candidates;
+        } finally {
+            contours.forEach(Mat::release);
+            release(resized);
+            release(mask);
+            release(backgroundModel);
+            release(foregroundModel);
+            release(sureForeground);
+            release(probableForeground);
+            release(foregroundMask);
+            release(cleanedMask);
+            release(kernel);
+            release(hierarchy);
+        }
+    }
+
+    private MatOfPoint scaleContour(MatOfPoint contour, double scale) {
+        Point[] points = contour.toArray();
+        Point[] scaledPoints = new Point[points.length];
+        for (int i = 0; i < points.length; i++) {
+            scaledPoints[i] = new Point(points[i].x * scale, points[i].y * scale);
+        }
+        return new MatOfPoint(scaledPoints);
     }
 
     private List<ContourCandidate> findCandidatesWithCanny(Mat gray, int width, int height) {
@@ -531,17 +635,47 @@ public class ProductBoxTextureProcessingService {
     private Mat applyEnhancement(Mat source, ProductBoxTextureEnhancementMode enhancementMode) {
         return switch (normalizeEnhancementMode(enhancementMode)) {
             case NONE -> source.clone();
-            case BASIC -> applyClahe(source, 1.8);
-            case STRONG -> applyStrongEnhancement(source);
+            case BASIC -> applyBalancedEnhancement(source, 2.0, 1.12, 16.0, 0.90);
+            case STRONG -> applyBalancedEnhancement(source, 2.6, 1.20, 24.0, 0.82);
         };
     }
 
-    private Mat applyStrongEnhancement(Mat source) {
-        Mat enhanced = applyClahe(source, 2.5);
+    private Mat applyBalancedEnhancement(
+            Mat source,
+            double clipLimit,
+            double contrastAlpha,
+            double brightnessBeta,
+            double gammaValue
+    ) {
+        Mat contrastEnhanced = applyClahe(source, clipLimit);
         Mat adjusted = new Mat();
-        enhanced.convertTo(adjusted, -1, 1.06, 4.0);
-        enhanced.release();
-        return adjusted;
+
+        try {
+            contrastEnhanced.convertTo(adjusted, -1, contrastAlpha, brightnessBeta);
+            return applyGamma(adjusted, gammaValue);
+        } finally {
+            release(contrastEnhanced);
+            release(adjusted);
+        }
+    }
+
+    private Mat applyGamma(Mat source, double gammaValue) {
+        Mat lookupTable = new Mat(1, 256, CvType.CV_8UC1);
+        Mat result = new Mat();
+        byte[] data = new byte[256];
+
+        try {
+            double safeGamma = gammaValue > 0 ? gammaValue : 1.0;
+            for (int i = 0; i < data.length; i++) {
+                int adjusted = (int) Math.round(255.0 * Math.pow(i / 255.0, safeGamma));
+                data[i] = (byte) Math.max(0, Math.min(255, adjusted));
+            }
+            lookupTable.put(0, 0, data);
+            Core.LUT(source, lookupTable, result);
+            return result;
+        } finally {
+            release(lookupTable);
+        }
     }
 
     private Mat applyClahe(Mat source, double clipLimit) {
