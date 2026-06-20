@@ -5,18 +5,20 @@ import { LanguageService } from '../../../../core/i18n/language.service';
 import { ApiError } from '../../../../core/models/api-error.model';
 import { ConfirmModalComponent } from '../../../../shared/confirm-modal/confirm-modal.component';
 import { ToastService } from '../../../../shared/toast/toast.service';
+import { ProductBoxTextureCornerEditorComponent } from '../product-box-texture-corner-editor/product-box-texture-corner-editor.component';
 import {
   PRODUCT_BOX_FACE_NAMES,
   ProductBoxFaceName,
   ProductBoxModel,
-  ProductBoxModelFace
+  ProductBoxModelFace,
+  ProductBoxTextureProcessRequest
 } from '../../models/product-box-model.model';
 import { ProductBoxModelService } from '../../services/product-box-model.service';
 
 @Component({
   selector: 'app-product-box-faces-modal',
   standalone: true,
-  imports: [DatePipe, TranslatePipe, ConfirmModalComponent],
+  imports: [DatePipe, TranslatePipe, ConfirmModalComponent, ProductBoxTextureCornerEditorComponent],
   templateUrl: './product-box-faces-modal.component.html',
   styles: [
     `
@@ -25,13 +27,18 @@ import { ProductBoxModelService } from '../../services/product-box-model.service
         object-fit: cover;
         width: 100%;
       }
+
+      .product-box-texture-preview {
+        max-height: 240px;
+        object-fit: contain;
+        width: 100%;
+      }
     `
   ]
 })
 export class ProductBoxFacesModalComponent implements OnChanges {
   @Input() open = false;
   @Input() model: ProductBoxModel | null = null;
-
   @Output() closed = new EventEmitter<void>();
   @Output() facesChanged = new EventEmitter<void>();
 
@@ -42,9 +49,13 @@ export class ProductBoxFacesModalComponent implements OnChanges {
   readonly faceNames = PRODUCT_BOX_FACE_NAMES;
   readonly loading = signal(false);
   readonly uploadingFace = signal<ProductBoxFaceName | null>(null);
+  readonly uploadingOriginalFace = signal<ProductBoxFaceName | null>(null);
+  readonly processingFace = signal<ProductBoxFaceName | null>(null);
   readonly deletingFace = signal<ProductBoxFaceName | null>(null);
+  readonly editingTextureFace = signal<ProductBoxFaceName | null>(null);
   readonly faces = signal<Partial<Record<ProductBoxFaceName, ProductBoxModelFace>>>({});
   readonly faceToDelete = signal<ProductBoxFaceName | null>(null);
+  readonly processPoints = signal<Partial<Record<ProductBoxFaceName, ProductBoxTextureProcessRequest>>>({});
 
   readonly deleteMessage = computed(() => {
     const faceName = this.faceToDelete();
@@ -53,7 +64,9 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     }
 
     const face = this.face(faceName);
-    return this.languageService.instant('productBoxModels.faces.confirmDeleteMessage', { filename: face?.originalFilename ?? faceName });
+    return this.languageService.instant('productBoxModels.faces.confirmDeleteMessage', {
+      filename: face?.originalFilename ?? face?.originalUploadFilename ?? face?.processedFilename ?? faceName
+    });
   });
 
   private loadedModelId: string | null = null;
@@ -66,17 +79,15 @@ export class ProductBoxFacesModalComponent implements OnChanges {
 
     const modelId = this.model?.id;
     const shouldLoad = !!modelId && (changes['open'] || changes['model']) && modelId !== this.loadedModelId;
-
     if (shouldLoad) {
       this.loadFaces();
     }
   }
 
   close(): void {
-    if (this.uploadingFace() || this.deletingFace()) {
+    if (this.uploadingFace() || this.uploadingOriginalFace() || this.processingFace() || this.deletingFace()) {
       return;
     }
-
     this.closed.emit();
   }
 
@@ -92,6 +103,7 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     this.productBoxModelService.findById(modelId).subscribe({
       next: (model) => {
         this.faces.set(model.faces ?? {});
+        this.rehydrateSavedPoints(model.faces ?? {});
         this.loading.set(false);
       },
       error: (error: unknown) => {
@@ -105,18 +117,30 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     return this.faces()[faceName] ?? null;
   }
 
+  isTextureEditorOpen(faceName: ProductBoxFaceName): boolean {
+    return this.editingTextureFace() === faceName;
+  }
+
+  toggleTextureEditor(faceName: ProductBoxFaceName): void {
+    this.editingTextureFace.update((current) => current === faceName ? null : faceName);
+    const face = this.face(faceName);
+    const savedPoints = this.parsePointsJson(face?.pointsJson ?? null);
+    if (savedPoints) {
+      this.processPoints.update((current) => ({ ...current, [faceName]: savedPoints }));
+    }
+  }
+
   uploadFace(faceName: ProductBoxFaceName, event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0] ?? null;
     const modelId = this.model?.id;
-
     if (!modelId || !file) {
       return;
     }
 
     this.uploadingFace.set(faceName);
     const currentFace = this.face(faceName);
-    const request = currentFace
+    const request = currentFace?.imageKey
       ? this.productBoxModelService.replaceFace(modelId, faceName, file)
       : this.productBoxModelService.uploadFace(modelId, faceName, file);
 
@@ -136,11 +160,64 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     });
   }
 
+  uploadOriginalTexture(faceName: ProductBoxFaceName, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    const modelId = this.model?.id;
+    if (!modelId || !file) {
+      return;
+    }
+
+    this.uploadingOriginalFace.set(faceName);
+    this.productBoxModelService.uploadOriginalTexture(modelId, faceName, file).subscribe({
+      next: () => {
+        this.uploadingOriginalFace.set(null);
+        input.value = '';
+        this.editingTextureFace.set(faceName);
+        this.toastService.success(this.languageService.instant('productBoxModels.textureEditor.messages.originalUploaded'));
+        this.facesChanged.emit();
+        this.loadFaces();
+      },
+      error: (error: unknown) => {
+        this.uploadingOriginalFace.set(null);
+        input.value = '';
+        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('productBoxModels.textureEditor.messages.originalUploadError')));
+      }
+    });
+  }
+
+  onTexturePointsChanged(faceName: ProductBoxFaceName, points: ProductBoxTextureProcessRequest): void {
+    this.processPoints.update((current) => ({ ...current, [faceName]: points }));
+  }
+
+  processTexture(faceName: ProductBoxFaceName): void {
+    const modelId = this.model?.id;
+    const points = this.processPoints()[faceName];
+    const face = this.face(faceName);
+    if (!modelId || !face?.originalImageUrl || !points || this.processingFace()) {
+      return;
+    }
+
+    this.processingFace.set(faceName);
+    this.productBoxModelService.processTexture(modelId, faceName, points).subscribe({
+      next: () => {
+        this.processingFace.set(null);
+        this.toastService.success(this.languageService.instant('productBoxModels.textureEditor.messages.processed'));
+        this.facesChanged.emit();
+        this.loadFaces();
+      },
+      error: (error: unknown) => {
+        this.processingFace.set(null);
+        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('productBoxModels.textureEditor.messages.processError')));
+        this.loadFaces();
+      }
+    });
+  }
+
   requestDelete(faceName: ProductBoxFaceName): void {
     if (this.deletingFace()) {
       return;
     }
-
     this.faceToDelete.set(faceName);
   }
 
@@ -148,14 +225,12 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     if (this.deletingFace()) {
       return;
     }
-
     this.faceToDelete.set(null);
   }
 
   confirmDelete(): void {
     const modelId = this.model?.id;
     const faceName = this.faceToDelete();
-
     if (!modelId || !faceName || this.deletingFace()) {
       return;
     }
@@ -165,6 +240,14 @@ export class ProductBoxFacesModalComponent implements OnChanges {
       next: () => {
         this.deletingFace.set(null);
         this.faceToDelete.set(null);
+        this.processPoints.update((current) => {
+          const next = { ...current };
+          delete next[faceName];
+          return next;
+        });
+        if (this.editingTextureFace() === faceName) {
+          this.editingTextureFace.set(null);
+        }
         this.toastService.success(this.languageService.instant('productBoxModels.faces.messages.deleted'));
         this.facesChanged.emit();
         this.loadFaces();
@@ -176,35 +259,73 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     });
   }
 
-  openImage(face: ProductBoxModelFace): void {
-    if (!face.imageUrl) {
+  openImage(imageUrl: string | null | undefined): void {
+    if (!imageUrl) {
       return;
     }
-
-    window.open(face.imageUrl, '_blank', 'noopener');
+    window.open(imageUrl, '_blank', 'noopener');
   }
 
   formatSize(sizeBytes: number | null | undefined): string {
     if (sizeBytes == null) {
       return '—';
     }
-
     if (sizeBytes < 1024) {
       return `${sizeBytes} B`;
     }
-
     if (sizeBytes < 1024 * 1024) {
       return `${(sizeBytes / 1024).toFixed(1)} KB`;
     }
-
     return `${(sizeBytes / (1024 * 1024)).toFixed(2)} MB`;
+  }
+
+  initialPoints(face: ProductBoxModelFace | null): ProductBoxTextureProcessRequest | null {
+    return this.parsePointsJson(face?.pointsJson ?? null);
+  }
+
+  private rehydrateSavedPoints(faces: Partial<Record<ProductBoxFaceName, ProductBoxModelFace>>): void {
+    const next: Partial<Record<ProductBoxFaceName, ProductBoxTextureProcessRequest>> = {};
+    for (const faceName of this.faceNames) {
+      const parsed = this.parsePointsJson(faces[faceName]?.pointsJson ?? null);
+      if (parsed) {
+        next[faceName] = parsed;
+      }
+    }
+    this.processPoints.set(next);
+  }
+
+  private parsePointsJson(pointsJson: string | null): ProductBoxTextureProcessRequest | null {
+    if (!pointsJson) {
+      return null;
+    }
+
+    try {
+      const parsed = JSON.parse(pointsJson) as ProductBoxTextureProcessRequest;
+      if (this.isValidPointRequest(parsed)) {
+        return parsed;
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  }
+
+  private isValidPointRequest(value: ProductBoxTextureProcessRequest): boolean {
+    return ['topLeft', 'topRight', 'bottomRight', 'bottomLeft'].every((key) => {
+      const point = value[key as keyof ProductBoxTextureProcessRequest];
+      return Number.isFinite(point?.x) && Number.isFinite(point?.y);
+    });
   }
 
   private resetState(): void {
     this.faces.set({});
+    this.processPoints.set({});
     this.loading.set(false);
     this.uploadingFace.set(null);
+    this.uploadingOriginalFace.set(null);
+    this.processingFace.set(null);
     this.deletingFace.set(null);
+    this.editingTextureFace.set(null);
     this.faceToDelete.set(null);
     this.loadedModelId = null;
   }

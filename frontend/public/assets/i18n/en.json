@@ -1560,6 +1560,42 @@
       "dimensions": "Real dimensions",
       "missingFacesTitle": "Faces without images are shown with placeholder materials.",
       "noModel": "There is no selected model to preview."
+    },
+    "textureEditor": {
+      "activeTexture": "Active texture",
+      "originalPhoto": "Original photo",
+      "processedTexture": "Processed texture",
+      "uploadOriginal": "Upload original",
+      "uploadingOriginal": "Uploading original...",
+      "adjustCorners": "Adjust corners",
+      "hideEditor": "Hide editor",
+      "originalAlt": "Original face photo",
+      "dragHelp": "Drag the 4 points to the real corners of the package face.",
+      "resetPoints": "Reset points",
+      "noOriginal": "Upload an original photo to adjust the corners.",
+      "noProcessed": "There is no processed texture preview yet.",
+      "processingTitle": "OpenCV processing",
+      "processingHelp": "The points are sent as real pixels from the original image. The backend corrects the perspective and generates a rectangular texture with the real face proportion.",
+      "targetAspectRatio": "Target aspect ratio",
+      "processTexture": "Process texture",
+      "processing": "Processing...",
+      "processNote": "This only generates a processed texture preview. Accepting it as the final texture is part of the next phase.",
+      "points": {
+        "topLeft": "Top left",
+        "topRight": "Top right",
+        "bottomRight": "Bottom right",
+        "bottomLeft": "Bottom left"
+      },
+      "status": {
+        "uploaded": "Original uploaded",
+        "processed": "Processed"
+      },
+      "messages": {
+        "originalUploaded": "Original photo uploaded successfully.",
+        "originalUploadError": "Could not upload the original photo.",
+        "processed": "Texture processed successfully.",
+        "processError": "Could not process the texture."
+      }
     }
   }
 }

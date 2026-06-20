@@ -1,15 +1,26 @@
 export type ProductBoxUnit = 'cm' | 'mm' | 'in';
-
 export type ProductBoxFaceName = 'front' | 'back' | 'left' | 'right' | 'top' | 'bottom';
+export type ProductBoxTextureStatus = 'UPLOADED' | 'POINTS_SELECTED' | 'PROCESSED' | 'ACCEPTED' | 'FAILED';
 
 export const PRODUCT_BOX_UNITS: ProductBoxUnit[] = ['cm', 'mm', 'in'];
-
 export const PRODUCT_BOX_FACE_NAMES: ProductBoxFaceName[] = ['front', 'back', 'left', 'right', 'top', 'bottom'];
+
+export interface ProductBoxTexturePoint {
+  x: number;
+  y: number;
+}
+
+export interface ProductBoxTextureProcessRequest {
+  topLeft: ProductBoxTexturePoint;
+  topRight: ProductBoxTexturePoint;
+  bottomRight: ProductBoxTexturePoint;
+  bottomLeft: ProductBoxTexturePoint;
+}
 
 export interface ProductBoxModelFace {
   id: string;
   faceName: ProductBoxFaceName;
-  imageKey: string;
+  imageKey: string | null;
   filepath: string | null;
   originalFilename: string | null;
   contentType: string | null;
@@ -19,6 +30,32 @@ export interface ProductBoxModelFace {
   flipVertical: boolean;
   imageUrl: string | null;
   imageUrlExpiresIn: number | null;
+
+  originalImageKey: string | null;
+  originalFilepath: string | null;
+  originalUploadFilename: string | null;
+  originalContentType: string | null;
+  originalSizeBytes: number | null;
+  originalWidthPx: number | null;
+  originalHeightPx: number | null;
+  originalImageUrl: string | null;
+
+  processedImageKey: string | null;
+  processedFilepath: string | null;
+  processedFilename: string | null;
+  processedContentType: string | null;
+  processedSizeBytes: number | null;
+  processedWidthPx: number | null;
+  processedHeightPx: number | null;
+  processedImageUrl: string | null;
+
+  targetAspectRatio: number | null;
+  pointsJson: string | null;
+  textureStatus: ProductBoxTextureStatus | null;
+  processingError: string | null;
+  processedAt: string | null;
+  acceptedAt: string | null;
+
   createdAt: string;
   updatedAt: string | null;
 }

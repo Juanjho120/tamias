@@ -8,7 +8,8 @@ import {
   ProductBoxModelFace,
   ProductBoxModelFilters,
   ProductBoxModelRequest,
-  ProductBoxModelSummary
+  ProductBoxModelSummary,
+  ProductBoxTextureProcessRequest
 } from '../models/product-box-model.model';
 
 @Injectable({ providedIn: 'root' })
@@ -54,7 +55,10 @@ export class ProductBoxModelService {
     flipHorizontal = false,
     flipVertical = false
   ): Observable<ProductBoxModelFace> {
-    return this.apiService.post<ProductBoxModelFace>(`/product-box-models/${id}/faces/${faceName}`, this.buildFaceFormData(file, rotationDegrees, flipHorizontal, flipVertical));
+    return this.apiService.post<ProductBoxModelFace>(
+      `/product-box-models/${id}/faces/${faceName}`,
+      this.buildFaceFormData(file, rotationDegrees, flipHorizontal, flipVertical)
+    );
   }
 
   replaceFace(
@@ -65,7 +69,34 @@ export class ProductBoxModelService {
     flipHorizontal = false,
     flipVertical = false
   ): Observable<ProductBoxModelFace> {
-    return this.apiService.put<ProductBoxModelFace>(`/product-box-models/${id}/faces/${faceName}`, this.buildFaceFormData(file, rotationDegrees, flipHorizontal, flipVertical));
+    return this.apiService.put<ProductBoxModelFace>(
+      `/product-box-models/${id}/faces/${faceName}`,
+      this.buildFaceFormData(file, rotationDegrees, flipHorizontal, flipVertical)
+    );
+  }
+
+  uploadOriginalTexture(
+    id: string,
+    faceName: ProductBoxFaceName,
+    file: File
+  ): Observable<ProductBoxModelFace> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.apiService.post<ProductBoxModelFace>(
+      `/product-box-models/${id}/faces/${faceName}/texture/original`,
+      formData
+    );
+  }
+
+  processTexture(
+    id: string,
+    faceName: ProductBoxFaceName,
+    request: ProductBoxTextureProcessRequest
+  ): Observable<ProductBoxModelFace> {
+    return this.apiService.post<ProductBoxModelFace>(
+      `/product-box-models/${id}/faces/${faceName}/texture/process`,
+      request
+    );
   }
 
   deleteFace(id: string, faceName: ProductBoxFaceName): Observable<void> {
@@ -80,14 +111,11 @@ export class ProductBoxModelService {
   ): FormData {
     const formData = new FormData();
     formData.append('file', file);
-
     if (rotationDegrees !== null) {
       formData.append('rotationDegrees', String(rotationDegrees));
     }
-
     formData.append('flipHorizontal', String(flipHorizontal));
     formData.append('flipVertical', String(flipVertical));
-
     return formData;
   }
 }

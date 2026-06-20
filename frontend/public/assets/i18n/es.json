@@ -1559,6 +1559,42 @@
       "dimensions": "Medidas reales",
       "missingFacesTitle": "Caras sin imagen; se muestran con material placeholder.",
       "noModel": "No hay modelo seleccionado para visualizar."
+    },
+    "textureEditor": {
+      "activeTexture": "Textura activa",
+      "originalPhoto": "Foto original",
+      "processedTexture": "Textura procesada",
+      "uploadOriginal": "Subir original",
+      "uploadingOriginal": "Subiendo original...",
+      "adjustCorners": "Ajustar esquinas",
+      "hideEditor": "Ocultar editor",
+      "originalAlt": "Foto original de la cara",
+      "dragHelp": "Arrastra los 4 puntos hasta las esquinas reales de la cara del empaque.",
+      "resetPoints": "Reiniciar puntos",
+      "noOriginal": "Sube una foto original para poder ajustar las esquinas.",
+      "noProcessed": "Aún no hay textura procesada para previsualizar.",
+      "processingTitle": "Procesamiento OpenCV",
+      "processingHelp": "Los puntos se envían en pixeles reales de la imagen original. El backend corrige la perspectiva y genera una textura rectangular con la proporción real de la cara.",
+      "targetAspectRatio": "Proporción objetivo",
+      "processTexture": "Procesar textura",
+      "processing": "Procesando...",
+      "processNote": "Esta acción solo genera una textura procesada para preview. Aceptarla como textura final queda para la siguiente fase.",
+      "points": {
+        "topLeft": "Superior izquierda",
+        "topRight": "Superior derecha",
+        "bottomRight": "Inferior derecha",
+        "bottomLeft": "Inferior izquierda"
+      },
+      "status": {
+        "uploaded": "Original subido",
+        "processed": "Procesada"
+      },
+      "messages": {
+        "originalUploaded": "Foto original subida correctamente.",
+        "originalUploadError": "No se pudo subir la foto original.",
+        "processed": "Textura procesada correctamente.",
+        "processError": "No se pudo procesar la textura."
+      }
     }
   }
 }

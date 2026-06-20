@@ -1,104 +1,219 @@
 @if (open) {
-  <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+  <div class="modal-backdrop fade show"></div>
+  <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
       <div class="modal-content">
         <div class="modal-header">
           <div>
-            <h5 class="modal-title">{{ 'productBoxModels.faces.title' | translate }}</h5>
+            <h5 class="modal-title mb-0">{{ 'productBoxModels.faces.title' | translate }}</h5>
             @if (model) {
-              <p class="text-muted mb-0 small">{{ model.name }}</p>
+              <div class="text-body-secondary small">{{ model.name }}</div>
             }
           </div>
-          <button type="button" class="btn-close" aria-label="Close" [disabled]="!!uploadingFace() || !!deletingFace()" (click)="close()"></button>
+          <button type="button" class="btn-close" [disabled]="uploadingFace() || uploadingOriginalFace() || processingFace() || deletingFace()" (click)="close()"></button>
         </div>
 
         <div class="modal-body">
-          <div class="alert alert-info small" role="alert">
-            {{ 'productBoxModels.faces.help' | translate }}
-          </div>
+          <p class="text-body-secondary mb-3">{{ 'productBoxModels.faces.help' | translate }}</p>
 
           @if (loading()) {
             <div class="text-center py-5">
-              <div class="spinner-border text-primary" aria-hidden="true"></div>
-              <p class="text-muted mt-3 mb-0">{{ 'productBoxModels.faces.loading' | translate }}</p>
+              <div class="spinner-border" role="status"></div>
+              <div class="mt-2">{{ 'productBoxModels.faces.loading' | translate }}</div>
             </div>
           } @else {
             <div class="row g-3">
               @for (faceName of faceNames; track faceName) {
                 @let currentFace = face(faceName);
-                <div class="col-md-6 col-xl-4">
-                  <div class="card h-100 shadow-sm">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                      <strong>{{ 'productBoxModels.faces.names.' + faceName | translate }}</strong>
-                      @if (currentFace) {
-                        <span class="badge text-bg-success">{{ 'productBoxModels.faces.available' | translate }}</span>
-                      } @else {
-                        <span class="badge text-bg-secondary">{{ 'productBoxModels.faces.missing' | translate }}</span>
-                      }
-                    </div>
-
-                    @if (currentFace?.imageUrl) {
-                      <img
-                        class="product-box-face-preview card-img-top"
-                        [src]="currentFace?.imageUrl"
-                        [alt]="currentFace?.originalFilename || faceName"
-                      />
-                    } @else {
-                      <div class="bg-body-tertiary d-flex align-items-center justify-content-center product-box-face-preview text-muted">
-                        <div class="text-center">
-                          <i class="bi bi-image fs-2 d-block mb-1"></i>
-                          {{ 'productBoxModels.faces.previewUnavailable' | translate }}
-                        </div>
-                      </div>
-                    }
-
-                    <div class="card-body">
-                      @if (currentFace) {
-                        <p class="fw-semibold mb-1 text-break">{{ currentFace.originalFilename || '—' }}</p>
-                        <p class="text-muted small mb-1">{{ formatSize(currentFace.sizeBytes) }}</p>
-                        <p class="text-muted small mb-0">{{ currentFace.createdAt | date:'medium' }}</p>
-                      } @else {
-                        <p class="text-muted mb-0">{{ 'productBoxModels.faces.emptyFace' | translate }}</p>
-                      }
-                    </div>
-
-                    <div class="card-footer bg-transparent">
-                      <label class="btn btn-outline-primary btn-sm w-100 mb-2" [class.disabled]="uploadingFace() === faceName">
-                        @if (uploadingFace() === faceName) {
-                          <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
-                          {{ 'productBoxModels.faces.uploading' | translate }}
+                <div class="col-12">
+                  <div class="card shadow-sm">
+                    <div class="card-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                      <div>
+                        <strong>{{ 'productBoxModels.faces.names.' + faceName | translate }}</strong>
+                        @if (currentFace?.imageUrl) {
+                          <span class="badge text-bg-success ms-2">{{ 'productBoxModels.faces.available' | translate }}</span>
+                        } @else if (currentFace?.processedImageUrl) {
+                          <span class="badge text-bg-info ms-2">{{ 'productBoxModels.textureEditor.status.processed' | translate }}</span>
+                        } @else if (currentFace?.originalImageUrl) {
+                          <span class="badge text-bg-warning ms-2">{{ 'productBoxModels.textureEditor.status.uploaded' | translate }}</span>
                         } @else {
-                          <i class="bi bi-upload me-1"></i>
-                          {{ (currentFace ? 'productBoxModels.faces.replace' : 'productBoxModels.faces.upload') | translate }}
+                          <span class="badge text-bg-secondary ms-2">{{ 'productBoxModels.faces.missing' | translate }}</span>
                         }
-                        <input
-                          type="file"
-                          class="d-none"
-                          accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-                          [disabled]="uploadingFace() === faceName"
-                          (change)="uploadFace(faceName, $event)"
-                        />
-                      </label>
+                      </div>
 
-                      @if (currentFace) {
-                        <div class="d-flex gap-2">
-                          <button type="button" class="btn btn-outline-secondary btn-sm flex-fill" (click)="openImage(currentFace)">
-                            <i class="bi bi-box-arrow-up-right me-1"></i>
-                            {{ 'productBoxModels.faces.open' | translate }}
+                      <div class="d-flex gap-2 flex-wrap">
+                        <label class="btn btn-outline-primary btn-sm mb-0" [class.disabled]="uploadingOriginalFace() === faceName || processingFace() === faceName">
+                          @if (uploadingOriginalFace() === faceName) {
+                            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                            {{ 'productBoxModels.textureEditor.uploadingOriginal' | translate }}
+                          } @else {
+                            <i class="bi bi-upload me-1"></i>
+                            {{ 'productBoxModels.textureEditor.uploadOriginal' | translate }}
+                          }
+                          <input
+                            type="file"
+                            class="d-none"
+                            accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                            [disabled]="uploadingOriginalFace() === faceName || processingFace() === faceName"
+                            (change)="uploadOriginalTexture(faceName, $event)"
+                          />
+                        </label>
+
+                        <label class="btn btn-outline-secondary btn-sm mb-0" [class.disabled]="uploadingFace() === faceName">
+                          @if (uploadingFace() === faceName) {
+                            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                            {{ 'productBoxModels.faces.uploading' | translate }}
+                          } @else {
+                            <i class="bi bi-image me-1"></i>
+                            {{ (currentFace?.imageUrl ? 'productBoxModels.faces.replace' : 'productBoxModels.faces.upload') | translate }}
+                          }
+                          <input
+                            type="file"
+                            class="d-none"
+                            accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                            [disabled]="uploadingFace() === faceName"
+                            (change)="uploadFace(faceName, $event)"
+                          />
+                        </label>
+
+                        @if (currentFace?.originalImageUrl) {
+                          <button type="button" class="btn btn-outline-info btn-sm" (click)="toggleTextureEditor(faceName)">
+                            <i class="bi bi-bounding-box-circles me-1"></i>
+                            {{ (isTextureEditorOpen(faceName) ? 'productBoxModels.textureEditor.hideEditor' : 'productBoxModels.textureEditor.adjustCorners') | translate }}
                           </button>
-                          <button
-                            type="button"
-                            class="btn btn-outline-danger btn-sm flex-fill"
-                            [disabled]="deletingFace() === faceName"
-                            (click)="requestDelete(faceName)"
-                          >
+                        }
+
+                        @if (currentFace) {
+                          <button type="button" class="btn btn-outline-danger btn-sm" [disabled]="deletingFace() === faceName" (click)="requestDelete(faceName)">
                             @if (deletingFace() === faceName) {
-                              <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+                              <span class="spinner-border spinner-border-sm me-1" role="status"></span>
                             } @else {
                               <i class="bi bi-trash me-1"></i>
                             }
                             {{ 'common.delete' | translate }}
                           </button>
+                        }
+                      </div>
+                    </div>
+
+                    <div class="card-body">
+                      <div class="row g-3">
+                        <div class="col-md-4">
+                          <h6>{{ 'productBoxModels.textureEditor.activeTexture' | translate }}</h6>
+                          @if (currentFace?.imageUrl) {
+                            <img class="product-box-face-preview rounded border" [src]="currentFace?.imageUrl" [alt]="currentFace?.originalFilename || faceName" />
+                            <div class="small mt-2">
+                              <div>{{ currentFace?.originalFilename || '—' }}</div>
+                              <div class="text-body-secondary">{{ formatSize(currentFace?.sizeBytes) }}</div>
+                            </div>
+                            <button type="button" class="btn btn-link btn-sm px-0" (click)="openImage(currentFace?.imageUrl)">
+                              {{ 'productBoxModels.faces.open' | translate }}
+                            </button>
+                          } @else {
+                            <div class="border rounded p-4 text-center text-body-secondary h-100 d-flex align-items-center justify-content-center">
+                              {{ 'productBoxModels.faces.previewUnavailable' | translate }}
+                            </div>
+                          }
+                        </div>
+
+                        <div class="col-md-4">
+                          <h6>{{ 'productBoxModels.textureEditor.originalPhoto' | translate }}</h6>
+                          @if (currentFace?.originalImageUrl) {
+                            <img class="product-box-face-preview rounded border" [src]="currentFace?.originalImageUrl" [alt]="currentFace?.originalUploadFilename || faceName" />
+                            <div class="small mt-2">
+                              <div>{{ currentFace?.originalUploadFilename || '—' }}</div>
+                              <div class="text-body-secondary">
+                                {{ formatSize(currentFace?.originalSizeBytes) }}
+                                @if (currentFace?.originalWidthPx && currentFace?.originalHeightPx) {
+                                  · {{ currentFace?.originalWidthPx }} × {{ currentFace?.originalHeightPx }} px
+                                }
+                              </div>
+                            </div>
+                            <button type="button" class="btn btn-link btn-sm px-0" (click)="openImage(currentFace?.originalImageUrl)">
+                              {{ 'productBoxModels.faces.open' | translate }}
+                            </button>
+                          } @else {
+                            <div class="border rounded p-4 text-center text-body-secondary h-100 d-flex align-items-center justify-content-center">
+                              {{ 'productBoxModels.textureEditor.noOriginal' | translate }}
+                            </div>
+                          }
+                        </div>
+
+                        <div class="col-md-4">
+                          <h6>{{ 'productBoxModels.textureEditor.processedTexture' | translate }}</h6>
+                          @if (currentFace?.processedImageUrl) {
+                            <img class="product-box-texture-preview rounded border bg-body-secondary" [src]="currentFace?.processedImageUrl" [alt]="currentFace?.processedFilename || faceName" />
+                            <div class="small mt-2">
+                              <div>{{ currentFace?.processedFilename || '—' }}</div>
+                              <div class="text-body-secondary">
+                                {{ formatSize(currentFace?.processedSizeBytes) }}
+                                @if (currentFace?.processedWidthPx && currentFace?.processedHeightPx) {
+                                  · {{ currentFace?.processedWidthPx }} × {{ currentFace?.processedHeightPx }} px
+                                }
+                              </div>
+                              @if (currentFace?.processedAt) {
+                                <div class="text-body-secondary">{{ currentFace?.processedAt | date:'medium' }}</div>
+                              }
+                            </div>
+                            <button type="button" class="btn btn-link btn-sm px-0" (click)="openImage(currentFace?.processedImageUrl)">
+                              {{ 'productBoxModels.faces.open' | translate }}
+                            </button>
+                          } @else {
+                            <div class="border rounded p-4 text-center text-body-secondary h-100 d-flex align-items-center justify-content-center">
+                              {{ 'productBoxModels.textureEditor.noProcessed' | translate }}
+                            </div>
+                          }
+                        </div>
+                      </div>
+
+                      @if (currentFace?.processingError) {
+                        <div class="alert alert-danger mt-3 mb-0">
+                          {{ currentFace?.processingError }}
+                        </div>
+                      }
+
+                      @if (isTextureEditorOpen(faceName) && currentFace?.originalImageUrl) {
+                        <hr />
+                        <div class="row g-3 align-items-start">
+                          <div class="col-lg-8">
+                            <app-product-box-texture-corner-editor
+                              [imageUrl]="currentFace?.originalImageUrl ?? null"
+                              [imageWidth]="currentFace?.originalWidthPx ?? null"
+                              [imageHeight]="currentFace?.originalHeightPx ?? null"
+                              [disabled]="processingFace() === faceName"
+                              [initialPoints]="initialPoints(currentFace)"
+                              (pointsChanged)="onTexturePointsChanged(faceName, $event)"
+                            />
+                          </div>
+                          <div class="col-lg-4">
+                            <div class="border rounded p-3 bg-body-tertiary">
+                              <h6>{{ 'productBoxModels.textureEditor.processingTitle' | translate }}</h6>
+                              <p class="small text-body-secondary mb-3">{{ 'productBoxModels.textureEditor.processingHelp' | translate }}</p>
+                              @if (currentFace?.targetAspectRatio) {
+                                <div class="small mb-2">
+                                  <strong>{{ 'productBoxModels.textureEditor.targetAspectRatio' | translate }}:</strong>
+                                  {{ currentFace?.targetAspectRatio }}
+                                </div>
+                              }
+                              <button
+                                type="button"
+                                class="btn btn-primary w-100"
+                                [disabled]="processingFace() === faceName || !processPoints()[faceName]"
+                                (click)="processTexture(faceName)"
+                              >
+                                @if (processingFace() === faceName) {
+                                  <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                  {{ 'productBoxModels.textureEditor.processing' | translate }}
+                                } @else {
+                                  <i class="bi bi-magic me-1"></i>
+                                  {{ 'productBoxModels.textureEditor.processTexture' | translate }}
+                                }
+                              </button>
+                              <div class="small text-body-secondary mt-2">
+                                {{ 'productBoxModels.textureEditor.processNote' | translate }}
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       }
                     </div>
@@ -110,22 +225,23 @@
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" [disabled]="!!uploadingFace() || !!deletingFace()" (click)="close()">
+          <button type="button" class="btn btn-secondary" [disabled]="uploadingFace() || uploadingOriginalFace() || processingFace() || deletingFace()" (click)="close()">
             {{ 'common.close' | translate }}
           </button>
         </div>
       </div>
     </div>
   </div>
-  <div class="modal-backdrop fade show"></div>
-}
 
-<app-confirm-modal
-  [open]="!!faceToDelete()"
-  title="productBoxModels.faces.confirmDeleteTitle"
-  [message]="deleteMessage()"
-  confirmButtonClass="btn-danger"
-  [loading]="!!deletingFace()"
-  (cancel)="cancelDelete()"
-  (confirm)="confirmDelete()"
-/>
+  <app-confirm-modal
+    [open]="!!faceToDelete()"
+    title="productBoxModels.faces.confirmDeleteTitle"
+    [message]="deleteMessage()"
+    confirmText="common.delete"
+    cancelText="common.cancel"
+    [loading]="!!deletingFace()"
+    confirmButtonClass="btn-danger"
+    (confirm)="confirmDelete()"
+    (cancel)="cancelDelete()"
+  />
+}

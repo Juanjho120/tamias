@@ -1,0 +1,61 @@
+@if (imageUrl) {
+  <div class="corner-editor-frame border rounded bg-body-secondary">
+    <img
+      #imageElement
+      class="corner-editor-image rounded"
+      [src]="imageUrl"
+      crossorigin="anonymous"
+      [alt]="'productBoxModels.textureEditor.originalAlt' | translate"
+      (load)="onImageLoad()"
+    />
+
+    @if (imageReady()) {
+      <svg
+        class="corner-editor-overlay"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        (pointermove)="moveDrag($event)"
+        (pointerup)="endDrag($event)"
+        (pointercancel)="endDrag($event)"
+        (pointerleave)="endDrag()"
+      >
+        <polygon
+          [attr.points]="polygonPoints()"
+          fill="rgba(13, 110, 253, 0.18)"
+          stroke="rgba(13, 110, 253, 0.95)"
+          stroke-width="0.5"
+          vector-effect="non-scaling-stroke"
+        />
+        @for (entry of cornerEntries(); track entry.name) {
+          <circle
+            class="corner-editor-point"
+            [attr.cx]="entry.point.x * 100"
+            [attr.cy]="entry.point.y * 100"
+            r="1.8"
+            fill="white"
+            stroke="rgba(13, 110, 253, 1)"
+            stroke-width="0.5"
+            vector-effect="non-scaling-stroke"
+            (pointerdown)="startDrag(entry.name, $event)"
+          >
+            <title>{{ 'productBoxModels.textureEditor.points.' + entry.name | translate }}</title>
+          </circle>
+        }
+      </svg>
+    }
+  </div>
+
+  <div class="d-flex justify-content-between align-items-center mt-2 gap-2 flex-wrap">
+    <small class="text-body-secondary">
+      {{ 'productBoxModels.textureEditor.dragHelp' | translate }}
+    </small>
+    <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="disabled" (click)="resetPoints()">
+      <i class="bi bi-arrow-counterclockwise me-1"></i>
+      {{ 'productBoxModels.textureEditor.resetPoints' | translate }}
+    </button>
+  </div>
+} @else {
+  <div class="border rounded p-4 text-center text-body-secondary">
+    {{ 'productBoxModels.textureEditor.noOriginal' | translate }}
+  </div>
+}
