@@ -18,6 +18,7 @@ import org.opencv.core.MatOfByte;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
+import org.opencv.core.RotatedRect;
 import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.CLAHE;
@@ -30,16 +31,17 @@ public class ProductBoxTextureProcessingService {
 
     private static final int MAX_TARGET_SIDE_PX = 1600;
     private static final String PROCESSED_CONTENT_TYPE = "image/png";
-    private static final double MIN_CONTOUR_AREA_RATIO = 0.05;
+    private static final double MIN_CONTOUR_AREA_RATIO = 0.0125;
+    private static final double MIN_FALLBACK_CONFIDENCE = 0.1000;
     private static volatile boolean openCvLoaded = false;
 
     public ProcessedProductBoxTexture process(
-        Resource originalResource,
-        ProductBoxModel productBoxModel,
-        ProductBoxFaceName faceName,
-        ProductBoxTextureProcessRequest request,
-        Integer coordinateWidthPx,
-        Integer coordinateHeightPx
+            Resource originalResource,
+            ProductBoxModel productBoxModel,
+            ProductBoxFaceName faceName,
+            ProductBoxTextureProcessRequest request,
+            Integer coordinateWidthPx,
+            Integer coordinateHeightPx
     ) {
         ensureOpenCvLoaded();
 
@@ -60,39 +62,40 @@ public class ProductBoxTextureProcessingService {
             }
 
             ProductBoxTextureProcessRequest sourceCoordinateRequest = toSourceCoordinateRequest(
-                request,
-                source.width(),
-                source.height(),
-                coordinateWidthPx,
-                coordinateHeightPx
+                    request,
+                    source.width(),
+                    source.height(),
+                    coordinateWidthPx,
+                    coordinateHeightPx
             );
 
             validatePoints(sourceCoordinateRequest, source.width(), source.height());
+
             TargetTextureSize targetSize = calculateTargetSize(productBoxModel, faceName);
 
             sourcePoints = new MatOfPoint2f(
-                toPoint(sourceCoordinateRequest.topLeft()),
-                toPoint(sourceCoordinateRequest.topRight()),
-                toPoint(sourceCoordinateRequest.bottomRight()),
-                toPoint(sourceCoordinateRequest.bottomLeft())
+                    toPoint(sourceCoordinateRequest.topLeft()),
+                    toPoint(sourceCoordinateRequest.topRight()),
+                    toPoint(sourceCoordinateRequest.bottomRight()),
+                    toPoint(sourceCoordinateRequest.bottomLeft())
             );
 
             targetPoints = new MatOfPoint2f(
-                new Point(0, 0),
-                new Point(targetSize.width() - 1.0, 0),
-                new Point(targetSize.width() - 1.0, targetSize.height() - 1.0),
-                new Point(0, targetSize.height() - 1.0)
+                    new Point(0, 0),
+                    new Point(targetSize.width() - 1.0, 0),
+                    new Point(targetSize.width() - 1.0, targetSize.height() - 1.0),
+                    new Point(0, targetSize.height() - 1.0)
             );
 
             perspectiveTransform = Imgproc.getPerspectiveTransform(sourcePoints, targetPoints);
             warped = new Mat();
 
             Imgproc.warpPerspective(
-                source,
-                warped,
-                perspectiveTransform,
-                new Size(targetSize.width(), targetSize.height()),
-                Imgproc.INTER_CUBIC
+                    source,
+                    warped,
+                    perspectiveTransform,
+                    new Size(targetSize.width(), targetSize.height()),
+                    Imgproc.INTER_CUBIC
             );
 
             ProductBoxTextureEnhancementMode enhancementMode = normalizeEnhancementMode(request.enhancementMode());
@@ -106,15 +109,16 @@ public class ProductBoxTextureProcessingService {
             }
 
             String filename = "processed-" + faceName.getValue() + ".png";
+
             return new ProcessedProductBoxTexture(
-                encoded.toArray(),
-                filename,
-                PROCESSED_CONTENT_TYPE,
-                targetSize.width(),
-                targetSize.height(),
-                targetSize.aspectRatio(),
-                sourceCoordinateRequest,
-                enhancementMode
+                    encoded.toArray(),
+                    filename,
+                    PROCESSED_CONTENT_TYPE,
+                    targetSize.width(),
+                    targetSize.height(),
+                    targetSize.aspectRatio(),
+                    sourceCoordinateRequest,
+                    enhancementMode
             );
         } catch (IOException ex) {
             throw new BadRequestException("Original product box texture image could not be read");
@@ -130,17 +134,14 @@ public class ProductBoxTextureProcessingService {
     }
 
     public DetectedProductBoxContour detectContour(
-        Resource originalResource,
-        Integer coordinateWidthPx,
-        Integer coordinateHeightPx
+            Resource originalResource,
+            Integer coordinateWidthPx,
+            Integer coordinateHeightPx
     ) {
         ensureOpenCvLoaded();
 
         Mat source = null;
         Mat gray = null;
-        Mat blurred = null;
-        Mat edges = null;
-        Mat hierarchy = null;
 
         try {
             byte[] originalBytes = originalResource.getInputStream().readAllBytes();
@@ -151,122 +152,271 @@ public class ProductBoxTextureProcessingService {
             }
 
             gray = new Mat();
-            blurred = new Mat();
-            edges = new Mat();
-            hierarchy = new Mat();
-
             Imgproc.cvtColor(source, gray, Imgproc.COLOR_BGR2GRAY);
-            Imgproc.GaussianBlur(gray, blurred, new Size(5, 5), 0);
-            Imgproc.Canny(blurred, edges, 40, 140);
-            Imgproc.dilate(edges, edges, new Mat(), new Point(-1, -1), 1);
 
-            List<MatOfPoint> contours = new ArrayList<>();
-            Imgproc.findContours(edges, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+            List<ContourCandidate> candidates = new ArrayList<>();
+            candidates.addAll(findCandidatesWithCanny(gray, source.width(), source.height()));
+            candidates.addAll(findCandidatesWithAdaptiveThreshold(gray, source.width(), source.height()));
 
-            ContourCandidate bestCandidate = findBestCandidate(contours, source.width(), source.height());
-            contours.forEach(MatOfPoint::release);
+            ContourCandidate bestCandidate = candidates.stream()
+                    .max(Comparator.comparing(ContourCandidate::confidence))
+                    .orElse(null);
 
             if (bestCandidate == null) {
-                return DetectedProductBoxContour.notDetected("No reliable rectangular contour was detected. Please adjust the corners manually.");
+                return defaultAdjustableContour(source.width(), source.height(), coordinateWidthPx, coordinateHeightPx);
             }
 
             ProductBoxTextureProcessRequest sourcePoints = toRequest(bestCandidate.orderedPoints());
             ProductBoxTextureProcessRequest coordinatePoints = fromSourceCoordinateRequest(
-                sourcePoints,
-                source.width(),
-                source.height(),
-                coordinateWidthPx,
-                coordinateHeightPx
+                    sourcePoints,
+                    source.width(),
+                    source.height(),
+                    coordinateWidthPx,
+                    coordinateHeightPx
             );
 
             return new DetectedProductBoxContour(
-                true,
-                bestCandidate.confidence(),
-                coordinatePoints,
-                "Contour detected successfully"
+                    true,
+                    bestCandidate.confidence(),
+                    coordinatePoints,
+                    "Contour detected successfully"
             );
         } catch (IOException ex) {
             throw new BadRequestException("Original product box texture image could not be read");
         } finally {
             release(source);
             release(gray);
+        }
+    }
+
+    private List<ContourCandidate> findCandidatesWithCanny(Mat gray, int width, int height) {
+        List<ContourCandidate> candidates = new ArrayList<>();
+        int[][] thresholds = {
+                {20, 80},
+                {35, 120},
+                {50, 160},
+                {70, 210}
+        };
+
+        for (int[] threshold : thresholds) {
+            Mat blurred = new Mat();
+            Mat edges = new Mat();
+            Mat closed = new Mat();
+            Mat kernel = null;
+
+            try {
+                Imgproc.GaussianBlur(gray, blurred, new Size(5, 5), 0);
+                Imgproc.Canny(blurred, edges, threshold[0], threshold[1]);
+                kernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(5, 5));
+                Imgproc.morphologyEx(edges, closed, Imgproc.MORPH_CLOSE, kernel);
+                Imgproc.dilate(closed, closed, kernel, new Point(-1, -1), 1);
+                candidates.addAll(findCandidatesFromBinary(closed, width, height, 1.0));
+            } finally {
+                release(blurred);
+                release(edges);
+                release(closed);
+                release(kernel);
+            }
+        }
+
+        return candidates;
+    }
+
+    private List<ContourCandidate> findCandidatesWithAdaptiveThreshold(Mat gray, int width, int height) {
+        Mat blurred = new Mat();
+        Mat threshold = new Mat();
+        Mat inverted = new Mat();
+        Mat closed = new Mat();
+        Mat kernel = null;
+
+        try {
+            Imgproc.GaussianBlur(gray, blurred, new Size(5, 5), 0);
+            Imgproc.adaptiveThreshold(
+                    blurred,
+                    threshold,
+                    255,
+                    Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C,
+                    Imgproc.THRESH_BINARY,
+                    31,
+                    7
+            );
+            Core.bitwise_not(threshold, inverted);
+            kernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(5, 5));
+            Imgproc.morphologyEx(inverted, closed, Imgproc.MORPH_CLOSE, kernel);
+            return findCandidatesFromBinary(closed, width, height, 0.85);
+        } finally {
             release(blurred);
-            release(edges);
+            release(threshold);
+            release(inverted);
+            release(closed);
+            release(kernel);
+        }
+    }
+
+    private List<ContourCandidate> findCandidatesFromBinary(Mat binary, int width, int height, double scoreMultiplier) {
+        Mat hierarchy = new Mat();
+        List<MatOfPoint> contours = new ArrayList<>();
+        List<ContourCandidate> candidates = new ArrayList<>();
+
+        try {
+            Imgproc.findContours(binary, contours, hierarchy, Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
+            double imageArea = Math.max(1.0, width * (double) height);
+
+            for (MatOfPoint contour : contours) {
+                ContourCandidate candidate = toCandidate(contour, imageArea, scoreMultiplier);
+                if (candidate != null) {
+                    candidates.add(candidate);
+                }
+            }
+
+            return candidates;
+        } finally {
+            contours.forEach(Mat::release);
             release(hierarchy);
         }
     }
 
-    private ContourCandidate findBestCandidate(List<MatOfPoint> contours, int width, int height) {
-        double imageArea = Math.max(1.0, width * (double) height);
-
-        return contours.stream()
-            .map(contour -> toCandidate(contour, imageArea))
-            .filter(candidate -> candidate != null && candidate.confidence().compareTo(BigDecimal.valueOf(MIN_CONTOUR_AREA_RATIO)) >= 0)
-            .max(Comparator.comparing(ContourCandidate::confidence))
-            .orElse(null);
-    }
-
-    private ContourCandidate toCandidate(MatOfPoint contour, double imageArea) {
+    private ContourCandidate toCandidate(MatOfPoint contour, double imageArea, double scoreMultiplier) {
         MatOfPoint2f contour2f = new MatOfPoint2f(contour.toArray());
         MatOfPoint2f approx = new MatOfPoint2f();
 
         try {
+            double contourArea = Math.abs(Imgproc.contourArea(contour));
+            if (contourArea / imageArea < MIN_CONTOUR_AREA_RATIO) {
+                return null;
+            }
+
             double perimeter = Imgproc.arcLength(contour2f, true);
-            Imgproc.approxPolyDP(contour2f, approx, 0.02 * perimeter, true);
-
-            if (approx.total() != 4) {
+            if (perimeter <= 0) {
                 return null;
             }
 
-            double area = Math.abs(Imgproc.contourArea(new MatOfPoint(approx.toArray())));
-            if (area <= 0) {
-                return null;
+            double[] approximationFactors = {0.015, 0.02, 0.03, 0.04, 0.055, 0.07};
+
+            for (double factor : approximationFactors) {
+                Imgproc.approxPolyDP(contour2f, approx, factor * perimeter, true);
+
+                if (approx.total() == 4) {
+                    Point[] points = approx.toArray();
+                    double approxArea = Math.abs(Imgproc.contourArea(new MatOfPoint(points)));
+                    double confidence = calculateContourConfidence(approxArea, imageArea, scoreMultiplier);
+
+                    if (confidence >= MIN_CONTOUR_AREA_RATIO) {
+                        return new ContourCandidate(
+                                orderPoints(points),
+                                BigDecimal.valueOf(Math.min(1.0, confidence)).setScale(4, RoundingMode.HALF_UP)
+                        );
+                    }
+                }
             }
 
-            BigDecimal confidence = BigDecimal.valueOf(Math.min(1.0, area / imageArea))
-                .setScale(4, RoundingMode.HALF_UP);
-            return new ContourCandidate(orderPoints(approx.toArray()), confidence);
+            return toMinAreaRectCandidate(contour2f, contourArea, imageArea, scoreMultiplier);
         } finally {
             release(contour2f);
             release(approx);
         }
     }
 
+    private ContourCandidate toMinAreaRectCandidate(
+            MatOfPoint2f contour2f,
+            double contourArea,
+            double imageArea,
+            double scoreMultiplier
+    ) {
+        RotatedRect rectangle = Imgproc.minAreaRect(contour2f);
+
+        if (rectangle.size.width < 20 || rectangle.size.height < 20) {
+            return null;
+        }
+
+        double rectangleArea = Math.max(1.0, rectangle.size.width * rectangle.size.height);
+        double rectangularity = Math.max(0.0, Math.min(1.0, contourArea / rectangleArea));
+        double confidence = (rectangleArea / imageArea) * rectangularity * scoreMultiplier * 0.80;
+
+        if (confidence < MIN_CONTOUR_AREA_RATIO) {
+            return null;
+        }
+
+        Point[] rectanglePoints = new Point[4];
+        rectangle.points(rectanglePoints);
+
+        return new ContourCandidate(
+                orderPoints(rectanglePoints),
+                BigDecimal.valueOf(Math.min(1.0, confidence)).setScale(4, RoundingMode.HALF_UP)
+        );
+    }
+
+    private double calculateContourConfidence(double contourArea, double imageArea, double scoreMultiplier) {
+        return Math.max(0.0, contourArea / imageArea) * scoreMultiplier;
+    }
+
+    private DetectedProductBoxContour defaultAdjustableContour(
+            int sourceWidth,
+            int sourceHeight,
+            Integer coordinateWidthPx,
+            Integer coordinateHeightPx
+    ) {
+        double insetX = Math.max(1.0, sourceWidth * 0.08);
+        double insetY = Math.max(1.0, sourceHeight * 0.08);
+        Point[] defaultPoints = {
+                new Point(insetX, insetY),
+                new Point(sourceWidth - 1.0 - insetX, insetY),
+                new Point(sourceWidth - 1.0 - insetX, sourceHeight - 1.0 - insetY),
+                new Point(insetX, sourceHeight - 1.0 - insetY)
+        };
+
+        ProductBoxTextureProcessRequest sourcePoints = toRequest(defaultPoints);
+        ProductBoxTextureProcessRequest coordinatePoints = fromSourceCoordinateRequest(
+                sourcePoints,
+                sourceWidth,
+                sourceHeight,
+                coordinateWidthPx,
+                coordinateHeightPx
+        );
+
+        return new DetectedProductBoxContour(
+                true,
+                BigDecimal.valueOf(MIN_FALLBACK_CONFIDENCE).setScale(4, RoundingMode.HALF_UP),
+                coordinatePoints,
+                "No reliable rectangular contour was detected. Default adjustable corners were initialized."
+        );
+    }
+
     private ProductBoxTextureProcessRequest toSourceCoordinateRequest(
-        ProductBoxTextureProcessRequest request,
-        int sourceWidth,
-        int sourceHeight,
-        Integer coordinateWidthPx,
-        Integer coordinateHeightPx
+            ProductBoxTextureProcessRequest request,
+            int sourceWidth,
+            int sourceHeight,
+            Integer coordinateWidthPx,
+            Integer coordinateHeightPx
     ) {
         int coordinateWidth = normalizeCoordinateDimension(coordinateWidthPx, sourceWidth);
         int coordinateHeight = normalizeCoordinateDimension(coordinateHeightPx, sourceHeight);
 
         return new ProductBoxTextureProcessRequest(
-            toSourceCoordinatePoint(request.topLeft(), sourceWidth, sourceHeight, coordinateWidth, coordinateHeight),
-            toSourceCoordinatePoint(request.topRight(), sourceWidth, sourceHeight, coordinateWidth, coordinateHeight),
-            toSourceCoordinatePoint(request.bottomRight(), sourceWidth, sourceHeight, coordinateWidth, coordinateHeight),
-            toSourceCoordinatePoint(request.bottomLeft(), sourceWidth, sourceHeight, coordinateWidth, coordinateHeight),
-            normalizeEnhancementMode(request.enhancementMode())
+                toSourceCoordinatePoint(request.topLeft(), sourceWidth, sourceHeight, coordinateWidth, coordinateHeight),
+                toSourceCoordinatePoint(request.topRight(), sourceWidth, sourceHeight, coordinateWidth, coordinateHeight),
+                toSourceCoordinatePoint(request.bottomRight(), sourceWidth, sourceHeight, coordinateWidth, coordinateHeight),
+                toSourceCoordinatePoint(request.bottomLeft(), sourceWidth, sourceHeight, coordinateWidth, coordinateHeight),
+                normalizeEnhancementMode(request.enhancementMode())
         );
     }
 
     private ProductBoxTextureProcessRequest fromSourceCoordinateRequest(
-        ProductBoxTextureProcessRequest request,
-        int sourceWidth,
-        int sourceHeight,
-        Integer coordinateWidthPx,
-        Integer coordinateHeightPx
+            ProductBoxTextureProcessRequest request,
+            int sourceWidth,
+            int sourceHeight,
+            Integer coordinateWidthPx,
+            Integer coordinateHeightPx
     ) {
         int coordinateWidth = normalizeCoordinateDimension(coordinateWidthPx, sourceWidth);
         int coordinateHeight = normalizeCoordinateDimension(coordinateHeightPx, sourceHeight);
 
         return new ProductBoxTextureProcessRequest(
-            fromSourceCoordinatePoint(request.topLeft(), sourceWidth, sourceHeight, coordinateWidth, coordinateHeight),
-            fromSourceCoordinatePoint(request.topRight(), sourceWidth, sourceHeight, coordinateWidth, coordinateHeight),
-            fromSourceCoordinatePoint(request.bottomRight(), sourceWidth, sourceHeight, coordinateWidth, coordinateHeight),
-            fromSourceCoordinatePoint(request.bottomLeft(), sourceWidth, sourceHeight, coordinateWidth, coordinateHeight),
-            normalizeEnhancementMode(request.enhancementMode())
+                fromSourceCoordinatePoint(request.topLeft(), sourceWidth, sourceHeight, coordinateWidth, coordinateHeight),
+                fromSourceCoordinatePoint(request.topRight(), sourceWidth, sourceHeight, coordinateWidth, coordinateHeight),
+                fromSourceCoordinatePoint(request.bottomRight(), sourceWidth, sourceHeight, coordinateWidth, coordinateHeight),
+                fromSourceCoordinatePoint(request.bottomLeft(), sourceWidth, sourceHeight, coordinateWidth, coordinateHeight),
+                normalizeEnhancementMode(request.enhancementMode())
         );
     }
 
@@ -279,11 +429,11 @@ public class ProductBoxTextureProcessingService {
     }
 
     private ProductBoxTexturePointRequest toSourceCoordinatePoint(
-        ProductBoxTexturePointRequest point,
-        int sourceWidth,
-        int sourceHeight,
-        int coordinateWidth,
-        int coordinateHeight
+            ProductBoxTexturePointRequest point,
+            int sourceWidth,
+            int sourceHeight,
+            int coordinateWidth,
+            int coordinateHeight
     ) {
         BigDecimal x = scaleAndClamp(point.x(), coordinateWidth, sourceWidth);
         BigDecimal y = scaleAndClamp(point.y(), coordinateHeight, sourceHeight);
@@ -291,11 +441,11 @@ public class ProductBoxTextureProcessingService {
     }
 
     private ProductBoxTexturePointRequest fromSourceCoordinatePoint(
-        ProductBoxTexturePointRequest point,
-        int sourceWidth,
-        int sourceHeight,
-        int coordinateWidth,
-        int coordinateHeight
+            ProductBoxTexturePointRequest point,
+            int sourceWidth,
+            int sourceHeight,
+            int coordinateWidth,
+            int coordinateHeight
     ) {
         BigDecimal x = scaleAndClamp(point.x(), sourceWidth, coordinateWidth);
         BigDecimal y = scaleAndClamp(point.y(), sourceHeight, coordinateHeight);
@@ -317,15 +467,18 @@ public class ProductBoxTextureProcessingService {
 
     private ProductBoxTextureProcessRequest toRequest(Point[] points) {
         return new ProductBoxTextureProcessRequest(
-            toPointRequest(points[0]),
-            toPointRequest(points[1]),
-            toPointRequest(points[2]),
-            toPointRequest(points[3])
+                toPointRequest(points[0]),
+                toPointRequest(points[1]),
+                toPointRequest(points[2]),
+                toPointRequest(points[3])
         );
     }
 
     private ProductBoxTexturePointRequest toPointRequest(Point point) {
-        return new ProductBoxTexturePointRequest(BigDecimal.valueOf(Math.round(point.x)), BigDecimal.valueOf(Math.round(point.y)));
+        return new ProductBoxTexturePointRequest(
+                BigDecimal.valueOf(Math.round(point.x)),
+                BigDecimal.valueOf(Math.round(point.y))
+        );
     }
 
     private Point[] orderPoints(Point[] points) {
@@ -337,6 +490,7 @@ public class ProductBoxTextureProcessingService {
         Point topRight = null;
         Point bottomRight = null;
         Point bottomLeft = null;
+
         double minSum = Double.MAX_VALUE;
         double maxSum = -Double.MAX_VALUE;
         double minDiff = Double.MAX_VALUE;
@@ -350,14 +504,17 @@ public class ProductBoxTextureProcessingService {
                 minSum = sum;
                 topLeft = point;
             }
+
             if (sum > maxSum) {
                 maxSum = sum;
                 bottomRight = point;
             }
+
             if (diff < minDiff) {
                 minDiff = diff;
                 topRight = point;
             }
+
             if (diff > maxDiff) {
                 maxDiff = diff;
                 bottomLeft = point;
@@ -440,10 +597,10 @@ public class ProductBoxTextureProcessingService {
 
     private double polygonArea(ProductBoxTextureProcessRequest request) {
         Point[] points = {
-            toPoint(request.topLeft()),
-            toPoint(request.topRight()),
-            toPoint(request.bottomRight()),
-            toPoint(request.bottomLeft())
+                toPoint(request.topLeft()),
+                toPoint(request.topRight()),
+                toPoint(request.bottomRight()),
+                toPoint(request.bottomLeft())
         };
 
         double area = 0.0;
@@ -503,26 +660,23 @@ public class ProductBoxTextureProcessingService {
     }
 
     public record ProcessedProductBoxTexture(
-        byte[] bytes,
-        String filename,
-        String contentType,
-        Integer widthPx,
-        Integer heightPx,
-        BigDecimal targetAspectRatio,
-        ProductBoxTextureProcessRequest appliedPoints,
-        ProductBoxTextureEnhancementMode enhancementMode
+            byte[] bytes,
+            String filename,
+            String contentType,
+            Integer widthPx,
+            Integer heightPx,
+            BigDecimal targetAspectRatio,
+            ProductBoxTextureProcessRequest appliedPoints,
+            ProductBoxTextureEnhancementMode enhancementMode
     ) {
     }
 
     public record DetectedProductBoxContour(
-        boolean detected,
-        BigDecimal confidence,
-        ProductBoxTextureProcessRequest points,
-        String message
+            boolean detected,
+            BigDecimal confidence,
+            ProductBoxTextureProcessRequest points,
+            String message
     ) {
-        private static DetectedProductBoxContour notDetected(String message) {
-            return new DetectedProductBoxContour(false, BigDecimal.ZERO.setScale(4, RoundingMode.HALF_UP), null, message);
-        }
     }
 
     private record TargetTextureSize(int width, int height, BigDecimal aspectRatio) {
