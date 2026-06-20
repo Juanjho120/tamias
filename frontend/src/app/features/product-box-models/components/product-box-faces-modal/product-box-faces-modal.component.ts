@@ -11,6 +11,7 @@ import {
   ProductBoxFaceName,
   ProductBoxModel,
   ProductBoxModelFace,
+  ProductBoxTexturePoint,
   ProductBoxTextureProcessRequest
 } from '../../models/product-box-model.model';
 import { ProductBoxModelService } from '../../services/product-box-model.service';
@@ -187,7 +188,9 @@ export class ProductBoxFacesModalComponent implements OnChanges {
   }
 
   onTexturePointsChanged(faceName: ProductBoxFaceName, points: ProductBoxTextureProcessRequest): void {
-    this.processPoints.update((current) => ({ ...current, [faceName]: points }));
+    const face = this.face(faceName);
+    const safePoints = face ? this.sanitizeProcessPoints(face, points) : points;
+    this.processPoints.update((current) => ({ ...current, [faceName]: safePoints }));
   }
 
   processTexture(faceName: ProductBoxFaceName): void {
@@ -198,8 +201,15 @@ export class ProductBoxFacesModalComponent implements OnChanges {
       return;
     }
 
+    const safePoints = this.sanitizeProcessPoints(face, points);
+    if (!safePoints) {
+      this.toastService.error(this.languageService.instant('productBoxModels.textureEditor.messages.processError'));
+      return;
+    }
+
+    this.processPoints.update((current) => ({ ...current, [faceName]: safePoints }));
     this.processingFace.set(faceName);
-    this.productBoxModelService.processTexture(modelId, faceName, points).subscribe({
+    this.productBoxModelService.processTexture(modelId, faceName, safePoints).subscribe({
       next: () => {
         this.processingFace.set(null);
         this.toastService.success(this.languageService.instant('productBoxModels.textureEditor.messages.processed'));
@@ -315,6 +325,58 @@ export class ProductBoxFacesModalComponent implements OnChanges {
       const point = value[key as keyof ProductBoxTextureProcessRequest];
       return Number.isFinite(point?.x) && Number.isFinite(point?.y);
     });
+  }
+
+  private sanitizeProcessPoints(
+    face: ProductBoxModelFace,
+    points: ProductBoxTextureProcessRequest
+  ): ProductBoxTextureProcessRequest | null {
+    const width = Math.trunc(face.originalWidthPx ?? 0);
+    const height = Math.trunc(face.originalHeightPx ?? 0);
+
+    if (width <= 0 || height <= 0) {
+      return null;
+    }
+
+    const treatAsNormalized = this.arePointsNormalized(points);
+
+    return {
+      topLeft: this.sanitizePoint(points.topLeft, width, height, treatAsNormalized),
+      topRight: this.sanitizePoint(points.topRight, width, height, treatAsNormalized),
+      bottomRight: this.sanitizePoint(points.bottomRight, width, height, treatAsNormalized),
+      bottomLeft: this.sanitizePoint(points.bottomLeft, width, height, treatAsNormalized)
+    };
+  }
+
+  private arePointsNormalized(points: ProductBoxTextureProcessRequest): boolean {
+    return ['topLeft', 'topRight', 'bottomRight', 'bottomLeft'].every((key) => {
+      const point = points[key as keyof ProductBoxTextureProcessRequest];
+      return point.x >= 0 && point.x <= 1 && point.y >= 0 && point.y <= 1;
+    });
+  }
+
+  private sanitizePoint(
+    point: ProductBoxTexturePoint,
+    width: number,
+    height: number,
+    normalized: boolean
+  ): ProductBoxTexturePoint {
+    const maxX = Math.max(0, width - 1);
+    const maxY = Math.max(0, height - 1);
+    const rawX = normalized ? point.x * maxX : point.x;
+    const rawY = normalized ? point.y * maxY : point.y;
+
+    return {
+      x: Math.trunc(this.clampNumber(Math.round(rawX), 0, maxX)),
+      y: Math.trunc(this.clampNumber(Math.round(rawY), 0, maxY))
+    };
+  }
+
+  private clampNumber(value: number, min: number, max: number): number {
+    if (!Number.isFinite(value)) {
+      return min;
+    }
+    return Math.max(min, Math.min(max, value));
   }
 
   private resetState(): void {

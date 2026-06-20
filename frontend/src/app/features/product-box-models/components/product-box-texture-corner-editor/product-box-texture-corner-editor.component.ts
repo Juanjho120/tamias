@@ -1,9 +1,19 @@
-import { Component, ElementRef, EventEmitter, Input, OnChanges, Output, SimpleChanges, ViewChild, computed, signal } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  EventEmitter,
+  Input,
+  OnChanges,
+  Output,
+  SimpleChanges,
+  ViewChild,
+  computed,
+  signal
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ProductBoxTexturePoint, ProductBoxTextureProcessRequest } from '../../models/product-box-model.model';
 
 type CornerName = keyof ProductBoxTextureProcessRequest;
-
 type NormalizedCorners = Record<CornerName, ProductBoxTexturePoint>;
 
 @Component({
@@ -50,6 +60,7 @@ export class ProductBoxTextureCornerEditorComponent implements OnChanges {
   @Input() imageHeight: number | null = null;
   @Input() disabled = false;
   @Input() initialPoints: ProductBoxTextureProcessRequest | null = null;
+
   @Output() pointsChanged = new EventEmitter<ProductBoxTextureProcessRequest>();
 
   @ViewChild('imageElement') private readonly imageElement?: ElementRef<HTMLImageElement>;
@@ -60,6 +71,7 @@ export class ProductBoxTextureCornerEditorComponent implements OnChanges {
 
   readonly polygonPoints = computed(() => {
     const corners = this.normalizedCorners();
+
     return [corners.topLeft, corners.topRight, corners.bottomRight, corners.bottomLeft]
       .map((point) => `${point.x * 100},${point.y * 100}`)
       .join(' ');
@@ -67,6 +79,7 @@ export class ProductBoxTextureCornerEditorComponent implements OnChanges {
 
   readonly cornerEntries = computed(() => {
     const corners = this.normalizedCorners();
+
     return [
       { name: 'topLeft' as CornerName, point: corners.topLeft },
       { name: 'topRight' as CornerName, point: corners.topRight },
@@ -93,9 +106,11 @@ export class ProductBoxTextureCornerEditorComponent implements OnChanges {
 
   onImageLoad(): void {
     this.imageReady.set(true);
+
     if (this.initialPoints) {
       this.normalizedCorners.set(this.toNormalizedCorners(this.initialPoints));
     }
+
     this.emitRealPoints();
   }
 
@@ -108,6 +123,7 @@ export class ProductBoxTextureCornerEditorComponent implements OnChanges {
     if (this.disabled) {
       return;
     }
+
     event.preventDefault();
     this.draggingCorner.set(corner);
     (event.target as Element).setPointerCapture?.(event.pointerId);
@@ -116,34 +132,41 @@ export class ProductBoxTextureCornerEditorComponent implements OnChanges {
 
   moveDrag(event: PointerEvent): void {
     const corner = this.draggingCorner();
+
     if (!corner || this.disabled) {
       return;
     }
+
     event.preventDefault();
     this.updateCornerFromPointer(corner, event);
   }
 
   endDrag(event?: PointerEvent): void {
     const corner = this.draggingCorner();
+
     if (event && corner) {
       (event.target as Element).releasePointerCapture?.(event.pointerId);
     }
+
     this.draggingCorner.set(null);
     this.emitRealPoints();
   }
 
   private updateCornerFromPointer(corner: CornerName, event: PointerEvent): void {
     const rect = this.imageElement?.nativeElement.getBoundingClientRect();
+
     if (!rect || rect.width <= 0 || rect.height <= 0) {
       return;
     }
 
     const x = this.clamp((event.clientX - rect.left) / rect.width, 0, 1);
     const y = this.clamp((event.clientY - rect.top) / rect.height, 0, 1);
+
     this.normalizedCorners.update((current) => ({
       ...current,
       [corner]: { x, y }
     }));
+
     this.emitRealPoints();
   }
 
@@ -154,11 +177,13 @@ export class ProductBoxTextureCornerEditorComponent implements OnChanges {
 
     const width = this.imageWidth ?? this.imageElement?.nativeElement.naturalWidth ?? 0;
     const height = this.imageHeight ?? this.imageElement?.nativeElement.naturalHeight ?? 0;
+
     if (width <= 0 || height <= 0) {
       return;
     }
 
     const corners = this.normalizedCorners();
+
     this.pointsChanged.emit({
       topLeft: this.toRealPoint(corners.topLeft, width, height),
       topRight: this.toRealPoint(corners.topRight, width, height),
@@ -170,6 +195,7 @@ export class ProductBoxTextureCornerEditorComponent implements OnChanges {
   private toNormalizedCorners(points: ProductBoxTextureProcessRequest): NormalizedCorners {
     const width = this.imageWidth ?? this.imageElement?.nativeElement.naturalWidth ?? 0;
     const height = this.imageHeight ?? this.imageElement?.nativeElement.naturalHeight ?? 0;
+
     if (width <= 0 || height <= 0) {
       return this.defaultCorners();
     }
@@ -184,15 +210,18 @@ export class ProductBoxTextureCornerEditorComponent implements OnChanges {
 
   private toNormalizedPoint(point: ProductBoxTexturePoint, width: number, height: number): ProductBoxTexturePoint {
     return {
-      x: this.clamp(point.x / width, 0, 1),
-      y: this.clamp(point.y / height, 0, 1)
+      x: this.clamp(point.x / Math.max(1, Math.trunc(width) - 1), 0, 1),
+      y: this.clamp(point.y / Math.max(1, Math.trunc(height) - 1), 0, 1)
     };
   }
 
   private toRealPoint(point: ProductBoxTexturePoint, width: number, height: number): ProductBoxTexturePoint {
+    const maxX = Math.max(0, Math.trunc(width) - 1);
+    const maxY = Math.max(0, Math.trunc(height) - 1);
+
     return {
-      x: Math.round(point.x * width),
-      y: Math.round(point.y * height)
+      x: Math.trunc(this.clamp(Math.round(point.x * maxX), 0, maxX)),
+      y: Math.trunc(this.clamp(Math.round(point.y * maxY), 0, maxY))
     };
   }
 

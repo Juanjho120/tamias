@@ -101,7 +101,7 @@
                         <div class="col-md-4">
                           <h6>{{ 'productBoxModels.textureEditor.activeTexture' | translate }}</h6>
                           @if (currentFace?.imageUrl) {
-                            <img class="product-box-face-preview rounded border" [src]="currentFace?.imageUrl" [alt]="currentFace?.originalFilename || faceName" />
+                            <img class="product-box-face-preview rounded border" [src]="currentFace?.imageUrl" crossorigin="anonymous" [alt]="currentFace?.originalFilename || faceName" />
                             <div class="small mt-2">
                               <div>{{ currentFace?.originalFilename || '—' }}</div>
                               <div class="text-body-secondary">{{ formatSize(currentFace?.sizeBytes) }}</div>
@@ -119,7 +119,7 @@
                         <div class="col-md-4">
                           <h6>{{ 'productBoxModels.textureEditor.originalPhoto' | translate }}</h6>
                           @if (currentFace?.originalImageUrl) {
-                            <img class="product-box-face-preview rounded border" [src]="currentFace?.originalImageUrl" [alt]="currentFace?.originalUploadFilename || faceName" />
+                            <img class="product-box-face-preview rounded border" [src]="currentFace?.originalImageUrl" crossorigin="anonymous" [alt]="currentFace?.originalUploadFilename || faceName" />
                             <div class="small mt-2">
                               <div>{{ currentFace?.originalUploadFilename || '—' }}</div>
                               <div class="text-body-secondary">
@@ -142,7 +142,7 @@
                         <div class="col-md-4">
                           <h6>{{ 'productBoxModels.textureEditor.processedTexture' | translate }}</h6>
                           @if (currentFace?.processedImageUrl) {
-                            <img class="product-box-texture-preview rounded border bg-body-secondary" [src]="currentFace?.processedImageUrl" [alt]="currentFace?.processedFilename || faceName" />
+                            <img class="product-box-texture-preview rounded border bg-body-secondary" [src]="currentFace?.processedImageUrl" crossorigin="anonymous" [alt]="currentFace?.processedFilename || faceName" />
                             <div class="small mt-2">
                               <div>{{ currentFace?.processedFilename || '—' }}</div>
                               <div class="text-body-secondary">
