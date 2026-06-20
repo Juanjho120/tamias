@@ -455,3 +455,8 @@ ai_enhanced
 - Provider integration must remain behind a backend interface such as `ProductBoxAiTextureEnhancementProvider`.
 - The default/no-op provider must fail clearly when no real provider is configured.
 - No vendor SDK or external AI call is introduced in 14L.
+
+## 32. AI-enhanced product box textures are optional drafts until accepted
+
+Product Box AI texture enhancement must generate a separate enhanced draft from the OpenCV processed texture. It must not overwrite the original upload or the OpenCV processed texture. `product_box_model_faces.s3_key` remains the active texture used by Three.js, and it changes to the AI-enhanced S3 key only after explicit user acceptance. OpenCV remains the faithful baseline; AI enhancement is a visual improvement aid that may alter small details, so the user must compare and accept it manually.
+

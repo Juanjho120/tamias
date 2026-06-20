@@ -22,8 +22,11 @@ import com.tamias.productbox.repository.ProductBoxModelRepository;
 import com.tamias.security.service.CurrentUserService;
 import com.tamias.user.entity.User;
 import com.tamias.user.repository.UserRepository;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -53,6 +56,7 @@ public class ProductBoxModelFaceService {
     private final ImageValidationService imageValidationService;
     private final ProductBoxModelMapper productBoxModelMapper;
     private final ProductBoxTextureProcessingService productBoxTextureProcessingService;
+    private final List<ProductBoxAiTextureEnhancementProvider> aiTextureEnhancementProviders;
     private final ObjectMapper objectMapper;
 
     public ProductBoxModelFaceService(
@@ -64,6 +68,7 @@ public class ProductBoxModelFaceService {
         ImageValidationService imageValidationService,
         ProductBoxModelMapper productBoxModelMapper,
         ProductBoxTextureProcessingService productBoxTextureProcessingService,
+        List<ProductBoxAiTextureEnhancementProvider> aiTextureEnhancementProviders,
         ObjectMapper objectMapper
     ) {
         this.productBoxModelRepository = productBoxModelRepository;
@@ -74,6 +79,7 @@ public class ProductBoxModelFaceService {
         this.imageValidationService = imageValidationService;
         this.productBoxModelMapper = productBoxModelMapper;
         this.productBoxTextureProcessingService = productBoxTextureProcessingService;
+        this.aiTextureEnhancementProviders = aiTextureEnhancementProviders != null ? aiTextureEnhancementProviders : List.of();
         this.objectMapper = objectMapper;
     }
 
@@ -264,9 +270,19 @@ public class ProductBoxModelFaceService {
         );
 
         String previousProcessedS3Key = face.getProcessedS3Key();
+        String previousAiEnhancedS3Key = face.getAiEnhancedS3Key();
         if (shouldDeleteDraftKey(face, previousProcessedS3Key)) {
             try {
                 fileStorageService.delete(previousProcessedS3Key);
+            } catch (RuntimeException ex) {
+                cleanupNewFile(storedFile.storageKey());
+                throw ex;
+            }
+        }
+
+        if (shouldDeleteDraftKey(face, previousAiEnhancedS3Key)) {
+            try {
+                fileStorageService.delete(previousAiEnhancedS3Key);
             } catch (RuntimeException ex) {
                 cleanupNewFile(storedFile.storageKey());
                 throw ex;
@@ -325,6 +341,155 @@ public class ProductBoxModelFaceService {
         face.setAcceptedAt(OffsetDateTime.now());
         face.setUpdatedBy(currentUser);
 
+        return productBoxModelMapper.toFaceResponse(productBoxModelFaceRepository.save(face));
+    }
+
+
+    @Transactional(noRollbackFor = BadRequestException.class)
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF')")
+    public ProductBoxModelFaceResponse generateAiEnhancedTexture(UUID productBoxModelId, String faceNameValue) {
+        ProductBoxModelFace face = findFace(productBoxModelId, faceNameValue);
+        ProductBoxModel productBoxModel = face.getProductBoxModel();
+        User currentUser = findCurrentUser();
+
+        if (face.getProcessedS3Key() == null || face.getProcessedS3Key().isBlank()) {
+            throw new BadRequestException("Processed product box texture is required before AI enhancement");
+        }
+
+        ProductBoxAiTextureEnhancementProvider provider = findAvailableAiEnhancementProvider();
+        face.setAiEnhancementStatus(ProductBoxAiEnhancementStatus.PROCESSING);
+        face.setAiEnhancementProvider(provider.getProviderName());
+        face.setAiEnhancementModel(null);
+        face.setAiEnhancementPromptVersion("product-box-texture-enhancement-v1");
+        face.setAiEnhancementError(null);
+        face.setUpdatedBy(currentUser);
+        productBoxModelFaceRepository.save(face);
+
+        try {
+            byte[] processedBytes = readResourceBytes(fileStorageService.loadAsResource(face.getProcessedS3Key()));
+            ProductBoxAiTextureEnhancementResult aiResult = provider.enhance(new ProductBoxAiTextureEnhancementRequest(
+                face.getOrganization().getId(),
+                productBoxModel.getId(),
+                face.getId(),
+                face.getFaceName(),
+                face.getProcessedS3Key(),
+                face.getProcessedFilename(),
+                face.getProcessedContentType(),
+                processedBytes,
+                face.getTargetAspectRatio(),
+                face.getProcessedWidthPx(),
+                face.getProcessedHeightPx(),
+                "product-box-texture-enhancement-v1"
+            ));
+
+            NormalizedImage normalizedImage = normalizeEnhancedImage(
+                aiResult.bytes(),
+                face.getProcessedWidthPx(),
+                face.getProcessedHeightPx()
+            );
+
+            MultipartFile aiEnhancedFile = new ByteArrayMultipartFile(
+                "file",
+                buildAiEnhancedFilename(face),
+                PROCESSED_TEXTURE_CONTENT_TYPE,
+                normalizedImage.bytes()
+            );
+
+            var storedFile = fileStorageService.store(
+                aiEnhancedFile,
+                productBoxModel.getOrganization().getId()
+                    + "/catalogs/product_box_models/"
+                    + productBoxModel.getId()
+                    + "/faces/"
+                    + face.getFaceName().getValue()
+                    + "/enhanced"
+            );
+
+            String previousAiEnhancedS3Key = face.getAiEnhancedS3Key();
+            if (shouldDeleteDraftKey(face, previousAiEnhancedS3Key)) {
+                try {
+                    fileStorageService.delete(previousAiEnhancedS3Key);
+                } catch (RuntimeException ex) {
+                    cleanupNewFile(storedFile.storageKey());
+                    throw ex;
+                }
+            }
+
+            face.setAiEnhancedS3Key(storedFile.storageKey());
+            face.setAiEnhancedFilepath(storedFile.filepath());
+            face.setAiEnhancedFilename(aiEnhancedFile.getOriginalFilename());
+            face.setAiEnhancedContentType(storedFile.contentType());
+            face.setAiEnhancedSizeBytes(storedFile.sizeBytes());
+            face.setAiEnhancedWidthPx(normalizedImage.width());
+            face.setAiEnhancedHeightPx(normalizedImage.height());
+            face.setAiEnhancementStatus(ProductBoxAiEnhancementStatus.GENERATED);
+            face.setAiEnhancementProvider(aiResult.provider());
+            face.setAiEnhancementModel(aiResult.model());
+            face.setAiEnhancementPromptVersion(aiResult.promptVersion());
+            face.setAiEnhancementError(null);
+            face.setAiEnhancedAt(OffsetDateTime.now());
+            face.setUpdatedBy(currentUser);
+
+            return productBoxModelMapper.toFaceResponse(productBoxModelFaceRepository.save(face));
+        } catch (BadRequestException ex) {
+            markAiEnhancementFailed(face, currentUser, ex.getMessage());
+            throw ex;
+        } catch (RuntimeException ex) {
+            markAiEnhancementFailed(face, currentUser, ex.getMessage());
+            throw new BadRequestException("Product box AI texture enhancement failed: " + ex.getMessage());
+        }
+    }
+
+    @Transactional
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF')")
+    public ProductBoxModelFaceResponse acceptAiEnhancedTexture(UUID productBoxModelId, String faceNameValue) {
+        ProductBoxModelFace face = findFace(productBoxModelId, faceNameValue);
+        User currentUser = findCurrentUser();
+
+        if (face.getAiEnhancedS3Key() == null || face.getAiEnhancedS3Key().isBlank()) {
+            throw new BadRequestException("AI-enhanced product box texture is required before accepting texture");
+        }
+
+        String previousActiveS3Key = face.getS3Key();
+        if (shouldDeleteReplacedActiveKey(face, previousActiveS3Key, face.getAiEnhancedS3Key())) {
+            fileStorageService.delete(previousActiveS3Key);
+        }
+
+        face.setS3Key(face.getAiEnhancedS3Key());
+        face.setFilepath(face.getAiEnhancedFilepath());
+        face.setOriginalFilename(face.getAiEnhancedFilename());
+        face.setContentType(face.getAiEnhancedContentType());
+        face.setSizeBytes(face.getAiEnhancedSizeBytes());
+        face.setTextureStatus(ProductBoxTextureStatus.ACCEPTED);
+        face.setAiEnhancementStatus(ProductBoxAiEnhancementStatus.ACCEPTED);
+        face.setActiveTextureSource(ProductBoxActiveTextureSource.AI_ENHANCED);
+        face.setProcessingError(null);
+        face.setAiEnhancementError(null);
+        face.setAcceptedAt(OffsetDateTime.now());
+        face.setUpdatedBy(currentUser);
+
+        return productBoxModelMapper.toFaceResponse(productBoxModelFaceRepository.save(face));
+    }
+
+    @Transactional
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF')")
+    public ProductBoxModelFaceResponse discardAiEnhancedTexture(UUID productBoxModelId, String faceNameValue) {
+        ProductBoxModelFace face = findFace(productBoxModelId, faceNameValue);
+        User currentUser = findCurrentUser();
+
+        if (face.getAiEnhancedS3Key() != null
+            && face.getAiEnhancedS3Key().equals(face.getS3Key())
+            && face.getActiveTextureSource() == ProductBoxActiveTextureSource.AI_ENHANCED) {
+            throw new BadRequestException("Cannot discard the active AI-enhanced texture. Accept another texture or delete the face instead.");
+        }
+
+        String aiEnhancedS3Key = face.getAiEnhancedS3Key();
+        if (shouldDeleteDraftKey(face, aiEnhancedS3Key)) {
+            fileStorageService.delete(aiEnhancedS3Key);
+        }
+
+        clearAiEnhancementMetadata(face);
+        face.setUpdatedBy(currentUser);
         return productBoxModelMapper.toFaceResponse(productBoxModelFaceRepository.save(face));
     }
 
@@ -580,6 +745,75 @@ public class ProductBoxModelFaceService {
         }
     }
 
+
+    private ProductBoxAiTextureEnhancementProvider findAvailableAiEnhancementProvider() {
+        return aiTextureEnhancementProviders.stream()
+            .filter(ProductBoxAiTextureEnhancementProvider::isAvailable)
+            .findFirst()
+            .orElseThrow(() -> new BadRequestException("Product box AI texture enhancement provider is not configured"));
+    }
+
+    private byte[] readResourceBytes(Resource resource) {
+        try (InputStream inputStream = resource.getInputStream()) {
+            return inputStream.readAllBytes();
+        } catch (IOException ex) {
+            throw new BadRequestException("Processed product box texture could not be read");
+        }
+    }
+
+    private NormalizedImage normalizeEnhancedImage(byte[] bytes, Integer targetWidth, Integer targetHeight) {
+        try {
+            BufferedImage source = ImageIO.read(new ByteArrayInputStream(bytes));
+            if (source == null) {
+                throw new BadRequestException("AI-enhanced product box texture is not a readable image");
+            }
+
+            int outputWidth = targetWidth != null && targetWidth > 0 ? targetWidth : source.getWidth();
+            int outputHeight = targetHeight != null && targetHeight > 0 ? targetHeight : source.getHeight();
+
+            BufferedImage output = new BufferedImage(outputWidth, outputHeight, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D graphics = output.createGraphics();
+            try {
+                graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+                graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+                graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                graphics.drawImage(source, 0, 0, outputWidth, outputHeight, null);
+            } finally {
+                graphics.dispose();
+            }
+
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            ImageIO.write(output, "png", outputStream);
+            return new NormalizedImage(outputStream.toByteArray(), outputWidth, outputHeight);
+        } catch (IOException ex) {
+            throw new BadRequestException("AI-enhanced product box texture could not be normalized");
+        }
+    }
+
+    private void markAiEnhancementFailed(ProductBoxModelFace face, User currentUser, String errorMessage) {
+        face.setAiEnhancementStatus(ProductBoxAiEnhancementStatus.FAILED);
+        face.setAiEnhancementError(truncate(errorMessage, 1000));
+        face.setUpdatedBy(currentUser);
+        productBoxModelFaceRepository.save(face);
+    }
+
+    private String buildAiEnhancedFilename(ProductBoxModelFace face) {
+        return "ai-enhanced-" + face.getFaceName().getValue() + "-" + UUID.randomUUID() + ".png";
+    }
+
+    private boolean shouldDeleteReplacedActiveKey(
+        ProductBoxModelFace face,
+        String previousActiveStorageKey,
+        String newActiveStorageKey
+    ) {
+        return previousActiveStorageKey != null
+            && !previousActiveStorageKey.isBlank()
+            && !previousActiveStorageKey.equals(newActiveStorageKey)
+            && !previousActiveStorageKey.equals(face.getOriginalS3Key())
+            && !previousActiveStorageKey.equals(face.getProcessedS3Key())
+            && !previousActiveStorageKey.equals(face.getAiEnhancedS3Key());
+    }
+
     private ImageDimensions readDimensions(MultipartFile file) {
         try {
             BufferedImage image = ImageIO.read(file.getInputStream());
@@ -629,6 +863,9 @@ public class ProductBoxModelFaceService {
         private static ImageDimensions empty() {
             return new ImageDimensions(null, null);
         }
+    }
+
+    private record NormalizedImage(byte[] bytes, Integer width, Integer height) {
     }
 
     private static class ByteArrayMultipartFile implements MultipartFile {

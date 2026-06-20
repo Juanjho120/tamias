@@ -103,8 +103,8 @@ Completed subphases:
 Next subphases:
 
 ```text
-14M AI Texture enhancement backend
-14N Angular AI enhanced preview and accept workflow
+14M AI Texture enhancement backend — Completed
+14N Angular AI enhanced preview and accept workflow — Next
 14O Integration with Inventory/Purchases
 14P AI awareness for Product Box Models
 ```

@@ -48,8 +48,8 @@ Key decisions:
 ## Pending subphases
 
 ```text
-14M — AI Texture enhancement backend Planned next
-14N — Angular AI enhanced preview and accept workflow Planned
+14M — AI Texture enhancement backend                    Completed Planned next
+14N — Angular AI enhanced preview and accept workflow  Next Planned
 14O — Integration with Inventory/Purchases Planned
 14P — AI awareness for Product Box Models Planned
 ```
@@ -180,5 +180,5 @@ The active texture still remains `product_box_model_faces.s3_key`.
 ## Next phase
 
 ```text
-14M — AI Texture enhancement backend
+14M — AI Texture enhancement backend                    Completed
 ```

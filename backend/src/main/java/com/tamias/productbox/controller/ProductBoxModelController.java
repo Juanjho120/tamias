@@ -130,6 +130,30 @@ public class ProductBoxModelController {
         return productBoxModelFaceService.acceptProcessedTexture(id, faceName);
     }
 
+    @PostMapping("/{id}/faces/{faceName}/texture/ai-enhance")
+    public ProductBoxModelFaceResponse generateAiEnhancedFaceTexture(
+        @PathVariable UUID id,
+        @PathVariable String faceName
+    ) {
+        return productBoxModelFaceService.generateAiEnhancedTexture(id, faceName);
+    }
+
+    @PostMapping("/{id}/faces/{faceName}/texture/ai-enhance/accept")
+    public ProductBoxModelFaceResponse acceptAiEnhancedFaceTexture(
+        @PathVariable UUID id,
+        @PathVariable String faceName
+    ) {
+        return productBoxModelFaceService.acceptAiEnhancedTexture(id, faceName);
+    }
+
+    @DeleteMapping("/{id}/faces/{faceName}/texture/ai-enhance")
+    public ProductBoxModelFaceResponse discardAiEnhancedFaceTexture(
+        @PathVariable UUID id,
+        @PathVariable String faceName
+    ) {
+        return productBoxModelFaceService.discardAiEnhancedTexture(id, faceName);
+    }
+
     @DeleteMapping("/{id}/faces/{faceName}/texture")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteFaceTexture(

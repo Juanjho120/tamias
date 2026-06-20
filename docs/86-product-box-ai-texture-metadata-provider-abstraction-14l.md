@@ -148,11 +148,4 @@ A real provider must be added in 14M behind the same interface so Product Box do
 14M — AI Texture enhancement backend
 ```
 
-14M should:
-
-- require an existing `processed_s3_key`,
-- call the configured AI provider,
-- upload the enhanced result to S3,
-- populate `ai_enhanced_*` metadata,
-- set `ai_enhancement_status = GENERATED`,
-- never auto-accept the AI-enhanced output.
+14M implemented the real backend enhancement flow, including provider call, S3 upload, metadata persistence, and backend accept/discard endpoints. The AI-enhanced output still is not accepted automatically.
