@@ -3,7 +3,6 @@
 This document records important technical decisions for TAMIAS.
 
 ## 1. Architecture style
-
 Decision:
 
 ```text
@@ -11,7 +10,6 @@ Use Modular Monolith for the MVP.
 ```
 
 ## 2. Multi-tenancy strategy
-
 Decision:
 
 ```text
@@ -23,7 +21,6 @@ Rule:
 > The backend resolves organization from authenticated user context. The frontend is not trusted as source of truth for organization isolation.
 
 ## 3. Backend framework
-
 Decision:
 
 ```text
@@ -31,7 +28,6 @@ Use Java 21 + Spring Boot 3.
 ```
 
 ## 4. Frontend framework
-
 Decision:
 
 ```text
@@ -39,7 +35,6 @@ Use Angular + TypeScript + Bootstrap.
 ```
 
 ## 5. User management
-
 Decision:
 
 ```text
@@ -47,7 +42,6 @@ Keep user administration under /users and restrict it to administrators.
 ```
 
 ## 6. Self-service profile
-
 Decision:
 
 ```text
@@ -72,7 +66,6 @@ organization
 ```
 
 ## 7. Mandatory temporary password change
-
 Decision:
 
 ```text
@@ -86,7 +79,6 @@ users.password_change_required
 ```
 
 ## 8. Inventory Items refactor
-
 Decision:
 
 ```text
@@ -108,7 +100,6 @@ available_for_purchases
 ```
 
 ## 9. Reservation supplies
-
 Decision:
 
 ```text
@@ -116,7 +107,6 @@ Use reservation_supplies for items delivered to guests during reservations.
 ```
 
 ## 10. Reports
-
 Decision:
 
 ```text
@@ -126,7 +116,6 @@ Do not implement JasperReports in the MVP.
 Reports are planned as Phase 15, after Product Box Models.
 
 ## 11. Tool Calling
-
 Decision:
 
 ```text
@@ -142,7 +131,6 @@ Rules:
 - Guardrails must block write/action requests.
 
 ## 12. AI chat ownership
-
 Decision:
 
 ```text
@@ -150,7 +138,6 @@ AI chat sessions and messages are private to the authenticated owner user by def
 ```
 
 ## 13. Assistant display name
-
 Decision:
 
 ```text
@@ -158,7 +145,6 @@ Use TAMI as the visible assistant name in the UI.
 ```
 
 ## 14. AI response animation
-
 Decision:
 
 ```text
@@ -166,7 +152,6 @@ Use a frontend-only typewriter animation first.
 ```
 
 ## 15. S3 key strategy
-
 Decision:
 
 ```text
@@ -193,7 +178,6 @@ Rules:
 - New uploads must use the organization/module/entity path strategy.
 
 ## 16. Entity images hard delete
-
 Decision:
 
 ```text
@@ -219,7 +203,6 @@ Rules:
 - New entity image tables must not add `deleted_at` or `deleted_by`.
 
 ## 17. RAG documents hard delete
-
 Decision:
 
 ```text
@@ -236,7 +219,6 @@ Deletion flow:
 ```
 
 ## 18. Inventory item brand ownership
-
 Decision:
 
 ```text
@@ -244,7 +226,6 @@ Brands belong directly to inventory_items, not purchase_items.
 ```
 
 ## 19. Purchase list images
-
 Decision:
 
 ```text
@@ -252,7 +233,6 @@ Images for purchases are associated with purchase lists using purchase_list_id.
 ```
 
 ## 20. User last login
-
 Decision:
 
 ```text
@@ -260,7 +240,6 @@ Track the last successful login timestamp on users.last_login.
 ```
 
 ## 21. Image upload modal UX consistency
-
 Decision:
 
 ```text
@@ -278,7 +257,6 @@ Rules:
 - Restrict image file pickers to JPG, PNG and WEBP.
 
 ## 22. Frontend i18n strategy for image modules
-
 Decision:
 
 ```text
@@ -300,7 +278,6 @@ Rules:
 - Use the existing `LanguageService` and `TranslateService` flow.
 
 ## 23. AI image and inventory brand tools
-
 Decision:
 
 ```text
@@ -308,7 +285,6 @@ Add read-only AI tools for image metadata and inventory brand queries.
 ```
 
 ## 24. AI image/file dashboard tools
-
 Decision:
 
 ```text
@@ -316,7 +292,6 @@ Implement 13A cross-module AI image/file dashboard questions before deeper AI ob
 ```
 
 ## 25. AI orchestration persisted debug traces
-
 Decision:
 
 ```text
@@ -324,7 +299,6 @@ Persist one AI debug trace per assistant/TAMI message and expose it only to user
 ```
 
 ## 26. AI debug traces are persisted by assistant message
-
 Decision:
 
 ```text
@@ -332,7 +306,6 @@ Persist one debug trace per assistant/TAMI response in ai_chat_message_debugs.
 ```
 
 ## 27. AI smoke-test hardening closes routing/formatting regressions before RAG tuning
-
 Decision:
 
 ```text
@@ -347,11 +320,11 @@ Rules:
 - The minimal smoke set in `70-ai-smoke-test-hardening-final-fixes-9p-h.md` should be run after every future AI-related change.
 
 ## 28. Phase numbering after 13A
-
 Decision:
 
 ```text
-Do not reuse Phase 13A. Start Product Box Models as Phase 14, then split Reports, Notifications and Blueprint Analysis into separate later phases.
+Do not reuse Phase 13A.
+Start Product Box Models as Phase 14, then split Reports, Notifications and Blueprint Analysis into separate later phases.
 ```
 
 Current sequence:
@@ -365,7 +338,6 @@ Current sequence:
 ```
 
 ## 29. Product Box Models architecture
-
 Decision:
 
 ```text
@@ -393,11 +365,10 @@ Accepted face S3 key:
 ```
 
 ## 30. Product Box 3D texture processing
-
 Decision:
 
 ```text
-Process product box face photos using OpenCV Java, not generative AI, and keep the accepted texture compatible with the existing product_box_model_faces viewer contract.
+Process product box face photos using OpenCV Java as the faithful baseline, and keep the accepted texture compatible with the existing product_box_model_faces viewer contract.
 ```
 
 Rules:
@@ -408,11 +379,10 @@ Rules:
 - Save original and processed files in private S3 using organization-first paths.
 - Use hard delete for original, processed and accepted texture objects.
 - If S3 delete fails, do not delete or mutate the DB row into an inconsistent state.
-- OpenCV perspective correction should start with manual four-corner selection.
+- OpenCV perspective correction should support manual four-corner selection.
 - Automatic contour detection is an assistive enhancement and must not replace manual correction.
-- Basic illumination/contrast enhancement should be conservative and faithful to the original product packaging.
+- OpenCV illumination/contrast enhancement improves the faithful baseline, but does not reconstruct missing detail.
 - Backend processes images; frontend handles corner selection, preview and Three.js rendering.
-- No generative image editing is allowed in this phase.
 
 Original upload S3 key:
 
@@ -431,3 +401,29 @@ Accepted texture S3 key:
 ```text
 {organizationId}/catalogs/product_box_models/{productBoxModelId}/faces/{faceName}/{filename}
 ```
+
+## 31. Optional AI texture enhancement after OpenCV
+Decision:
+
+```text
+Allow optional AI-assisted visual enhancement only after OpenCV creates a faithful processed texture. AI output must be stored separately, previewed explicitly, and accepted manually by the user before becoming the active Three.js texture.
+```
+
+Rules:
+
+- OpenCV remains the faithful baseline for perspective correction and geometry.
+- AI enhancement must not replace original upload or OpenCV processed texture.
+- AI enhancement must be optional and user-triggered.
+- AI-enhanced output must be labeled as enhanced.
+- AI-enhanced output must not be auto-accepted.
+- The user must be able to compare OpenCV processed texture vs AI-enhanced texture.
+- `product_box_model_faces.s3_key` remains the active accepted texture used by the viewer.
+- AI-enhanced drafts should use a separate S3 key such as:
+
+```text
+{organizationId}/catalogs/product_box_models/{productBoxModelId}/faces/{faceName}/enhanced/{filename}
+```
+
+- Face hard delete must delete active, original, processed and AI-enhanced S3 objects.
+- Provider integration should be abstracted behind a backend service; the domain service must not be hardcoded to a single vendor API.
+- AI-enhanced textures are visual aids and may alter text, logos, colors or small details. They must not be treated as guaranteed faithful reproductions of the original package.

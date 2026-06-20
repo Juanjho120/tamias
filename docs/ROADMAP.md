@@ -67,6 +67,7 @@ Completed sub-phases:
 Status: Conditional / optional / not started.
 
 Goals:
+
 - Tune threshold, topK, metadata filters, property-aware retrieval and chunk quality only if PDFs/documents still show retrieval issues.
 - Do not start this phase for structured-tool routing, parameter extraction or formatting problems.
 - Keep 9P-I optional for now.
@@ -100,8 +101,12 @@ Completed subphases:
 Next subphases:
 
 ```text
-14K Integration with Inventory/Purchases
-14L AI awareness for Product Box Models
+14K AI Texture Enhancement architecture/design
+14L AI Texture metadata and backend provider abstraction
+14M AI Texture enhancement backend
+14N Angular AI enhanced preview and accept workflow
+14O Integration with Inventory/Purchases
+14P AI awareness for Product Box Models
 ```
 
 ## Future phases

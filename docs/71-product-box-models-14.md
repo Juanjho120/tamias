@@ -25,28 +25,33 @@ Key decisions:
 - Face images/textures use hard delete.
 - The frontend rebuilds the box dynamically with Three.js.
 - The backend does not render 3D and does not generate `.glb`/`.gltf` files in the MVP.
-- Product Box 3D Texture processing uses OpenCV Java, not generative AI.
+- Product Box 3D Texture processing uses OpenCV Java for faithful geometry/perspective correction.
+- Optional AI texture enhancement may be added after OpenCV processing, but it must not replace the OpenCV baseline.
 
 ## Implemented subphases
 
 ```text
-14A — Product Box Models backend foundation              Completed
-14B — Product Box Face Images                            Completed
-14C — Angular Product Box CRUD                           Completed
-14D — Three.js Product Box Viewer                        Completed
-14E — Product Box 3D Textures architecture/design        Completed
-14F — Texture metadata + original upload                 Completed
-14G — OpenCV perspective correction backend              Completed
-14H — Angular corner editor + processed texture preview  Completed
-14I — Accept/retry/delete texture workflow               Completed
-14J — Automatic contour detection and image enhancement  Completed
+14A — Product Box Models backend foundation Completed
+14B — Product Box Face Images Completed
+14C — Angular Product Box CRUD Completed
+14D — Three.js Product Box Viewer Completed
+14E — Product Box 3D Textures architecture/design Completed
+14F — Texture metadata + original upload Completed
+14G — OpenCV perspective correction backend Completed
+14H — Angular corner editor + processed texture preview Completed
+14I — Accept/retry/delete texture workflow Completed
+14J — Automatic contour detection and image enhancement Completed
 ```
 
 ## Pending subphases
 
 ```text
-14K — Integration with Inventory/Purchases               Planned
-14L — AI awareness for Product Box Models                Planned
+14K — AI Texture Enhancement architecture/design Planned next
+14L — AI Texture metadata and backend provider abstraction Planned
+14M — AI Texture enhancement backend Planned
+14N — Angular AI enhanced preview and accept workflow Planned
+14O — Integration with Inventory/Purchases Planned
+14P — AI awareness for Product Box Models Planned
 ```
 
 ## Data model
@@ -73,7 +78,8 @@ Additional texture lifecycle fields support:
 - four-corner points,
 - OpenCV processing metadata,
 - automatic contour detection metadata,
-- enhancement mode.
+- enhancement mode,
+- future optional AI-enhanced texture metadata.
 
 ## Face names
 
@@ -107,6 +113,8 @@ ACCEPTED        processed/direct image is active in the viewer
 FAILED          last processing attempt failed
 ```
 
+Future AI enhancement must add its own draft/enhancement status without changing the meaning of the existing OpenCV lifecycle.
+
 ## S3 structure
 
 Organization id remains the first path segment.
@@ -129,13 +137,20 @@ Accepted/direct textures:
 {organizationId}/catalogs/product_box_models/{productBoxModelId}/faces/{faceName}/{filename}
 ```
 
+Future AI-enhanced drafts:
+
+```text
+{organizationId}/catalogs/product_box_models/{productBoxModelId}/faces/{faceName}/enhanced/{filename}
+```
+
 ## Hard delete policy
 
 Face texture delete must delete S3 objects before deleting the DB row:
 
 - `s3_key`,
 - `original_s3_key`,
-- `processed_s3_key`.
+- `processed_s3_key`,
+- future `ai_enhanced_s3_key`.
 
 If any required S3 deletion fails, the database row must not be deleted.
 
@@ -146,14 +161,22 @@ The OpenCV pipeline supports:
 - manual four-corner perspective correction,
 - automatic contour detection as a helper,
 - real face aspect-ratio output,
-- basic image enhancement,
+- image enhancement,
 - processed texture preview,
 - explicit accept/save workflow.
 
 Automatic detection never replaces manual review. It only pre-fills the four points in the Angular editor.
 
+## Optional AI texture enhancement
+
+AI enhancement is planned as an optional visual enhancement step after OpenCV processing.
+
+OpenCV remains the faithful baseline. AI output must be stored separately and accepted explicitly by the user before becoming the active texture.
+
+The active texture still remains `product_box_model_faces.s3_key`.
+
 ## Next phase
 
 ```text
-14K — Integration with Inventory/Purchases
+14K — AI Texture Enhancement architecture/design
 ```

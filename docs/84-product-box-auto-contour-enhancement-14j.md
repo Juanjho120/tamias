@@ -9,7 +9,7 @@ Add an assistive OpenCV step to Product Box 3D Textures:
 - automatically detect a likely rectangular package-face contour from the uploaded original photo,
 - prefill the existing four-corner editor with detected points,
 - keep manual adjustment as the fallback/source of truth,
-- apply conservative image enhancement during perspective processing.
+- apply image enhancement during perspective processing.
 
 This phase builds on the completed manual workflow:
 
@@ -59,28 +59,20 @@ If no reliable contour is found, the endpoint returns `detected = false` and the
 
 ## OpenCV detection strategy
 
-Detection is intentionally conservative:
+Detection is assistive and best-effort. It may use several OpenCV strategies such as:
 
-1. Decode original S3 image with OpenCV.
-2. Convert to grayscale.
-3. Blur slightly.
-4. Detect edges with Canny.
-5. Dilate edges.
-6. Find external contours.
-7. Approximate polygons.
-8. Choose the largest valid four-point contour above the minimum area threshold.
-9. Order points as:
-   - top-left,
-   - top-right,
-   - bottom-right,
-   - bottom-left.
-10. Convert OpenCV-source coordinates back to the original image coordinate system used by the Angular editor.
+- grayscale conversion,
+- blur,
+- Canny edges,
+- dominant horizontal/vertical edges,
+- contour approximation,
+- fallback corner initialization.
 
 The detection only preloads points. Users can always drag the points before processing.
 
 ## Image enhancement
 
-Processing now supports enhancement modes:
+Processing supports enhancement modes:
 
 ```text
 none
@@ -88,17 +80,13 @@ basic
 strong
 ```
 
-Default mode is:
+Enhancement is applied after `warpPerspective` and before PNG encoding.
 
-```text
-basic
-```
-
-Enhancement is applied after `warpPerspective` and before PNG encoding. It uses conservative CLAHE-based contrast improvement, avoiding aggressive color changes. `strong` applies a slightly stronger CLAHE/brightness adjustment, but the UI currently sends/uses the default `basic` mode.
+14J remains an OpenCV-based faithful processing phase. It should improve brightness, contrast, color and sharpness, but it does not reconstruct missing details like an AI model could.
 
 ## Frontend behavior
 
-The Product Box faces modal now shows a **Detect contour** button when an original photo exists.
+The Product Box faces modal shows a **Detect contour** button when an original photo exists.
 
 Flow:
 
@@ -123,9 +111,15 @@ The existing hard-delete rules still apply for:
 - original upload `original_s3_key`,
 - processed preview `processed_s3_key`.
 
+## Limitation and next step
+
+OpenCV cannot reliably reconstruct missing detail, fix blurred text perfectly, or create a polished near-commercial texture from a low-quality phone photo.
+
+The next planned step is optional AI texture enhancement after OpenCV processing.
+
 ## Out of scope
 
-- No generative AI.
+- No generative AI in 14J.
 - No automatic acceptance of detected points.
 - No destructive modification of the original image.
 - No separate `product_box_textures` table.
@@ -135,5 +129,5 @@ The existing hard-delete rules still apply for:
 ## Next phase
 
 ```text
-14K — Integration with Inventory/Purchases
+14K — AI Texture Enhancement architecture/design
 ```
