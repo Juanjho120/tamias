@@ -1,10 +1,13 @@
 package com.tamias.productbox.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tamias.common.exception.BadRequestException;
 import com.tamias.common.exception.NotFoundException;
 import com.tamias.document.storage.FileStorageService;
 import com.tamias.image.service.ImageValidationService;
 import com.tamias.productbox.dto.ProductBoxModelFaceResponse;
+import com.tamias.productbox.dto.ProductBoxTextureProcessRequest;
 import com.tamias.productbox.entity.ProductBoxModel;
 import com.tamias.productbox.entity.ProductBoxModelFace;
 import com.tamias.productbox.enums.ProductBoxFaceName;
@@ -16,7 +19,9 @@ import com.tamias.security.service.CurrentUserService;
 import com.tamias.user.entity.User;
 import com.tamias.user.repository.UserRepository;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.OffsetDateTime;
@@ -34,6 +39,8 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 public class ProductBoxModelFaceService {
 
+    private static final String PROCESSED_TEXTURE_CONTENT_TYPE = "image/png";
+
     private final ProductBoxModelRepository productBoxModelRepository;
     private final ProductBoxModelFaceRepository productBoxModelFaceRepository;
     private final UserRepository userRepository;
@@ -41,6 +48,8 @@ public class ProductBoxModelFaceService {
     private final FileStorageService fileStorageService;
     private final ImageValidationService imageValidationService;
     private final ProductBoxModelMapper productBoxModelMapper;
+    private final ProductBoxTextureProcessingService productBoxTextureProcessingService;
+    private final ObjectMapper objectMapper;
 
     public ProductBoxModelFaceService(
         ProductBoxModelRepository productBoxModelRepository,
@@ -49,7 +58,9 @@ public class ProductBoxModelFaceService {
         CurrentUserService currentUserService,
         FileStorageService fileStorageService,
         ImageValidationService imageValidationService,
-        ProductBoxModelMapper productBoxModelMapper
+        ProductBoxModelMapper productBoxModelMapper,
+        ProductBoxTextureProcessingService productBoxTextureProcessingService,
+        ObjectMapper objectMapper
     ) {
         this.productBoxModelRepository = productBoxModelRepository;
         this.productBoxModelFaceRepository = productBoxModelFaceRepository;
@@ -58,6 +69,8 @@ public class ProductBoxModelFaceService {
         this.fileStorageService = fileStorageService;
         this.imageValidationService = imageValidationService;
         this.productBoxModelMapper = productBoxModelMapper;
+        this.productBoxTextureProcessingService = productBoxTextureProcessingService;
+        this.objectMapper = objectMapper;
     }
 
     @Transactional(readOnly = true)
@@ -65,7 +78,6 @@ public class ProductBoxModelFaceService {
     public List<ProductBoxModelFaceResponse> findAll(UUID productBoxModelId) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         validateProductBoxModel(productBoxModelId, organizationId);
-
         return productBoxModelFaceRepository
             .findByProductBoxModel_IdAndOrganization_IdOrderByFaceNameAsc(productBoxModelId, organizationId)
             .stream()
@@ -87,7 +99,6 @@ public class ProductBoxModelFaceService {
         MultipartFile file
     ) {
         imageValidationService.validateImage(file);
-
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         ProductBoxModel productBoxModel = validateProductBoxModel(productBoxModelId, organizationId);
         ProductBoxFaceName faceName = ProductBoxFaceName.fromValue(faceNameValue);
@@ -100,12 +111,8 @@ public class ProductBoxModelFaceService {
         ImageDimensions dimensions = readDimensions(file);
         var storedFile = fileStorageService.store(
             file,
-            productBoxModel.getOrganization().getId()
-                + "/catalogs/product_box_models/"
-                + productBoxModel.getId()
-                + "/faces/"
-                + faceName.getValue()
-                + "/original"
+            productBoxModel.getOrganization().getId() + "/catalogs/product_box_models/" + productBoxModel.getId()
+                + "/faces/" + faceName.getValue() + "/original"
         );
 
         if (face == null) {
@@ -142,6 +149,79 @@ public class ProductBoxModelFaceService {
         return productBoxModelMapper.toFaceResponse(productBoxModelFaceRepository.save(face));
     }
 
+    @Transactional(noRollbackFor = BadRequestException.class)
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF')")
+    public ProductBoxModelFaceResponse processTexture(
+        UUID productBoxModelId,
+        String faceNameValue,
+        ProductBoxTextureProcessRequest request
+    ) {
+        ProductBoxModelFace face = findFace(productBoxModelId, faceNameValue);
+        ProductBoxModel productBoxModel = face.getProductBoxModel();
+        ProductBoxFaceName faceName = face.getFaceName();
+        User currentUser = findCurrentUser();
+
+        if (face.getOriginalS3Key() == null || face.getOriginalS3Key().isBlank()) {
+            throw new BadRequestException("Original product box face image is required before processing texture");
+        }
+
+        Resource originalResource = fileStorageService.loadAsResource(face.getOriginalS3Key());
+        ProductBoxTextureProcessingService.ProcessedProductBoxTexture processedTexture;
+        try {
+            processedTexture = productBoxTextureProcessingService.process(
+                originalResource,
+                productBoxModel,
+                faceName,
+                request
+            );
+        } catch (RuntimeException ex) {
+            face.setTextureStatus(ProductBoxTextureStatus.FAILED);
+            face.setProcessingError(truncate(ex.getMessage(), 1000));
+            face.setUpdatedBy(currentUser);
+            productBoxModelFaceRepository.save(face);
+            throw ex;
+        }
+
+        MultipartFile processedFile = new ByteArrayMultipartFile(
+            "file",
+            processedTexture.filename(),
+            PROCESSED_TEXTURE_CONTENT_TYPE,
+            processedTexture.bytes()
+        );
+
+        var storedFile = fileStorageService.store(
+            processedFile,
+            productBoxModel.getOrganization().getId() + "/catalogs/product_box_models/" + productBoxModel.getId()
+                + "/faces/" + faceName.getValue() + "/processed"
+        );
+
+        String previousProcessedS3Key = face.getProcessedS3Key();
+        if (previousProcessedS3Key != null && !previousProcessedS3Key.isBlank()) {
+            try {
+                fileStorageService.delete(previousProcessedS3Key);
+            } catch (RuntimeException ex) {
+                cleanupNewFile(storedFile.storageKey());
+                throw ex;
+            }
+        }
+
+        face.setProcessedS3Key(storedFile.storageKey());
+        face.setProcessedFilepath(storedFile.filepath());
+        face.setProcessedFilename(processedTexture.filename());
+        face.setProcessedContentType(storedFile.contentType());
+        face.setProcessedSizeBytes(storedFile.sizeBytes());
+        face.setProcessedWidthPx(processedTexture.widthPx());
+        face.setProcessedHeightPx(processedTexture.heightPx());
+        face.setTargetAspectRatio(processedTexture.targetAspectRatio());
+        face.setPointsJson(toJson(request));
+        face.setTextureStatus(ProductBoxTextureStatus.PROCESSED);
+        face.setProcessingError(null);
+        face.setProcessedAt(OffsetDateTime.now());
+        face.setUpdatedBy(currentUser);
+
+        return productBoxModelMapper.toFaceResponse(productBoxModelFaceRepository.save(face));
+    }
+
     @Transactional
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF')")
     public ProductBoxModelFaceResponse uploadOrReplace(
@@ -153,7 +233,6 @@ public class ProductBoxModelFaceService {
         Boolean flipVertical
     ) {
         imageValidationService.validateImage(file);
-
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         ProductBoxModel productBoxModel = validateProductBoxModel(productBoxModelId, organizationId);
         ProductBoxFaceName faceName = ProductBoxFaceName.fromValue(faceNameValue);
@@ -165,11 +244,8 @@ public class ProductBoxModelFaceService {
 
         var storedFile = fileStorageService.store(
             file,
-            productBoxModel.getOrganization().getId()
-                + "/catalogs/product_box_models/"
-                + productBoxModel.getId()
-                + "/faces/"
-                + faceName.getValue()
+            productBoxModel.getOrganization().getId() + "/catalogs/product_box_models/" + productBoxModel.getId()
+                + "/faces/" + faceName.getValue()
         );
 
         if (existingFace != null) {
@@ -181,7 +257,6 @@ public class ProductBoxModelFaceService {
                     throw ex;
                 }
             }
-
             existingFace.setOriginalFilename(normalizeOriginalFilename(file));
             existingFace.setS3Key(storedFile.storageKey());
             existingFace.setFilepath(storedFile.filepath());
@@ -275,7 +350,6 @@ public class ProductBoxModelFaceService {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         validateProductBoxModel(productBoxModelId, organizationId);
         ProductBoxFaceName faceName = ProductBoxFaceName.fromValue(faceNameValue);
-
         return productBoxModelFaceRepository
             .findByProductBoxModel_IdAndOrganization_IdAndFaceName(productBoxModelId, organizationId, faceName)
             .orElseThrow(() -> new NotFoundException("Product box model face not found"));
@@ -296,7 +370,6 @@ public class ProductBoxModelFaceService {
         List<String> keysToDelete = new ArrayList<>();
         addIfPresent(keysToDelete, face.getProcessedS3Key());
         addIfPresent(keysToDelete, face.getOriginalS3Key());
-
         try {
             for (String storageKey : keysToDelete) {
                 fileStorageService.delete(storageKey);
@@ -312,7 +385,6 @@ public class ProductBoxModelFaceService {
         addIfPresent(keysToDelete, face.getS3Key());
         addIfPresent(keysToDelete, face.getOriginalS3Key());
         addIfPresent(keysToDelete, face.getProcessedS3Key());
-
         for (String storageKey : keysToDelete) {
             fileStorageService.delete(storageKey);
         }
@@ -353,17 +425,84 @@ public class ProductBoxModelFaceService {
             case FRONT, BACK, LEFT, RIGHT -> productBoxModel.getHeight();
             case TOP, BOTTOM -> productBoxModel.getDepth();
         };
-
         if (targetWidth == null || targetHeight == null || BigDecimal.ZERO.compareTo(targetHeight) == 0) {
             throw new BadRequestException("Invalid product box dimensions");
         }
-
         return targetWidth.divide(targetHeight, 6, RoundingMode.HALF_UP);
+    }
+
+    private String toJson(ProductBoxTextureProcessRequest request) {
+        try {
+            return objectMapper.writeValueAsString(request);
+        } catch (JsonProcessingException ex) {
+            throw new BadRequestException("Product box texture points could not be serialized");
+        }
+    }
+
+    private String truncate(String value, int maxLength) {
+        if (value == null || value.length() <= maxLength) {
+            return value;
+        }
+        return value.substring(0, maxLength);
     }
 
     private record ImageDimensions(Integer width, Integer height) {
         private static ImageDimensions empty() {
             return new ImageDimensions(null, null);
+        }
+    }
+
+    private static class ByteArrayMultipartFile implements MultipartFile {
+        private final String name;
+        private final String originalFilename;
+        private final String contentType;
+        private final byte[] bytes;
+
+        private ByteArrayMultipartFile(String name, String originalFilename, String contentType, byte[] bytes) {
+            this.name = name;
+            this.originalFilename = originalFilename;
+            this.contentType = contentType;
+            this.bytes = bytes != null ? bytes : new byte[0];
+        }
+
+        @Override
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public String getOriginalFilename() {
+            return originalFilename;
+        }
+
+        @Override
+        public String getContentType() {
+            return contentType;
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return bytes.length == 0;
+        }
+
+        @Override
+        public long getSize() {
+            return bytes.length;
+        }
+
+        @Override
+        public byte[] getBytes() {
+            return bytes.clone();
+        }
+
+        @Override
+        public InputStream getInputStream() {
+            return new ByteArrayInputStream(bytes);
+        }
+
+        @Override
+        public void transferTo(java.io.File dest) throws IOException, IllegalStateException {
+            java.nio.file.Files.write(dest.toPath(), bytes);
         }
     }
 }

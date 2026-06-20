@@ -4,6 +4,7 @@ import com.tamias.common.dto.PageResponse;
 import com.tamias.productbox.dto.ProductBoxModelFaceResponse;
 import com.tamias.productbox.dto.ProductBoxModelRequest;
 import com.tamias.productbox.dto.ProductBoxModelResponse;
+import com.tamias.productbox.dto.ProductBoxTextureProcessRequest;
 import com.tamias.productbox.service.ProductBoxModelFaceService;
 import com.tamias.productbox.service.ProductBoxModelService;
 import jakarta.validation.Valid;
@@ -101,6 +102,15 @@ public class ProductBoxModelController {
         @RequestPart("file") MultipartFile file
     ) {
         return productBoxModelFaceService.uploadOriginal(id, faceName, file);
+    }
+
+    @PostMapping("/{id}/faces/{faceName}/texture/process")
+    public ProductBoxModelFaceResponse processFaceTexture(
+        @PathVariable UUID id,
+        @PathVariable String faceName,
+        @Valid @RequestBody ProductBoxTextureProcessRequest request
+    ) {
+        return productBoxModelFaceService.processTexture(id, faceName, request);
     }
 
     @GetMapping("/{id}/faces/{faceName}/texture/original/file")

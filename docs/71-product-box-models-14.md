@@ -4,7 +4,7 @@ Status: **In progress**
 
 ## Purpose
 
-Add a TAMIAS module for 3D reconstruction of product boxes/packages. The goal is to let users register the physical dimensions of a rectangular box/prism, manage images for each face, render the box dynamically with Three.js, and later process phone photos into clean textures using OpenCV Java.
+Add a TAMIAS module for 3D reconstruction of product boxes/packages. The goal is to let users register the physical dimensions of a rectangular box/prism, manage images for each face, render the box dynamically with Three.js, and process phone photos into clean textures using OpenCV Java.
 
 This phase is intentionally placed **after 13A** because `13A` is already used by `68-ai-image-file-dashboard-tools-13a.md`.
 
@@ -104,8 +104,6 @@ Implemented:
 - Orbit controls for rotate/zoom.
 - Dynamic Three.js imports and WebGL cleanup.
 
-## Current design subphase
-
 ### 14E — Product Box 3D Textures architecture/design
 
 Status: **Completed / design ready**
@@ -123,35 +121,47 @@ Documentation:
 docs/79-product-box-3d-textures-14e.md
 ```
 
-## Upcoming subphases
-
 ### 14F — Texture metadata + original upload
 
-Status: **Next**
+Status: **Completed**
 
-Expected scope:
+Implemented:
 
-- Extend `product_box_model_faces` with original/processed/texture status metadata.
-- Add upload endpoint for original phone photos.
-- Store original uploads in S3.
-- Return presigned URLs for original/processed/accepted images where applicable.
+- Extended `product_box_model_faces` with original/processed/texture status metadata.
+- Added upload endpoint for original phone photos.
+- Stored original uploads in S3.
+- Returned presigned URLs for original/processed/accepted images where applicable.
 - No OpenCV processing yet.
+
+Documentation:
+
+```text
+docs/80-product-box-texture-metadata-original-upload-14f.md
+```
 
 ### 14G — OpenCV perspective correction backend
 
-Status: **Planned**
+Status: **Completed**
 
-Expected scope:
+Implemented:
 
-- Add OpenCV Java dependency.
-- Implement perspective transform using four user-provided points.
-- Generate processed texture with correct face aspect ratio.
-- Store processed output in S3.
-- Persist points and processing metadata.
+- Added OpenCV Java dependency.
+- Implemented perspective transform using four user-provided points.
+- Generated processed texture with correct face aspect ratio.
+- Stored processed output in S3.
+- Persisted points, processed image metadata, processing status and errors.
+
+Documentation:
+
+```text
+docs/81-product-box-opencv-perspective-correction-14g.md
+```
+
+## Upcoming subphases
 
 ### 14H — Angular corner editor + processed texture preview
 
-Status: **Planned**
+Status: **Next**
 
 Expected scope:
 
@@ -236,25 +246,27 @@ top
 bottom
 ```
 
-The existing `s3_key` represents the active/accepted texture used by the Three.js viewer. Texture processing subphases will add original/processed metadata to this same table instead of introducing a separate canonical texture table.
+The existing `s3_key` represents the active/accepted texture used by the Three.js viewer.
+
+Texture processing subphases add original/processed metadata to this same table instead of introducing a separate canonical texture table.
 
 ## S3 key strategy
 
 Use the existing organization-first strategy.
 
-Current accepted face texture key:
+Accepted face texture key:
 
 ```text
 {organizationId}/catalogs/product_box_models/{productBoxModelId}/faces/{faceName}/{filename}
 ```
 
-Future original upload key:
+Original upload key:
 
 ```text
 {organizationId}/catalogs/product_box_models/{productBoxModelId}/faces/{faceName}/original/{filename}
 ```
 
-Future processed preview key:
+Processed preview key:
 
 ```text
 {organizationId}/catalogs/product_box_models/{productBoxModelId}/faces/{faceName}/processed/{filename}

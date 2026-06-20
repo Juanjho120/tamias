@@ -1,6 +1,6 @@
 # TAMIAS — Roadmap
 
-This roadmap reflects the current state after AI tool calling/orchestration, S3/image hard-delete work, inventory brand/image work, AI debug traces, smoke-test hardening and Product Box Models through the Product Box 3D Textures design phase.
+This roadmap reflects the current state after AI tool calling/orchestration, S3/image hard-delete work, inventory brand/image work, AI debug traces, smoke-test hardening and Product Box Models through the OpenCV perspective correction backend.
 
 ## Completed foundation
 
@@ -156,9 +156,9 @@ Sub-phases:
 14C Angular Product Box CRUD — Completed
 14D Three.js Product Box Viewer — Completed
 14E Product Box 3D Textures architecture/design — Completed / design ready
-14F Texture metadata + original upload — Next
-14G OpenCV perspective correction backend — Planned
-14H Angular corner editor + processed texture preview — Planned
+14F Texture metadata + original upload — Completed
+14G OpenCV perspective correction backend — Completed
+14H Angular corner editor + processed texture preview — Next
 14I Accept/retry/delete texture workflow — Planned
 14J Automatic contour detection and image enhancement — Planned
 14K Integration with Inventory/Purchases — Planned
@@ -195,27 +195,32 @@ Defined:
 - S3 paths and hard-delete rules for original/processed/accepted images.
 
 ### Phase 14F — Texture metadata + original upload
-Status: Next.
+Status: Completed.
+Documentation: `80-product-box-texture-metadata-original-upload-14f.md`
 
-Expected scope:
+Implemented:
 
-- Extend `product_box_model_faces` with texture processing metadata.
-- Upload original phone photos to S3.
-- Return original/processed/accepted presigned URLs where applicable.
-- No OpenCV processing yet.
+- Texture processing metadata in `product_box_model_faces`.
+- Original phone-photo upload endpoint.
+- Original image S3 storage under the organization-first path.
+- Original presigned URL in face responses.
+- Hard-delete coverage for active/original/processed storage keys.
 
 ### Phase 14G — OpenCV perspective correction backend
-Status: Planned.
+Status: Completed.
+Documentation: `81-product-box-opencv-perspective-correction-14g.md`
 
-Expected scope:
+Implemented:
 
-- Add OpenCV Java dependency.
-- Process four manually selected points.
-- Generate a rectangular texture matching the real face aspect ratio.
-- Store processed texture in S3.
+- OpenCV Java dependency.
+- Manual four-point perspective correction endpoint.
+- Real face aspect-ratio target generation.
+- Processed PNG texture stored in S3.
+- Processed texture metadata and status updates.
+- Failure metadata when processing fails.
 
 ### Phase 14H — Angular corner editor + processed texture preview
-Status: Planned.
+Status: Next.
 
 Expected scope:
 
