@@ -427,3 +427,31 @@ Rules:
 - Face hard delete must delete active, original, processed and AI-enhanced S3 objects.
 - Provider integration should be abstracted behind a backend service; the domain service must not be hardcoded to a single vendor API.
 - AI-enhanced textures are visual aids and may alter text, logos, colors or small details. They must not be treated as guaranteed faithful reproductions of the original package.
+
+## 32. AI texture enhancement metadata before provider integration
+
+Decision:
+
+```text
+Prepare Product Box AI texture enhancement metadata and provider abstractions before integrating a real AI provider.
+```
+
+Rules:
+
+- `product_box_model_faces.s3_key` remains the active accepted texture used by Three.js.
+- `ai_enhanced_s3_key` stores only the optional AI-enhanced draft/result.
+- AI-enhanced output must not auto-replace the OpenCV processed texture.
+- `active_texture_source` records where the active `s3_key` came from:
+
+```text
+unknown
+direct_upload
+opencv_processed
+ai_enhanced
+```
+
+- `ai_enhancement_status` tracks the future AI workflow independently from the existing OpenCV `texture_status`.
+- Hard delete must include `ai_enhanced_s3_key` along with active, original and processed texture keys.
+- Provider integration must remain behind a backend interface such as `ProductBoxAiTextureEnhancementProvider`.
+- The default/no-op provider must fail clearly when no real provider is configured.
+- No vendor SDK or external AI call is introduced in 14L.

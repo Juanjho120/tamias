@@ -1,6 +1,6 @@
 # TAMIAS — Roadmap
 
-This roadmap reflects the current state after AI tool calling/orchestration, S3/image hard-delete work, inventory brand/image work, AI debug traces, smoke-test hardening and Product Box Models through automatic contour detection/image enhancement.
+This roadmap reflects the current state after AI tool calling/orchestration, S3/image hard-delete work, inventory brand/image work, AI debug traces, smoke-test hardening and Product Box Models through automatic contour detection/image enhancement and AI texture metadata/provider abstraction.
 
 ## Completed foundation
 
@@ -79,7 +79,7 @@ Phases 10A through 13A are completed and documented in their corresponding `.md`
 ## Current implementation queue
 
 ### Phase 14 — Product Box Models
-Status: In progress / completed through 14J.
+Status: In progress / completed through 14L.
 
 Documentation: `71-product-box-models-14.md`
 
@@ -96,13 +96,13 @@ Completed subphases:
 14H Angular corner editor + processed texture preview
 14I Accept/retry/delete texture workflow
 14J Automatic contour detection and image enhancement
+14K AI Texture Enhancement architecture/design
+14L AI Texture metadata and backend provider abstraction
 ```
 
 Next subphases:
 
 ```text
-14K AI Texture Enhancement architecture/design
-14L AI Texture metadata and backend provider abstraction
 14M AI Texture enhancement backend
 14N Angular AI enhanced preview and accept workflow
 14O Integration with Inventory/Purchases

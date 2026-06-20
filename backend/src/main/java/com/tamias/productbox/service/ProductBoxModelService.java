@@ -214,6 +214,7 @@ public class ProductBoxModelService {
         addIfPresent(keysToDelete, face.getS3Key());
         addIfPresent(keysToDelete, face.getOriginalS3Key());
         addIfPresent(keysToDelete, face.getProcessedS3Key());
+        addIfPresent(keysToDelete, face.getAiEnhancedS3Key());
 
         for (String storageKey : keysToDelete) {
             fileStorageService.delete(storageKey);

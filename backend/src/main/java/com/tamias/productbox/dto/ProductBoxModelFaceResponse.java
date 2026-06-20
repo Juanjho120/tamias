@@ -1,5 +1,7 @@
 package com.tamias.productbox.dto;
 
+import com.tamias.productbox.enums.ProductBoxActiveTextureSource;
+import com.tamias.productbox.enums.ProductBoxAiEnhancementStatus;
 import com.tamias.productbox.enums.ProductBoxTextureStatus;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -44,6 +46,21 @@ public record ProductBoxModelFaceResponse(
     OffsetDateTime acceptedAt,
     Boolean autoDetectedPoints,
     BigDecimal contourConfidence,
-    String enhancementMode
+    String enhancementMode,
+    String aiEnhancedImageKey,
+    String aiEnhancedFilepath,
+    String aiEnhancedFilename,
+    String aiEnhancedContentType,
+    Long aiEnhancedSizeBytes,
+    Integer aiEnhancedWidthPx,
+    Integer aiEnhancedHeightPx,
+    String aiEnhancedImageUrl,
+    ProductBoxAiEnhancementStatus aiEnhancementStatus,
+    String aiEnhancementProvider,
+    String aiEnhancementModel,
+    String aiEnhancementPromptVersion,
+    String aiEnhancementError,
+    OffsetDateTime aiEnhancedAt,
+    ProductBoxActiveTextureSource activeTextureSource
 ) {
 }

@@ -2,6 +2,10 @@ package com.tamias.productbox.entity;
 
 import com.tamias.common.entity.AuditableEntity;
 import com.tamias.organization.entity.Organization;
+import com.tamias.productbox.enums.ProductBoxActiveTextureSource;
+import com.tamias.productbox.enums.ProductBoxActiveTextureSourceConverter;
+import com.tamias.productbox.enums.ProductBoxAiEnhancementStatus;
+import com.tamias.productbox.enums.ProductBoxAiEnhancementStatusConverter;
 import com.tamias.productbox.enums.ProductBoxFaceName;
 import com.tamias.productbox.enums.ProductBoxFaceNameConverter;
 import com.tamias.productbox.enums.ProductBoxTextureStatus;
@@ -131,6 +135,50 @@ public class ProductBoxModelFace extends AuditableEntity {
 
     @Column(name = "enhancement_mode", nullable = false, length = 20)
     private String enhancementMode = "basic";
+
+    @Column(name = "ai_enhanced_s3_key", length = 500)
+    private String aiEnhancedS3Key;
+
+    @Column(name = "ai_enhanced_filepath", length = 300)
+    private String aiEnhancedFilepath;
+
+    @Column(name = "ai_enhanced_filename", length = 255)
+    private String aiEnhancedFilename;
+
+    @Column(name = "ai_enhanced_content_type", length = 100)
+    private String aiEnhancedContentType;
+
+    @Column(name = "ai_enhanced_size_bytes")
+    private Long aiEnhancedSizeBytes;
+
+    @Column(name = "ai_enhanced_width_px")
+    private Integer aiEnhancedWidthPx;
+
+    @Column(name = "ai_enhanced_height_px")
+    private Integer aiEnhancedHeightPx;
+
+    @Convert(converter = ProductBoxAiEnhancementStatusConverter.class)
+    @Column(name = "ai_enhancement_status", nullable = false, length = 30)
+    private ProductBoxAiEnhancementStatus aiEnhancementStatus = ProductBoxAiEnhancementStatus.NOT_REQUESTED;
+
+    @Column(name = "ai_enhancement_provider", length = 80)
+    private String aiEnhancementProvider;
+
+    @Column(name = "ai_enhancement_model", length = 120)
+    private String aiEnhancementModel;
+
+    @Column(name = "ai_enhancement_prompt_version", length = 80)
+    private String aiEnhancementPromptVersion;
+
+    @Column(name = "ai_enhancement_error", columnDefinition = "TEXT")
+    private String aiEnhancementError;
+
+    @Column(name = "ai_enhanced_at")
+    private OffsetDateTime aiEnhancedAt;
+
+    @Convert(converter = ProductBoxActiveTextureSourceConverter.class)
+    @Column(name = "active_texture_source", nullable = false, length = 30)
+    private ProductBoxActiveTextureSource activeTextureSource = ProductBoxActiveTextureSource.UNKNOWN;
 
     @Column(name = "rotation_degrees", precision = 10, scale = 2)
     private BigDecimal rotationDegrees;

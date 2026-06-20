@@ -1,6 +1,6 @@
 # 14K — Product Box AI Texture Enhancement
 
-Status: **Design ready / implementation next only if approved**
+Status: **Completed / design accepted**
 
 ## Purpose
 
@@ -88,22 +88,22 @@ ai_enhanced_content_type VARCHAR(100)
 ai_enhanced_size_bytes BIGINT
 ai_enhanced_width_px INTEGER
 ai_enhanced_height_px INTEGER
-ai_enhancement_status VARCHAR(30) NOT NULL DEFAULT 'NONE'
+ai_enhancement_status VARCHAR(30) NOT NULL DEFAULT 'NOT_REQUESTED'
 ai_enhancement_provider VARCHAR(80)
 ai_enhancement_model VARCHAR(120)
-ai_enhancement_prompt_version VARCHAR(50)
+ai_enhancement_prompt_version VARCHAR(80)
 ai_enhancement_error TEXT
 ai_enhanced_at TIMESTAMP
-active_texture_source VARCHAR(30) NOT NULL DEFAULT 'DIRECT_OR_OPENCV'
+active_texture_source VARCHAR(30) NOT NULL DEFAULT 'unknown'
 ```
 
 Suggested `ai_enhancement_status` values:
 
 ```text
-NONE
+NOT_REQUESTED
 REQUESTED
 PROCESSING
-ENHANCED
+GENERATED
 ACCEPTED
 FAILED
 ```
@@ -111,9 +111,10 @@ FAILED
 Suggested `active_texture_source` values:
 
 ```text
-DIRECT_UPLOAD
-OPENCV_PROCESSED
-AI_ENHANCED
+unknown
+direct_upload
+opencv_processed
+ai_enhanced
 ```
 
 `product_box_model_faces.s3_key` remains the active accepted texture key used by the viewer.
@@ -256,7 +257,9 @@ Status: this document.
 
 ### 14L — AI Texture metadata and backend provider abstraction
 
-Add DB metadata, enums, DTOs, provider-neutral service interfaces and no-op/mock implementation if needed.
+Status: Completed.
+
+Added DB metadata, enums/converters, response fields, cleanup rules and a provider-neutral no-op abstraction. See `86-product-box-ai-texture-metadata-provider-abstraction-14l.md`.
 
 No external AI call yet.
 

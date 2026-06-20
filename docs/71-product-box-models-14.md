@@ -1,6 +1,6 @@
 # 14 — Product Box Models
 
-Status: **In progress / completed through 14J**
+Status: **In progress / completed through 14L**
 
 ## Purpose
 
@@ -41,14 +41,14 @@ Key decisions:
 14H — Angular corner editor + processed texture preview Completed
 14I — Accept/retry/delete texture workflow Completed
 14J — Automatic contour detection and image enhancement Completed
+14K — AI Texture Enhancement architecture/design Completed
+14L — AI Texture metadata and backend provider abstraction Completed
 ```
 
 ## Pending subphases
 
 ```text
-14K — AI Texture Enhancement architecture/design Planned next
-14L — AI Texture metadata and backend provider abstraction Planned
-14M — AI Texture enhancement backend Planned
+14M — AI Texture enhancement backend Planned next
 14N — Angular AI enhanced preview and accept workflow Planned
 14O — Integration with Inventory/Purchases Planned
 14P — AI awareness for Product Box Models Planned
@@ -173,10 +173,12 @@ AI enhancement is planned as an optional visual enhancement step after OpenCV pr
 
 OpenCV remains the faithful baseline. AI output must be stored separately and accepted explicitly by the user before becoming the active texture.
 
+AI metadata is now present on `product_box_model_faces` through 14L. The AI-enhanced draft key is stored separately in `ai_enhanced_s3_key`, and `active_texture_source` records whether the active `s3_key` came from a direct upload, OpenCV or a future AI-enhanced output.
+
 The active texture still remains `product_box_model_faces.s3_key`.
 
 ## Next phase
 
 ```text
-14K — AI Texture Enhancement architecture/design
+14M — AI Texture enhancement backend
 ```

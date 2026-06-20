@@ -102,7 +102,22 @@ public class ProductBoxModelMapper {
             entity.getAcceptedAt(),
             entity.getAutoDetectedPoints(),
             entity.getContourConfidence(),
-            entity.getEnhancementMode()
+            entity.getEnhancementMode(),
+            entity.getAiEnhancedS3Key(),
+            entity.getAiEnhancedFilepath(),
+            entity.getAiEnhancedFilename(),
+            entity.getAiEnhancedContentType(),
+            entity.getAiEnhancedSizeBytes(),
+            entity.getAiEnhancedWidthPx(),
+            entity.getAiEnhancedHeightPx(),
+            buildUrl(entity.getAiEnhancedS3Key()),
+            entity.getAiEnhancementStatus(),
+            entity.getAiEnhancementProvider(),
+            entity.getAiEnhancementModel(),
+            entity.getAiEnhancementPromptVersion(),
+            entity.getAiEnhancementError(),
+            entity.getAiEnhancedAt(),
+            entity.getActiveTextureSource()
         );
     }
 

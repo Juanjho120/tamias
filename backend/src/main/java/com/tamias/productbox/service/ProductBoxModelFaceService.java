@@ -11,6 +11,8 @@ import com.tamias.productbox.dto.ProductBoxTextureContourDetectionResponse;
 import com.tamias.productbox.dto.ProductBoxTextureProcessRequest;
 import com.tamias.productbox.entity.ProductBoxModel;
 import com.tamias.productbox.entity.ProductBoxModelFace;
+import com.tamias.productbox.enums.ProductBoxActiveTextureSource;
+import com.tamias.productbox.enums.ProductBoxAiEnhancementStatus;
 import com.tamias.productbox.enums.ProductBoxFaceName;
 import com.tamias.productbox.enums.ProductBoxTextureEnhancementMode;
 import com.tamias.productbox.enums.ProductBoxTextureStatus;
@@ -153,6 +155,7 @@ public class ProductBoxModelFaceService {
         face.setAutoDetectedPoints(false);
         face.setContourConfidence(null);
         face.setEnhancementMode(ProductBoxTextureEnhancementMode.BASIC.getValue());
+        clearAiEnhancementDraftMetadata(face);
         face.setTextureStatus(ProductBoxTextureStatus.UPLOADED);
         face.setUpdatedBy(currentUser);
 
@@ -283,6 +286,7 @@ public class ProductBoxModelFaceService {
         face.setProcessingError(null);
         face.setProcessedAt(OffsetDateTime.now());
         face.setEnhancementMode(processedTexture.enhancementMode().getValue());
+        clearAiEnhancementDraftMetadata(face);
         face.setUpdatedBy(currentUser);
 
         return productBoxModelMapper.toFaceResponse(productBoxModelFaceRepository.save(face));
@@ -299,16 +303,24 @@ public class ProductBoxModelFaceService {
         }
 
         String previousActiveS3Key = face.getS3Key();
+        String previousAiEnhancedS3Key = face.getAiEnhancedS3Key();
+
         if (shouldDeleteActiveKey(previousActiveS3Key, face.getProcessedS3Key())) {
             fileStorageService.delete(previousActiveS3Key);
         }
 
+        if (shouldDeleteDraftKey(face, previousAiEnhancedS3Key)) {
+            fileStorageService.delete(previousAiEnhancedS3Key);
+        }
+
+        clearAiEnhancementMetadata(face);
         face.setS3Key(face.getProcessedS3Key());
         face.setFilepath(face.getProcessedFilepath());
         face.setOriginalFilename(face.getProcessedFilename());
         face.setContentType(face.getProcessedContentType());
         face.setSizeBytes(face.getProcessedSizeBytes());
         face.setTextureStatus(ProductBoxTextureStatus.ACCEPTED);
+        face.setActiveTextureSource(ProductBoxActiveTextureSource.OPENCV_PROCESSED);
         face.setProcessingError(null);
         face.setAcceptedAt(OffsetDateTime.now());
         face.setUpdatedBy(currentUser);
@@ -352,9 +364,20 @@ public class ProductBoxModelFaceService {
         );
 
         if (existingFace != null) {
+            String previousAiEnhancedS3Key = existingFace.getAiEnhancedS3Key();
+
             if (existingFace.getS3Key() != null && !existingFace.getS3Key().isBlank()) {
                 try {
                     fileStorageService.delete(existingFace.getS3Key());
+                } catch (RuntimeException ex) {
+                    cleanupNewFile(storedFile.storageKey());
+                    throw ex;
+                }
+            }
+
+            if (shouldDeleteDraftKey(existingFace, previousAiEnhancedS3Key)) {
+                try {
+                    fileStorageService.delete(previousAiEnhancedS3Key);
                 } catch (RuntimeException ex) {
                     cleanupNewFile(storedFile.storageKey());
                     throw ex;
@@ -370,6 +393,8 @@ public class ProductBoxModelFaceService {
             existingFace.setFlipHorizontal(Boolean.TRUE.equals(flipHorizontal));
             existingFace.setFlipVertical(Boolean.TRUE.equals(flipVertical));
             existingFace.setTextureStatus(ProductBoxTextureStatus.ACCEPTED);
+            existingFace.setActiveTextureSource(ProductBoxActiveTextureSource.DIRECT_UPLOAD);
+            clearAiEnhancementDraftMetadata(existingFace);
             existingFace.setProcessingError(null);
             existingFace.setAcceptedAt(OffsetDateTime.now());
             existingFace.setUpdatedBy(currentUser);
@@ -390,6 +415,7 @@ public class ProductBoxModelFaceService {
         entity.setFlipVertical(Boolean.TRUE.equals(flipVertical));
         entity.setTargetAspectRatio(calculateTargetAspectRatio(productBoxModel, faceName));
         entity.setTextureStatus(ProductBoxTextureStatus.ACCEPTED);
+        entity.setActiveTextureSource(ProductBoxActiveTextureSource.DIRECT_UPLOAD);
         entity.setAcceptedAt(OffsetDateTime.now());
         entity.setCreatedBy(currentUser);
         entity.setUpdatedBy(currentUser);
@@ -475,6 +501,7 @@ public class ProductBoxModelFaceService {
         List<String> keysToDelete = new ArrayList<>();
         addDraftKeyIfPresent(keysToDelete, face, face.getProcessedS3Key());
         addDraftKeyIfPresent(keysToDelete, face, face.getOriginalS3Key());
+        addDraftKeyIfPresent(keysToDelete, face, face.getAiEnhancedS3Key());
 
         try {
             for (String storageKey : keysToDelete) {
@@ -505,6 +532,7 @@ public class ProductBoxModelFaceService {
         addIfPresent(keysToDelete, face.getS3Key());
         addIfPresent(keysToDelete, face.getOriginalS3Key());
         addIfPresent(keysToDelete, face.getProcessedS3Key());
+        addIfPresent(keysToDelete, face.getAiEnhancedS3Key());
 
         for (String storageKey : keysToDelete) {
             fileStorageService.delete(storageKey);
@@ -522,6 +550,33 @@ public class ProductBoxModelFaceService {
             fileStorageService.delete(storageKey);
         } catch (RuntimeException ignored) {
             // Best effort cleanup. The original exception remains the failure reason.
+        }
+    }
+
+    private void clearAiEnhancementDraftMetadata(ProductBoxModelFace face) {
+        if (face.getAiEnhancedS3Key() != null && face.getAiEnhancedS3Key().equals(face.getS3Key())) {
+            return;
+        }
+
+        clearAiEnhancementMetadata(face);
+    }
+
+    private void clearAiEnhancementMetadata(ProductBoxModelFace face) {
+        face.setAiEnhancedS3Key(null);
+        face.setAiEnhancedFilepath(null);
+        face.setAiEnhancedFilename(null);
+        face.setAiEnhancedContentType(null);
+        face.setAiEnhancedSizeBytes(null);
+        face.setAiEnhancedWidthPx(null);
+        face.setAiEnhancedHeightPx(null);
+        face.setAiEnhancementStatus(ProductBoxAiEnhancementStatus.NOT_REQUESTED);
+        face.setAiEnhancementProvider(null);
+        face.setAiEnhancementModel(null);
+        face.setAiEnhancementPromptVersion(null);
+        face.setAiEnhancementError(null);
+        face.setAiEnhancedAt(null);
+        if (face.getActiveTextureSource() == ProductBoxActiveTextureSource.AI_ENHANCED) {
+            face.setActiveTextureSource(ProductBoxActiveTextureSource.UNKNOWN);
         }
     }
 
