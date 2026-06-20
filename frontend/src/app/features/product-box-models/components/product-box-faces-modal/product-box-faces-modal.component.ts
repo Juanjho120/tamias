@@ -329,8 +329,15 @@ export class ProductBoxFacesModalComponent implements OnChanges {
       return;
     }
 
-    this.clearProcessPoints(faceName);
-    this.markFreshEditor(faceName, true);
+    const existingPoints = this.processPoints()[faceName] ?? this.parsePointsJson(face.pointsJson ?? null);
+    if (existingPoints) {
+      const safePoints = this.sanitizeProcessPoints(face, existingPoints) ?? existingPoints;
+      this.processPoints.update((current) => ({ ...current, [faceName]: safePoints }));
+      this.markFreshEditor(faceName, false);
+    } else {
+      this.markFreshEditor(faceName, true);
+    }
+
     this.editingTextureFace.set(faceName);
   }
 

@@ -16,6 +16,8 @@ import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
+import org.opencv.core.MatOfFloat;
+import org.opencv.core.MatOfInt;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
@@ -158,7 +160,10 @@ public class ProductBoxTextureProcessingService {
             Imgproc.cvtColor(source, gray, Imgproc.COLOR_BGR2GRAY);
 
             List<ContourCandidate> candidates = new ArrayList<>();
-            candidates.addAll(findCandidatesWithGrabCut(source, source.width(), source.height()));
+            ContourCandidate dominantEdgeCandidate = findCandidateWithDominantEdges(gray, source.width(), source.height());
+            if (dominantEdgeCandidate != null) {
+                candidates.add(dominantEdgeCandidate);
+            }
             candidates.addAll(findCandidatesWithCanny(gray, source.width(), source.height()));
             candidates.addAll(findCandidatesWithAdaptiveThreshold(gray, source.width(), source.height()));
 
@@ -190,6 +195,110 @@ public class ProductBoxTextureProcessingService {
         } finally {
             release(source);
             release(gray);
+        }
+    }
+
+
+    private ContourCandidate findCandidateWithDominantEdges(Mat gray, int width, int height) {
+        Mat blurred = new Mat();
+        Mat edges = new Mat();
+        Mat lines = new Mat();
+
+        try {
+            Imgproc.GaussianBlur(gray, blurred, new Size(5, 5), 0);
+            Imgproc.Canny(blurred, edges, 45, 140);
+            Imgproc.HoughLinesP(
+                    edges,
+                    lines,
+                    1,
+                    Math.PI / 180,
+                    Math.max(90, (int) Math.round(Math.min(width, height) * 0.09)),
+                    Math.max(180, Math.min(width, height) * 0.16),
+                    Math.max(18, Math.min(width, height) * 0.015)
+            );
+
+            if (lines.empty()) {
+                return null;
+            }
+
+            List<LineSegment> horizontalLines = new ArrayList<>();
+            List<LineSegment> verticalLines = new ArrayList<>();
+
+            for (int i = 0; i < lines.rows(); i++) {
+                double[] row = lines.get(i, 0);
+                if (row == null || row.length < 4) {
+                    continue;
+                }
+
+                LineSegment segment = new LineSegment(row[0], row[1], row[2], row[3]);
+                double absoluteAngle = Math.abs(segment.angleDegrees());
+                double normalizedVerticalAngle = Math.abs(90.0 - absoluteAngle);
+
+                if (absoluteAngle <= 8.0 && segment.length() >= width * 0.18) {
+                    horizontalLines.add(segment);
+                } else if (normalizedVerticalAngle <= 10.0 && segment.length() >= height * 0.12) {
+                    verticalLines.add(segment);
+                }
+            }
+
+            LineSegment topEdge = horizontalLines.stream()
+                    .filter(line -> line.midY() <= height * 0.30)
+                    .filter(line -> line.maxX() >= width * 0.45)
+                    .max(Comparator.comparingDouble(line -> line.length() - (line.midY() * 0.10)))
+                    .orElse(null);
+
+            LineSegment bottomEdge = horizontalLines.stream()
+                    .filter(line -> line.midY() >= height * 0.78)
+                    .max(Comparator.comparingDouble(line -> (line.midY() * 0.55) + line.length()))
+                    .orElse(null);
+
+            if (topEdge == null || bottomEdge == null) {
+                return null;
+            }
+
+            LineSegment leftEdge = verticalLines.stream()
+                    .filter(line -> line.midX() >= width * 0.24 && line.midX() <= width * 0.58)
+                    .min(Comparator.comparingDouble(line -> Math.abs(line.midX() - topEdge.minX()) - (line.length() * 0.015)))
+                    .orElse(null);
+
+            LineSegment rightEdge = verticalLines.stream()
+                    .filter(line -> line.midX() >= width * 0.58 && line.midX() <= width * 0.96)
+                    .min(Comparator.comparingDouble(line -> Math.abs(line.midX() - topEdge.maxX()) - (line.length() * 0.015)))
+                    .orElse(null);
+
+            double topY = clamp(topEdge.midY(), 0, height - 1.0);
+            double bottomY = clamp(bottomEdge.midY(), topY + 10.0, height - 1.0);
+            double leftX = leftEdge != null
+                    ? leftEdge.midX()
+                    : Math.max(width * 0.25, Math.min(topEdge.minX(), bottomEdge.minX()));
+            double rightX = rightEdge != null
+                    ? Math.max(rightEdge.midX(), topEdge.maxX())
+                    : Math.min(width * 0.95, Math.max(topEdge.maxX(), bottomEdge.maxX()));
+
+            leftX = clamp(leftX, 0, width - 2.0);
+            rightX = clamp(rightX, leftX + 10.0, width - 1.0);
+
+            Point[] points = orderPoints(new Point[] {
+                    new Point(leftX, topY),
+                    new Point(rightX, topY),
+                    new Point(rightX, bottomY),
+                    new Point(leftX, bottomY)
+            });
+
+            double areaRatio = Math.abs(Imgproc.contourArea(new MatOfPoint(points))) / Math.max(1.0, width * (double) height);
+            if (areaRatio < 0.18) {
+                return null;
+            }
+
+            double confidence = Math.min(0.96, 0.55 + areaRatio + (leftEdge != null ? 0.08 : 0.0) + (rightEdge != null ? 0.08 : 0.0));
+            return new ContourCandidate(
+                    points,
+                    BigDecimal.valueOf(confidence).setScale(4, RoundingMode.HALF_UP)
+            );
+        } finally {
+            release(blurred);
+            release(edges);
+            release(lines);
         }
     }
 
@@ -460,13 +569,16 @@ public class ProductBoxTextureProcessingService {
             Integer coordinateWidthPx,
             Integer coordinateHeightPx
     ) {
-        double insetX = Math.max(1.0, sourceWidth * 0.08);
-        double insetY = Math.max(1.0, sourceHeight * 0.08);
+        boolean portrait = sourceHeight >= sourceWidth;
+        double leftX = portrait ? sourceWidth * 0.29 : sourceWidth * 0.14;
+        double rightX = portrait ? sourceWidth * 0.84 : sourceWidth * 0.86;
+        double topY = portrait ? sourceHeight * 0.06 : sourceHeight * 0.12;
+        double bottomY = portrait ? sourceHeight * 0.98 : sourceHeight * 0.88;
         Point[] defaultPoints = {
-                new Point(insetX, insetY),
-                new Point(sourceWidth - 1.0 - insetX, insetY),
-                new Point(sourceWidth - 1.0 - insetX, sourceHeight - 1.0 - insetY),
-                new Point(insetX, sourceHeight - 1.0 - insetY)
+                new Point(clamp(leftX, 0, sourceWidth - 2.0), clamp(topY, 0, sourceHeight - 2.0)),
+                new Point(clamp(rightX, leftX + 10.0, sourceWidth - 1.0), clamp(topY, 0, sourceHeight - 2.0)),
+                new Point(clamp(rightX, leftX + 10.0, sourceWidth - 1.0), clamp(bottomY, topY + 10.0, sourceHeight - 1.0)),
+                new Point(clamp(leftX, 0, sourceWidth - 2.0), clamp(bottomY, topY + 10.0, sourceHeight - 1.0))
         };
 
         ProductBoxTextureProcessRequest sourcePoints = toRequest(defaultPoints);
@@ -635,27 +747,132 @@ public class ProductBoxTextureProcessingService {
     private Mat applyEnhancement(Mat source, ProductBoxTextureEnhancementMode enhancementMode) {
         return switch (normalizeEnhancementMode(enhancementMode)) {
             case NONE -> source.clone();
-            case BASIC -> applyBalancedEnhancement(source, 2.0, 1.12, 16.0, 0.90);
-            case STRONG -> applyBalancedEnhancement(source, 2.6, 1.20, 24.0, 0.82);
+            case BASIC -> applyReadablePackageEnhancement(source, 0.5, 99.5, 0.84, 1.35, 1.08, 10.0, 0.12);
+            case STRONG -> applyReadablePackageEnhancement(source, 0.8, 99.2, 0.76, 1.45, 1.12, 18.0, 0.18);
         };
     }
 
-    private Mat applyBalancedEnhancement(
+    private Mat applyReadablePackageEnhancement(
             Mat source,
-            double clipLimit,
+            double lowPercentile,
+            double highPercentile,
+            double gammaValue,
+            double saturationScale,
             double contrastAlpha,
             double brightnessBeta,
-            double gammaValue
+            double sharpenAmount
     ) {
-        Mat contrastEnhanced = applyClahe(source, clipLimit);
+        Mat colorBalanced = applySimplestColorBalance(source, lowPercentile, highPercentile);
+        Mat gammaCorrected = applyGamma(colorBalanced, gammaValue);
+        Mat saturated = applySaturation(gammaCorrected, saturationScale);
         Mat adjusted = new Mat();
+        Mat sharpened = null;
 
         try {
-            contrastEnhanced.convertTo(adjusted, -1, contrastAlpha, brightnessBeta);
-            return applyGamma(adjusted, gammaValue);
+            saturated.convertTo(adjusted, -1, contrastAlpha, brightnessBeta);
+            sharpened = applyUnsharpMask(adjusted, sharpenAmount);
+            return sharpened.clone();
         } finally {
-            release(contrastEnhanced);
+            release(colorBalanced);
+            release(gammaCorrected);
+            release(saturated);
             release(adjusted);
+            release(sharpened);
+        }
+    }
+
+    private Mat applySimplestColorBalance(Mat source, double lowPercentile, double highPercentile) {
+        List<Mat> channels = new ArrayList<>();
+        List<Mat> balancedChannels = new ArrayList<>();
+        Mat result = new Mat();
+
+        try {
+            Core.split(source, channels);
+            for (Mat channel : channels) {
+                double low = percentile(channel, lowPercentile);
+                double high = percentile(channel, highPercentile);
+                Mat balanced = new Mat();
+
+                if (high <= low) {
+                    channel.copyTo(balanced);
+                } else {
+                    double alpha = 255.0 / (high - low);
+                    double beta = -low * alpha;
+                    channel.convertTo(balanced, CvType.CV_8U, alpha, beta);
+                }
+
+                balancedChannels.add(balanced);
+            }
+
+            Core.merge(balancedChannels, result);
+            return result;
+        } finally {
+            channels.forEach(Mat::release);
+            balancedChannels.forEach(Mat::release);
+        }
+    }
+
+    private double percentile(Mat channel, double percentile) {
+        Mat hist = new Mat();
+        try {
+            Imgproc.calcHist(
+                    List.of(channel),
+                    new MatOfInt(0),
+                    new Mat(),
+                    hist,
+                    new MatOfInt(256),
+                    new MatOfFloat(0, 256)
+            );
+
+            double total = channel.rows() * (double) channel.cols();
+            double target = Math.max(0.0, Math.min(100.0, percentile)) / 100.0 * total;
+            double cumulative = 0.0;
+
+            for (int i = 0; i < 256; i++) {
+                cumulative += hist.get(i, 0)[0];
+                if (cumulative >= target) {
+                    return i;
+                }
+            }
+
+            return 255.0;
+        } finally {
+            release(hist);
+        }
+    }
+
+    private Mat applySaturation(Mat source, double saturationScale) {
+        Mat hsv = new Mat();
+        Mat result = new Mat();
+        List<Mat> channels = new ArrayList<>();
+
+        try {
+            Imgproc.cvtColor(source, hsv, Imgproc.COLOR_BGR2HSV);
+            Core.split(hsv, channels);
+            channels.get(1).convertTo(channels.get(1), CvType.CV_8U, saturationScale, 0.0);
+            Core.merge(channels, hsv);
+            Imgproc.cvtColor(hsv, result, Imgproc.COLOR_HSV2BGR);
+            return result;
+        } finally {
+            release(hsv);
+            channels.forEach(Mat::release);
+        }
+    }
+
+    private Mat applyUnsharpMask(Mat source, double amount) {
+        if (amount <= 0) {
+            return source.clone();
+        }
+
+        Mat blurred = new Mat();
+        Mat result = new Mat();
+
+        try {
+            Imgproc.GaussianBlur(source, blurred, new Size(0, 0), 1.0);
+            Core.addWeighted(source, 1.0 + amount, blurred, -amount, 0.0, result);
+            return result;
+        } finally {
+            release(blurred);
         }
     }
 
@@ -678,27 +895,8 @@ public class ProductBoxTextureProcessingService {
         }
     }
 
-    private Mat applyClahe(Mat source, double clipLimit) {
-        Mat lab = new Mat();
-        Mat result = new Mat();
-        List<Mat> channels = new ArrayList<>();
-
-        try {
-            Imgproc.cvtColor(source, lab, Imgproc.COLOR_BGR2Lab);
-            Core.split(lab, channels);
-
-            CLAHE clahe = Imgproc.createCLAHE(clipLimit, new Size(8, 8));
-            Mat enhancedL = new Mat();
-            clahe.apply(channels.get(0), enhancedL);
-            channels.set(0, enhancedL);
-
-            Core.merge(channels, lab);
-            Imgproc.cvtColor(lab, result, Imgproc.COLOR_Lab2BGR);
-            return result;
-        } finally {
-            release(lab);
-            channels.forEach(Mat::release);
-        }
+    private double clamp(double value, double min, double max) {
+        return Math.max(min, Math.min(max, value));
     }
 
     private static synchronized void ensureOpenCvLoaded() {
@@ -814,6 +1012,32 @@ public class ProductBoxTextureProcessingService {
     }
 
     private record TargetTextureSize(int width, int height, BigDecimal aspectRatio) {
+    }
+
+    private record LineSegment(double x1, double y1, double x2, double y2) {
+        double length() {
+            return Math.hypot(x2 - x1, y2 - y1);
+        }
+
+        double angleDegrees() {
+            return Math.toDegrees(Math.atan2(y2 - y1, x2 - x1));
+        }
+
+        double midX() {
+            return (x1 + x2) / 2.0;
+        }
+
+        double midY() {
+            return (y1 + y2) / 2.0;
+        }
+
+        double minX() {
+            return Math.min(x1, x2);
+        }
+
+        double maxX() {
+            return Math.max(x1, x2);
+        }
     }
 
     private record ContourCandidate(Point[] orderedPoints, BigDecimal confidence) {
