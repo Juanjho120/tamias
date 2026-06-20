@@ -110,6 +110,24 @@ export class ProductBoxModelService {
     );
   }
 
+  generateAiEnhancedTexture(id: string, faceName: ProductBoxFaceName): Observable<ProductBoxModelFace> {
+    return this.apiService.post<ProductBoxModelFace>(
+      `/product-box-models/${id}/faces/${faceName}/texture/ai-enhance`,
+      {}
+    );
+  }
+
+  acceptAiEnhancedTexture(id: string, faceName: ProductBoxFaceName): Observable<ProductBoxModelFace> {
+    return this.apiService.post<ProductBoxModelFace>(
+      `/product-box-models/${id}/faces/${faceName}/texture/ai-enhance/accept`,
+      {}
+    );
+  }
+
+  discardAiEnhancedTexture(id: string, faceName: ProductBoxFaceName): Observable<ProductBoxModelFace> {
+    return this.apiService.delete<ProductBoxModelFace>(`/product-box-models/${id}/faces/${faceName}/texture/ai-enhance`);
+  }
+
   deleteTexture(id: string, faceName: ProductBoxFaceName): Observable<void> {
     return this.apiService.delete<void>(`/product-box-models/${id}/faces/${faceName}/texture`);
   }

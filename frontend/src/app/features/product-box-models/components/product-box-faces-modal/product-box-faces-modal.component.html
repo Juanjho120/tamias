@@ -10,7 +10,7 @@
               <div class="text-body-secondary small">{{ model.name }}</div>
             }
           </div>
-          <button type="button" class="btn-close" [disabled]="uploadingFace() || uploadingOriginalFace() || detectingFace() || processingFace() || acceptingFace() || deletingFace()" (click)="close()"></button>
+          <button type="button" class="btn-close" [disabled]="uploadingFace() || uploadingOriginalFace() || detectingFace() || processingFace() || acceptingFace() || enhancingFace() || acceptingAiFace() || discardingAiFace() || deletingFace()" (click)="close()"></button>
         </div>
 
         <div class="modal-body">
@@ -42,7 +42,7 @@
                       </div>
 
                       <div class="d-flex gap-2 flex-wrap">
-                        <label class="btn btn-outline-primary btn-sm mb-0" [class.disabled]="uploadingOriginalFace() === faceName || detectingFace() === faceName || processingFace() === faceName || acceptingFace() === faceName || deletingFace() === faceName">
+                        <label class="btn btn-outline-primary btn-sm mb-0" [class.disabled]="uploadingOriginalFace() === faceName || detectingFace() === faceName || processingFace() === faceName || acceptingFace() === faceName || enhancingFace() === faceName || acceptingAiFace() === faceName || discardingAiFace() === faceName || deletingFace() === faceName">
                           @if (uploadingOriginalFace() === faceName) {
                             <span class="spinner-border spinner-border-sm me-1" role="status"></span>
                             {{ 'productBoxModels.textureEditor.uploadingOriginal' | translate }}
@@ -54,12 +54,12 @@
                             type="file"
                             class="d-none"
                             accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-                            [disabled]="uploadingOriginalFace() === faceName || detectingFace() === faceName || processingFace() === faceName || acceptingFace() === faceName || deletingFace() === faceName"
+                            [disabled]="uploadingOriginalFace() === faceName || detectingFace() === faceName || processingFace() === faceName || acceptingFace() === faceName || enhancingFace() === faceName || acceptingAiFace() === faceName || discardingAiFace() === faceName || deletingFace() === faceName"
                             (change)="uploadOriginalTexture(faceName, $event)"
                           />
                         </label>
 
-                        <label class="btn btn-outline-secondary btn-sm mb-0" [class.disabled]="uploadingFace() === faceName || detectingFace() === faceName || acceptingFace() === faceName || deletingFace() === faceName">
+                        <label class="btn btn-outline-secondary btn-sm mb-0" [class.disabled]="uploadingFace() === faceName || detectingFace() === faceName || acceptingFace() === faceName || enhancingFace() === faceName || acceptingAiFace() === faceName || discardingAiFace() === faceName || deletingFace() === faceName">
                           @if (uploadingFace() === faceName) {
                             <span class="spinner-border spinner-border-sm me-1" role="status"></span>
                             {{ 'productBoxModels.faces.uploading' | translate }}
@@ -71,20 +71,20 @@
                             type="file"
                             class="d-none"
                             accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-                            [disabled]="uploadingFace() === faceName || detectingFace() === faceName || acceptingFace() === faceName || deletingFace() === faceName"
+                            [disabled]="uploadingFace() === faceName || detectingFace() === faceName || acceptingFace() === faceName || enhancingFace() === faceName || acceptingAiFace() === faceName || discardingAiFace() === faceName || deletingFace() === faceName"
                             (change)="uploadFace(faceName, $event)"
                           />
                         </label>
 
                         @if (currentFace?.originalImageUrl && !currentFace?.processedImageUrl) {
-                          <button type="button" class="btn btn-outline-info btn-sm" [disabled]="detectingFace() === faceName || processingFace() === faceName || acceptingFace() === faceName || deletingFace() === faceName" (click)="toggleTextureEditor(faceName)">
+                          <button type="button" class="btn btn-outline-info btn-sm" [disabled]="detectingFace() === faceName || processingFace() === faceName || acceptingFace() === faceName || enhancingFace() === faceName || acceptingAiFace() === faceName || discardingAiFace() === faceName || deletingFace() === faceName" (click)="toggleTextureEditor(faceName)">
                             <i class="bi bi-bounding-box-circles me-1"></i>
                             {{ (isTextureEditorOpen(faceName) ? 'productBoxModels.textureEditor.hideEditor' : 'productBoxModels.textureEditor.adjustCorners') | translate }}
                           </button>
                         }
 
                         @if (currentFace?.originalImageUrl) {
-                          <button type="button" class="btn btn-outline-info btn-sm" [disabled]="detectingFace() === faceName || processingFace() === faceName || acceptingFace() === faceName || deletingFace() === faceName" (click)="detectContour(faceName)">
+                          <button type="button" class="btn btn-outline-info btn-sm" [disabled]="detectingFace() === faceName || processingFace() === faceName || acceptingFace() === faceName || enhancingFace() === faceName || acceptingAiFace() === faceName || discardingAiFace() === faceName || deletingFace() === faceName" (click)="detectContour(faceName)">
                             @if (detectingFace() === faceName) {
                               <span class="spinner-border spinner-border-sm me-1" role="status"></span>
                               {{ 'productBoxModels.textureEditor.detectingContour' | translate }}
@@ -96,7 +96,7 @@
                         }
 
                         @if (currentFace) {
-                          <button type="button" class="btn btn-outline-danger btn-sm" [disabled]="deletingFace() === faceName || detectingFace() === faceName || processingFace() === faceName || acceptingFace() === faceName" (click)="requestDelete(faceName)">
+                          <button type="button" class="btn btn-outline-danger btn-sm" [disabled]="deletingFace() === faceName || detectingFace() === faceName || processingFace() === faceName || acceptingFace() === faceName || enhancingFace() === faceName || acceptingAiFace() === faceName || discardingAiFace() === faceName" (click)="requestDelete(faceName)">
                             @if (deletingFace() === faceName) {
                               <span class="spinner-border spinner-border-sm me-1" role="status"></span>
                             } @else {
@@ -181,7 +181,7 @@
                                 <button
                                   type="button"
                                   class="btn btn-success btn-sm"
-                                  [disabled]="acceptingFace() === faceName || detectingFace() === faceName || processingFace() === faceName || deletingFace() === faceName"
+                                  [disabled]="acceptingFace() === faceName || detectingFace() === faceName || processingFace() === faceName || enhancingFace() === faceName || acceptingAiFace() === faceName || discardingAiFace() === faceName || deletingFace() === faceName"
                                   (click)="acceptProcessedTexture(faceName)"
                                 >
                                   @if (acceptingFace() === faceName) {
@@ -202,7 +202,7 @@
                                 <button
                                   type="button"
                                   class="btn btn-outline-info btn-sm"
-                                  [disabled]="detectingFace() === faceName || processingFace() === faceName || acceptingFace() === faceName || deletingFace() === faceName"
+                                  [disabled]="detectingFace() === faceName || processingFace() === faceName || acceptingFace() === faceName || enhancingFace() === faceName || acceptingAiFace() === faceName || discardingAiFace() === faceName || deletingFace() === faceName"
                                   (click)="retryTexture(faceName)"
                                 >
                                   <i class="bi bi-arrow-repeat me-1"></i>
@@ -214,6 +214,105 @@
                             <div class="border rounded p-4 text-center text-body-secondary h-100 d-flex align-items-center justify-content-center">
                               {{ 'productBoxModels.textureEditor.noProcessed' | translate }}
                             </div>
+                          }
+                        </div>
+                        <div class="col-md-4">
+                          <h6>{{ 'productBoxModels.aiTexture.title' | translate }}</h6>
+                          @if (currentFace?.aiEnhancedImageUrl) {
+                            <img class="product-box-texture-preview rounded border bg-body-secondary" [src]="currentFace?.aiEnhancedImageUrl" crossorigin="anonymous" [alt]="currentFace?.aiEnhancedFilename || faceName" />
+                            <div class="small mt-2">
+                              <div>{{ currentFace?.aiEnhancedFilename || '—' }}</div>
+                              <div class="text-body-secondary">
+                                {{ formatSize(currentFace?.aiEnhancedSizeBytes) }}
+                                @if (currentFace?.aiEnhancedWidthPx && currentFace?.aiEnhancedHeightPx) {
+                                  · {{ currentFace?.aiEnhancedWidthPx }} × {{ currentFace?.aiEnhancedHeightPx }} px
+                                }
+                              </div>
+                              <div class="text-body-secondary">
+                                @if (currentFace?.aiEnhancementProvider) {
+                                  {{ currentFace?.aiEnhancementProvider }}
+                                }
+                                @if (currentFace?.aiEnhancementModel) {
+                                  · {{ currentFace?.aiEnhancementModel }}
+                                }
+                              </div>
+                              @if (currentFace?.aiEnhancedAt) {
+                                <div class="text-body-secondary">{{ currentFace?.aiEnhancedAt | date:'medium' }}</div>
+                              }
+                            </div>
+                            <div class="d-flex gap-2 flex-wrap mt-2">
+                              <button type="button" class="btn btn-link btn-sm px-0" (click)="openImage(currentFace?.aiEnhancedImageUrl)">
+                                {{ 'productBoxModels.faces.open' | translate }}
+                              </button>
+                              @if (canAcceptAiEnhancedTexture(currentFace)) {
+                                <button
+                                  type="button"
+                                  class="btn btn-success btn-sm"
+                                  [disabled]="acceptingAiFace() === faceName || enhancingFace() === faceName || detectingFace() === faceName || processingFace() === faceName || acceptingFace() === faceName || deletingFace() === faceName"
+                                  (click)="acceptAiEnhancedTexture(faceName)"
+                                >
+                                  @if (acceptingAiFace() === faceName) {
+                                    <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                    {{ 'productBoxModels.aiTexture.accepting' | translate }}
+                                  } @else {
+                                    <i class="bi bi-stars me-1"></i>
+                                    {{ 'productBoxModels.aiTexture.accept' | translate }}
+                                  }
+                                </button>
+                              } @else if (isAiEnhancedActive(currentFace)) {
+                                <span class="badge text-bg-success align-self-center">
+                                  <i class="bi bi-stars me-1"></i>
+                                  {{ 'productBoxModels.aiTexture.active' | translate }}
+                                </span>
+                              }
+                              @if (canDiscardAiEnhancedTexture(currentFace)) {
+                                <button
+                                  type="button"
+                                  class="btn btn-outline-danger btn-sm"
+                                  [disabled]="discardingAiFace() === faceName || enhancingFace() === faceName || acceptingAiFace() === faceName || detectingFace() === faceName || processingFace() === faceName || acceptingFace() === faceName || deletingFace() === faceName"
+                                  (click)="discardAiEnhancedTexture(faceName)"
+                                >
+                                  @if (discardingAiFace() === faceName) {
+                                    <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                    {{ 'productBoxModels.aiTexture.discarding' | translate }}
+                                  } @else {
+                                    <i class="bi bi-x-circle me-1"></i>
+                                    {{ 'productBoxModels.aiTexture.discard' | translate }}
+                                  }
+                                </button>
+                              }
+                            </div>
+                          } @else {
+                            <div class="border rounded p-4 text-center text-body-secondary h-100 d-flex align-items-center justify-content-center">
+                              @if (currentFace?.processedImageUrl) {
+                                {{ 'productBoxModels.aiTexture.noEnhanced' | translate }}
+                              } @else {
+                                {{ 'productBoxModels.aiTexture.needsProcessed' | translate }}
+                              }
+                            </div>
+                          }
+
+                          @if (currentFace?.aiEnhancementError) {
+                            <div class="alert alert-warning mt-2 mb-0 small">
+                              {{ currentFace?.aiEnhancementError }}
+                            </div>
+                          }
+
+                          @if (currentFace?.processedImageUrl) {
+                            <button
+                              type="button"
+                              class="btn btn-outline-primary btn-sm mt-2 w-100"
+                              [disabled]="enhancingFace() === faceName || acceptingAiFace() === faceName || discardingAiFace() === faceName || detectingFace() === faceName || processingFace() === faceName || acceptingFace() === faceName || deletingFace() === faceName"
+                              (click)="generateAiEnhancedTexture(faceName)"
+                            >
+                              @if (enhancingFace() === faceName) {
+                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                {{ 'productBoxModels.aiTexture.generating' | translate }}
+                              } @else {
+                                <i class="bi bi-stars me-1"></i>
+                                {{ (currentFace?.aiEnhancedImageUrl ? 'productBoxModels.aiTexture.regenerate' : 'productBoxModels.aiTexture.generate') | translate }}
+                              }
+                            </button>
                           }
                         </div>
                       </div>
@@ -232,7 +331,7 @@
                               [imageUrl]="currentFace?.originalImageUrl ?? null"
                               [imageWidth]="currentFace?.originalWidthPx ?? null"
                               [imageHeight]="currentFace?.originalHeightPx ?? null"
-                              [disabled]="detectingFace() === faceName || processingFace() === faceName || acceptingFace() === faceName || deletingFace() === faceName"
+                              [disabled]="detectingFace() === faceName || processingFace() === faceName || acceptingFace() === faceName || enhancingFace() === faceName || acceptingAiFace() === faceName || discardingAiFace() === faceName || deletingFace() === faceName"
                               [initialPoints]="initialPoints(faceName)"
                               (pointsChanged)="onTexturePointsChanged(faceName, $event)"
                             />
@@ -250,7 +349,7 @@
                               <button
                                 type="button"
                                 class="btn btn-primary w-100"
-                                [disabled]="processingFace() === faceName || acceptingFace() === faceName || !processPoints()[faceName]"
+                                [disabled]="processingFace() === faceName || acceptingFace() === faceName || enhancingFace() === faceName || acceptingAiFace() === faceName || discardingAiFace() === faceName || !processPoints()[faceName]"
                                 (click)="processTexture(faceName)"
                               >
                                 @if (processingFace() === faceName) {
@@ -277,7 +376,7 @@
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" [disabled]="uploadingFace() || uploadingOriginalFace() || detectingFace() || processingFace() || acceptingFace() || deletingFace()" (click)="close()">
+          <button type="button" class="btn btn-secondary" [disabled]="uploadingFace() || uploadingOriginalFace() || detectingFace() || processingFace() || acceptingFace() || enhancingFace() || acceptingAiFace() || discardingAiFace() || deletingFace()" (click)="close()">
             {{ 'common.close' | translate }}
           </button>
         </div>

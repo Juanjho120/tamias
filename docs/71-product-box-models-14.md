@@ -1,6 +1,6 @@
 # 14 — Product Box Models
 
-Status: **In progress / completed through 14L**
+Status: **In progress / completed through 14N**
 
 ## Purpose
 
@@ -43,13 +43,13 @@ Key decisions:
 14J — Automatic contour detection and image enhancement Completed
 14K — AI Texture Enhancement architecture/design Completed
 14L — AI Texture metadata and backend provider abstraction Completed
+14M — AI Texture enhancement backend Completed
+14N — Angular AI enhanced preview and accept workflow Completed
 ```
 
 ## Pending subphases
 
 ```text
-14M — AI Texture enhancement backend                    Completed Planned next
-14N — Angular AI enhanced preview and accept workflow  Next Planned
 14O — Integration with Inventory/Purchases Planned
 14P — AI awareness for Product Box Models Planned
 ```
@@ -79,7 +79,7 @@ Additional texture lifecycle fields support:
 - OpenCV processing metadata,
 - automatic contour detection metadata,
 - enhancement mode,
-- future optional AI-enhanced texture metadata.
+- AI-enhanced texture metadata and active texture source tracking.
 
 ## Face names
 
@@ -137,7 +137,7 @@ Accepted/direct textures:
 {organizationId}/catalogs/product_box_models/{productBoxModelId}/faces/{faceName}/{filename}
 ```
 
-Future AI-enhanced drafts:
+AI-enhanced drafts:
 
 ```text
 {organizationId}/catalogs/product_box_models/{productBoxModelId}/faces/{faceName}/enhanced/{filename}
@@ -150,7 +150,7 @@ Face texture delete must delete S3 objects before deleting the DB row:
 - `s3_key`,
 - `original_s3_key`,
 - `processed_s3_key`,
-- future `ai_enhanced_s3_key`.
+- `ai_enhanced_s3_key`.
 
 If any required S3 deletion fails, the database row must not be deleted.
 
@@ -169,16 +169,16 @@ Automatic detection never replaces manual review. It only pre-fills the four poi
 
 ## Optional AI texture enhancement
 
-AI enhancement is planned as an optional visual enhancement step after OpenCV processing.
+AI enhancement is available as an optional visual enhancement step after OpenCV processing.
 
 OpenCV remains the faithful baseline. AI output must be stored separately and accepted explicitly by the user before becoming the active texture.
 
-AI metadata is now present on `product_box_model_faces` through 14L. The AI-enhanced draft key is stored separately in `ai_enhanced_s3_key`, and `active_texture_source` records whether the active `s3_key` came from a direct upload, OpenCV or a future AI-enhanced output.
+AI metadata is now present on `product_box_model_faces` through 14L. The AI-enhanced draft key is stored separately in `ai_enhanced_s3_key`, and `active_texture_source` records whether the active `s3_key` came from a direct upload, OpenCV or an AI-enhanced output.
 
 The active texture still remains `product_box_model_faces.s3_key`.
 
 ## Next phase
 
 ```text
-14M — AI Texture enhancement backend                    Completed
+14O — Integration with Inventory/Purchases
 ```

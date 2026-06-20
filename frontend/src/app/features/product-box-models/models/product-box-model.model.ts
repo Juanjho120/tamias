@@ -2,6 +2,8 @@ export type ProductBoxUnit = 'cm' | 'mm' | 'in';
 export type ProductBoxFaceName = 'front' | 'back' | 'left' | 'right' | 'top' | 'bottom';
 export type ProductBoxTextureStatus = 'UPLOADED' | 'POINTS_SELECTED' | 'PROCESSED' | 'ACCEPTED' | 'FAILED';
 export type ProductBoxTextureEnhancementMode = 'none' | 'basic' | 'strong';
+export type ProductBoxAiEnhancementStatus = 'NOT_REQUESTED' | 'REQUESTED' | 'PROCESSING' | 'GENERATED' | 'ACCEPTED' | 'FAILED';
+export type ProductBoxActiveTextureSource = 'unknown' | 'direct_upload' | 'opencv_processed' | 'ai_enhanced';
 
 export const PRODUCT_BOX_UNITS: ProductBoxUnit[] = ['cm', 'mm', 'in'];
 export const PRODUCT_BOX_FACE_NAMES: ProductBoxFaceName[] = ['front', 'back', 'left', 'right', 'top', 'bottom'];
@@ -65,6 +67,21 @@ export interface ProductBoxModelFace {
   autoDetectedPoints: boolean | null;
   contourConfidence: number | null;
   enhancementMode: ProductBoxTextureEnhancementMode | null;
+  aiEnhancedImageKey: string | null;
+  aiEnhancedFilepath: string | null;
+  aiEnhancedFilename: string | null;
+  aiEnhancedContentType: string | null;
+  aiEnhancedSizeBytes: number | null;
+  aiEnhancedWidthPx: number | null;
+  aiEnhancedHeightPx: number | null;
+  aiEnhancedImageUrl: string | null;
+  aiEnhancementStatus: ProductBoxAiEnhancementStatus | null;
+  aiEnhancementProvider: string | null;
+  aiEnhancementModel: string | null;
+  aiEnhancementPromptVersion: string | null;
+  aiEnhancementError: string | null;
+  aiEnhancedAt: string | null;
+  activeTextureSource: ProductBoxActiveTextureSource | null;
   createdAt: string;
   updatedAt: string | null;
 }

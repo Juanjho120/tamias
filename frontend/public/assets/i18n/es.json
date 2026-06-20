@@ -1614,6 +1614,27 @@
         "contourNotDetected": "No se detectó un contorno confiable. Ajusta las esquinas manualmente.",
         "contourDetectError": "No se pudo detectar el contorno de la imagen."
       }
+    },
+    "aiTexture": {
+      "title": "Textura mejorada con IA",
+      "generate": "Generar mejora IA",
+      "regenerate": "Generar de nuevo",
+      "generating": "Generando mejora IA...",
+      "accept": "Usar textura IA",
+      "accepting": "Aceptando textura IA...",
+      "discard": "Descartar IA",
+      "discarding": "Descartando IA...",
+      "active": "Textura IA activa",
+      "noEnhanced": "Aún no hay textura mejorada con IA.",
+      "needsProcessed": "Primero procesa la textura con OpenCV.",
+      "messages": {
+        "generated": "Textura mejorada con IA generada correctamente.",
+        "generateError": "No se pudo generar la textura mejorada con IA.",
+        "accepted": "Textura IA aceptada como textura activa.",
+        "acceptError": "No se pudo aceptar la textura IA.",
+        "discarded": "Textura IA descartada correctamente.",
+        "discardError": "No se pudo descartar la textura IA."
+      }
     }
   }
 }

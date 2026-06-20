@@ -1615,6 +1615,27 @@
         "contourNotDetected": "No reliable contour was detected. Adjust the corners manually.",
         "contourDetectError": "The image contour could not be detected."
       }
+    },
+    "aiTexture": {
+      "title": "AI-enhanced texture",
+      "generate": "Generate AI enhancement",
+      "regenerate": "Generate again",
+      "generating": "Generating AI enhancement...",
+      "accept": "Use AI texture",
+      "accepting": "Accepting AI texture...",
+      "discard": "Discard AI",
+      "discarding": "Discarding AI...",
+      "active": "AI texture active",
+      "noEnhanced": "No AI-enhanced texture yet.",
+      "needsProcessed": "Process the OpenCV texture first.",
+      "messages": {
+        "generated": "AI-enhanced texture generated successfully.",
+        "generateError": "Could not generate the AI-enhanced texture.",
+        "accepted": "AI texture accepted as active texture.",
+        "acceptError": "Could not accept the AI texture.",
+        "discarded": "AI texture discarded successfully.",
+        "discardError": "Could not discard the AI texture."
+      }
     }
   }
 }

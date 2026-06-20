@@ -54,6 +54,9 @@ export class ProductBoxFacesModalComponent implements OnChanges {
   readonly detectingFace = signal<ProductBoxFaceName | null>(null);
   readonly processingFace = signal<ProductBoxFaceName | null>(null);
   readonly acceptingFace = signal<ProductBoxFaceName | null>(null);
+  readonly enhancingFace = signal<ProductBoxFaceName | null>(null);
+  readonly acceptingAiFace = signal<ProductBoxFaceName | null>(null);
+  readonly discardingAiFace = signal<ProductBoxFaceName | null>(null);
   readonly deletingFace = signal<ProductBoxFaceName | null>(null);
   readonly editingTextureFace = signal<ProductBoxFaceName | null>(null);
   readonly faces = signal<Partial<Record<ProductBoxFaceName, ProductBoxModelFace>>>({});
@@ -209,7 +212,7 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     const modelId = this.model?.id;
     const face = this.face(faceName);
 
-    if (!modelId || !face?.originalImageUrl || this.detectingFace() || this.processingFace() || this.acceptingFace()) {
+    if (!modelId || !face?.originalImageUrl || this.detectingFace() || this.processingFace() || this.acceptingFace() || this.enhancingFace() || this.acceptingAiFace() || this.discardingAiFace()) {
       return;
     }
 
@@ -255,7 +258,7 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     const points = this.processPoints()[faceName];
     const face = this.face(faceName);
 
-    if (!modelId || !face?.originalImageUrl || !points || this.processingFace() || this.acceptingFace()) {
+    if (!modelId || !face?.originalImageUrl || !points || this.processingFace() || this.acceptingFace() || this.enhancingFace() || this.acceptingAiFace() || this.discardingAiFace()) {
       return;
     }
 
@@ -295,7 +298,7 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     const modelId = this.model?.id;
     const face = this.face(faceName);
 
-    if (!modelId || !face?.processedImageUrl || this.acceptingFace()) {
+    if (!modelId || !face?.processedImageUrl || this.acceptingFace() || this.enhancingFace() || this.acceptingAiFace() || this.discardingAiFace()) {
       return;
     }
 
@@ -322,10 +325,101 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     return !!face?.processedImageUrl && face.processedImageKey !== face.imageKey;
   }
 
+  canGenerateAiEnhancedTexture(face: ProductBoxModelFace | null): boolean {
+    return !!face?.processedImageUrl
+      && !this.isAiEnhancedActive(face)
+      && face.aiEnhancementStatus !== 'PROCESSING';
+  }
+
+  canAcceptAiEnhancedTexture(face: ProductBoxModelFace | null): boolean {
+    return !!face?.aiEnhancedImageUrl && face.aiEnhancedImageKey !== face.imageKey;
+  }
+
+  canDiscardAiEnhancedTexture(face: ProductBoxModelFace | null): boolean {
+    return !!face?.aiEnhancedImageUrl && !this.isAiEnhancedActive(face);
+  }
+
+  isAiEnhancedActive(face: ProductBoxModelFace | null): boolean {
+    return !!face?.aiEnhancedImageKey && face.aiEnhancedImageKey === face.imageKey;
+  }
+
+  generateAiEnhancedTexture(faceName: ProductBoxFaceName): void {
+    const modelId = this.model?.id;
+    const face = this.face(faceName);
+
+    if (!modelId || !this.canGenerateAiEnhancedTexture(face) || this.enhancingFace() || this.acceptingFace() || this.acceptingAiFace() || this.deletingFace()) {
+      return;
+    }
+
+    this.enhancingFace.set(faceName);
+
+    this.productBoxModelService.generateAiEnhancedTexture(modelId, faceName).subscribe({
+      next: () => {
+        this.enhancingFace.set(null);
+        this.toastService.success(this.languageService.instant('productBoxModels.aiTexture.messages.generated'));
+        this.facesChanged.emit();
+        this.loadFaces();
+      },
+      error: (error: unknown) => {
+        this.enhancingFace.set(null);
+        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('productBoxModels.aiTexture.messages.generateError')));
+        this.loadFaces();
+      }
+    });
+  }
+
+  acceptAiEnhancedTexture(faceName: ProductBoxFaceName): void {
+    const modelId = this.model?.id;
+    const face = this.face(faceName);
+
+    if (!modelId || !this.canAcceptAiEnhancedTexture(face) || this.acceptingAiFace() || this.enhancingFace() || this.acceptingFace() || this.deletingFace()) {
+      return;
+    }
+
+    this.acceptingAiFace.set(faceName);
+
+    this.productBoxModelService.acceptAiEnhancedTexture(modelId, faceName).subscribe({
+      next: () => {
+        this.acceptingAiFace.set(null);
+        this.toastService.success(this.languageService.instant('productBoxModels.aiTexture.messages.accepted'));
+        this.facesChanged.emit();
+        this.loadFaces();
+      },
+      error: (error: unknown) => {
+        this.acceptingAiFace.set(null);
+        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('productBoxModels.aiTexture.messages.acceptError')));
+      }
+    });
+  }
+
+  discardAiEnhancedTexture(faceName: ProductBoxFaceName): void {
+    const modelId = this.model?.id;
+    const face = this.face(faceName);
+
+    if (!modelId || !this.canDiscardAiEnhancedTexture(face) || this.discardingAiFace() || this.enhancingFace() || this.acceptingAiFace() || this.deletingFace()) {
+      return;
+    }
+
+    this.discardingAiFace.set(faceName);
+
+    this.productBoxModelService.discardAiEnhancedTexture(modelId, faceName).subscribe({
+      next: () => {
+        this.discardingAiFace.set(null);
+        this.toastService.success(this.languageService.instant('productBoxModels.aiTexture.messages.discarded'));
+        this.facesChanged.emit();
+        this.loadFaces();
+      },
+      error: (error: unknown) => {
+        this.discardingAiFace.set(null);
+        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('productBoxModels.aiTexture.messages.discardError')));
+      }
+    });
+  }
+
   retryTexture(faceName: ProductBoxFaceName): void {
     const face = this.face(faceName);
 
-    if (!face?.originalImageUrl || this.processingFace() || this.acceptingFace()) {
+    if (!face?.originalImageUrl || this.processingFace() || this.acceptingFace() || this.enhancingFace() || this.acceptingAiFace() || this.discardingAiFace()) {
       return;
     }
 
@@ -432,6 +526,9 @@ export class ProductBoxFacesModalComponent implements OnChanges {
       || this.detectingFace()
       || this.processingFace()
       || this.acceptingFace()
+      || this.enhancingFace()
+      || this.acceptingAiFace()
+      || this.discardingAiFace()
       || this.deletingFace()
     );
   }
@@ -548,6 +645,9 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     this.detectingFace.set(null);
     this.processingFace.set(null);
     this.acceptingFace.set(null);
+    this.enhancingFace.set(null);
+    this.acceptingAiFace.set(null);
+    this.discardingAiFace.set(null);
     this.deletingFace.set(null);
     this.editingTextureFace.set(null);
     this.faceToDelete.set(null);
