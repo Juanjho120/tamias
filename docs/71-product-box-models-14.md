@@ -157,29 +157,44 @@ Documentation:
 docs/81-product-box-opencv-perspective-correction-14g.md
 ```
 
-## Upcoming subphases
-
 ### 14H — Angular corner editor + processed texture preview
 
-Status: **Next**
+Status: **Completed**
 
-Expected scope:
+Implemented:
 
-- Add UI to show original photo with draggable four-corner overlay.
-- Send points to backend.
-- Show processed texture preview.
-- Keep translations in static JSON files.
+- Frontend corner editor with draggable four-point SVG overlay.
+- Original photo upload integration.
+- OpenCV process endpoint integration.
+- Processed texture preview.
+- CORS-consistent S3 image loading for previews/editor.
+- Frontend point sanitization plus backend coordinate alignment fixes for phone photos.
+
+Documentation:
+
+```text
+docs/82-product-box-angular-corner-editor-14h.md
+```
 
 ### 14I — Accept/retry/delete texture workflow
 
-Status: **Planned**
+Status: **Completed**
 
-Expected scope:
+Implemented:
 
-- Accept a processed texture as the active face texture.
-- Retry processing with new points.
-- Delete original/processed/accepted images safely from S3.
-- Ensure the Three.js viewer uses only accepted active textures.
+- Accept a processed texture as the active face texture used by Three.js.
+- Keep retry flow safe: accepted texture remains active while a new original/processed draft is prepared.
+- Delete original, processed and accepted texture objects from S3 before deleting the face row.
+- Prevent draft cleanup from deleting the accepted texture when processed and active keys are the same.
+- Hide the corner editor automatically after successful processing.
+
+Documentation:
+
+```text
+docs/83-product-box-accept-retry-delete-texture-workflow-14i.md
+```
+
+## Upcoming subphases
 
 ### 14J — Automatic contour detection and image enhancement
 

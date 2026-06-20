@@ -52,6 +52,7 @@ export class ProductBoxFacesModalComponent implements OnChanges {
   readonly uploadingFace = signal<ProductBoxFaceName | null>(null);
   readonly uploadingOriginalFace = signal<ProductBoxFaceName | null>(null);
   readonly processingFace = signal<ProductBoxFaceName | null>(null);
+  readonly acceptingFace = signal<ProductBoxFaceName | null>(null);
   readonly deletingFace = signal<ProductBoxFaceName | null>(null);
   readonly editingTextureFace = signal<ProductBoxFaceName | null>(null);
   readonly faces = signal<Partial<Record<ProductBoxFaceName, ProductBoxModelFace>>>({});
@@ -86,7 +87,7 @@ export class ProductBoxFacesModalComponent implements OnChanges {
   }
 
   close(): void {
-    if (this.uploadingFace() || this.uploadingOriginalFace() || this.processingFace() || this.deletingFace()) {
+    if (this.uploadingFace() || this.uploadingOriginalFace() || this.processingFace() || this.acceptingFace() || this.deletingFace()) {
       return;
     }
     this.closed.emit();
@@ -197,7 +198,7 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     const modelId = this.model?.id;
     const points = this.processPoints()[faceName];
     const face = this.face(faceName);
-    if (!modelId || !face?.originalImageUrl || !points || this.processingFace()) {
+    if (!modelId || !face?.originalImageUrl || !points || this.processingFace() || this.acceptingFace()) {
       return;
     }
 
@@ -212,6 +213,9 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     this.productBoxModelService.processTexture(modelId, faceName, safePoints).subscribe({
       next: () => {
         this.processingFace.set(null);
+        if (this.editingTextureFace() === faceName) {
+          this.editingTextureFace.set(null);
+        }
         this.toastService.success(this.languageService.instant('productBoxModels.textureEditor.messages.processed'));
         this.facesChanged.emit();
         this.loadFaces();
@@ -222,6 +226,48 @@ export class ProductBoxFacesModalComponent implements OnChanges {
         this.loadFaces();
       }
     });
+  }
+
+  acceptProcessedTexture(faceName: ProductBoxFaceName): void {
+    const modelId = this.model?.id;
+    const face = this.face(faceName);
+    if (!modelId || !face?.processedImageUrl || this.acceptingFace()) {
+      return;
+    }
+
+    this.acceptingFace.set(faceName);
+    this.productBoxModelService.acceptProcessedTexture(modelId, faceName).subscribe({
+      next: () => {
+        this.acceptingFace.set(null);
+        if (this.editingTextureFace() === faceName) {
+          this.editingTextureFace.set(null);
+        }
+        this.toastService.success(this.languageService.instant('productBoxModels.textureEditor.messages.accepted'));
+        this.facesChanged.emit();
+        this.loadFaces();
+      },
+      error: (error: unknown) => {
+        this.acceptingFace.set(null);
+        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('productBoxModels.textureEditor.messages.acceptError')));
+      }
+    });
+  }
+
+  canAcceptProcessedTexture(face: ProductBoxModelFace | null): boolean {
+    return !!face?.processedImageUrl && face.processedImageKey !== face.imageKey;
+  }
+
+  retryTexture(faceName: ProductBoxFaceName): void {
+    const face = this.face(faceName);
+    if (!face?.originalImageUrl || this.processingFace() || this.acceptingFace()) {
+      return;
+    }
+
+    const savedPoints = this.parsePointsJson(face.pointsJson ?? null);
+    if (savedPoints) {
+      this.processPoints.update((current) => ({ ...current, [faceName]: savedPoints }));
+    }
+    this.editingTextureFace.set(faceName);
   }
 
   requestDelete(faceName: ProductBoxFaceName): void {
@@ -246,7 +292,7 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     }
 
     this.deletingFace.set(faceName);
-    this.productBoxModelService.deleteFace(modelId, faceName).subscribe({
+    this.productBoxModelService.deleteTexture(modelId, faceName).subscribe({
       next: () => {
         this.deletingFace.set(null);
         this.faceToDelete.set(null);
@@ -386,6 +432,7 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     this.uploadingFace.set(null);
     this.uploadingOriginalFace.set(null);
     this.processingFace.set(null);
+    this.acceptingFace.set(null);
     this.deletingFace.set(null);
     this.editingTextureFace.set(null);
     this.faceToDelete.set(null);

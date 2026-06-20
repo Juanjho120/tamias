@@ -99,6 +99,17 @@ export class ProductBoxModelService {
     );
   }
 
+  acceptProcessedTexture(id: string, faceName: ProductBoxFaceName): Observable<ProductBoxModelFace> {
+    return this.apiService.post<ProductBoxModelFace>(
+      `/product-box-models/${id}/faces/${faceName}/texture/accept`,
+      {}
+    );
+  }
+
+  deleteTexture(id: string, faceName: ProductBoxFaceName): Observable<void> {
+    return this.apiService.delete<void>(`/product-box-models/${id}/faces/${faceName}/texture`);
+  }
+
   deleteFace(id: string, faceName: ProductBoxFaceName): Observable<void> {
     return this.apiService.delete<void>(`/product-box-models/${id}/faces/${faceName}`);
   }

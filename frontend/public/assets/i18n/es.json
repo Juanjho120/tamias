@@ -1579,6 +1579,10 @@
       "processTexture": "Procesar textura",
       "processing": "Procesando...",
       "processNote": "Esta acción solo genera una textura procesada para preview. Aceptarla como textura final queda para la siguiente fase.",
+      "acceptTexture": "Aceptar textura",
+      "accepting": "Aceptando...",
+      "retryAdjustment": "Reintentar ajuste",
+      "acceptedHelp": "La textura procesada aceptada se aplica como textura activa del modelo 3D.",
       "points": {
         "topLeft": "Superior izquierda",
         "topRight": "Superior derecha",
@@ -1587,13 +1591,16 @@
       },
       "status": {
         "uploaded": "Original subido",
-        "processed": "Procesada"
+        "processed": "Procesada",
+        "accepted": "Aceptada"
       },
       "messages": {
         "originalUploaded": "Foto original subida correctamente.",
         "originalUploadError": "No se pudo subir la foto original.",
         "processed": "Textura procesada correctamente.",
-        "processError": "No se pudo procesar la textura."
+        "processError": "No se pudo procesar la textura.",
+        "accepted": "Textura aceptada y aplicada al modelo 3D.",
+        "acceptError": "No se pudo aceptar la textura procesada."
       }
     }
   }

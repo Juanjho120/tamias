@@ -1,6 +1,6 @@
 # TAMIAS — Roadmap
 
-This roadmap reflects the current state after AI tool calling/orchestration, S3/image hard-delete work, inventory brand/image work, AI debug traces, smoke-test hardening and Product Box Models through the OpenCV perspective correction backend.
+This roadmap reflects the current state after AI tool calling/orchestration, S3/image hard-delete work, inventory brand/image work, AI debug traces, smoke-test hardening and Product Box Models through the accepted texture workflow.
 
 ## Completed foundation
 
@@ -220,22 +220,27 @@ Implemented:
 - Failure metadata when processing fails.
 
 ### Phase 14H — Angular corner editor + processed texture preview
-Status: Next.
+Status: Completed.
+Documentation: `82-product-box-angular-corner-editor-14h.md`
 
-Expected scope:
+Implemented:
 
 - Four-corner editor overlay.
 - Drag points and send coordinates to backend.
-- Preview processed texture.
+- Processed texture preview.
+- CORS-consistent preview/editor image loading.
+- Point-bounds fixes for phone photos.
 
 ### Phase 14I — Accept/retry/delete texture workflow
-Status: Planned.
+Status: Completed.
+Documentation: `83-product-box-accept-retry-delete-texture-workflow-14i.md`
 
-Expected scope:
+Implemented:
 
 - Accept processed texture as active face texture.
-- Retry processing.
-- Delete original/processed/accepted images safely.
+- Retry processing without deleting the current accepted texture.
+- Delete active/original/processed images safely from S3.
+- Hide the corner editor after successful processing.
 
 ### Phase 14J — Automatic contour detection and image enhancement
 Status: Planned.

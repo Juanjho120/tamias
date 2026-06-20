@@ -1580,6 +1580,10 @@
       "processTexture": "Process texture",
       "processing": "Processing...",
       "processNote": "This only generates a processed texture preview. Accepting it as the final texture is part of the next phase.",
+      "acceptTexture": "Accept texture",
+      "accepting": "Accepting...",
+      "retryAdjustment": "Retry adjustment",
+      "acceptedHelp": "The accepted processed texture is applied as the active texture for the 3D model.",
       "points": {
         "topLeft": "Top left",
         "topRight": "Top right",
@@ -1588,13 +1592,16 @@
       },
       "status": {
         "uploaded": "Original uploaded",
-        "processed": "Processed"
+        "processed": "Processed",
+        "accepted": "Accepted"
       },
       "messages": {
         "originalUploaded": "Original photo uploaded successfully.",
         "originalUploadError": "Could not upload the original photo.",
         "processed": "Texture processed successfully.",
-        "processError": "Could not process the texture."
+        "processError": "Could not process the texture.",
+        "accepted": "Texture accepted and applied to the 3D model.",
+        "acceptError": "Could not accept the processed texture."
       }
     }
   }

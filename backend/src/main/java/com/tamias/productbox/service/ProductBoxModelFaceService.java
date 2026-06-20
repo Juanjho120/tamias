@@ -198,7 +198,7 @@ public class ProductBoxModelFaceService {
         );
 
         String previousProcessedS3Key = face.getProcessedS3Key();
-        if (previousProcessedS3Key != null && !previousProcessedS3Key.isBlank()) {
+        if (shouldDeleteDraftKey(face, previousProcessedS3Key)) {
             try {
                 fileStorageService.delete(previousProcessedS3Key);
             } catch (RuntimeException ex) {
@@ -222,6 +222,40 @@ public class ProductBoxModelFaceService {
         face.setUpdatedBy(currentUser);
 
         return productBoxModelMapper.toFaceResponse(productBoxModelFaceRepository.save(face));
+    }
+
+    @Transactional
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF')")
+    public ProductBoxModelFaceResponse acceptProcessedTexture(UUID productBoxModelId, String faceNameValue) {
+        ProductBoxModelFace face = findFace(productBoxModelId, faceNameValue);
+        User currentUser = findCurrentUser();
+
+        if (face.getProcessedS3Key() == null || face.getProcessedS3Key().isBlank()) {
+            throw new BadRequestException("Processed product box texture is required before accepting texture");
+        }
+
+        String previousActiveS3Key = face.getS3Key();
+        if (shouldDeleteActiveKey(previousActiveS3Key, face.getProcessedS3Key())) {
+            fileStorageService.delete(previousActiveS3Key);
+        }
+
+        face.setS3Key(face.getProcessedS3Key());
+        face.setFilepath(face.getProcessedFilepath());
+        face.setOriginalFilename(face.getProcessedFilename());
+        face.setContentType(face.getProcessedContentType());
+        face.setSizeBytes(face.getProcessedSizeBytes());
+        face.setTextureStatus(ProductBoxTextureStatus.ACCEPTED);
+        face.setProcessingError(null);
+        face.setAcceptedAt(OffsetDateTime.now());
+        face.setUpdatedBy(currentUser);
+
+        return productBoxModelMapper.toFaceResponse(productBoxModelFaceRepository.save(face));
+    }
+
+    @Transactional
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF')")
+    public void deleteTexture(UUID productBoxModelId, String faceNameValue) {
+        delete(productBoxModelId, faceNameValue);
     }
 
     @Transactional
@@ -370,8 +404,8 @@ public class ProductBoxModelFaceService {
 
     private void cleanupPreviousDraftFiles(ProductBoxModelFace face, String newStorageKey) {
         List<String> keysToDelete = new ArrayList<>();
-        addIfPresent(keysToDelete, face.getProcessedS3Key());
-        addIfPresent(keysToDelete, face.getOriginalS3Key());
+        addDraftKeyIfPresent(keysToDelete, face, face.getProcessedS3Key());
+        addDraftKeyIfPresent(keysToDelete, face, face.getOriginalS3Key());
         try {
             for (String storageKey : keysToDelete) {
                 fileStorageService.delete(storageKey);
@@ -380,6 +414,24 @@ public class ProductBoxModelFaceService {
             cleanupNewFile(newStorageKey);
             throw ex;
         }
+    }
+
+    private void addDraftKeyIfPresent(List<String> storageKeys, ProductBoxModelFace face, String storageKey) {
+        if (shouldDeleteDraftKey(face, storageKey)) {
+            addIfPresent(storageKeys, storageKey);
+        }
+    }
+
+    private boolean shouldDeleteDraftKey(ProductBoxModelFace face, String storageKey) {
+        return storageKey != null
+            && !storageKey.isBlank()
+            && !storageKey.equals(face.getS3Key());
+    }
+
+    private boolean shouldDeleteActiveKey(String activeStorageKey, String acceptedStorageKey) {
+        return activeStorageKey != null
+            && !activeStorageKey.isBlank()
+            && !activeStorageKey.equals(acceptedStorageKey);
     }
 
     private void deleteAllStorageKeys(ProductBoxModelFace face) {

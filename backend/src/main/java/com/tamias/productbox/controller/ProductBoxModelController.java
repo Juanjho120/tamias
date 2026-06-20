@@ -113,6 +113,23 @@ public class ProductBoxModelController {
         return productBoxModelFaceService.processTexture(id, faceName, request);
     }
 
+    @PostMapping("/{id}/faces/{faceName}/texture/accept")
+    public ProductBoxModelFaceResponse acceptFaceTexture(
+        @PathVariable UUID id,
+        @PathVariable String faceName
+    ) {
+        return productBoxModelFaceService.acceptProcessedTexture(id, faceName);
+    }
+
+    @DeleteMapping("/{id}/faces/{faceName}/texture")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteFaceTexture(
+        @PathVariable UUID id,
+        @PathVariable String faceName
+    ) {
+        productBoxModelFaceService.deleteTexture(id, faceName);
+    }
+
     @GetMapping("/{id}/faces/{faceName}/texture/original/file")
     public ResponseEntity<Resource> getOriginalFaceFile(
         @PathVariable UUID id,
