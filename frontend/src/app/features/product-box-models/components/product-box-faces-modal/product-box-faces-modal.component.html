@@ -117,7 +117,7 @@
 
                     <div class="card-body">
                       <div class="row g-3">
-                        <div class="col-md-4">
+                        <div class="col-12 col-md-6 col-xl-3">
                           <h6>{{ 'productBoxModels.textureEditor.activeTexture' | translate }}</h6>
                           @if (currentFace?.imageUrl) {
                             <img class="product-box-face-preview rounded border" [src]="currentFace?.imageUrl" crossorigin="anonymous" [alt]="currentFace?.originalFilename || faceName" />
@@ -129,13 +129,13 @@
                               {{ 'productBoxModels.faces.open' | translate }}
                             </button>
                           } @else {
-                            <div class="border rounded p-4 text-center text-body-secondary h-100 d-flex align-items-center justify-content-center">
+                            <div class="product-box-empty-preview border rounded p-4 text-center text-body-secondary d-flex align-items-center justify-content-center">
                               {{ 'productBoxModels.faces.previewUnavailable' | translate }}
                             </div>
                           }
                         </div>
 
-                        <div class="col-md-4">
+                        <div class="col-12 col-md-6 col-xl-3">
                           <h6>{{ 'productBoxModels.textureEditor.originalPhoto' | translate }}</h6>
                           @if (currentFace?.originalImageUrl) {
                             <img class="product-box-face-preview rounded border" [src]="currentFace?.originalImageUrl" crossorigin="anonymous" [alt]="currentFace?.originalUploadFilename || faceName" />
@@ -155,13 +155,13 @@
                               {{ 'productBoxModels.faces.open' | translate }}
                             </button>
                           } @else {
-                            <div class="border rounded p-4 text-center text-body-secondary h-100 d-flex align-items-center justify-content-center">
+                            <div class="product-box-empty-preview border rounded p-4 text-center text-body-secondary d-flex align-items-center justify-content-center">
                               {{ 'productBoxModels.textureEditor.noOriginal' | translate }}
                             </div>
                           }
                         </div>
 
-                        <div class="col-md-4">
+                        <div class="col-12 col-md-6 col-xl-3">
                           <h6>{{ 'productBoxModels.textureEditor.processedTexture' | translate }}</h6>
                           @if (currentFace?.processedImageUrl) {
                             <img class="product-box-texture-preview rounded border bg-body-secondary" [src]="currentFace?.processedImageUrl" crossorigin="anonymous" [alt]="currentFace?.processedFilename || faceName" />
@@ -218,12 +218,12 @@
                               }
                             </div>
                           } @else {
-                            <div class="border rounded p-4 text-center text-body-secondary h-100 d-flex align-items-center justify-content-center">
+                            <div class="product-box-empty-preview border rounded p-4 text-center text-body-secondary d-flex align-items-center justify-content-center">
                               {{ 'productBoxModels.textureEditor.noProcessed' | translate }}
                             </div>
                           }
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-12 col-md-6 col-xl-3">
                           <h6>{{ 'productBoxModels.aiTexture.title' | translate }}</h6>
                           @if (!isAiTextureEnhancementEnabled()) {
                             <div class="alert alert-warning small py-2" role="alert">
@@ -295,7 +295,7 @@
                               }
                             </div>
                           } @else {
-                            <div class="border rounded p-4 text-center text-body-secondary h-100 d-flex align-items-center justify-content-center">
+                            <div class="product-box-empty-preview border rounded p-4 text-center text-body-secondary d-flex align-items-center justify-content-center">
                               @if (hasProcessedTexture(currentFace)) {
                                 {{ 'productBoxModels.aiTexture.noEnhanced' | translate }}
                               } @else {

@@ -35,8 +35,8 @@ spring:
         initialize-schema: true
   servlet:
     multipart:
-      max-file-size: ${MAX_FILE_SIZE:8MB}
-      max-request-size: ${MAX_REQUEST_SIZE:8MB}
+      max-file-size: ${MAX_FILE_SIZE:15MB}
+      max-request-size: ${MAX_REQUEST_SIZE:15MB}
 
 logging:
   level:

@@ -35,6 +35,17 @@ import { ProductBoxModelService } from '../../services/product-box-model.service
         object-fit: contain;
         width: 100%;
       }
+
+      .product-box-empty-preview {
+        min-height: 120px;
+        width: 100%;
+      }
+
+      @media (max-width: 767.98px) {
+        .product-box-empty-preview {
+          min-height: 96px;
+        }
+      }
     `
   ]
 })
