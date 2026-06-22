@@ -3,7 +3,6 @@ spring:
     url: jdbc:postgresql://localhost:5432/tamias
     username: tamias
     password: tamias
-
   jpa:
     hibernate:
       ddl-auto: validate
@@ -13,12 +12,10 @@ spring:
         format_sql: false
         jdbc:
           time_zone: UTC
-
   flyway:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: false
-
   ai:
     openai:
       api-key: ${OPENAI_API_KEY}
@@ -36,7 +33,6 @@ spring:
           port: 8000
         collection-name: tamias_ci
         initialize-schema: true
-
   servlet:
     multipart:
       max-file-size: 8MB
@@ -56,14 +52,15 @@ security:
 tamias:
   cors:
     allowed-origins: http://localhost:4200
-
   storage:
     provider: local
     s3:
       bucket: ${AWS_S3_BUCKET}
       region: ${AWS_REGION}
       presigned-url-expiration-seconds: 300
-
+  product-box:
+    opencv:
+      enabled: ${PRODUCT_BOX_OPENCV_ENABLED:false}
   ai:
     default-top-k: 10
     default-similarity-threshold: 0.30

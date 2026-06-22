@@ -3,7 +3,6 @@ spring:
     url: jdbc:postgresql://localhost:5434/tamias
     username: tamias
     password: tamias
-
   jpa:
     hibernate:
       ddl-auto: validate
@@ -13,12 +12,10 @@ spring:
         format_sql: true
         jdbc:
           time_zone: UTC
-
   flyway:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: false
-
   ai:
     openai:
       api-key: ${OPENAI_API_KEY}
@@ -60,6 +57,9 @@ tamias:
       bucket: ${AWS_S3_BUCKET}
       region: ${AWS_REGION}
       presigned-url-expiration-seconds: 300
+  product-box:
+    opencv:
+      enabled: ${PRODUCT_BOX_OPENCV_ENABLED:true}
   ai:
     default-top-k: 10
     default-similarity-threshold: 0.30

@@ -2,40 +2,44 @@ package com.tamias.productbox.service;
 
 import com.tamias.common.exception.BadRequestException;
 import com.tamias.productbox.dto.ProductBoxRuntimeCapabilitiesResponse;
+
 import java.util.List;
-import org.springframework.beans.factory.annotation.Value;
+
 import org.springframework.stereotype.Service;
 
 @Service
 public class ProductBoxRuntimeCapabilitiesService {
 
-    public static final String OPENCV_DISABLED_MESSAGE = "Product Box OpenCV texture processing is disabled in this environment.";
-    public static final String AI_TEXTURE_DISABLED_MESSAGE = "Product Box AI texture enhancement is disabled or not configured in this environment.";
+    public static final String AI_TEXTURE_DISABLED_MESSAGE =
+            "Product Box AI texture enhancement is disabled or not configured in this environment.";
 
-    private final boolean opencvEnabled;
+    private final ProductBoxOpenCvRuntimeService openCvRuntimeService;
     private final List<ProductBoxAiTextureEnhancementProvider> aiTextureEnhancementProviders;
 
     public ProductBoxRuntimeCapabilitiesService(
-        @Value("${tamias.product-box.opencv.enabled:true}") boolean opencvEnabled,
-        List<ProductBoxAiTextureEnhancementProvider> aiTextureEnhancementProviders
+            ProductBoxOpenCvRuntimeService openCvRuntimeService,
+            List<ProductBoxAiTextureEnhancementProvider> aiTextureEnhancementProviders
     ) {
-        this.opencvEnabled = opencvEnabled;
-        this.aiTextureEnhancementProviders = aiTextureEnhancementProviders != null ? aiTextureEnhancementProviders : List.of();
+        this.openCvRuntimeService = openCvRuntimeService;
+        this.aiTextureEnhancementProviders = aiTextureEnhancementProviders != null
+                ? aiTextureEnhancementProviders
+                : List.of();
     }
 
     public ProductBoxRuntimeCapabilitiesResponse getCapabilities() {
+        boolean openCvEnabled = isOpenCvEnabled();
+        boolean aiTextureEnhancementEnabled = isAiTextureEnhancementEnabled();
+
         return new ProductBoxRuntimeCapabilitiesResponse(
-            opencvEnabled,
-            isAiTextureEnhancementEnabled(),
-            opencvEnabled ? null : OPENCV_DISABLED_MESSAGE,
-            isAiTextureEnhancementEnabled() ? null : AI_TEXTURE_DISABLED_MESSAGE
+                openCvEnabled,
+                aiTextureEnhancementEnabled,
+                openCvEnabled ? null : openCvRuntimeService.getDisabledMessage(),
+                aiTextureEnhancementEnabled ? null : AI_TEXTURE_DISABLED_MESSAGE
         );
     }
 
     public void requireOpenCvEnabled() {
-        if (!opencvEnabled) {
-            throw new BadRequestException(OPENCV_DISABLED_MESSAGE);
-        }
+        openCvRuntimeService.requireAvailable();
     }
 
     public void requireAiTextureEnhancementEnabled() {
@@ -45,10 +49,11 @@ public class ProductBoxRuntimeCapabilitiesService {
     }
 
     public boolean isOpenCvEnabled() {
-        return opencvEnabled;
+        return openCvRuntimeService.isAvailable();
     }
 
     public boolean isAiTextureEnhancementEnabled() {
-        return aiTextureEnhancementProviders.stream().anyMatch(ProductBoxAiTextureEnhancementProvider::isAvailable);
+        return aiTextureEnhancementProviders.stream()
+                .anyMatch(ProductBoxAiTextureEnhancementProvider::isAvailable);
     }
 }
