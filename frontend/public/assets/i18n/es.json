@@ -1512,7 +1512,7 @@
     "faces": {
       "button": "Caras",
       "title": "Imágenes por cara",
-      "help": "Sube una imagen JPG, PNG o WEBP para cada cara. El visor 3D con Three.js se agregará en 14D.",
+      "help": "Sube una imagen JPG, PNG o WEBP para cada cara.",
       "loading": "Cargando caras...",
       "available": "Disponible",
       "missing": "Pendiente",

@@ -1513,7 +1513,7 @@
     "faces": {
       "button": "Faces",
       "title": "Face images",
-      "help": "Upload one JPG, PNG or WEBP image for each face. The Three.js 3D viewer will be added in 14D.",
+      "help": "Upload one JPG, PNG or WEBP image for each face.",
       "loading": "Loading faces...",
       "available": "Available",
       "missing": "Pending",
