@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM eclipse-temurin:21-jdk-alpine AS build
+FROM eclipse-temurin:21-jdk-jammy AS build
 
 WORKDIR /workspace
 
@@ -12,12 +12,19 @@ RUN chmod +x ./mvnw
 RUN ./mvnw -B dependency:go-offline
 
 COPY src src
-
 RUN ./mvnw -B clean package -DskipTests
 
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:21-jre-jammy
 
-RUN addgroup -S tamias && adduser -S tamias -G tamias
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        libstdc++6 \
+        libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd --system tamias \
+    && useradd --system --gid tamias --home-dir /app --shell /usr/sbin/nologin tamias
 
 WORKDIR /app
 
