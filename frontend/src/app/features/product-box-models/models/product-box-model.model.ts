@@ -9,6 +9,13 @@ export const PRODUCT_BOX_UNITS: ProductBoxUnit[] = ['cm', 'mm', 'in'];
 export const PRODUCT_BOX_FACE_NAMES: ProductBoxFaceName[] = ['front', 'back', 'left', 'right', 'top', 'bottom'];
 export const PRODUCT_BOX_TEXTURE_ENHANCEMENT_MODES: ProductBoxTextureEnhancementMode[] = ['none', 'basic', 'strong'];
 
+export interface ProductBoxRuntimeCapabilities {
+  opencvEnabled: boolean;
+  aiTextureEnhancementEnabled: boolean;
+  opencvDisabledMessage: string | null;
+  aiTextureEnhancementDisabledMessage: string | null;
+}
+
 export interface ProductBoxTexturePoint {
   x: number;
   y: number;
