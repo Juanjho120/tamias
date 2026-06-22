@@ -3,6 +3,7 @@
 This document records important technical decisions for TAMIAS.
 
 ## 1. Architecture style
+
 Decision:
 
 ```text
@@ -10,6 +11,7 @@ Use Modular Monolith for the MVP.
 ```
 
 ## 2. Multi-tenancy strategy
+
 Decision:
 
 ```text
@@ -21,6 +23,7 @@ Rule:
 > The backend resolves organization from authenticated user context. The frontend is not trusted as source of truth for organization isolation.
 
 ## 3. Backend framework
+
 Decision:
 
 ```text
@@ -28,6 +31,7 @@ Use Java 21 + Spring Boot 3.
 ```
 
 ## 4. Frontend framework
+
 Decision:
 
 ```text
@@ -35,6 +39,7 @@ Use Angular + TypeScript + Bootstrap.
 ```
 
 ## 5. User management
+
 Decision:
 
 ```text
@@ -42,6 +47,7 @@ Keep user administration under /users and restrict it to administrators.
 ```
 
 ## 6. Self-service profile
+
 Decision:
 
 ```text
@@ -66,6 +72,7 @@ organization
 ```
 
 ## 7. Mandatory temporary password change
+
 Decision:
 
 ```text
@@ -79,6 +86,7 @@ users.password_change_required
 ```
 
 ## 8. Inventory Items refactor
+
 Decision:
 
 ```text
@@ -100,6 +108,7 @@ available_for_purchases
 ```
 
 ## 9. Reservation supplies
+
 Decision:
 
 ```text
@@ -107,6 +116,7 @@ Use reservation_supplies for items delivered to guests during reservations.
 ```
 
 ## 10. Reports
+
 Decision:
 
 ```text
@@ -116,6 +126,7 @@ Do not implement JasperReports in the MVP.
 Reports are planned as Phase 15, after Product Box Models.
 
 ## 11. Tool Calling
+
 Decision:
 
 ```text
@@ -131,6 +142,7 @@ Rules:
 - Guardrails must block write/action requests.
 
 ## 12. AI chat ownership
+
 Decision:
 
 ```text
@@ -138,6 +150,7 @@ AI chat sessions and messages are private to the authenticated owner user by def
 ```
 
 ## 13. Assistant display name
+
 Decision:
 
 ```text
@@ -145,6 +158,7 @@ Use TAMI as the visible assistant name in the UI.
 ```
 
 ## 14. AI response animation
+
 Decision:
 
 ```text
@@ -152,6 +166,7 @@ Use a frontend-only typewriter animation first.
 ```
 
 ## 15. S3 key strategy
+
 Decision:
 
 ```text
@@ -178,6 +193,7 @@ Rules:
 - New uploads must use the organization/module/entity path strategy.
 
 ## 16. Entity images hard delete
+
 Decision:
 
 ```text
@@ -203,6 +219,7 @@ Rules:
 - New entity image tables must not add `deleted_at` or `deleted_by`.
 
 ## 17. RAG documents hard delete
+
 Decision:
 
 ```text
@@ -219,6 +236,7 @@ Deletion flow:
 ```
 
 ## 18. Inventory item brand ownership
+
 Decision:
 
 ```text
@@ -226,6 +244,7 @@ Brands belong directly to inventory_items, not purchase_items.
 ```
 
 ## 19. Purchase list images
+
 Decision:
 
 ```text
@@ -233,6 +252,7 @@ Images for purchases are associated with purchase lists using purchase_list_id.
 ```
 
 ## 20. User last login
+
 Decision:
 
 ```text
@@ -240,6 +260,7 @@ Track the last successful login timestamp on users.last_login.
 ```
 
 ## 21. Image upload modal UX consistency
+
 Decision:
 
 ```text
@@ -257,6 +278,7 @@ Rules:
 - Restrict image file pickers to JPG, PNG and WEBP.
 
 ## 22. Frontend i18n strategy for image modules
+
 Decision:
 
 ```text
@@ -278,6 +300,7 @@ Rules:
 - Use the existing `LanguageService` and `TranslateService` flow.
 
 ## 23. AI image and inventory brand tools
+
 Decision:
 
 ```text
@@ -285,6 +308,7 @@ Add read-only AI tools for image metadata and inventory brand queries.
 ```
 
 ## 24. AI image/file dashboard tools
+
 Decision:
 
 ```text
@@ -292,6 +316,7 @@ Implement 13A cross-module AI image/file dashboard questions before deeper AI ob
 ```
 
 ## 25. AI orchestration persisted debug traces
+
 Decision:
 
 ```text
@@ -299,6 +324,7 @@ Persist one AI debug trace per assistant/TAMI message and expose it only to user
 ```
 
 ## 26. AI debug traces are persisted by assistant message
+
 Decision:
 
 ```text
@@ -306,6 +332,7 @@ Persist one debug trace per assistant/TAMI response in ai_chat_message_debugs.
 ```
 
 ## 27. AI smoke-test hardening closes routing/formatting regressions before RAG tuning
+
 Decision:
 
 ```text
@@ -320,6 +347,7 @@ Rules:
 - The minimal smoke set in `70-ai-smoke-test-hardening-final-fixes-9p-h.md` should be run after every future AI-related change.
 
 ## 28. Phase numbering after 13A
+
 Decision:
 
 ```text
@@ -338,6 +366,7 @@ Current sequence:
 ```
 
 ## 29. Product Box Models architecture
+
 Decision:
 
 ```text
@@ -365,6 +394,7 @@ Accepted face S3 key:
 ```
 
 ## 30. Product Box 3D texture processing
+
 Decision:
 
 ```text
@@ -403,6 +433,7 @@ Accepted texture S3 key:
 ```
 
 ## 31. Optional AI texture enhancement after OpenCV
+
 Decision:
 
 ```text
@@ -426,7 +457,8 @@ Rules:
 
 - Face hard delete must delete active, original, processed and AI-enhanced S3 objects.
 - Provider integration should be abstracted behind a backend service; the domain service must not be hardcoded to a single vendor API.
-- AI-enhanced textures are visual aids and may alter text, logos, colors or small details. They must not be treated as guaranteed faithful reproductions of the original package.
+- AI-enhanced textures are visual aids and may alter text, logos, colors or small details.
+  They must not be treated as guaranteed faithful reproductions of the original package.
 
 ## 32. AI texture enhancement metadata before provider integration
 
@@ -456,7 +488,26 @@ ai_enhanced
 - The default/no-op provider must fail clearly when no real provider is configured.
 - No vendor SDK or external AI call is introduced in 14L.
 
-## 32. AI-enhanced product box textures are optional drafts until accepted
+## 33. AI-enhanced product box textures are optional drafts until accepted
 
-Product Box AI texture enhancement must generate a separate enhanced draft from the OpenCV processed texture. It must not overwrite the original upload or the OpenCV processed texture. `product_box_model_faces.s3_key` remains the active texture used by Three.js, and it changes to the AI-enhanced S3 key only after explicit user acceptance. OpenCV remains the faithful baseline; AI enhancement is a visual improvement aid that may alter small details, so the user must compare and accept it manually.
+Product Box AI texture enhancement must generate a separate enhanced draft from the OpenCV processed texture.
+It must not overwrite the original upload or the OpenCV processed texture.
+`product_box_model_faces.s3_key` remains the active texture used by Three.js, and it changes to the AI-enhanced S3 key only after explicit user acceptance.
+OpenCV remains the faithful baseline; AI enhancement is a visual improvement aid that may alter small details, so the user must compare and accept it manually.
 
+## 34. Backend Docker runtime for OpenCV
+
+Decision:
+
+```text
+Use Ubuntu/Debian-family Eclipse Temurin Jammy images for the backend Docker runtime while TAMIAS uses OpenCV Java native processing.
+```
+
+Rules:
+
+- Backend build image should use `eclipse-temurin:21-jdk-jammy`.
+- Backend runtime image should use `eclipse-temurin:21-jre-jammy`.
+- Backend runtime must install `libstdc++6` because OpenCV native libraries require `libstdc++.so.6`.
+- Backend runtime should install `libgomp1` for native/OpenMP compatibility.
+- Do not switch the backend runtime back to Alpine unless OpenCV native processing is retested in Render.
+- After changing base images or native packages in Render, use `Manual Deploy -> Clear build cache & deploy`.

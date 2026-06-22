@@ -40,6 +40,50 @@ because Java/Spring tries to use `chroma` as the URI scheme.
 
 ---
 
+## Backend Docker runtime image
+
+The backend Dockerfile uses Ubuntu/Debian-family Eclipse Temurin Jammy images instead of Alpine:
+
+```dockerfile
+FROM eclipse-temurin:21-jdk-jammy AS build
+...
+FROM eclipse-temurin:21-jre-jammy
+```
+
+Reason:
+
+```text
+TAMIAS uses OpenCV Java through org.openpnp:opencv.
+OpenCV's native Linux library requires glibc-compatible runtime libraries such as libstdc++.so.6.
+Alpine uses musl libc and does not provide this runtime compatibility by default.
+```
+
+The runtime image must install at least:
+
+```text
+ca-certificates
+libstdc++6
+libgomp1
+```
+
+This is required for Product Box texture processing features such as:
+
+```text
+OpenCV perspective correction
+Automatic contour detection
+OpenCV image enhancement
+```
+
+Do not switch the backend runtime image back to Alpine unless OpenCV native runtime compatibility is explicitly retested.
+
+If Render still uses an older Alpine-based layer after this change, run:
+
+```text
+Manual Deploy -> Clear build cache & deploy
+```
+
+---
+
 ## Frontend Docker relative API URL
 
 The frontend Docker image builds with:
@@ -117,8 +161,8 @@ docker build creates images, not containers.
 In Docker Desktop:
 
 ```text
-Images tab      -> after docker build
-Containers tab  -> after docker run or docker compose up
+Images tab -> after docker build
+Containers tab -> after docker run or docker compose up
 ```
 
 ### Run prod-like stack
@@ -161,15 +205,15 @@ After those builds succeed, the same CI workflow publishes images to Docker Hub 
 Published images:
 
 ```text
-<DOCKERHUB_USERNAME>/tamias-backend
-<DOCKERHUB_USERNAME>/tamias-frontend
+/tamias-backend
+/tamias-frontend
 ```
 
 Tags:
 
 ```text
 latest
-sha-<short-git-sha>
+sha-
 ```
 
 The publishing steps are documented in:

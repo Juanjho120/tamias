@@ -6,7 +6,8 @@ Status: **Implemented**
 
 Add the backend processing step that converts an original phone photo of a Product Box face into a clean rectangular processed texture using OpenCV Java.
 
-This phase processes manual four-corner points only. It does not include the Angular corner editor, accept/retry workflow, automatic contour detection or image enhancement.
+This phase processes manual four-corner points only.
+It does not include the Angular corner editor, accept/retry workflow, automatic contour detection or image enhancement.
 
 ## Context
 
@@ -19,7 +20,8 @@ Previous Product Box phases implemented:
 - `14E` Product Box 3D Textures architecture/design.
 - `14F` Texture metadata + original upload.
 
-14F added original and processed metadata columns to `product_box_model_faces`. 14G uses those fields to generate and store the processed preview texture.
+14F added original and processed metadata columns to `product_box_model_faces`.
+14G uses those fields to generate and store the processed preview texture.
 
 ## Dependency
 
@@ -37,7 +39,38 @@ Reason:
 Risk:
 
 - The dependency is large, approximately 109 MB.
-- Render/Docker deployment size should be watched after this phase.
+- The dependency extracts and loads native Linux libraries at runtime.
+- Docker deployment must provide glibc-compatible runtime libraries.
+
+## Docker and Render runtime requirement
+
+The backend Dockerfile must use Ubuntu/Debian-family Eclipse Temurin images, not Alpine:
+
+```text
+eclipse-temurin:21-jdk-jammy
+eclipse-temurin:21-jre-jammy
+```
+
+The runtime image installs:
+
+```text
+ca-certificates
+libstdc++6
+libgomp1
+```
+
+Reason:
+
+```text
+OpenCV's native libopencv_java490.so requires libstdc++.so.6.
+Alpine-based images can fail in Render with UnsatisfiedLinkError because Alpine does not provide the same glibc runtime environment by default.
+```
+
+If Render keeps using old layers after the Dockerfile change, run:
+
+```text
+Manual Deploy -> Clear build cache & deploy
+```
 
 ## Endpoint
 
@@ -148,6 +181,7 @@ If S3 deletion of the previous processed texture fails after a new processed fil
 - The active accepted texture remains unchanged until 14I.
 - Reprocessing deletes the superseded processed image from S3.
 - Processing failures do not accidentally accept a texture.
+- Render deployment can load OpenCV native libraries without `libstdc++.so.6` errors.
 
 ## Next phase
 

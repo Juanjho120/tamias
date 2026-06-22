@@ -25,8 +25,7 @@ docs/24-actual-deployment-preparation.md
 Go to:
 
 ```text
-GitHub repo
-Settings
+GitHub repo Settings
 Secrets and variables
 Actions
 Repository secrets
@@ -44,15 +43,14 @@ DOCKERHUB_TOKEN
 Validate after pushing to `main`:
 
 ```text
-GitHub Actions -> TAMIAS CI
-Docker Hub -> tamias-backend / tamias-frontend
+GitHub Actions -> TAMIAS CI Docker Hub -> tamias-backend / tamias-frontend
 ```
 
 Expected image tags:
 
 ```text
 latest
-sha-<short-sha>
+sha-
 ```
 
 ---
@@ -66,9 +64,7 @@ tamias-testing
 tamias-production
 ```
 
-Testing is for demo/portfolio data.
-
-Production is for real vacation rental data.
+Testing is for demo/portfolio data. Production is for real vacation rental data.
 
 For each environment, collect:
 
@@ -81,7 +77,7 @@ DATABASE_PASSWORD
 Use JDBC URL format in Render:
 
 ```text
-jdbc:postgresql://<host>:5432/<database>?sslmode=require
+jdbc:postgresql://:5432/?sslmode=require
 ```
 
 Do not use the same database for both environments.
@@ -153,18 +149,18 @@ Render backend variables:
 Testing:
 
 ```text
-CHROMA_HOST=https://<testing-chroma-host-without-port>
+CHROMA_HOST=https://
 CHROMA_PORT=8000
-CHROMA_BASE_URL=https://<testing-chroma-url>
+CHROMA_BASE_URL=https://
 CHROMA_COLLECTION_NAME=tamias_testing_documents
 ```
 
 Production:
 
 ```text
-CHROMA_HOST=https://<production-chroma-host-without-port>
+CHROMA_HOST=https://
 CHROMA_PORT=8000
-CHROMA_BASE_URL=https://<production-chroma-url>
+CHROMA_BASE_URL=https://
 CHROMA_COLLECTION_NAME=tamias_prod_documents
 ```
 
@@ -233,6 +229,37 @@ Production backend URL target:
 
 ```text
 https://tamias-api-prod.onrender.com/api/v1
+```
+
+## Backend Docker runtime requirement
+
+The backend Dockerfile must remain on an Ubuntu/Debian-family Eclipse Temurin image:
+
+```text
+eclipse-temurin:21-jdk-jammy
+eclipse-temurin:21-jre-jammy
+```
+
+Reason:
+
+```text
+Product Box texture processing uses OpenCV Java native libraries.
+Those native libraries require glibc-compatible runtime dependencies such as libstdc++.so.6.
+Alpine-based backend images can fail on Render with UnsatisfiedLinkError for libstdc++.so.6.
+```
+
+The runtime image installs:
+
+```text
+ca-certificates
+libstdc++6
+libgomp1
+```
+
+After changing the Docker base image or native runtime dependencies, use Render:
+
+```text
+Manual Deploy -> Clear build cache & deploy
 ```
 
 ---
@@ -316,7 +343,6 @@ tamias-prod.juantzun.dev
 ```
 
 Each must point to its own Vercel project.
-
 Do not point both domains to the same Vercel project.
 
 ---
@@ -349,9 +375,7 @@ GET https://tamias-api-prod.onrender.com/actuator/health
 Expected:
 
 ```json
-{
-  "status": "UP"
-}
+{ "status": "UP" }
 ```
 
 ## Core checks
@@ -370,6 +394,7 @@ Tasks
 Documents
 AI Assistant
 File upload/download
+Product Box OpenCV texture processing
 ```
 
 ---
@@ -379,7 +404,6 @@ File upload/download
 ## Frontend Vercel rollback
 
 Use Vercel deployment history.
-
 Rollback the affected project only:
 
 ```text
@@ -400,13 +424,12 @@ Render redeploys automatically
 If later deploying from Docker Hub image:
 
 ```text
-Redeploy a known sha-<short-sha> image
+Redeploy a known sha- image
 ```
 
 ## Database rollback
 
 Use Supabase backups.
-
 Do not rely only on app-level rollback when migrations have already run.
 
 ---
@@ -440,6 +463,8 @@ Production frontend cannot access testing backend
 [ ] Chroma production ready
 [ ] Render testing backend deployed
 [ ] Render production backend deployed
+[ ] Backend Docker runtime uses Ubuntu/Debian-family glibc image, not Alpine
+[ ] Product Box OpenCV processing works in Render
 [ ] Vercel testing frontend deployed
 [ ] Vercel production frontend deployed
 [ ] Cloudflare DNS configured

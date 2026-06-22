@@ -14,7 +14,7 @@ Add an assistive OpenCV step to Product Box 3D Textures:
 This phase builds on the completed manual workflow:
 
 ```text
-upload original → adjust 4 points → process OpenCV texture → preview → accept → use in Three.js
+upload original -> adjust 4 points -> process OpenCV texture -> preview -> accept -> use in Three.js
 ```
 
 ## Backend changes
@@ -59,7 +59,8 @@ If no reliable contour is found, the endpoint returns `detected = false` and the
 
 ## OpenCV detection strategy
 
-Detection is assistive and best-effort. It may use several OpenCV strategies such as:
+Detection is assistive and best-effort.
+It may use several OpenCV strategies such as:
 
 - grayscale conversion,
 - blur,
@@ -68,7 +69,8 @@ Detection is assistive and best-effort. It may use several OpenCV strategies suc
 - contour approximation,
 - fallback corner initialization.
 
-The detection only preloads points. Users can always drag the points before processing.
+The detection only preloads points.
+Users can always drag the points before processing.
 
 ## Image enhancement
 
@@ -82,7 +84,30 @@ strong
 
 Enhancement is applied after `warpPerspective` and before PNG encoding.
 
-14J remains an OpenCV-based faithful processing phase. It should improve brightness, contrast, color and sharpness, but it does not reconstruct missing details like an AI model could.
+14J remains an OpenCV-based faithful processing phase.
+It should improve brightness, contrast, color and sharpness, but it does not reconstruct missing details like an AI model could.
+
+## Docker and Render runtime requirement
+
+Because this phase uses OpenCV native libraries at runtime, the backend Docker image must remain Ubuntu/Debian-family with glibc compatibility:
+
+```text
+eclipse-temurin:21-jdk-jammy
+eclipse-temurin:21-jre-jammy
+```
+
+The runtime image must include:
+
+```text
+libstdc++6
+libgomp1
+```
+
+An Alpine-based backend runtime can fail in Render when invoking contour detection or texture processing with:
+
+```text
+UnsatisfiedLinkError: libopencv_java490.so: Error loading shared library libstdc++.so.6
+```
 
 ## Frontend behavior
 
@@ -104,7 +129,6 @@ Flow:
 ## Storage and hard delete
 
 No new S3 locations are introduced in 14J.
-
 The existing hard-delete rules still apply for:
 
 - active accepted texture `s3_key`,
@@ -114,7 +138,6 @@ The existing hard-delete rules still apply for:
 ## Limitation and next step
 
 OpenCV cannot reliably reconstruct missing detail, fix blurred text perfectly, or create a polished near-commercial texture from a low-quality phone photo.
-
 The next planned step is optional AI texture enhancement after OpenCV processing.
 
 ## Out of scope

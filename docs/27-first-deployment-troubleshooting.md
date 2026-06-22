@@ -39,7 +39,7 @@ Network restriction
 Expected JDBC format:
 
 ```text
-jdbc:postgresql://<host>:5432/<database>?sslmode=require
+jdbc:postgresql://:5432/?sslmode=require
 ```
 
 ---
@@ -61,7 +61,7 @@ CHROMA_HOST must include protocol.
 Correct:
 
 ```text
-CHROMA_HOST=https://<host>
+CHROMA_HOST=https://
 CHROMA_PORT=8000
 ```
 
@@ -71,6 +71,59 @@ In Docker Compose:
 CHROMA_HOST=http://chroma
 CHROMA_PORT=8000
 ```
+
+---
+
+## Backend fails: OpenCV native library cannot load on Render
+
+Symptom in Render logs when using Product Box OpenCV features such as contour detection or texture processing:
+
+```text
+NoClassDefFoundError: Could not initialize class nu.pattern.OpenCV$LocalLoader$Holder
+UnsatisfiedLinkError: libopencv_java490.so: Error loading shared library libstdc++.so.6: No such file or directory
+```
+
+Cause:
+
+```text
+The OpenCV Java native library requires glibc-compatible runtime libraries.
+Alpine-based backend images use musl libc and may not include libstdc++.so.6 or other required native libraries.
+```
+
+Fix:
+
+```text
+Use Ubuntu/Debian-family Eclipse Temurin images for the backend Dockerfile:
+- eclipse-temurin:21-jdk-jammy for build
+- eclipse-temurin:21-jre-jammy for runtime
+```
+
+The runtime image must install:
+
+```text
+ca-certificates
+libstdc++6
+libgomp1
+```
+
+After changing this in Render, use:
+
+```text
+Manual Deploy -> Clear build cache & deploy
+```
+
+Validation:
+
+```text
+1. Deploy backend.
+2. Open Product Box face modal.
+3. Upload original texture photo.
+4. Run Detect contour.
+5. Process texture.
+6. Confirm no OpenCV native loader error appears in Render logs.
+```
+
+Do not switch the backend runtime back to Alpine unless the OpenCV native runtime is retested end-to-end in Render.
 
 ---
 
@@ -240,7 +293,6 @@ The token must have write permission.
 ## Render service keeps sleeping
 
 On free tiers, services may sleep.
-
 First request can be slow.
 
 For production real usage, consider a paid plan or uptime strategy.
