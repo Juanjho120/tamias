@@ -35,11 +35,14 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.util.unit.DataSize;
 
 @Service
 public class DocumentService {
 
-    private static final long MAX_FILE_SIZE_BYTES = 10L * 1024L * 1024L;
+    private final long maxDocumentSizeBytes;
+    private final String maxDocumentSizeLabel;
 
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
             "application/pdf",
@@ -71,7 +74,8 @@ public class DocumentService {
             FileStorageService fileStorageService,
             DocumentProcessingService documentProcessingService,
             RagVectorStoreService ragVectorStoreService,
-            DocumentMapper documentMapper
+            DocumentMapper documentMapper,
+            @Value("${tamias.upload.max-document-size:${MAX_FILE_SIZE:25MB}}") String maxDocumentSize
     ) {
         this.documentRepository = documentRepository;
         this.documentChunkRepository = documentChunkRepository;
@@ -83,6 +87,9 @@ public class DocumentService {
         this.documentProcessingService = documentProcessingService;
         this.ragVectorStoreService = ragVectorStoreService;
         this.documentMapper = documentMapper;
+        DataSize parsedMaxDocumentSize = DataSize.parse(maxDocumentSize);
+        this.maxDocumentSizeBytes = parsedMaxDocumentSize.toBytes();
+        this.maxDocumentSizeLabel = maxDocumentSize;
     }
 
     @Transactional(readOnly = true)
@@ -245,8 +252,8 @@ public class DocumentService {
             throw new BadRequestException("File is required");
         }
 
-        if (file.getSize() > MAX_FILE_SIZE_BYTES) {
-            throw new BadRequestException("File exceeds maximum allowed size");
+        if (file.getSize() > maxDocumentSizeBytes) {
+            throw new BadRequestException("File exceeds maximum allowed size of " + maxDocumentSizeLabel);
         }
 
         String contentType = file.getContentType();

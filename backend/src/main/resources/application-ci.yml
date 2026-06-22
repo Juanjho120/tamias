@@ -35,8 +35,8 @@ spring:
         initialize-schema: true
   servlet:
     multipart:
-      max-file-size: 15MB
-      max-request-size: 15MB
+      max-file-size: ${MAX_FILE_SIZE:25MB}
+      max-request-size: ${MAX_REQUEST_SIZE:25MB}
 
 logging:
   level:
@@ -67,6 +67,9 @@ tamias:
     vector-store:
       chroma-base-url: http://localhost:8000
       collection-name: tamias_ci
+  upload:
+    max-image-size: ${MAX_IMAGE_SIZE:${MAX_FILE_SIZE:25MB}}
+    max-document-size: ${MAX_DOCUMENT_SIZE:${MAX_FILE_SIZE:25MB}}
 
 management:
   endpoints:
