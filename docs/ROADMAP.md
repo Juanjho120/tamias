@@ -1,6 +1,6 @@
 # TAMIAS — Roadmap
 
-This roadmap reflects the current state after AI tool calling/orchestration, S3/image hard-delete work, inventory brand/image work, AI debug traces, smoke-test hardening and Product Box Models through Angular AI enhanced preview and accept workflow.
+This roadmap reflects the current state after AI tool calling/orchestration, S3/image hard-delete work, inventory brand/image work, AI debug traces, smoke-test hardening and Product Box Models through Angular AI enhanced preview and accept workflow plus OpenCV runtime controls.
 
 ## Completed foundation
 
@@ -79,7 +79,7 @@ Phases 10A through 13A are completed and documented in their corresponding `.md`
 ## Current implementation queue
 
 ### Phase 14 — Product Box Models
-Status: In progress / completed through 14N.
+Status: In progress / completed through 14N.1.
 
 Documentation: `71-product-box-models-14.md`
 
@@ -100,6 +100,7 @@ Completed subphases:
 14L AI Texture metadata and backend provider abstraction
 14M AI Texture enhancement backend
 14N Angular AI enhanced preview and accept workflow
+14N.1 Product Box OpenCV runtime controls and testing profile
 ```
 
 Next subphases:

@@ -9,6 +9,7 @@ import {
   ProductBoxModelFilters,
   ProductBoxModelRequest,
   ProductBoxModelSummary,
+  ProductBoxRuntimeCapabilities,
   ProductBoxTextureContourDetectionResponse,
   ProductBoxTextureProcessRequest
 } from '../models/product-box-model.model';
@@ -26,6 +27,11 @@ export class ProductBoxModelService {
       size: filters.size,
       sort: filters.sort ?? 'createdAt,desc'
     });
+  }
+
+
+  getCapabilities(): Observable<ProductBoxRuntimeCapabilities> {
+    return this.apiService.get<ProductBoxRuntimeCapabilities>('/product-box-models/capabilities');
   }
 
   findById(id: string): Observable<ProductBoxModel> {

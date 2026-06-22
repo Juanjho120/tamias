@@ -56,6 +56,7 @@ public class ProductBoxModelFaceService {
     private final ImageValidationService imageValidationService;
     private final ProductBoxModelMapper productBoxModelMapper;
     private final ProductBoxTextureProcessingService productBoxTextureProcessingService;
+    private final ProductBoxRuntimeCapabilitiesService productBoxRuntimeCapabilitiesService;
     private final List<ProductBoxAiTextureEnhancementProvider> aiTextureEnhancementProviders;
     private final ObjectMapper objectMapper;
 
@@ -68,6 +69,7 @@ public class ProductBoxModelFaceService {
         ImageValidationService imageValidationService,
         ProductBoxModelMapper productBoxModelMapper,
         ProductBoxTextureProcessingService productBoxTextureProcessingService,
+        ProductBoxRuntimeCapabilitiesService productBoxRuntimeCapabilitiesService,
         List<ProductBoxAiTextureEnhancementProvider> aiTextureEnhancementProviders,
         ObjectMapper objectMapper
     ) {
@@ -79,6 +81,7 @@ public class ProductBoxModelFaceService {
         this.imageValidationService = imageValidationService;
         this.productBoxModelMapper = productBoxModelMapper;
         this.productBoxTextureProcessingService = productBoxTextureProcessingService;
+        this.productBoxRuntimeCapabilitiesService = productBoxRuntimeCapabilitiesService;
         this.aiTextureEnhancementProviders = aiTextureEnhancementProviders != null ? aiTextureEnhancementProviders : List.of();
         this.objectMapper = objectMapper;
     }
@@ -171,6 +174,7 @@ public class ProductBoxModelFaceService {
     @Transactional(noRollbackFor = BadRequestException.class)
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF')")
     public ProductBoxTextureContourDetectionResponse detectContour(UUID productBoxModelId, String faceNameValue) {
+        productBoxRuntimeCapabilitiesService.requireOpenCvEnabled();
         ProductBoxModelFace face = findFace(productBoxModelId, faceNameValue);
         User currentUser = findCurrentUser();
 
@@ -223,6 +227,7 @@ public class ProductBoxModelFaceService {
         String faceNameValue,
         ProductBoxTextureProcessRequest request
     ) {
+        productBoxRuntimeCapabilitiesService.requireOpenCvEnabled();
         ProductBoxModelFace face = findFace(productBoxModelId, faceNameValue);
         ProductBoxModel productBoxModel = face.getProductBoxModel();
         ProductBoxFaceName faceName = face.getFaceName();
@@ -356,6 +361,7 @@ public class ProductBoxModelFaceService {
             throw new BadRequestException("Processed product box texture is required before AI enhancement");
         }
 
+        productBoxRuntimeCapabilitiesService.requireAiTextureEnhancementEnabled();
         ProductBoxAiTextureEnhancementProvider provider = findAvailableAiEnhancementProvider();
         face.setAiEnhancementStatus(ProductBoxAiEnhancementStatus.PROCESSING);
         face.setAiEnhancementProvider(provider.getProviderName());

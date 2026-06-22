@@ -11,6 +11,7 @@ import {
   ProductBoxFaceName,
   ProductBoxModel,
   ProductBoxModelFace,
+  ProductBoxRuntimeCapabilities,
   ProductBoxTexturePoint,
   ProductBoxTextureProcessRequest
 } from '../../models/product-box-model.model';
@@ -49,6 +50,8 @@ export class ProductBoxFacesModalComponent implements OnChanges {
 
   readonly faceNames = PRODUCT_BOX_FACE_NAMES;
   readonly loading = signal(false);
+  readonly loadingCapabilities = signal(false);
+  readonly runtimeCapabilities = signal<ProductBoxRuntimeCapabilities | null>(null);
   readonly uploadingFace = signal<ProductBoxFaceName | null>(null);
   readonly uploadingOriginalFace = signal<ProductBoxFaceName | null>(null);
   readonly detectingFace = signal<ProductBoxFaceName | null>(null);
@@ -87,6 +90,10 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     const modelId = this.model?.id;
     const shouldLoad = !!modelId && (changes['open'] || changes['model']) && modelId !== this.loadedModelId;
 
+    if (this.open && !this.runtimeCapabilities() && !this.loadingCapabilities()) {
+      this.loadRuntimeCapabilities();
+    }
+
     if (shouldLoad) {
       this.loadFaces();
     }
@@ -98,6 +105,21 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     }
 
     this.closed.emit();
+  }
+
+
+  loadRuntimeCapabilities(): void {
+    this.loadingCapabilities.set(true);
+
+    this.productBoxModelService.getCapabilities().subscribe({
+      next: (capabilities) => {
+        this.runtimeCapabilities.set(capabilities);
+        this.loadingCapabilities.set(false);
+      },
+      error: () => {
+        this.loadingCapabilities.set(false);
+      }
+    });
   }
 
   loadFaces(): void {
@@ -216,6 +238,11 @@ export class ProductBoxFacesModalComponent implements OnChanges {
       return;
     }
 
+    if (!this.isOpenCvEnabled()) {
+      this.toastService.error(this.openCvDisabledMessage());
+      return;
+    }
+
     this.detectingFace.set(faceName);
 
     this.productBoxModelService.detectTextureContour(modelId, faceName).subscribe({
@@ -270,6 +297,11 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     const face = this.face(faceName);
 
     if (!modelId || !face?.originalImageUrl || !points || this.processingFace() || this.acceptingFace() || this.enhancingFace() || this.acceptingAiFace() || this.discardingAiFace()) {
+      return;
+    }
+
+    if (!this.isOpenCvEnabled()) {
+      this.toastService.error(this.openCvDisabledMessage());
       return;
     }
 
@@ -333,11 +365,11 @@ export class ProductBoxFacesModalComponent implements OnChanges {
   }
 
   hasProcessedTexture(face: ProductBoxModelFace | null): boolean {
-    return !!(face?.processedImageKey || face?.processedImageUrl || this.hasAcceptedOpenCvTexture(face));
-  }
-
-  hasAcceptedOpenCvTexture(face: ProductBoxModelFace | null): boolean {
-    return face?.activeTextureSource === 'opencv_processed' && !!(face.imageKey || face.imageUrl);
+    return !!(
+      face?.processedImageKey
+      || face?.processedImageUrl
+      || (face?.activeTextureSource === 'opencv_processed' && face?.imageUrl)
+    );
   }
 
   canAcceptProcessedTexture(face: ProductBoxModelFace | null): boolean {
@@ -345,21 +377,10 @@ export class ProductBoxFacesModalComponent implements OnChanges {
   }
 
   canGenerateAiEnhancedTexture(face: ProductBoxModelFace | null): boolean {
-    return this.hasProcessedTexture(face)
+    return this.isAiTextureEnhancementEnabled()
+      && this.hasProcessedTexture(face)
       && !this.isAiEnhancedActive(face)
       && face?.aiEnhancementStatus !== 'PROCESSING';
-  }
-
-  aiEnhancementButtonTitle(face: ProductBoxModelFace | null): string {
-    if (!face || !this.hasProcessedTexture(face)) {
-      return this.languageService.instant('productBoxModels.aiTexture.needsProcessed');
-    }
-
-    if (this.isAiEnhancedActive(face)) {
-      return this.languageService.instant('productBoxModels.aiTexture.active');
-    }
-
-    return this.languageService.instant(face.aiEnhancedImageUrl ? 'productBoxModels.aiTexture.regenerate' : 'productBoxModels.aiTexture.generate');
   }
 
   canAcceptAiEnhancedTexture(face: ProductBoxModelFace | null): boolean {
@@ -378,7 +399,16 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     const modelId = this.model?.id;
     const face = this.face(faceName);
 
-    if (!modelId || !this.canGenerateAiEnhancedTexture(face) || this.enhancingFace() || this.acceptingFace() || this.acceptingAiFace() || this.deletingFace()) {
+    if (!modelId || this.enhancingFace() || this.acceptingFace() || this.acceptingAiFace() || this.deletingFace()) {
+      return;
+    }
+
+    if (!this.isAiTextureEnhancementEnabled()) {
+      this.toastService.error(this.aiTextureEnhancementDisabledMessage());
+      return;
+    }
+
+    if (!this.canGenerateAiEnhancedTexture(face)) {
       return;
     }
 
@@ -524,6 +554,25 @@ export class ProductBoxFacesModalComponent implements OnChanges {
     }
 
     window.open(imageUrl, '_blank', 'noopener');
+  }
+
+
+  isOpenCvEnabled(): boolean {
+    return this.runtimeCapabilities()?.opencvEnabled ?? true;
+  }
+
+  isAiTextureEnhancementEnabled(): boolean {
+    return this.runtimeCapabilities()?.aiTextureEnhancementEnabled ?? true;
+  }
+
+  openCvDisabledMessage(): string {
+    return this.runtimeCapabilities()?.opencvDisabledMessage
+      ?? this.languageService.instant('productBoxModels.runtime.openCvDisabledMessage');
+  }
+
+  aiTextureEnhancementDisabledMessage(): string {
+    return this.runtimeCapabilities()?.aiTextureEnhancementDisabledMessage
+      ?? this.languageService.instant('productBoxModels.runtime.aiTextureDisabledMessage');
   }
 
   formatSize(sizeBytes: number | null | undefined): string {
@@ -681,9 +730,11 @@ export class ProductBoxFacesModalComponent implements OnChanges {
 
   private resetState(): void {
     this.faces.set({});
+    this.runtimeCapabilities.set(null);
     this.processPoints.set({});
     this.freshEditorFaces.set({});
     this.loading.set(false);
+    this.loadingCapabilities.set(false);
     this.uploadingFace.set(null);
     this.uploadingOriginalFace.set(null);
     this.detectingFace.set(null);

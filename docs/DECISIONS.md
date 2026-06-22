@@ -511,3 +511,27 @@ Rules:
 - Backend runtime should install `libgomp1` for native/OpenMP compatibility.
 - Do not switch the backend runtime back to Alpine unless OpenCV native processing is retested in Render.
 - After changing base images or native packages in Render, use `Manual Deploy -> Clear build cache & deploy`.
+
+## 23. Product Box OpenCV runtime controls
+
+Decision:
+
+```text
+Keep OpenCV enabled in production on a 2 GB Render service, but allow testing/staging environments to disable Product Box OpenCV processing through a runtime flag.
+```
+
+Runtime flag:
+
+```text
+tamias.product-box.opencv.enabled
+TAMIAS_PRODUCT_BOX_OPENCV_ENABLED
+```
+
+Rules:
+
+- Production keeps OpenCV enabled for Product Box contour detection and texture processing.
+- Low-cost testing/staging may set `TAMIAS_PRODUCT_BOX_OPENCV_ENABLED=false`.
+- When disabled, backend endpoints fail fast with a controlled domain error before loading OpenCV.
+- The frontend must use Product Box runtime capabilities to disable heavy texture actions instead of hiding them unpredictably.
+- Direct uploads, CRUD, S3 previews and Three.js viewing remain available when OpenCV is disabled.
+

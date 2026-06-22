@@ -1,6 +1,6 @@
 # 14 — Product Box Models
 
-Status: **In progress / completed through 14N**
+Status: **In progress / completed through 14N.1**
 
 ## Purpose
 
@@ -45,6 +45,7 @@ Key decisions:
 14L — AI Texture metadata and backend provider abstraction Completed
 14M — AI Texture enhancement backend Completed
 14N — Angular AI enhanced preview and accept workflow Completed
+14N.1 — Product Box OpenCV runtime controls and testing profile Completed
 ```
 
 ## Pending subphases
@@ -166,6 +167,20 @@ The OpenCV pipeline supports:
 - explicit accept/save workflow.
 
 Automatic detection never replaces manual review. It only pre-fills the four points in the Angular editor.
+
+
+## Runtime controls
+
+Product Box OpenCV features are controlled by:
+
+```text
+tamias.product-box.opencv.enabled
+TAMIAS_PRODUCT_BOX_OPENCV_ENABLED
+```
+
+Production should keep OpenCV enabled on a Render 2 GB service. Low-cost testing/staging environments may disable OpenCV to avoid 512 MB out-of-memory crashes.
+
+The frontend reads `GET /api/v1/product-box-models/capabilities` and disables contour detection, texture processing and AI texture generation when the environment does not support them.
 
 ## Optional AI texture enhancement
 

@@ -16,6 +16,13 @@
         <div class="modal-body">
           <p class="text-body-secondary mb-3">{{ 'productBoxModels.faces.help' | translate }}</p>
 
+          @if (!isOpenCvEnabled()) {
+            <div class="alert alert-warning small" role="alert">
+              <strong>{{ 'productBoxModels.runtime.openCvDisabledTitle' | translate }}</strong>
+              <div>{{ 'productBoxModels.runtime.openCvDisabledDescription' | translate }}</div>
+            </div>
+          }
+
           @if (loading()) {
             <div class="text-center py-5">
               <div class="spinner-border" role="status"></div>
@@ -84,31 +91,13 @@
                         }
 
                         @if (currentFace?.originalImageUrl) {
-                          <button type="button" class="btn btn-outline-info btn-sm" [disabled]="detectingFace() === faceName || processingFace() === faceName || acceptingFace() === faceName || enhancingFace() === faceName || acceptingAiFace() === faceName || discardingAiFace() === faceName || deletingFace() === faceName" (click)="detectContour(faceName)">
+                          <button type="button" class="btn btn-outline-info btn-sm" [disabled]="!isOpenCvEnabled() || detectingFace() === faceName || processingFace() === faceName || acceptingFace() === faceName || enhancingFace() === faceName || acceptingAiFace() === faceName || discardingAiFace() === faceName || deletingFace() === faceName" (click)="detectContour(faceName)">
                             @if (detectingFace() === faceName) {
                               <span class="spinner-border spinner-border-sm me-1" role="status"></span>
                               {{ 'productBoxModels.textureEditor.detectingContour' | translate }}
                             } @else {
                               <i class="bi bi-search me-1"></i>
                               {{ 'productBoxModels.textureEditor.detectContour' | translate }}
-                            }
-                          </button>
-                        }
-
-                        @if (currentFace) {
-                          <button
-                            type="button"
-                            class="btn btn-outline-primary btn-sm"
-                            [disabled]="!canGenerateAiEnhancedTexture(currentFace) || enhancingFace() === faceName || acceptingAiFace() === faceName || discardingAiFace() === faceName || detectingFace() === faceName || processingFace() === faceName || acceptingFace() === faceName || deletingFace() === faceName"
-                            [title]="aiEnhancementButtonTitle(currentFace)"
-                            (click)="generateAiEnhancedTexture(faceName)"
-                          >
-                            @if (enhancingFace() === faceName) {
-                              <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                              {{ 'productBoxModels.aiTexture.generating' | translate }}
-                            } @else {
-                              <i class="bi bi-stars me-1"></i>
-                              {{ (currentFace?.aiEnhancedImageUrl ? 'productBoxModels.aiTexture.regenerate' : 'productBoxModels.aiTexture.generate') | translate }}
                             }
                           </button>
                         }
@@ -236,6 +225,11 @@
                         </div>
                         <div class="col-md-4">
                           <h6>{{ 'productBoxModels.aiTexture.title' | translate }}</h6>
+                          @if (!isAiTextureEnhancementEnabled()) {
+                            <div class="alert alert-warning small py-2" role="alert">
+                              {{ 'productBoxModels.runtime.aiTextureDisabledDescription' | translate }}
+                            </div>
+                          }
                           @if (currentFace?.aiEnhancedImageUrl) {
                             <img class="product-box-texture-preview rounded border bg-body-secondary" [src]="currentFace?.aiEnhancedImageUrl" crossorigin="anonymous" [alt]="currentFace?.aiEnhancedFilename || faceName" />
                             <div class="small mt-2">
@@ -316,23 +310,20 @@
                             </div>
                           }
 
-                          @if (currentFace) {
-                            <button
-                              type="button"
-                              class="btn btn-outline-primary btn-sm mt-2 w-100"
-                              [disabled]="!canGenerateAiEnhancedTexture(currentFace) || enhancingFace() === faceName || acceptingAiFace() === faceName || discardingAiFace() === faceName || detectingFace() === faceName || processingFace() === faceName || acceptingFace() === faceName || deletingFace() === faceName"
-                              [title]="aiEnhancementButtonTitle(currentFace)"
-                              (click)="generateAiEnhancedTexture(faceName)"
-                            >
-                              @if (enhancingFace() === faceName) {
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                {{ 'productBoxModels.aiTexture.generating' | translate }}
-                              } @else {
-                                <i class="bi bi-stars me-1"></i>
-                                {{ (currentFace?.aiEnhancedImageUrl ? 'productBoxModels.aiTexture.regenerate' : 'productBoxModels.aiTexture.generate') | translate }}
-                              }
-                            </button>
-                          }
+                          <button
+                            type="button"
+                            class="btn btn-outline-primary btn-sm mt-2 w-100"
+                            [disabled]="!canGenerateAiEnhancedTexture(currentFace) || enhancingFace() === faceName || acceptingAiFace() === faceName || discardingAiFace() === faceName || detectingFace() === faceName || processingFace() === faceName || acceptingFace() === faceName || deletingFace() === faceName"
+                            (click)="generateAiEnhancedTexture(faceName)"
+                          >
+                            @if (enhancingFace() === faceName) {
+                              <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                              {{ 'productBoxModels.aiTexture.generating' | translate }}
+                            } @else {
+                              <i class="bi bi-stars me-1"></i>
+                              {{ (currentFace?.aiEnhancedImageUrl ? 'productBoxModels.aiTexture.regenerate' : 'productBoxModels.aiTexture.generate') | translate }}
+                            }
+                          </button>
                         </div>
                       </div>
 
@@ -368,7 +359,7 @@
                               <button
                                 type="button"
                                 class="btn btn-primary w-100"
-                                [disabled]="processingFace() === faceName || acceptingFace() === faceName || enhancingFace() === faceName || acceptingAiFace() === faceName || discardingAiFace() === faceName || !processPoints()[faceName]"
+                                [disabled]="!isOpenCvEnabled() || processingFace() === faceName || acceptingFace() === faceName || enhancingFace() === faceName || acceptingAiFace() === faceName || discardingAiFace() === faceName || !processPoints()[faceName]"
                                 (click)="processTexture(faceName)"
                               >
                                 @if (processingFace() === faceName) {

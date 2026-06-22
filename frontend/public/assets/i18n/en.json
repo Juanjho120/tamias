@@ -1623,7 +1623,7 @@
       "generating": "Generating AI enhancement...",
       "accept": "Use AI texture",
       "accepting": "Accepting AI texture...",
-      "discard": "Discard AI",
+      "discard": "DisproductBoxModelscard AI",
       "discarding": "Discarding AI...",
       "active": "AI texture active",
       "noEnhanced": "No AI-enhanced texture yet.",
@@ -1636,6 +1636,13 @@
         "discarded": "AI texture discarded successfully.",
         "discardError": "Could not discard the AI texture."
       }
+    },
+    "runtime": {
+      "openCvDisabledTitle": "OpenCV processing disabled",
+      "openCvDisabledDescription": "Contour detection and texture processing are disabled in this environment to avoid high memory usage.",
+      "openCvDisabledMessage": "Product Box OpenCV texture processing is disabled in this environment.",
+      "aiTextureDisabledDescription": "AI texture enhancement is disabled or not configured in this environment.",
+      "aiTextureDisabledMessage": "Product Box AI texture enhancement is disabled or not configured in this environment."
     }
   }
 }

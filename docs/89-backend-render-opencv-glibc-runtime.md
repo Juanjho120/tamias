@@ -70,6 +70,25 @@ Product Box OpenCV image enhancement
 Future OpenCV-based image utilities
 ```
 
+
+## Memory/runtime sizing
+
+OpenCV Java uses both JVM heap and native/off-heap memory for `Mat` buffers, image decoding, perspective transforms, filters and PNG encoding. A 512 MB Render service can run out of memory when executing Product Box texture processing.
+
+Current production sizing decision:
+
+```text
+Render Standard / 2 GB RAM for production OpenCV features
+```
+
+Testing/staging may stay on a lower-cost 512 MB service by disabling Product Box OpenCV runtime features:
+
+```text
+TAMIAS_PRODUCT_BOX_OPENCV_ENABLED=false
+```
+
+When disabled, the backend returns a controlled error before loading OpenCV for contour detection or texture processing.
+
 ## Render deployment notes
 
 After changing the Dockerfile base image or native runtime packages, deploy with:
@@ -99,4 +118,5 @@ docs/22-deployment-runbook.md
 docs/27-first-deployment-troubleshooting.md
 docs/81-product-box-opencv-perspective-correction-14g.md
 docs/84-product-box-auto-contour-enhancement-14j.md
+docs/90-product-box-opencv-runtime-controls-14n1.md
 ```

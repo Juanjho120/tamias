@@ -1635,6 +1635,13 @@
         "discarded": "Textura IA descartada correctamente.",
         "discardError": "No se pudo descartar la textura IA."
       }
+    },
+    "runtime": {
+      "openCvDisabledTitle": "Procesamiento OpenCV deshabilitado",
+      "openCvDisabledDescription": "La detección de contornos y el procesamiento de texturas están deshabilitados en este ambiente para evitar consumo alto de memoria.",
+      "openCvDisabledMessage": "El procesamiento OpenCV de texturas de Product Box está deshabilitado en este ambiente.",
+      "aiTextureDisabledDescription": "La mejora de texturas con IA está deshabilitada o no está configurada en este ambiente.",
+      "aiTextureDisabledMessage": "La mejora de texturas con IA de Product Box está deshabilitada o no está configurada en este ambiente."
     }
   }
 }

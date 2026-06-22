@@ -4,10 +4,12 @@ import com.tamias.common.dto.PageResponse;
 import com.tamias.productbox.dto.ProductBoxModelFaceResponse;
 import com.tamias.productbox.dto.ProductBoxModelRequest;
 import com.tamias.productbox.dto.ProductBoxModelResponse;
+import com.tamias.productbox.dto.ProductBoxRuntimeCapabilitiesResponse;
 import com.tamias.productbox.dto.ProductBoxTextureContourDetectionResponse;
 import com.tamias.productbox.dto.ProductBoxTextureProcessRequest;
 import com.tamias.productbox.service.ProductBoxModelFaceService;
 import com.tamias.productbox.service.ProductBoxModelService;
+import com.tamias.productbox.service.ProductBoxRuntimeCapabilitiesService;
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.util.List;
@@ -38,13 +40,16 @@ public class ProductBoxModelController {
 
     private final ProductBoxModelService productBoxModelService;
     private final ProductBoxModelFaceService productBoxModelFaceService;
+    private final ProductBoxRuntimeCapabilitiesService productBoxRuntimeCapabilitiesService;
 
     public ProductBoxModelController(
         ProductBoxModelService productBoxModelService,
-        ProductBoxModelFaceService productBoxModelFaceService
+        ProductBoxModelFaceService productBoxModelFaceService,
+        ProductBoxRuntimeCapabilitiesService productBoxRuntimeCapabilitiesService
     ) {
         this.productBoxModelService = productBoxModelService;
         this.productBoxModelFaceService = productBoxModelFaceService;
+        this.productBoxRuntimeCapabilitiesService = productBoxRuntimeCapabilitiesService;
     }
 
     @GetMapping
@@ -55,6 +60,12 @@ public class ProductBoxModelController {
         Pageable pageable
     ) {
         return productBoxModelService.findAll(inventoryItemId, purchaseItemId, search, pageable);
+    }
+
+
+    @GetMapping("/capabilities")
+    public ProductBoxRuntimeCapabilitiesResponse getCapabilities() {
+        return productBoxRuntimeCapabilitiesService.getCapabilities();
     }
 
     @GetMapping("/{id}")
