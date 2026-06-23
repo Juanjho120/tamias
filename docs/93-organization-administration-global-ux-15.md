@@ -2,13 +2,11 @@
 
 ## Status
 
-In progress through 15C.2.
+In progress through 15D.
 
 ## Purpose
 
 Add organization administration, organization logo support, multi-organization navigation and global UX polish before starting the larger Reports, Notifications and Blueprint Analysis phases.
-
-This phase continues the SaaS foundation already present in TAMIAS and improves the day-to-day experience for organization-aware users.
 
 ## High-level decisions
 
@@ -44,37 +42,11 @@ Completed.
 
 Completed and extended by 15C.1 / 15C.2.
 
-### Goal
-
-Allow users who belong to more than one organization to change the active organization from the UI.
-
-### Backend scope
-
-- Add `GET /api/v1/auth/organizations` to list the authenticated user's active organizations.
-- Add `POST /api/v1/auth/switch-organization` to switch the active organization.
-- Validate that normal users belong to the target organization and that both the membership and organization are active.
-- Return an updated authenticated session/token for the selected organization.
-- Keep `/api/v1/auth/me` aligned with the organization id present in the active JWT.
-- Store each user's last selected organization in `users.last_organization_id`.
-- Do not rely on a client-only `organizationId` override.
-
-### Frontend scope
-
-- Add an organization switcher to the main layout/header.
-- Show organization names and the current organization logo when available.
-- Switch session context when the user selects another organization.
-- Refresh current user/session state after switching.
-- Navigate to `/dashboard` after switching to clear organization-scoped screen state.
-
 ## 15C.1 — Global SUPER_ADMIN organization navigation
 
 ### Status
 
 Completed.
-
-### Goal
-
-Allow a user with at least one active usable `SUPER_ADMIN` membership to navigate all active organizations without requiring an explicit membership in each organization.
 
 ## 15C.2 — User organization memberships management
 
@@ -82,34 +54,21 @@ Allow a user with at least one active usable `SUPER_ADMIN` membership to navigat
 
 Completed.
 
-### Goal
-
-Allow only `SUPER_ADMIN` users to assign users to other organizations and define the role they will have in each organization.
-
-### Backend scope
-
-Endpoints under the existing users backend area, protected with `SUPER_ADMIN` only:
-
-```http
-GET /api/v1/users/{userId}/organizations
-POST /api/v1/users/{userId}/organizations
-PUT /api/v1/users/{userId}/organizations/{organizationId}
-DELETE /api/v1/users/{userId}/organizations/{organizationId}
-```
-
-### Rules
-
-- Only `SUPER_ADMIN` can manage multi-organization memberships.
-- `ADMINISTRATOR` cannot see or use these controls.
-- `SUPER_ADMIN` can assign any role, including `SUPER_ADMIN`.
-- The backend prevents removing a user's last usable `SUPER_ADMIN` access.
-- Normal user creation/update remains scoped to the active organization.
-
 ## 15D — Icon-only action buttons with tooltips
 
 ### Status
 
-Planned.
+Completed.
+
+### Implementation
+
+- Added reusable `IconActionButtonComponent` for new/refactored UI code.
+- Added `IconActionButtonAutoEnhancerService` to apply icon-only action button behavior across existing modules.
+- The enhancer runs globally from `app.config.ts` and covers action buttons inside tables, modals, button groups and dropdown menus.
+- Existing translated button text is reused as the tooltip and accessible label.
+- Common text-only actions receive an inferred Bootstrap icon before the visible text is hidden.
+
+Documentation: `docs/103-icon-action-buttons-tooltips-15d.md`.
 
 ## 15E — TAMI branding and robot animation
 
@@ -122,7 +81,7 @@ Planned.
 This phase supersedes the previous future-phase numbering:
 
 ```text
-Old future 15 Reports -> New future 16 Reports
+Old future 15 Reports                 -> New future 16 Reports
 Old future 16 Notifications/reminders -> New future 17 Notifications and reminders
-Old future 17 Blueprint Analysis -> New future 18 Blueprint Analysis
+Old future 17 Blueprint Analysis      -> New future 18 Blueprint Analysis
 ```
