@@ -24,6 +24,30 @@ backend/src/main/java/com/tamias/ai/tool/repository/ProductBoxToolRepository.jav
 
 The implementation follows the existing handler → read-only service → repository structure used by the other AI tools.
 
+### Orchestration hardening
+
+Product Box questions are structured operational questions, not document/RAG questions.
+
+The orchestration layer must treat `productBox.*` tools as deterministic backend tools:
+
+- `AiPlanningService` must respect Product Box tool hits before asking the LLM planner to choose a path.
+- `AiToolFallbackPolicy` must not send Product Box empty answers to RAG fallback.
+- `AiAnswerCompositionService` must return Product Box backend answers as-is, without LLM rewriting.
+
+This prevents prompts such as:
+
+```text
+Dame un resumen de Product Box Models.
+¿Qué items de inventario tienen Product Box?
+Qué modelos Product Box están asociados a compras?
+```
+
+from falling through to the generic RAG message:
+
+```text
+No encontré información relacionada con lo que preguntaste en los documentos indexados/RAG.
+```
+
 ### Database
 
 No Flyway migration is required for this phase.
@@ -133,7 +157,7 @@ Purchase link questions intentionally use a concise answer format:
 ```text
 Los modelos Product Box están asociados a los siguientes items de compra:
 
-- <Product Box Model> | compra: <Purchase Item> | inventario: <Inventory Item, when available>
+- <Product Box Model> | compra: <Purchase Item> | inventario: <Inventory Item si existe>
 ```
 
 Generic wording such as `están asociados a compras` must not be treated as a search term. It should list all Product Box Models with `product_box_models.purchase_item_id` populated for the current organization.
@@ -165,6 +189,7 @@ Expected behavior:
 - `Dame un resumen de Product Box Models.` returns a grounded answer with `productBox.summary` evidence.
 - `Qué items de inventario tienen Product Box?` returns a concise inventory-link answer with `productBox.inventoryLinks` evidence.
 - `Qué modelos Product Box están asociados a compras?` returns Product Box Models with populated `purchase_item_id` and `productBox.purchaseLinks` evidence.
+- Product Box operational prompts do not fall back to the generic RAG no-information answer.
 - Texture/status prompts still return detailed texture metrics.
 - The creation prompt returns the read-only guard response.
 
@@ -174,6 +199,9 @@ Expected behavior:
 - Existing AI tools still route normally.
 - Product Box questions are handled before generic inventory/purchase handlers.
 - Questions involving `inventario` or `compras` plus Product Box route to `ProductBoxToolHandler`.
+- `productBox.*` tools are respected by `AiPlanningService` as structured operational tools.
+- Product Box empty responses do not attempt RAG fallback.
+- Product Box backend answers are returned as-is by answer composition.
 - Generic relation words such as `asociado`, `asociados`, `vinculado`, `relacionado` are not treated as search terms.
 - No Product Box write operation is executed from the assistant.
 - No Flyway migration is needed.

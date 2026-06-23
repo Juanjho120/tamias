@@ -26,6 +26,7 @@ public class AiAnswerCompositionService {
         if (!composeToolAnswers || toolAnswer == null || toolAnswer.answer() == null || toolAnswer.answer().isBlank()) {
             return toolAnswer != null ? toolAnswer.answer() : "";
         }
+
         if (shouldReturnBackendAnswerAsIs(toolAnswer)) {
             return toolAnswer.answer();
         }
@@ -43,6 +44,7 @@ public class AiAnswerCompositionService {
 
     private boolean shouldReturnBackendAnswerAsIs(AiToolAnswer toolAnswer) {
         String toolName = primaryToolName(toolAnswer);
+
         return toolName.equals("assistant.capabilities")
                 || toolName.equals("assistant.readOnlyGuard")
                 || toolName.startsWith("user.")
@@ -61,6 +63,7 @@ public class AiAnswerCompositionService {
                 || toolName.startsWith("purchaseList.")
                 || toolName.startsWith("purchaseItem.")
                 || toolName.startsWith("inventory.")
+                || toolName.startsWith("productBox.")
                 || toolName.startsWith("file.")
                 || toolName.startsWith("files.")
                 || toolName.startsWith("image.")
@@ -82,7 +85,6 @@ public class AiAnswerCompositionService {
     private String toolAnswerSystemPrompt() {
         return """
                 Eres TAMIAS, un asistente para administrar alojamientos.
-
                 Redacta una respuesta natural usando únicamente los datos estructurados proporcionados por el backend.
 
                 Reglas estrictas:
@@ -131,6 +133,7 @@ public class AiAnswerCompositionService {
         if (evidence == null || evidence.isEmpty()) {
             return "No evidence metadata.";
         }
+
         StringBuilder builder = new StringBuilder();
         for (AiToolEvidenceResponse item : evidence) {
             builder.append("- tool=").append(item.toolName())

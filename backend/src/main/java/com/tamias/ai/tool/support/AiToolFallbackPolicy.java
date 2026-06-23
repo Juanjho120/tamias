@@ -30,9 +30,7 @@ public final class AiToolFallbackPolicy {
     }
 
     public static boolean isFallbackAllowed(AiToolResult result) {
-        return result != null
-                && result.allowRagFallback()
-                && (result.status().allowsRagFallback());
+        return result != null && result.allowRagFallback() && result.status().allowsRagFallback();
     }
 
     public static String primaryToolName(AiToolAnswer answer) {
@@ -103,6 +101,7 @@ public final class AiToolFallbackPolicy {
         if (normalizedAnswer == null || normalizedAnswer.isBlank()) {
             return true;
         }
+
         return normalizedAnswer.startsWith("no encontre")
                 || normalizedAnswer.contains(" no encontre")
                 || normalizedAnswer.startsWith("no veo")
@@ -137,7 +136,14 @@ public final class AiToolFallbackPolicy {
                 "files.getImageCountByModule",
                 "files.getTopImageModule",
                 "files.getImageStorageSummary",
-                "files.getFileNameList"
+                "files.getFileNameList",
+                "productBox.summary",
+                "productBox.search",
+                "productBox.incompleteModels",
+                "productBox.inventoryLinks",
+                "productBox.inventoryItemsWithoutModel",
+                "productBox.purchaseLinks",
+                "productBox.textureStatus"
         ).contains(toolName);
     }
 
@@ -150,7 +156,8 @@ public final class AiToolFallbackPolicy {
                 || toolName.startsWith("role.")
                 || toolName.startsWith("organization.")
                 || toolName.startsWith("aiChat.")
-                || toolName.startsWith("dashboard.")) {
+                || toolName.startsWith("dashboard.")
+                || toolName.startsWith("productBox.")) {
             return false;
         }
 
@@ -184,8 +191,24 @@ public final class AiToolFallbackPolicy {
 
         boolean hasDocumentSignals = AiToolTextNormalizer.containsAnyForRouting(
                 normalizedQuestion,
-                "documento", "documentos", "archivo", "archivos", "pdf", "manual", "plano", "regla", "reglas",
-                "rag", "indexado", "indexacion", "contenido", "texto", "dice", "menciona", "habla de", "segun el documento"
+                "documento",
+                "documentos",
+                "archivo",
+                "archivos",
+                "pdf",
+                "manual",
+                "plano",
+                "regla",
+                "reglas",
+                "rag",
+                "indexado",
+                "indexacion",
+                "contenido",
+                "texto",
+                "dice",
+                "menciona",
+                "habla de",
+                "segun el documento"
         );
         if (hasDocumentSignals) {
             return false;
@@ -193,9 +216,45 @@ public final class AiToolFallbackPolicy {
 
         return AiToolTextNormalizer.containsAnyForRouting(
                 normalizedQuestion,
-                "cuantos", "cuantas", "cuanto", "cuanta", "total", "conteo", "activos", "inactivos", "vencidos",
-                "pendientes", "completadas", "completados", "por estado", "por propiedad", "por categoria", "por mes",
-                "ultimas conversaciones", "historial", "usuarios", "roles", "modulos", "dashboard", "alertas operativas"
+                "cuantos",
+                "cuantas",
+                "cuanto",
+                "cuanta",
+                "total",
+                "conteo",
+                "activos",
+                "inactivos",
+                "vencidos",
+                "pendientes",
+                "completadas",
+                "completados",
+                "por estado",
+                "por propiedad",
+                "por categoria",
+                "por mes",
+                "ultimas conversaciones",
+                "historial",
+                "usuarios",
+                "roles",
+                "modulos",
+                "dashboard",
+                "alertas operativas",
+                "product box",
+                "productbox",
+                "productboxmodel",
+                "productboxmodels",
+                "product box model",
+                "product box models",
+                "box model",
+                "box models",
+                "modelo product box",
+                "modelos product box",
+                "modelo de caja",
+                "modelos de caja",
+                "modelo 3d",
+                "modelos 3d",
+                "caja 3d",
+                "cajas 3d"
         );
     }
 }

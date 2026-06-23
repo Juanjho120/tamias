@@ -32,17 +32,33 @@ public class AiPlanningService {
         }
 
         if (toolResult != null
-                && (toolResult.status() == AiToolResultStatus.GUARDRAIL || toolResult.status() == AiToolResultStatus.DENIED)) {
+                && (toolResult.status() == AiToolResultStatus.GUARDRAIL
+                || toolResult.status() == AiToolResultStatus.DENIED)) {
             return AiExecutionPlan.toolFirst("Security-sensitive deterministic tool result must be respected before LLM planning.");
         }
 
         String normalized = AiToolTextNormalizer.normalizeForRouting(question);
+
         if (looksExplicitlyToolAndRag(normalized)) {
-            return new AiExecutionPlan(AiPlanDecisionType.TOOL_AND_RAG, "Question explicitly asks for both system records and documents.", 1.0, false);
+            return new AiExecutionPlan(
+                    AiPlanDecisionType.TOOL_AND_RAG,
+                    "Question explicitly asks for both system records and documents.",
+                    1.0,
+                    false
+            );
         }
-        if (looksDocumentCentric(normalized) && toolResult != null && toolResult.status() == AiToolResultStatus.HIT && primaryToolName(toolResult).startsWith("document.")) {
+
+        if (looksDocumentCentric(normalized)
+                && toolResult != null
+                && toolResult.status() == AiToolResultStatus.HIT
+                && primaryToolName(toolResult).startsWith("document.")) {
             return AiExecutionPlan.ragOnly("Question asks for document content; metadata tool hit should not replace RAG.");
         }
+
+        if (looksProductBoxOperational(normalized) && toolResult != null && toolResult.hasAnswer()) {
+            return AiExecutionPlan.toolFirst("Product Box is structured operational data; deterministic Product Box tool result must be respected.");
+        }
+
         if (toolResult != null
                 && toolResult.status() == AiToolResultStatus.HIT
                 && isStructuredToolHitThatShouldBeRespected(toolResult)
@@ -74,6 +90,7 @@ public class AiPlanningService {
             if (decision == null) {
                 return heuristicPlan(question, toolResult, "LLM planner returned an unknown decision.");
             }
+
             double confidence = response.confidence() == null ? 0.0 : clamp(response.confidence());
             return new AiExecutionPlan(decision, safeReason(response.reason()), confidence, true);
         } catch (Exception exception) {
@@ -89,11 +106,20 @@ public class AiPlanningService {
         }
 
         if (looksExplicitlyToolAndRag(normalized)) {
-            return new AiExecutionPlan(AiPlanDecisionType.TOOL_AND_RAG, reason + " Explicit system-and-document question detected.", 1.0, false);
+            return new AiExecutionPlan(
+                    AiPlanDecisionType.TOOL_AND_RAG,
+                    reason + " Explicit system-and-document question detected.",
+                    1.0,
+                    false
+            );
         }
 
         if (looksDocumentCentric(normalized)) {
             return AiExecutionPlan.ragOnly(reason + " Document-centric question detected.");
+        }
+
+        if (looksProductBoxOperational(normalized) && toolResult != null && toolResult.hasAnswer()) {
+            return AiExecutionPlan.toolFirst(reason + " Product Box operational tool result must be respected.");
         }
 
         if (toolResult != null && toolResult.status() == AiToolResultStatus.HIT) {
@@ -108,6 +134,7 @@ public class AiPlanningService {
         if (toolName.isBlank()) {
             return false;
         }
+
         return toolName.startsWith("user.")
                 || toolName.startsWith("role.")
                 || toolName.startsWith("organization.")
@@ -124,6 +151,7 @@ public class AiPlanningService {
                 || toolName.startsWith("purchaseList.")
                 || toolName.startsWith("purchaseItem.")
                 || toolName.startsWith("inventory.")
+                || toolName.startsWith("productBox.")
                 || toolName.startsWith("document.")
                 || toolName.startsWith("rag.")
                 || toolName.startsWith("dashboard.")
@@ -132,7 +160,9 @@ public class AiPlanningService {
     }
 
     private String primaryToolName(AiToolResult toolResult) {
-        return toolResult == null || toolResult.answerOptional().isEmpty() || toolResult.answer().evidence().isEmpty()
+        return toolResult == null
+                || toolResult.answerOptional().isEmpty()
+                || toolResult.answer().evidence().isEmpty()
                 ? ""
                 : String.valueOf(toolResult.answer().evidence().get(0).toolName());
     }
@@ -140,14 +170,14 @@ public class AiPlanningService {
     private String systemPrompt() {
         return """
                 You are the planning layer for TAMIAS, a lodging management assistant.
-
-                Decide which information path should be used. Return ONLY a JSON object with this exact shape:
+                Decide which information path should be used.
+                Return ONLY a JSON object with this exact shape:
                 {"decision":"TOOL_FIRST|RAG_FIRST|TOOL_ONLY|RAG_ONLY|TOOL_AND_RAG|CLARIFY|DENY_WRITE","reason":"short reason","confidence":0.0}
 
                 Definitions:
                 - TOOL_FIRST: structured system data should be tried first; RAG can be used if the tool is empty and fallback is allowed.
                 - RAG_FIRST: document content should be searched first; structured tools can be used only if documents are empty or context needs operational data.
-                - TOOL_ONLY: the question is strictly about structured operational data such as users, roles, counts, dashboards, reservations, tasks, purchases or maintenance records.
+                - TOOL_ONLY: the question is strictly about structured operational data such as users, roles, counts, dashboards, reservations, tasks, purchases, inventory, Product Box models or maintenance records.
                 - RAG_ONLY: the question is about PDF/document content, rules, manuals, plans, policies, instructions, or what a document says.
                 - TOOL_AND_RAG: the final answer likely needs both structured system data and document content.
                 - CLARIFY: the request is too ambiguous to route safely.
@@ -158,7 +188,7 @@ public class AiPlanningService {
                 - Backend owns user_id and organization_id.
                 - Do not invent tool names or SQL.
                 - If the user asks what a PDF/manual/rule/document says, prefer RAG_ONLY or RAG_FIRST.
-                - If the user asks for counts, lists, statuses, dashboards, users or roles, prefer TOOL_ONLY or TOOL_FIRST.
+                - If the user asks for counts, lists, statuses, dashboards, users, roles, inventory, purchases, maintenance records, or Product Box models, prefer TOOL_ONLY or TOOL_FIRST.
                 """;
     }
 
@@ -178,10 +208,12 @@ public class AiPlanningService {
         if (toolResult == null) {
             return "No deterministic tool pre-check result.";
         }
+
         String toolName = toolResult.answerOptional()
                 .flatMap(answer -> answer.evidence().stream().findFirst())
                 .map(evidence -> evidence.toolName() == null ? "" : evidence.toolName())
                 .orElse("");
+
         return "status=" + toolResult.status()
                 + "; tool=" + toolName
                 + "; allowRagFallback=" + toolResult.allowRagFallback();
@@ -191,6 +223,7 @@ public class AiPlanningService {
         if (value == null || value.isBlank()) {
             return null;
         }
+
         String normalized = AiToolTextNormalizer.normalizeForRouting(value);
         String compact = toEnumToken(normalized);
         for (AiPlanDecisionType candidate : AiPlanDecisionType.values()) {
@@ -204,6 +237,7 @@ public class AiPlanningService {
     private String toEnumToken(String value) {
         StringBuilder builder = new StringBuilder(value.length());
         boolean previousUnderscore = false;
+
         for (int i = 0; i < value.length(); i++) {
             char current = value.charAt(i);
             if (current >= 'a' && current <= 'z') {
@@ -220,6 +254,7 @@ public class AiPlanningService {
                 previousUnderscore = true;
             }
         }
+
         int length = builder.length();
         if (length > 0 && builder.charAt(length - 1) == '_') {
             builder.deleteCharAt(length - 1);
@@ -266,34 +301,86 @@ public class AiPlanningService {
                 }
             }
         }
+
         return "";
     }
 
     private boolean looksDocumentCentric(String normalized) {
         return AiToolTextNormalizer.containsAnyForRouting(
                 normalized,
-                "que dice", "qué dice", "que menciona", "qué menciona", "menciona", "habla de", "contenido",
-                "segun el documento", "según el documento", "segun el pdf", "según el pdf", "en el pdf",
-                "en el documento", "texto del documento", "regla del documento", "reglas del documento",
-                "manual dice", "plano dice", "pdf dice", "documento dice", "que reglas hay", "qué reglas hay",
-                "reglas hay", "reglas aplican", "que reglas aplican", "qué reglas aplican", "aplican a", "aplica a"
+                "que dice", "qué dice",
+                "que menciona", "qué menciona",
+                "menciona",
+                "habla de",
+                "contenido",
+                "segun el documento", "según el documento",
+                "segun el pdf", "según el pdf",
+                "en el pdf",
+                "en el documento",
+                "texto del documento",
+                "regla del documento",
+                "reglas del documento",
+                "manual dice",
+                "plano dice",
+                "pdf dice",
+                "documento dice",
+                "que reglas hay", "qué reglas hay",
+                "reglas hay",
+                "reglas aplican",
+                "que reglas aplican", "qué reglas aplican",
+                "aplican a"
         );
     }
 
     private boolean looksExplicitlyToolAndRag(String normalized) {
         return AiToolTextNormalizer.containsAnyForRouting(
                 normalized,
-                "documentos y datos del sistema", "datos del sistema y documentos", "registros y documentos", "documentos y registros",
-                "mis documentos y datos", "mis registros y documentos"
+                "documentos y datos del sistema",
+                "datos del sistema y documentos",
+                "registros y documentos",
+                "documentos y registros",
+                "mis documentos y datos",
+                "mis registros y documentos"
+        );
+    }
+
+    private boolean looksProductBoxOperational(String normalized) {
+        return AiToolTextNormalizer.containsAnyForRouting(
+                normalized,
+                "product box",
+                "productbox",
+                "productboxmodel",
+                "productboxmodels",
+                "product box model",
+                "product box models",
+                "box model",
+                "box models",
+                "modelo product box",
+                "modelos product box",
+                "modelo de caja",
+                "modelos de caja",
+                "modelo 3d",
+                "modelos 3d",
+                "caja 3d",
+                "cajas 3d"
         );
     }
 
     private boolean looksLikeWriteAction(String normalized) {
         return AiToolTextNormalizer.containsAnyForRouting(
                 normalized,
-                "crea", "crear", "agrega", "agregar", "actualiza", "actualizar", "edita", "editar",
-                "elimina", "eliminar", "borra", "borrar", "cambia", "cambiar", "envia", "enviar",
-                "aprueba", "aprobar", "rechaza", "rechazar", "marca como", "completa", "completar"
+                "crea", "crear",
+                "agrega", "agregar",
+                "actualiza", "actualizar",
+                "edita", "editar",
+                "elimina", "eliminar",
+                "borra", "borrar",
+                "cambia", "cambiar",
+                "envia", "enviar",
+                "aprueba", "aprobar",
+                "rechaza", "rechazar",
+                "marca como",
+                "completa", "completar"
         );
     }
 
