@@ -153,7 +153,7 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
                     """
             );
         }
-        sql.append(""" ORDER BY updated_at DESC NULLS LAST, model_name ASC LIMIT :limit """);
+        sql.append(" ORDER BY updated_at DESC NULLS LAST, model_name ASC LIMIT :limit ");
 
         List<Map<String, Object>> rows = query(
                 sql.toString(),
@@ -326,7 +326,7 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
                     """
             );
         }
-        sql.append(""" ORDER BY inventory_item_brand_name ASC NULLS LAST, inventory_item_name ASC, model_name ASC LIMIT :limit """);
+        sql.append(" ORDER BY inventory_item_brand_name ASC NULLS LAST, inventory_item_name ASC, model_name ASC LIMIT :limit ");
 
         List<Map<String, Object>> rows = query(
                 sql.toString(),
@@ -386,7 +386,7 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
                     """
             );
         }
-        sql.append(""" ORDER BY b.name ASC NULLS LAST, ii.name ASC LIMIT :limit """);
+        sql.append(" ORDER BY b.name ASC NULLS LAST, ii.name ASC LIMIT :limit ");
 
         List<Map<String, Object>> rows = query(
                 sql.toString(),
@@ -487,7 +487,7 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
                     """
             );
         }
-        sql.append(""" ORDER BY purchase_item_brand_name ASC NULLS LAST, purchase_item_name ASC NULLS LAST, model_name ASC LIMIT :limit """);
+        sql.append(" ORDER BY purchase_item_brand_name ASC NULLS LAST, purchase_item_name ASC NULLS LAST, model_name ASC LIMIT :limit ");
 
         List<Map<String, Object>> rows = query(
                 sql.toString(),
@@ -566,7 +566,7 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
                     """
             );
         }
-        sql.append(""" ORDER BY ai_enhanced_texture_count DESC, processed_texture_count DESC, original_texture_count DESC, model_name ASC LIMIT :limit """);
+        sql.append(" ORDER BY ai_enhanced_texture_count DESC, processed_texture_count DESC, original_texture_count DESC, model_name ASC LIMIT :limit ");
 
         List<Map<String, Object>> rows = query(
                 sql.toString(),
