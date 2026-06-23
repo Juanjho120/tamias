@@ -66,15 +66,16 @@
               <div class="fw-semibold">{{ displayName() }}</div>
 
               @if (canSwitchOrganizations()) {
+                <label class="visually-hidden" for="organizationSwitcher">
+                  {{ 'organizationSwitcher.label' | translate }}
+                </label>
                 <div class="organization-switcher">
-                  <label class="visually-hidden" for="organizationSwitcher">
-                    {{ 'organizationSwitcher.label' | translate }}
-                  </label>
                   <select
                     id="organizationSwitcher"
                     class="form-select form-select-sm"
                     [value]="selectedOrganizationId()"
-                    [disabled]="loadingOrganizations() || switchingOrganization()"
+                    [disabled]="organizationSwitcherDisabled()"
+                    [attr.aria-label]="'organizationSwitcher.label' | translate"
                     (change)="switchOrganization($event)">
                     @for (organization of organizationOptions(); track organization.id) {
                       <option [value]="organization.id">

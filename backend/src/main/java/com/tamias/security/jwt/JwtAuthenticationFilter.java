@@ -17,14 +17,15 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
     private static final String BEARER_PREFIX = "Bearer ";
 
     private final JwtTokenProvider jwtTokenProvider;
     private final UserDetailsService userDetailsService;
 
     public JwtAuthenticationFilter(
-        JwtTokenProvider jwtTokenProvider,
-        UserDetailsService userDetailsService
+            JwtTokenProvider jwtTokenProvider,
+            UserDetailsService userDetailsService
     ) {
         this.jwtTokenProvider = jwtTokenProvider;
         this.userDetailsService = userDetailsService;
@@ -32,36 +33,42 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(
-        HttpServletRequest request,
-        HttpServletResponse response,
-        FilterChain filterChain
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
     ) throws ServletException, IOException {
         String token = extractToken(request);
 
         if (token != null && jwtTokenProvider.isValid(token) && SecurityContextHolder.getContext().getAuthentication() == null) {
-            authenticateCurrentUserFromDatabase(request, token);
+            authenticateCurrentUserFromToken(request, token);
         }
 
         filterChain.doFilter(request, response);
     }
 
-    private void authenticateCurrentUserFromDatabase(HttpServletRequest request, String token) {
+    private void authenticateCurrentUserFromToken(HttpServletRequest request, String token) {
         try {
             AuthenticatedUser tokenUser = jwtTokenProvider.getAuthenticatedUser(token);
+            AuthenticatedUser databaseUser = (AuthenticatedUser) userDetailsService.loadUserByUsername(tokenUser.email());
 
-            AuthenticatedUser authenticatedUser = (AuthenticatedUser) userDetailsService.loadUserByUsername(tokenUser.email());
-
-            if (!authenticatedUser.id().equals(tokenUser.id())) {
+            if (!databaseUser.id().equals(tokenUser.id())) {
                 SecurityContextHolder.clearContext();
                 return;
             }
 
-            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                authenticatedUser,
-                null,
-                authenticatedUser.getAuthorities()
+            AuthenticatedUser authenticatedUser = new AuthenticatedUser(
+                    databaseUser.id(),
+                    tokenUser.organizationId(),
+                    databaseUser.email(),
+                    databaseUser.passwordHash(),
+                    tokenUser.role()
             );
 
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                    authenticatedUser,
+                    null,
+                    authenticatedUser.getAuthorities()
+            );
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authentication);
         } catch (UsernameNotFoundException ex) {
@@ -71,11 +78,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private String extractToken(HttpServletRequest request) {
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
-
         if (header == null || !header.startsWith(BEARER_PREFIX)) {
             return null;
         }
-
         return header.substring(BEARER_PREFIX.length());
     }
 }

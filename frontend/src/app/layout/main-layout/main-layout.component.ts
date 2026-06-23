@@ -2,9 +2,10 @@ import { NgClass } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
+
+import { LanguageService } from '../../core/i18n/language.service';
 import { ApiError } from '../../core/models/api-error.model';
 import { AuthOrganizationOption } from '../../core/models/auth.models';
-import { LanguageService } from '../../core/i18n/language.service';
 import { AuthService } from '../../core/services/auth.service';
 import { LanguageSwitcherComponent } from '../../shared/language-switcher/language-switcher.component';
 import { ToastContainerComponent } from '../../shared/toast/toast-container.component';
@@ -36,44 +37,44 @@ interface BootstrapOffcanvasApi {
   templateUrl: './main-layout.component.html',
   styles: [
     `
-    .organization-logo,
-    .organization-logo-fallback {
-      width: 34px;
-      height: 34px;
-      min-width: 34px;
-      border-radius: 0.6rem;
-    }
+      .organization-logo,
+      .organization-logo-fallback {
+        width: 34px;
+        height: 34px;
+        min-width: 34px;
+        border-radius: 0.6rem;
+      }
 
-    .organization-logo {
-      object-fit: cover;
-      border: 1px solid rgba(0, 0, 0, 0.08);
-      background: #fff;
-    }
+      .organization-logo {
+        object-fit: cover;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        background: #fff;
+      }
 
-    .organization-logo-fallback {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border: 1px solid rgba(13, 110, 253, 0.18);
-      background: rgba(13, 110, 253, 0.08);
-      color: #0d6efd;
-      font-size: 0.72rem;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-      text-transform: uppercase;
-    }
+      .organization-logo-fallback {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(13, 110, 253, 0.18);
+        background: rgba(13, 110, 253, 0.08);
+        color: #0d6efd;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+      }
 
-    .organization-switcher {
-      min-width: 180px;
-      max-width: 260px;
-    }
+      .organization-switcher {
+        min-width: 180px;
+        max-width: 260px;
+      }
 
-    .organization-switcher .form-select {
-      min-height: 31px;
-      padding-top: 0.2rem;
-      padding-bottom: 0.2rem;
-      font-size: 0.8125rem;
-    }
+      .organization-switcher .form-select {
+        min-height: 31px;
+        padding-top: 0.2rem;
+        padding-bottom: 0.2rem;
+        font-size: 0.8125rem;
+      }
     `
   ]
 })
@@ -88,6 +89,8 @@ export class MainLayoutComponent implements OnInit {
   readonly loadingOrganizations = signal(false);
   readonly switchingOrganization = signal(false);
   readonly selectedOrganizationId = signal<string>('');
+
+  readonly currentOrganizationId = computed(() => this.user()?.organization?.id ?? '');
 
   readonly displayName = computed(() => {
     const user = this.user();
@@ -121,6 +124,7 @@ export class MainLayoutComponent implements OnInit {
   readonly canManageOrganizations = computed(() => this.isSuperAdmin());
   readonly canManageUsers = computed(() => this.isAdministrator() || this.isSuperAdmin());
   readonly canSwitchOrganizations = computed(() => this.organizationOptions().length > 1);
+  readonly organizationSwitcherDisabled = computed(() => this.loadingOrganizations() || this.switchingOrganization());
 
   readonly menuItems = computed(() => {
     const items: MenuItem[] = [
@@ -150,7 +154,7 @@ export class MainLayoutComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.selectedOrganizationId.set(this.user()?.organization?.id ?? '');
+    this.syncSelectedOrganizationFromSession();
     this.loadOrganizationOptions();
   }
 
@@ -160,15 +164,16 @@ export class MainLayoutComponent implements OnInit {
     }
 
     this.loadingOrganizations.set(true);
+
     this.authService.listOrganizations().subscribe({
       next: (organizations) => {
         this.organizationOptions.set(organizations);
-        const currentOrganization = organizations.find((organization) => organization.current);
-        this.selectedOrganizationId.set(currentOrganization?.id ?? this.user()?.organization?.id ?? '');
+        this.syncSelectedOrganizationFromOptions(organizations);
         this.loadingOrganizations.set(false);
       },
       error: (error: unknown) => {
         this.loadingOrganizations.set(false);
+        this.syncSelectedOrganizationFromSession();
         this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('organizationSwitcher.messages.loadError')));
       }
     });
@@ -178,15 +183,17 @@ export class MainLayoutComponent implements OnInit {
     const select = event.target as HTMLSelectElement;
     const organizationId = select.value;
 
-    if (!organizationId || organizationId === this.user()?.organization?.id || this.switchingOrganization()) {
-      this.selectedOrganizationId.set(this.user()?.organization?.id ?? '');
+    if (!organizationId || organizationId === this.currentOrganizationId() || this.switchingOrganization()) {
+      this.syncSelectedOrganizationFromSession();
       return;
     }
 
+    this.selectedOrganizationId.set(organizationId);
     this.switchingOrganization.set(true);
+
     this.authService.switchOrganization(organizationId).subscribe({
       next: () => {
-        this.selectedOrganizationId.set(organizationId);
+        this.syncSelectedOrganizationFromSession();
         this.switchingOrganization.set(false);
         this.toastService.success(this.languageService.instant('organizationSwitcher.messages.switched'));
         this.loadOrganizationOptions();
@@ -194,7 +201,7 @@ export class MainLayoutComponent implements OnInit {
       },
       error: (error: unknown) => {
         this.switchingOrganization.set(false);
-        this.selectedOrganizationId.set(this.user()?.organization?.id ?? '');
+        this.syncSelectedOrganizationFromSession();
         this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('organizationSwitcher.messages.switchError')));
       }
     });
@@ -223,6 +230,18 @@ export class MainLayoutComponent implements OnInit {
 
   logout(): void {
     this.authService.logout();
+  }
+
+  private syncSelectedOrganizationFromSession(): void {
+    this.selectedOrganizationId.set(this.currentOrganizationId());
+  }
+
+  private syncSelectedOrganizationFromOptions(organizations: AuthOrganizationOption[]): void {
+    const sessionOrganizationId = this.currentOrganizationId();
+    const currentOrganization = organizations.find((organization) => organization.id === sessionOrganizationId)
+      ?? organizations.find((organization) => organization.current);
+
+    this.selectedOrganizationId.set(currentOrganization?.id ?? sessionOrganizationId);
   }
 
   private extractErrorMessage(error: unknown, fallback: string): string {
