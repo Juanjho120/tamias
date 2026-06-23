@@ -52,7 +52,8 @@
     "documents": "Documents",
     "aiAssistant": "AI Assistant",
     "users": "Users",
-    "productBoxModels": "3D box models"
+    "productBoxModels": "3D box models",
+    "organizations": "Organizations"
   },
   "login": {
     "title": "Welcome",
@@ -1642,6 +1643,87 @@
       "openCvDisabledMessage": "Product Box OpenCV texture processing is disabled in this environment.",
       "aiTextureDisabledDescription": "AI texture enhancement is disabled or not configured in this environment.",
       "aiTextureDisabledMessage": "Product Box AI texture enhancement is disabled or not configured in this environment."
+    }
+  },
+  "organizations": {
+    "title": "Organizations",
+    "loading": "Loading organizations...",
+    "subtitle": {
+      "superAdmin": "Manage all TAMIAS organizations.",
+      "administrator": "Manage the main information and logo for your current organization."
+    },
+    "permissions": {
+      "title": "Active permissions",
+      "superAdmin": "SUPER_ADMIN: global access to organizations.",
+      "administrator": "ADMINISTRATOR: limited editing for your current organization."
+    },
+    "logo": {
+      "title": "Organization logo",
+      "description": "Logos are stored as private files in S3 and displayed through signed URLs. When replacing or deleting a logo, the previous file is removed from S3."
+    },
+    "actions": {
+      "new": "New organization",
+      "uploadLogo": "Upload logo",
+      "replaceLogo": "Replace logo",
+      "deleteLogo": "Delete logo",
+      "activate": "Activate",
+      "deactivate": "Deactivate"
+    },
+    "table": {
+      "organization": "Organization",
+      "description": "Description",
+      "status": "Status",
+      "logo": "Logo",
+      "updated": "Updated",
+      "actions": "Actions"
+    },
+    "empty": {
+      "title": "No organizations",
+      "description": "Create the first organization to continue.",
+      "noDescription": "No description",
+      "noLogo": "No logo"
+    },
+    "pagination": {
+      "empty": "No organizations",
+      "pageOf": "Page {{page}} of {{totalPages}}"
+    },
+    "status": {
+      "ACTIVE": "Active",
+      "INACTIVE": "Inactive",
+      "DELETED": "Deleted"
+    },
+    "form": {
+      "createTitle": "Create organization",
+      "editTitle": "Edit organization",
+      "subtitle": "Fill in the main organization information.",
+      "name": "Name",
+      "description": "Description",
+      "save": "Save organization"
+    },
+    "validation": {
+      "name": "Name is required and must not exceed 150 characters."
+    },
+    "confirmStatus": {
+      "title": "Update organization status",
+      "activateMessage": "Are you sure you want to activate organization \"{{name}}\"?",
+      "deactivateMessage": "Are you sure you want to deactivate organization \"{{name}}\"?"
+    },
+    "confirmLogoDelete": {
+      "title": "Delete logo",
+      "message": "Delete logo for organization \"{{name}}\"?"
+    },
+    "messages": {
+      "loadError": "Unable to load organizations.",
+      "created": "Organization created successfully.",
+      "updated": "Organization updated successfully.",
+      "saveError": "Unable to save organization.",
+      "activated": "Organization activated successfully.",
+      "deactivated": "Organization deactivated successfully.",
+      "statusError": "Unable to update organization status.",
+      "logoUpdated": "Logo updated successfully.",
+      "logoDeleted": "Logo deleted successfully.",
+      "logoUploadError": "Unable to upload logo.",
+      "logoDeleteError": "Unable to delete logo."
     }
   }
 }

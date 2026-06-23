@@ -1,11 +1,8 @@
 import { NgClass } from '@angular/common';
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import {
-  Organization,
-  OrganizationCreateRequest,
-  OrganizationUpdateRequest
-} from '../../models/organization.model';
+import { TranslatePipe } from '@ngx-translate/core';
+import { Organization, OrganizationCreateRequest, OrganizationUpdateRequest } from '../../models/organization.model';
 
 export type OrganizationFormMode = 'create' | 'edit';
 export type OrganizationFormSubmit = OrganizationCreateRequest | OrganizationUpdateRequest;
@@ -13,7 +10,7 @@ export type OrganizationFormSubmit = OrganizationCreateRequest | OrganizationUpd
 @Component({
   selector: 'app-organization-form-modal',
   standalone: true,
-  imports: [NgClass, ReactiveFormsModule],
+  imports: [NgClass, ReactiveFormsModule, TranslatePipe],
   templateUrl: './organization-form-modal.component.html'
 })
 export class OrganizationFormModalComponent implements OnChanges {

@@ -1,6 +1,8 @@
 import { DatePipe, DecimalPipe, NgClass } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { TranslatePipe } from '@ngx-translate/core';
+import { LanguageService } from '../../../../core/i18n/language.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ApiError } from '../../../../core/models/api-error.model';
 import { PageResponse } from '../../../../core/models/page-response.model';
@@ -22,6 +24,7 @@ import { OrganizationService } from '../../services/organization.service';
     DecimalPipe,
     FormsModule,
     NgClass,
+    TranslatePipe,
     ConfirmModalComponent,
     OrganizationFormModalComponent
   ],
@@ -60,6 +63,7 @@ import { OrganizationService } from '../../services/organization.service';
 export class OrganizationsPageComponent implements OnInit {
   private readonly toastService = inject(ToastService);
   private readonly authService = inject(AuthService);
+  private readonly languageService = inject(LanguageService);
 
   readonly currentUser = this.authService.currentUser;
   readonly isSuperAdmin = computed(() => this.currentUser()?.role === 'SUPER_ADMIN');
@@ -71,10 +75,12 @@ export class OrganizationsPageComponent implements OnInit {
   readonly uploadingLogoId = signal<string | null>(null);
   readonly deletingLogoId = signal<string | null>(null);
   readonly updatingStatusId = signal<string | null>(null);
+
   readonly organizations = signal<Organization[]>([]);
   readonly selectedOrganization = signal<Organization | null>(null);
   readonly formVisible = signal(false);
   readonly formMode = signal<OrganizationFormMode>('edit');
+
   readonly logoToDelete = signal<Organization | null>(null);
   readonly statusToUpdate = signal<{ organization: Organization; status: OrganizationStatus } | null>(null);
 
@@ -87,9 +93,13 @@ export class OrganizationsPageComponent implements OnInit {
 
   readonly pageLabel = computed(() => {
     if (this.totalElements() === 0) {
-      return 'Sin organizaciones';
+      return this.languageService.instant('organizations.pagination.empty');
     }
-    return `Página ${this.page() + 1} de ${this.totalPages()}`;
+
+    return this.languageService.instant('organizations.pagination.pageOf', {
+      page: this.page() + 1,
+      totalPages: this.totalPages()
+    });
   });
 
   readonly statusConfirmMessage = computed(() => {
@@ -97,8 +107,12 @@ export class OrganizationsPageComponent implements OnInit {
     if (!target) {
       return '';
     }
-    const action = target.status === 'ACTIVE' ? 'activar' : 'desactivar';
-    return `¿Seguro que deseas ${action} la organización "${target.organization.name}"?`;
+
+    const key = target.status === 'ACTIVE'
+      ? 'organizations.confirmStatus.activateMessage'
+      : 'organizations.confirmStatus.deactivateMessage';
+
+    return this.languageService.instant(key, { name: target.organization.name });
   });
 
   readonly logoDeleteMessage = computed(() => {
@@ -106,7 +120,8 @@ export class OrganizationsPageComponent implements OnInit {
     if (!organization) {
       return '';
     }
-    return `¿Eliminar el logo de la organización "${organization.name}"?`;
+
+    return this.languageService.instant('organizations.confirmLogoDelete.message', { name: organization.name });
   });
 
   constructor(private readonly organizationService: OrganizationService) { }
@@ -117,11 +132,7 @@ export class OrganizationsPageComponent implements OnInit {
 
   loadOrganizations(): void {
     this.loading.set(true);
-    this.organizationService.findAll({
-      page: this.page(),
-      size: this.size(),
-      sort: 'createdAt,desc'
-    }).subscribe({
+    this.organizationService.findAll({ page: this.page(), size: this.size(), sort: 'createdAt,desc' }).subscribe({
       next: (response: PageResponse<Organization>) => {
         this.organizations.set(response.content);
         this.page.set(response.page);
@@ -134,7 +145,7 @@ export class OrganizationsPageComponent implements OnInit {
       },
       error: (error: unknown) => {
         this.loading.set(false);
-        this.toastService.error(this.extractErrorMessage(error, 'No se pudieron cargar las organizaciones.'));
+        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('organizations.messages.loadError')));
       }
     });
   }
@@ -143,6 +154,7 @@ export class OrganizationsPageComponent implements OnInit {
     if (this.first()) {
       return;
     }
+
     this.page.update((value) => value - 1);
     this.loadOrganizations();
   }
@@ -151,6 +163,7 @@ export class OrganizationsPageComponent implements OnInit {
     if (this.last()) {
       return;
     }
+
     this.page.update((value) => value + 1);
     this.loadOrganizations();
   }
@@ -165,6 +178,7 @@ export class OrganizationsPageComponent implements OnInit {
     if (!this.canCreateOrganizations()) {
       return;
     }
+
     this.formMode.set('create');
     this.selectedOrganization.set(null);
     this.formVisible.set(true);
@@ -180,6 +194,7 @@ export class OrganizationsPageComponent implements OnInit {
     if (this.saving()) {
       return;
     }
+
     this.formVisible.set(false);
     this.selectedOrganization.set(null);
     this.formMode.set('edit');
@@ -187,6 +202,7 @@ export class OrganizationsPageComponent implements OnInit {
 
   saveOrganization(request: OrganizationFormSubmit): void {
     this.saving.set(true);
+
     const selectedOrganization = this.selectedOrganization();
     const saveRequest = this.formMode() === 'edit' && selectedOrganization
       ? this.organizationService.update(selectedOrganization.id, request)
@@ -197,8 +213,8 @@ export class OrganizationsPageComponent implements OnInit {
         this.saving.set(false);
         this.toastService.success(
           this.formMode() === 'edit'
-            ? 'Organización actualizada correctamente.'
-            : 'Organización creada correctamente.'
+            ? this.languageService.instant('organizations.messages.updated')
+            : this.languageService.instant('organizations.messages.created')
         );
         this.syncCurrentOrganization(organization);
         this.closeForm();
@@ -206,7 +222,7 @@ export class OrganizationsPageComponent implements OnInit {
       },
       error: (error: unknown) => {
         this.saving.set(false);
-        this.toastService.error(this.extractErrorMessage(error, 'No se pudo guardar la organización.'));
+        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('organizations.messages.saveError')));
       }
     });
   }
@@ -223,6 +239,7 @@ export class OrganizationsPageComponent implements OnInit {
     if (this.updatingStatusId()) {
       return;
     }
+
     this.statusToUpdate.set(null);
   }
 
@@ -239,14 +256,14 @@ export class OrganizationsPageComponent implements OnInit {
         this.statusToUpdate.set(null);
         this.toastService.success(
           target.status === 'ACTIVE'
-            ? 'Organización activada correctamente.'
-            : 'Organización desactivada correctamente.'
+            ? this.languageService.instant('organizations.messages.activated')
+            : this.languageService.instant('organizations.messages.deactivated')
         );
         this.loadOrganizations();
       },
       error: (error: unknown) => {
         this.updatingStatusId.set(null);
-        this.toastService.error(this.extractErrorMessage(error, 'No se pudo actualizar el estado de la organización.'));
+        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('organizations.messages.statusError')));
       }
     });
   }
@@ -255,6 +272,7 @@ export class OrganizationsPageComponent implements OnInit {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     input.value = '';
+
     if (!file) {
       return;
     }
@@ -263,13 +281,13 @@ export class OrganizationsPageComponent implements OnInit {
     this.organizationService.uploadLogo(organization.id, file).subscribe({
       next: (updatedOrganization: Organization) => {
         this.uploadingLogoId.set(null);
-        this.toastService.success('Logo actualizado correctamente.');
+        this.toastService.success(this.languageService.instant('organizations.messages.logoUpdated'));
         this.syncCurrentOrganization(updatedOrganization);
         this.loadOrganizations();
       },
       error: (error: unknown) => {
         this.uploadingLogoId.set(null);
-        this.toastService.error(this.extractErrorMessage(error, 'No se pudo subir el logo.'));
+        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('organizations.messages.logoUploadError')));
       }
     });
   }
@@ -282,6 +300,7 @@ export class OrganizationsPageComponent implements OnInit {
     if (this.deletingLogoId()) {
       return;
     }
+
     this.logoToDelete.set(null);
   }
 
@@ -296,13 +315,13 @@ export class OrganizationsPageComponent implements OnInit {
       next: (updatedOrganization: Organization) => {
         this.deletingLogoId.set(null);
         this.logoToDelete.set(null);
-        this.toastService.success('Logo eliminado correctamente.');
+        this.toastService.success(this.languageService.instant('organizations.messages.logoDeleted'));
         this.syncCurrentOrganization(updatedOrganization);
         this.loadOrganizations();
       },
       error: (error: unknown) => {
         this.deletingLogoId.set(null);
-        this.toastService.error(this.extractErrorMessage(error, 'No se pudo eliminar el logo.'));
+        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('organizations.messages.logoDeleteError')));
       }
     });
   }
@@ -315,6 +334,7 @@ export class OrganizationsPageComponent implements OnInit {
       .slice(0, 2)
       .map((word) => word.charAt(0).toUpperCase())
       .join('');
+
     return initials || 'ORG';
   }
 

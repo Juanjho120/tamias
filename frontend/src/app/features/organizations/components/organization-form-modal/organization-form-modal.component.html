@@ -1,74 +1,63 @@
 @if (open) {
-  <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-      <div class="modal-content border-0 shadow-lg">
-        <div class="modal-header">
-          <div>
-            <h5 class="modal-title mb-1">
-              {{ mode === 'create' ? 'Crear organización' : 'Editar organización' }}
-            </h5>
-            <p class="text-body-secondary small mb-0">
-              Completa la información principal de la organización.
-            </p>
-          </div>
-          <button
-            type="button"
-            class="btn-close"
-            aria-label="Cerrar"
-            [disabled]="loading"
-            (click)="cancel.emit()">
-          </button>
-        </div>
-
+  <div class="modal-backdrop fade show"></div>
+  <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
         <form [formGroup]="form" (ngSubmit)="submit()">
-          <div class="modal-body">
-            <div class="row g-3">
-              <div class="col-12">
-                <label class="form-label" for="organizationName">Nombre</label>
-                <input
-                  id="organizationName"
-                  type="text"
-                  class="form-control"
-                  formControlName="name"
-                  [ngClass]="{ 'is-invalid': isInvalid('name') }"
-                  maxlength="150">
-                @if (isInvalid('name')) {
-                  <div class="invalid-feedback">
-                    El nombre es obligatorio y no debe exceder 150 caracteres.
-                  </div>
-                }
-              </div>
+          <div class="modal-header">
+            <div>
+              <h5 class="modal-title">
+                {{ (mode === 'create' ? 'organizations.form.createTitle' : 'organizations.form.editTitle') | translate }}
+              </h5>
+              <p class="text-body-secondary mb-0 small">
+                {{ 'organizations.form.subtitle' | translate }}
+              </p>
+            </div>
+            <button type="button" class="btn-close" [disabled]="loading" (click)="cancel.emit()" [attr.aria-label]="'common.close' | translate"></button>
+          </div>
 
-              <div class="col-12">
-                <label class="form-label" for="organizationDescription">Descripción</label>
-                <textarea
-                  id="organizationDescription"
-                  class="form-control"
-                  rows="3"
-                  formControlName="description">
-                </textarea>
-              </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label" for="organization-name">{{ 'organizations.form.name' | translate }}</label>
+              <input
+                id="organization-name"
+                type="text"
+                class="form-control"
+                formControlName="name"
+                [class.is-invalid]="isInvalid('name')"
+                maxlength="150"
+              />
+              @if (isInvalid('name')) {
+                <div class="invalid-feedback">
+                  {{ 'organizations.validation.name' | translate }}
+                </div>
+              }
+            </div>
+
+            <div>
+              <label class="form-label" for="organization-description">{{ 'organizations.form.description' | translate }}</label>
+              <textarea
+                id="organization-description"
+                class="form-control"
+                formControlName="description"
+                rows="3"
+              ></textarea>
             </div>
           </div>
 
           <div class="modal-footer">
-            <button
-              type="button"
-              class="btn btn-outline-secondary"
-              [disabled]="loading"
-              (click)="cancel.emit()">
-              Cancelar
+            <button type="button" class="btn btn-outline-secondary" [disabled]="loading" (click)="cancel.emit()">
+              {{ 'common.cancel' | translate }}
             </button>
-            <button type="submit" class="btn btn-primary" [disabled]="loading">
+            <button type="submit" class="btn btn-primary" [disabled]="loading || form.invalid">
               @if (loading) {
-                <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+                <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
               }
-              Guardar organización
+              {{ 'organizations.form.save' | translate }}
             </button>
           </div>
         </form>
       </div>
     </div>
   </div>
-  <div class="modal-backdrop fade show"></div>
 }

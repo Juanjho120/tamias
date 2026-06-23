@@ -18,6 +18,16 @@ public record AuthenticatedUser(
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
+        if (role == RoleCode.SUPER_ADMIN) {
+            return List.of(
+                    new SimpleGrantedAuthority("ROLE_SUPER_ADMIN"),
+                    new SimpleGrantedAuthority("ROLE_ADMINISTRATOR"),
+                    new SimpleGrantedAuthority("ROLE_PROPERTY_MANAGER"),
+                    new SimpleGrantedAuthority("ROLE_MAINTENANCE_STAFF"),
+                    new SimpleGrantedAuthority("ROLE_READ_ONLY")
+            );
+        }
+
         return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
     }
 

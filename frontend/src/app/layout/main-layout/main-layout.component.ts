@@ -71,6 +71,7 @@ export class MainLayoutComponent {
     if (!user) {
       return 'User';
     }
+
     return `${user.firstName} ${user.lastName}`;
   });
 
@@ -94,7 +95,8 @@ export class MainLayoutComponent {
 
   readonly isAdministrator = computed(() => this.user()?.role === 'ADMINISTRATOR');
   readonly isSuperAdmin = computed(() => this.user()?.role === 'SUPER_ADMIN');
-  readonly canManageOrganizations = computed(() => this.isAdministrator() || this.isSuperAdmin());
+
+  readonly canManageOrganizations = computed(() => this.isSuperAdmin());
   readonly canManageUsers = computed(() => this.isAdministrator() || this.isSuperAdmin());
 
   readonly menuItems = computed(() => {
@@ -114,7 +116,7 @@ export class MainLayoutComponent {
     ];
 
     if (this.canManageOrganizations()) {
-      items.push({ labelKey: 'Organizaciones', icon: 'bi-buildings', route: '/organizations' });
+      items.push({ labelKey: 'navigation.organizations', icon: 'bi-buildings', route: '/organizations' });
     }
 
     if (this.canManageUsers()) {
@@ -130,10 +132,9 @@ export class MainLayoutComponent {
       return;
     }
 
-    const windowWithBootstrap = window as Window & {
-      bootstrap?: { Offcanvas?: BootstrapOffcanvasApi };
-    };
+    const windowWithBootstrap = window as Window & { bootstrap?: { Offcanvas?: BootstrapOffcanvasApi } };
     const offcanvasApi = windowWithBootstrap.bootstrap?.Offcanvas;
+
     if (!offcanvasApi) {
       sidebarElement.classList.remove('show');
       document.querySelectorAll('.offcanvas-backdrop').forEach((backdrop) => backdrop.remove());
@@ -142,8 +143,7 @@ export class MainLayoutComponent {
       return;
     }
 
-    const instance = offcanvasApi.getInstance(sidebarElement)
-      ?? offcanvasApi.getOrCreateInstance(sidebarElement);
+    const instance = offcanvasApi.getInstance(sidebarElement) ?? offcanvasApi.getOrCreateInstance(sidebarElement);
     instance.hide();
   }
 
