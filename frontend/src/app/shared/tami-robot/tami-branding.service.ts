@@ -548,10 +548,8 @@ export class TamiBrandingService {
       return;
     }
 
-    this.removeMisplacedSessionRobots();
-
-    const sessionTitle = Array.from(this.document.querySelectorAll<HTMLElement>('h2'))
-      .find((heading) => this.isActiveSessionHeading(heading));
+    const sessionTitle = this.findActiveSessionTitleHeading();
+    this.removeMisplacedSessionRobots(sessionTitle);
 
     if (!sessionTitle) {
       return;
@@ -568,11 +566,16 @@ export class TamiBrandingService {
     sessionTitle.append(this.createRobotElement('tami-robot-shell--md tami-robot-session-title', false));
   }
 
-  private removeMisplacedSessionRobots(): void {
+  private findActiveSessionTitleHeading(): HTMLElement | undefined {
+    return Array.from(this.document.querySelectorAll<HTMLElement>('h2'))
+      .find((heading) => this.isActiveSessionHeading(heading));
+  }
+
+  private removeMisplacedSessionRobots(activeSessionTitle?: HTMLElement): void {
     const headings = Array.from(this.document.querySelectorAll<HTMLElement>('h2.tami-session-title-enhanced'));
 
     headings
-      .filter((heading) => !this.isActiveSessionHeading(heading))
+      .filter((heading) => heading !== activeSessionTitle)
       .forEach((heading) => {
         heading.querySelector('.tami-robot-session-title')?.remove();
         heading.classList.remove('tami-session-title-enhanced');
@@ -582,24 +585,19 @@ export class TamiBrandingService {
   private isActiveSessionHeading(heading: HTMLElement): boolean {
     const text = this.normalizeText(heading.textContent);
 
-    if (!text || this.isSessionsListHeadingText(text) || heading.closest('.list-group')) {
+    if (!text || this.isSessionsListHeadingText(text)) {
       return false;
     }
 
-    const container = heading.parentElement;
-    const containerText = this.normalizeText(container?.textContent ?? '');
+    if (heading.closest('.list-group, .dropdown-menu, .modal')) {
+      return false;
+    }
 
-    return (
-      containerText.includes('chat') ||
-      containerText.includes('search') ||
-      containerText.includes('buscar') ||
-      containerText.includes('top k') ||
-      containerText.includes('threshold') ||
-      containerText.includes('umbral') ||
-      text.includes('new session') ||
-      text.includes('nueva sesion') ||
-      text.includes('sesion nueva')
-    );
+    if (heading.querySelector('.tami-robot-page-title')) {
+      return false;
+    }
+
+    return true;
   }
 
   private isSessionsListHeadingText(text: string): boolean {
