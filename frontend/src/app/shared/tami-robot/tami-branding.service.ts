@@ -365,13 +365,23 @@ export class TamiBrandingService {
     .tami-session-title-enhanced {
       display: inline-flex !important;
       align-items: center;
-      gap: 0.65rem;
-      flex-wrap: wrap;
+      gap: 0.5rem;
+      flex-wrap: nowrap;
       min-width: 0;
+      max-width: 100%;
+      line-height: 1.18;
+      vertical-align: middle;
     }
 
-    .tami-session-title-enhanced .tami-robot-shell {
-      --tami-robot-size: 1.95rem;
+    .tami-session-title-enhanced {
+      overflow-wrap: anywhere;
+    }
+
+    .tami-session-title-enhanced .tami-robot-session-title {
+      --tami-robot-size: 1.62rem;
+      order: -1;
+      flex: 0 0 auto;
+      margin-right: 0.05rem;
     }
 
     body.tami-is-speaking .tami-robot-session-title {
@@ -559,11 +569,11 @@ export class TamiBrandingService {
 
     const existingRobot = sessionTitle.querySelector<HTMLElement>('.tami-robot-session-title');
     if (existingRobot) {
-      sessionTitle.append(existingRobot);
+      sessionTitle.prepend(existingRobot);
       return;
     }
 
-    sessionTitle.append(this.createRobotElement('tami-robot-shell--md tami-robot-session-title', false));
+    sessionTitle.prepend(this.createRobotElement('tami-robot-shell--md tami-robot-session-title', false));
   }
 
   private findActiveSessionTitleHeading(): HTMLElement | undefined {

@@ -36,6 +36,85 @@ interface BootstrapOffcanvasApi {
   templateUrl: './main-layout.component.html',
   styles: [
     `
+
+      :host {
+        display: block;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      .app-shell {
+        min-width: 0;
+        overflow-x: hidden;
+      }
+
+      .sidebar {
+        flex: 0 0 var(--tamias-sidebar-width);
+        width: var(--tamias-sidebar-width);
+        min-width: var(--tamias-sidebar-width);
+        max-width: var(--tamias-sidebar-width);
+        overflow-x: hidden;
+      }
+
+      .main-content {
+        flex: 1 1 auto;
+        min-width: 0;
+        max-width: calc(100vw - var(--tamias-sidebar-width));
+        overflow-x: hidden;
+      }
+
+      main {
+        min-width: 0;
+        overflow-x: hidden;
+      }
+
+      :host ::ng-deep .page-card,
+      :host ::ng-deep .card,
+      :host ::ng-deep .table-responsive {
+        min-width: 0;
+        max-width: 100%;
+      }
+
+      :host ::ng-deep .table-responsive {
+        overflow-x: auto;
+      }
+
+      :host ::ng-deep .ai-chat-card {
+        min-height: calc(100vh - 14.5rem);
+      }
+
+      :host ::ng-deep .ai-session-list {
+        max-height: calc(100vh - 25rem);
+      }
+
+      :host ::ng-deep .ai-messages {
+        height: calc(100vh - 28rem);
+        min-height: 320px;
+      }
+
+      :host ::ng-deep .ai-message-bubble,
+      :host ::ng-deep .ai-message-content,
+      :host ::ng-deep .ai-source-content {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+
+      @media (max-width: 991.98px) {
+        .main-content {
+          max-width: 100vw;
+        }
+
+        :host ::ng-deep .ai-chat-card {
+          min-height: auto;
+        }
+
+        :host ::ng-deep .ai-session-list,
+        :host ::ng-deep .ai-messages {
+          max-height: none;
+          height: auto;
+        }
+      }
+
       .organization-logo,
       .organization-logo-fallback {
         width: 34px;
