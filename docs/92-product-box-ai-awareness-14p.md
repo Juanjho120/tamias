@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented.
+Implemented and refined.
 
 ## Goal
 
@@ -14,7 +14,7 @@ This phase keeps the assistant read-only. It does not create, edit, delete, uplo
 
 ### Backend
 
-New AI tool classes were added under the existing AI tool architecture:
+AI tool classes were added under the existing AI tool architecture:
 
 ```text
 backend/src/main/java/com/tamias/ai/tool/handler/ProductBoxToolHandler.java
@@ -43,7 +43,7 @@ The current Product Box schema already contains the fields needed for AI awarene
 
 ## Supported questions
 
-TAMI can now answer Product Box questions such as:
+TAMI can answer Product Box questions such as:
 
 ```text
 Qué productos tienen modelo 3D?
@@ -52,7 +52,7 @@ Qué items de inventario no tienen Product Box?
 Qué modelos de caja están incompletos?
 Qué caras le faltan a los modelos Product Box?
 Qué modelos tienen textura original, procesada o AI-enhanced?
-Qué modelos están asociados a compras?
+Qué modelos Product Box están asociados a compras?
 Dame un resumen de Product Box Models.
 ```
 
@@ -86,6 +86,8 @@ Returns aggregate Product Box counts:
 - processed texture faces
 - AI-enhanced texture faces
 
+The summary prompt must route to `productBox.summary`, not to RAG.
+
 ### Incomplete models
 
 A Product Box Model is considered complete when it has texture data for all six expected faces:
@@ -112,9 +114,29 @@ ai_enhanced_s3_key
 
 TAMI can list Product Box Models linked to inventory items and can also list active inventory items that do not yet have a Product Box Model.
 
+Inventory link questions intentionally use a concise answer format:
+
+```text
+Los modelos Product Box están asociados a los siguientes items de inventario:
+
+- <Product Box Model> | inventario: <Inventory Item>
+```
+
+Texture counts, face counts and AI statuses are not included in this answer because they belong to texture/status questions.
+
 ### Purchase awareness
 
 TAMI can list Product Box Models linked to purchase items using `purchase_items.item_name_snapshot` for the purchase item label.
+
+Purchase link questions intentionally use a concise answer format:
+
+```text
+Los modelos Product Box están asociados a los siguientes items de compra:
+
+- <Product Box Model> | compra: <Purchase Item> | inventario: <Inventory Item, when available>
+```
+
+Generic wording such as `están asociados a compras` must not be treated as a search term. It should list all Product Box Models with `product_box_models.purchase_item_id` populated for the current organization.
 
 ### Texture awareness
 
@@ -140,7 +162,10 @@ Crea un Product Box para el café.
 
 Expected behavior:
 
-- The first six prompts return grounded read-only answers.
+- `Dame un resumen de Product Box Models.` returns a grounded answer with `productBox.summary` evidence.
+- `Qué items de inventario tienen Product Box?` returns a concise inventory-link answer with `productBox.inventoryLinks` evidence.
+- `Qué modelos Product Box están asociados a compras?` returns Product Box Models with populated `purchase_item_id` and `productBox.purchaseLinks` evidence.
+- Texture/status prompts still return detailed texture metrics.
 - The creation prompt returns the read-only guard response.
 
 ## Verification checklist
@@ -149,5 +174,6 @@ Expected behavior:
 - Existing AI tools still route normally.
 - Product Box questions are handled before generic inventory/purchase handlers.
 - Questions involving `inventario` or `compras` plus Product Box route to `ProductBoxToolHandler`.
+- Generic relation words such as `asociado`, `asociados`, `vinculado`, `relacionado` are not treated as search terms.
 - No Product Box write operation is executed from the assistant.
 - No Flyway migration is needed.

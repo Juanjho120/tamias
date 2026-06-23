@@ -3,15 +3,12 @@ package com.tamias.ai.tool.repository;
 import com.tamias.ai.tool.AiToolAnswer;
 import com.tamias.ai.tool.support.AiReadOnlyToolSupport;
 import com.tamias.security.service.CurrentUserService;
-
 import jakarta.persistence.EntityManager;
-
 import java.text.Normalizer;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
-
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -26,18 +23,20 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
     public AiToolAnswer productBoxSummary() {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
 
-        List<Map<String, Object>> rows = query("""
+        List<Map<String, Object>> rows = query(
+                """
                 WITH model_stats AS (
-                    SELECT pbm.id,
-                           pbm.inventory_item_id,
-                           pbm.purchase_item_id,
-                           COUNT(DISTINCT CASE
-                               WHEN COALESCE(f.s3_key, f.original_s3_key, f.processed_s3_key, f.ai_enhanced_s3_key) IS NOT NULL
-                               THEN f.face_name
-                           END) AS active_face_count,
-                           COUNT(DISTINCT CASE WHEN f.original_s3_key IS NOT NULL THEN f.face_name END) AS original_texture_count,
-                           COUNT(DISTINCT CASE WHEN f.processed_s3_key IS NOT NULL THEN f.face_name END) AS processed_texture_count,
-                           COUNT(DISTINCT CASE WHEN f.ai_enhanced_s3_key IS NOT NULL THEN f.face_name END) AS ai_enhanced_texture_count
+                    SELECT
+                        pbm.id,
+                        pbm.inventory_item_id,
+                        pbm.purchase_item_id,
+                        COUNT(DISTINCT CASE
+                            WHEN COALESCE(f.s3_key, f.original_s3_key, f.processed_s3_key, f.ai_enhanced_s3_key) IS NOT NULL
+                                THEN f.face_name
+                        END) AS active_face_count,
+                        COUNT(DISTINCT CASE WHEN f.original_s3_key IS NOT NULL THEN f.face_name END) AS original_texture_count,
+                        COUNT(DISTINCT CASE WHEN f.processed_s3_key IS NOT NULL THEN f.face_name END) AS processed_texture_count,
+                        COUNT(DISTINCT CASE WHEN f.ai_enhanced_s3_key IS NOT NULL THEN f.face_name END) AS ai_enhanced_texture_count
                     FROM product_box_models pbm
                     LEFT JOIN product_box_model_faces f
                         ON f.product_box_model_id = pbm.id
@@ -46,17 +45,19 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
                       AND pbm.deleted_at IS NULL
                     GROUP BY pbm.id, pbm.inventory_item_id, pbm.purchase_item_id
                 )
-                SELECT COUNT(*) AS total_models,
-                       COALESCE(SUM(CASE WHEN inventory_item_id IS NOT NULL THEN 1 ELSE 0 END), 0) AS inventory_linked_models,
-                       COALESCE(SUM(CASE WHEN purchase_item_id IS NOT NULL THEN 1 ELSE 0 END), 0) AS purchase_linked_models,
-                       COALESCE(SUM(CASE WHEN active_face_count >= 6 THEN 1 ELSE 0 END), 0) AS complete_models,
-                       COALESCE(SUM(CASE WHEN active_face_count < 6 THEN 1 ELSE 0 END), 0) AS incomplete_models,
-                       COALESCE(SUM(active_face_count), 0) AS active_texture_faces,
-                       COALESCE(SUM(original_texture_count), 0) AS original_texture_faces,
-                       COALESCE(SUM(processed_texture_count), 0) AS processed_texture_faces,
-                       COALESCE(SUM(ai_enhanced_texture_count), 0) AS ai_enhanced_texture_faces
+                SELECT
+                    COUNT(*) AS total_models,
+                    COALESCE(SUM(CASE WHEN inventory_item_id IS NOT NULL THEN 1 ELSE 0 END), 0) AS inventory_linked_models,
+                    COALESCE(SUM(CASE WHEN purchase_item_id IS NOT NULL THEN 1 ELSE 0 END), 0) AS purchase_linked_models,
+                    COALESCE(SUM(CASE WHEN active_face_count >= 6 THEN 1 ELSE 0 END), 0) AS complete_models,
+                    COALESCE(SUM(CASE WHEN active_face_count < 6 THEN 1 ELSE 0 END), 0) AS incomplete_models,
+                    COALESCE(SUM(active_face_count), 0) AS active_texture_faces,
+                    COALESCE(SUM(original_texture_count), 0) AS original_texture_faces,
+                    COALESCE(SUM(processed_texture_count), 0) AS processed_texture_faces,
+                    COALESCE(SUM(ai_enhanced_texture_count), 0) AS ai_enhanced_texture_faces
                 FROM model_stats
-                """, q -> q.setParameter("organizationId", organizationId),
+                """,
+                q -> q.setParameter("organizationId", organizationId),
                 "totalModels",
                 "inventoryLinkedModels",
                 "purchaseLinkedModels",
@@ -65,7 +66,8 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
                 "activeTextureFaces",
                 "originalTextureFaces",
                 "processedTextureFaces",
-                "aiEnhancedTextureFaces");
+                "aiEnhancedTextureFaces"
+        );
 
         Map<String, Object> row = rows.isEmpty() ? Map.of() : rows.get(0);
         if (longValue(row.get("totalModels")) == 0) {
@@ -78,65 +80,83 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
             );
         }
 
-        String answer = "Resumen de Product Box Models:" + System.lineSeparator()
-                + "- Modelos registrados: " + value(row.get("totalModels")) + System.lineSeparator()
-                + "- Asociados a inventario: " + value(row.get("inventoryLinkedModels")) + System.lineSeparator()
-                + "- Asociados a compras: " + value(row.get("purchaseLinkedModels")) + System.lineSeparator()
-                + "- Modelos completos: " + value(row.get("completeModels")) + System.lineSeparator()
-                + "- Modelos incompletos: " + value(row.get("incompleteModels")) + System.lineSeparator()
-                + "- Caras con textura activa: " + value(row.get("activeTextureFaces")) + System.lineSeparator()
-                + "- Caras con textura original: " + value(row.get("originalTextureFaces")) + System.lineSeparator()
-                + "- Caras con textura procesada: " + value(row.get("processedTextureFaces")) + System.lineSeparator()
-                + "- Caras con textura AI-enhanced: " + value(row.get("aiEnhancedTextureFaces"));
+        String answer = "Resumen de Product Box Models:"
+                + System.lineSeparator() + "- Modelos registrados: " + value(row.get("totalModels"))
+                + System.lineSeparator() + "- Asociados a inventario: " + value(row.get("inventoryLinkedModels"))
+                + System.lineSeparator() + "- Asociados a compras: " + value(row.get("purchaseLinkedModels"))
+                + System.lineSeparator() + "- Modelos completos: " + value(row.get("completeModels"))
+                + System.lineSeparator() + "- Modelos incompletos: " + value(row.get("incompleteModels"))
+                + System.lineSeparator() + "- Caras con textura activa: " + value(row.get("activeTextureFaces"))
+                + System.lineSeparator() + "- Caras con textura original: " + value(row.get("originalTextureFaces"))
+                + System.lineSeparator() + "- Caras con textura procesada: " + value(row.get("processedTextureFaces"))
+                + System.lineSeparator() + "- Caras con textura AI-enhanced: " + value(row.get("aiEnhancedTextureFaces"));
 
-        return AiToolAnswer.of(answer, "productBox.summary", "Product Box summary", "Product Box aggregate metrics found.", rows);
+        return AiToolAnswer.of(
+                answer,
+                "productBox.summary",
+                "Product Box summary",
+                "Product Box aggregate metrics found.",
+                rows
+        );
     }
 
     public AiToolAnswer productBoxSearch(String userQuestion) {
         String search = extractProductBoxSearchText(userQuestion);
         StringBuilder sql = new StringBuilder(modelStatsSql());
-        sql.append("""
-                SELECT model_id,
-                       model_name,
-                       description,
-                       width,
-                       height,
-                       depth,
-                       unit,
-                       inventory_item_id,
-                       inventory_item_name,
-                       inventory_item_type,
-                       purchase_item_id,
-                       purchase_item_name,
-                       purchase_item_purchased,
-                       active_face_count,
-                       (6 - active_face_count) AS missing_face_count,
-                       original_texture_count,
-                       processed_texture_count,
-                       ai_enhanced_texture_count,
-                       texture_statuses,
-                       ai_statuses,
-                       active_texture_sources
+        sql.append(
+                """
+                SELECT
+                    model_id,
+                    model_name,
+                    description,
+                    width,
+                    height,
+                    depth,
+                    unit,
+                    inventory_item_id,
+                    inventory_item_name,
+                    inventory_item_type,
+                    purchase_item_id,
+                    purchase_item_name,
+                    purchase_item_purchased,
+                    active_face_count,
+                    (6 - active_face_count) AS missing_face_count,
+                    original_texture_count,
+                    processed_texture_count,
+                    ai_enhanced_texture_count,
+                    texture_statuses,
+                    ai_statuses,
+                    active_texture_sources
                 FROM model_stats
                 WHERE 1 = 1
-                """);
+                """
+        );
+
         if (search != null) {
-            sql.append("""
-                    AND translate(LOWER(CONCAT_WS(' ', model_name, description, inventory_item_name, purchase_item_name, CAST(model_id AS TEXT), CAST(purchase_item_id AS TEXT))), 'áéíóúüñ', 'aeiouun') LIKE CONCAT('%', :search, '%')
-                    """);
+            sql.append(
+                    """
+                    AND translate(LOWER(CONCAT_WS(' ', model_name, description, inventory_item_name, purchase_item_name, CAST(model_id AS TEXT), CAST(purchase_item_id AS TEXT))), 'áéíóúüñ', 'aeiouun')
+                        LIKE CONCAT('%', :search, '%')
+                    """
+            );
         }
+
         sql.append("""
                 ORDER BY updated_at DESC NULLS LAST, model_name ASC
                 LIMIT :limit
                 """);
 
-        List<Map<String, Object>> rows = query(sql.toString(), q -> {
-            q.setParameter("organizationId", currentUserService.getCurrentOrganizationId());
-            if (search != null) {
-                q.setParameter("search", search);
-            }
-            q.setParameter("limit", DEFAULT_LIMIT);
-        }, modelAliases());
+        List<Map<String, Object>> rows = query(
+                sql.toString(),
+                q -> {
+                    q.setParameter("organizationId", currentUserService.getCurrentOrganizationId());
+                    if (search != null) {
+                        q.setParameter("search", search);
+                    }
+                    q.setParameter("limit", DEFAULT_LIMIT);
+                },
+                modelAliases()
+        );
 
         String emptyMessage = search == null
                 ? "No encontré modelos Product Box registrados."
@@ -154,29 +174,31 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
     }
 
     public AiToolAnswer productBoxIncompleteModels() {
-        String sql = missingFacesSql() + """
-                SELECT ms.model_id,
-                       ms.model_name,
-                       ms.description,
-                       ms.width,
-                       ms.height,
-                       ms.depth,
-                       ms.unit,
-                       ms.inventory_item_id,
-                       ms.inventory_item_name,
-                       ms.inventory_item_type,
-                       ms.purchase_item_id,
-                       ms.purchase_item_name,
-                       ms.purchase_item_purchased,
-                       ms.active_face_count,
-                       (6 - ms.active_face_count) AS missing_face_count,
-                       COALESCE(mf.missing_faces, '') AS missing_faces,
-                       ms.original_texture_count,
-                       ms.processed_texture_count,
-                       ms.ai_enhanced_texture_count,
-                       ms.texture_statuses,
-                       ms.ai_statuses,
-                       ms.active_texture_sources
+        String sql = missingFacesSql()
+                + """
+                SELECT
+                    ms.model_id,
+                    ms.model_name,
+                    ms.description,
+                    ms.width,
+                    ms.height,
+                    ms.depth,
+                    ms.unit,
+                    ms.inventory_item_id,
+                    ms.inventory_item_name,
+                    ms.inventory_item_type,
+                    ms.purchase_item_id,
+                    ms.purchase_item_name,
+                    ms.purchase_item_purchased,
+                    ms.active_face_count,
+                    (6 - ms.active_face_count) AS missing_face_count,
+                    COALESCE(mf.missing_faces, '') AS missing_faces,
+                    ms.original_texture_count,
+                    ms.processed_texture_count,
+                    ms.ai_enhanced_texture_count,
+                    ms.texture_statuses,
+                    ms.ai_statuses,
+                    ms.active_texture_sources
                 FROM model_stats ms
                 LEFT JOIN missing_faces mf ON mf.model_id = ms.model_id
                 WHERE ms.active_face_count < 6
@@ -184,17 +206,39 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
                 LIMIT :limit
                 """;
 
-        List<Map<String, Object>> rows = query(sql, q -> {
-            q.setParameter("organizationId", currentUserService.getCurrentOrganizationId());
-            q.setParameter("limit", DEFAULT_LIMIT);
-        }, "modelId", "modelName", "description", "width", "height", "depth", "unit",
-                "inventoryItemId", "inventoryItemName", "inventoryItemType", "purchaseItemId", "purchaseItemName",
-                "purchaseItemPurchased", "activeFaceCount", "missingFaceCount", "missingFaces", "originalTextureCount",
-                "processedTextureCount", "aiEnhancedTextureCount", "textureStatuses", "aiStatuses", "activeTextureSources");
+        List<Map<String, Object>> rows = query(
+                sql,
+                q -> {
+                    q.setParameter("organizationId", currentUserService.getCurrentOrganizationId());
+                    q.setParameter("limit", DEFAULT_LIMIT);
+                },
+                "modelId",
+                "modelName",
+                "description",
+                "width",
+                "height",
+                "depth",
+                "unit",
+                "inventoryItemId",
+                "inventoryItemName",
+                "inventoryItemType",
+                "purchaseItemId",
+                "purchaseItemName",
+                "purchaseItemPurchased",
+                "activeFaceCount",
+                "missingFaceCount",
+                "missingFaces",
+                "originalTextureCount",
+                "processedTextureCount",
+                "aiEnhancedTextureCount",
+                "textureStatuses",
+                "aiStatuses",
+                "activeTextureSources"
+        );
 
         if (rows.isEmpty()) {
             return AiToolAnswer.of(
-                    "No encontré modelos Product Box incompletos. Todos los modelos registrados tienen sus 6 caras con textura activa.",
+                    "No encontré modelos Product Box incompletos.\nTodos los modelos registrados tienen sus 6 caras con textura activa.",
                     "productBox.incompleteModels",
                     "Incomplete Product Box models",
                     "No incomplete Product Box models found.",
@@ -220,97 +264,128 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
     public AiToolAnswer productBoxInventoryLinks(String userQuestion) {
         String search = extractProductBoxSearchText(userQuestion);
         StringBuilder sql = new StringBuilder(modelStatsSql());
-        sql.append("""
-                SELECT model_id,
-                       model_name,
-                       description,
-                       width,
-                       height,
-                       depth,
-                       unit,
-                       inventory_item_id,
-                       inventory_item_name,
-                       inventory_item_type,
-                       purchase_item_id,
-                       purchase_item_name,
-                       purchase_item_purchased,
-                       active_face_count,
-                       (6 - active_face_count) AS missing_face_count,
-                       original_texture_count,
-                       processed_texture_count,
-                       ai_enhanced_texture_count,
-                       texture_statuses,
-                       ai_statuses,
-                       active_texture_sources
+        sql.append(
+                """
+                SELECT
+                    model_id,
+                    model_name,
+                    description,
+                    width,
+                    height,
+                    depth,
+                    unit,
+                    inventory_item_id,
+                    inventory_item_name,
+                    inventory_item_type,
+                    purchase_item_id,
+                    purchase_item_name,
+                    purchase_item_purchased,
+                    active_face_count,
+                    (6 - active_face_count) AS missing_face_count,
+                    original_texture_count,
+                    processed_texture_count,
+                    ai_enhanced_texture_count,
+                    texture_statuses,
+                    ai_statuses,
+                    active_texture_sources
                 FROM model_stats
                 WHERE inventory_item_id IS NOT NULL
-                """);
+                """
+        );
+
         if (search != null) {
-            sql.append("""
-                    AND translate(LOWER(CONCAT_WS(' ', model_name, inventory_item_name, inventory_item_type, description)), 'áéíóúüñ', 'aeiouun') LIKE CONCAT('%', :search, '%')
-                    """);
+            sql.append(
+                    """
+                    AND translate(LOWER(CONCAT_WS(' ', model_name, inventory_item_name, inventory_item_type, description)), 'áéíóúüñ', 'aeiouun')
+                        LIKE CONCAT('%', :search, '%')
+                    """
+            );
         }
+
         sql.append("""
                 ORDER BY inventory_item_name ASC, model_name ASC
                 LIMIT :limit
                 """);
 
-        List<Map<String, Object>> rows = query(sql.toString(), q -> {
-            q.setParameter("organizationId", currentUserService.getCurrentOrganizationId());
-            if (search != null) {
-                q.setParameter("search", search);
-            }
-            q.setParameter("limit", DEFAULT_LIMIT);
-        }, modelAliases());
+        List<Map<String, Object>> rows = query(
+                sql.toString(),
+                q -> {
+                    q.setParameter("organizationId", currentUserService.getCurrentOrganizationId());
+                    if (search != null) {
+                        q.setParameter("search", search);
+                    }
+                    q.setParameter("limit", DEFAULT_LIMIT);
+                },
+                modelAliases()
+        );
 
-        return productBoxRowsAnswer(
+        return productBoxInventoryRowsAnswer(
                 rows,
                 "productBox.inventoryLinks",
                 "Product Box inventory links",
-                "Estos modelos Product Box están asociados a items de inventario:",
+                "Los modelos Product Box están asociados a los siguientes items de inventario:",
                 "No encontré modelos Product Box asociados a items de inventario."
         );
     }
 
     public AiToolAnswer inventoryItemsWithoutProductBox(String userQuestion) {
         String search = extractProductBoxSearchText(userQuestion);
-        StringBuilder sql = new StringBuilder("""
-                SELECT ii.id AS inventory_item_id,
-                       ii.name AS inventory_item_name,
-                       COALESCE(ii.description, '') AS description,
-                       ii.item_type,
-                       COALESCE(ii.unit, '') AS unit,
-                       ii.available_for_purchases,
-                       ii.available_for_maintenance,
-                       ii.available_for_reservations
+        StringBuilder sql = new StringBuilder(
+                """
+                SELECT
+                    ii.id AS inventory_item_id,
+                    ii.name AS inventory_item_name,
+                    COALESCE(ii.description, '') AS description,
+                    ii.item_type,
+                    COALESCE(ii.unit, '') AS unit,
+                    ii.available_for_purchases,
+                    ii.available_for_maintenance,
+                    ii.available_for_reservations
                 FROM inventory_items ii
                 WHERE ii.organization_id = :organizationId
                   AND ii.deleted_at IS NULL
                   AND NOT EXISTS (
-                      SELECT 1
-                      FROM product_box_models pbm
-                      WHERE pbm.organization_id = ii.organization_id
-                        AND pbm.inventory_item_id = ii.id
-                        AND pbm.deleted_at IS NULL
+                    SELECT 1
+                    FROM product_box_models pbm
+                    WHERE pbm.organization_id = ii.organization_id
+                      AND pbm.inventory_item_id = ii.id
+                      AND pbm.deleted_at IS NULL
                   )
-                """);
+                """
+        );
+
         if (search != null) {
-            sql.append("""
-                    AND translate(LOWER(CONCAT_WS(' ', ii.name, ii.description, ii.item_type, ii.unit)), 'áéíóúüñ', 'aeiouun') LIKE CONCAT('%', :search, '%')
-                    """);
+            sql.append(
+                    """
+                    AND translate(LOWER(CONCAT_WS(' ', ii.name, ii.description, ii.item_type, ii.unit)), 'áéíóúüñ', 'aeiouun')
+                        LIKE CONCAT('%', :search, '%')
+                    """
+            );
         }
+
         sql.append("""
                 ORDER BY ii.name ASC
                 LIMIT :limit
                 """);
 
-        List<Map<String, Object>> rows = query(sql.toString(), q -> {
-            q.setParameter("organizationId", currentUserService.getCurrentOrganizationId());
-            if (search != null) {
-                q.setParameter("search", search);
-            }
-            q.setParameter("limit", DEFAULT_LIMIT);
-        }, "inventoryItemId", "inventoryItemName", "description", "itemType", "unit", "availableForPurchases", "availableForMaintenance", "availableForReservations");
+        List<Map<String, Object>> rows = query(
+                sql.toString(),
+                q -> {
+                    q.setParameter("organizationId", currentUserService.getCurrentOrganizationId());
+                    if (search != null) {
+                        q.setParameter("search", search);
+                    }
+                    q.setParameter("limit", DEFAULT_LIMIT);
+                },
+                "inventoryItemId",
+                "inventoryItemName",
+                "description",
+                "itemType",
+                "unit",
+                "availableForPurchases",
+                "availableForMaintenance",
+                "availableForReservations"
+        );
 
         if (rows.isEmpty()) {
             return AiToolAnswer.of(
@@ -342,54 +417,66 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
     public AiToolAnswer productBoxPurchaseLinks(String userQuestion) {
         String search = extractProductBoxSearchText(userQuestion);
         StringBuilder sql = new StringBuilder(modelStatsSql());
-        sql.append("""
-                SELECT model_id,
-                       model_name,
-                       description,
-                       width,
-                       height,
-                       depth,
-                       unit,
-                       inventory_item_id,
-                       inventory_item_name,
-                       inventory_item_type,
-                       purchase_item_id,
-                       purchase_item_name,
-                       purchase_item_purchased,
-                       active_face_count,
-                       (6 - active_face_count) AS missing_face_count,
-                       original_texture_count,
-                       processed_texture_count,
-                       ai_enhanced_texture_count,
-                       texture_statuses,
-                       ai_statuses,
-                       active_texture_sources
+        sql.append(
+                """
+                SELECT
+                    model_id,
+                    model_name,
+                    description,
+                    width,
+                    height,
+                    depth,
+                    unit,
+                    inventory_item_id,
+                    inventory_item_name,
+                    inventory_item_type,
+                    purchase_item_id,
+                    purchase_item_name,
+                    purchase_item_purchased,
+                    active_face_count,
+                    (6 - active_face_count) AS missing_face_count,
+                    original_texture_count,
+                    processed_texture_count,
+                    ai_enhanced_texture_count,
+                    texture_statuses,
+                    ai_statuses,
+                    active_texture_sources
                 FROM model_stats
                 WHERE purchase_item_id IS NOT NULL
-                """);
+                """
+        );
+
         if (search != null) {
-            sql.append("""
-                    AND translate(LOWER(CONCAT_WS(' ', model_name, purchase_item_name, inventory_item_name, description, CAST(purchase_item_id AS TEXT))), 'áéíóúüñ', 'aeiouun') LIKE CONCAT('%', :search, '%')
-                    """);
+            sql.append(
+                    """
+                    AND translate(LOWER(CONCAT_WS(' ', model_name, purchase_item_name, inventory_item_name, description, CAST(purchase_item_id AS TEXT))), 'áéíóúüñ', 'aeiouun')
+                        LIKE CONCAT('%', :search, '%')
+                    """
+            );
         }
+
         sql.append("""
-                ORDER BY purchase_item_name ASC, model_name ASC
+                ORDER BY purchase_item_name ASC NULLS LAST, model_name ASC
                 LIMIT :limit
                 """);
 
-        List<Map<String, Object>> rows = query(sql.toString(), q -> {
-            q.setParameter("organizationId", currentUserService.getCurrentOrganizationId());
-            if (search != null) {
-                q.setParameter("search", search);
-            }
-            q.setParameter("limit", DEFAULT_LIMIT);
-        }, modelAliases());
+        List<Map<String, Object>> rows = query(
+                sql.toString(),
+                q -> {
+                    q.setParameter("organizationId", currentUserService.getCurrentOrganizationId());
+                    if (search != null) {
+                        q.setParameter("search", search);
+                    }
+                    q.setParameter("limit", DEFAULT_LIMIT);
+                },
+                modelAliases()
+        );
 
-        return productBoxRowsAnswer(
+        return productBoxPurchaseRowsAnswer(
                 rows,
                 "productBox.purchaseLinks",
                 "Product Box purchase links",
-                "Estos modelos Product Box están asociados a items de compra:",
+                "Los modelos Product Box están asociados a los siguientes items de compra:",
                 "No encontré modelos Product Box asociados a items de compra."
         );
     }
@@ -397,51 +484,63 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
     public AiToolAnswer productBoxTextureStatus(String userQuestion) {
         String search = extractProductBoxSearchText(userQuestion);
         StringBuilder sql = new StringBuilder(modelStatsSql());
-        sql.append("""
-                SELECT model_id,
-                       model_name,
-                       description,
-                       width,
-                       height,
-                       depth,
-                       unit,
-                       inventory_item_id,
-                       inventory_item_name,
-                       inventory_item_type,
-                       purchase_item_id,
-                       purchase_item_name,
-                       purchase_item_purchased,
-                       active_face_count,
-                       (6 - active_face_count) AS missing_face_count,
-                       original_texture_count,
-                       processed_texture_count,
-                       ai_enhanced_texture_count,
-                       texture_statuses,
-                       ai_statuses,
-                       active_texture_sources
+        sql.append(
+                """
+                SELECT
+                    model_id,
+                    model_name,
+                    description,
+                    width,
+                    height,
+                    depth,
+                    unit,
+                    inventory_item_id,
+                    inventory_item_name,
+                    inventory_item_type,
+                    purchase_item_id,
+                    purchase_item_name,
+                    purchase_item_purchased,
+                    active_face_count,
+                    (6 - active_face_count) AS missing_face_count,
+                    original_texture_count,
+                    processed_texture_count,
+                    ai_enhanced_texture_count,
+                    texture_statuses,
+                    ai_statuses,
+                    active_texture_sources
                 FROM model_stats
                 WHERE original_texture_count > 0
                    OR processed_texture_count > 0
                    OR ai_enhanced_texture_count > 0
                    OR active_face_count > 0
-                """);
+                """
+        );
+
         if (search != null) {
-            sql.append("""
-                    AND translate(LOWER(CONCAT_WS(' ', model_name, inventory_item_name, purchase_item_name, texture_statuses, ai_statuses, active_texture_sources)), 'áéíóúüñ', 'aeiouun') LIKE CONCAT('%', :search, '%')
-                    """);
+            sql.append(
+                    """
+                    AND translate(LOWER(CONCAT_WS(' ', model_name, inventory_item_name, purchase_item_name, texture_statuses, ai_statuses, active_texture_sources)), 'áéíóúüñ', 'aeiouun')
+                        LIKE CONCAT('%', :search, '%')
+                    """
+            );
         }
+
         sql.append("""
                 ORDER BY ai_enhanced_texture_count DESC, processed_texture_count DESC, original_texture_count DESC, model_name ASC
                 LIMIT :limit
                 """);
 
-        List<Map<String, Object>> rows = query(sql.toString(), q -> {
-            q.setParameter("organizationId", currentUserService.getCurrentOrganizationId());
-            if (search != null) {
-                q.setParameter("search", search);
-            }
-            q.setParameter("limit", DEFAULT_LIMIT);
-        }, modelAliases());
+        List<Map<String, Object>> rows = query(
+                sql.toString(),
+                q -> {
+                    q.setParameter("organizationId", currentUserService.getCurrentOrganizationId());
+                    if (search != null) {
+                        q.setParameter("search", search);
+                    }
+                    q.setParameter("limit", DEFAULT_LIMIT);
+                },
+                modelAliases()
+        );
 
         return productBoxRowsAnswer(
                 rows,
@@ -468,7 +567,63 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
             appendProductBoxRow(answer, row);
         }
 
-        return AiToolAnswer.of(answer.toString(), toolName, label, "%d Product Box rows found.".formatted(rows.size()), rows);
+        return AiToolAnswer.of(
+                answer.toString(),
+                toolName,
+                label,
+                "%d Product Box rows found.".formatted(rows.size()),
+                rows
+        );
+    }
+
+    private AiToolAnswer productBoxInventoryRowsAnswer(
+            List<Map<String, Object>> rows,
+            String toolName,
+            String label,
+            String intro,
+            String emptyMessage
+    ) {
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(emptyMessage, toolName, label, "No Product Box inventory links found.", List.of());
+        }
+
+        StringBuilder answer = new StringBuilder(intro);
+        for (Map<String, Object> row : rows) {
+            appendInventoryLinkRow(answer, row);
+        }
+
+        return AiToolAnswer.of(
+                answer.toString(),
+                toolName,
+                label,
+                "%d Product Box inventory links found.".formatted(rows.size()),
+                rows
+        );
+    }
+
+    private AiToolAnswer productBoxPurchaseRowsAnswer(
+            List<Map<String, Object>> rows,
+            String toolName,
+            String label,
+            String intro,
+            String emptyMessage
+    ) {
+        if (rows.isEmpty()) {
+            return AiToolAnswer.of(emptyMessage, toolName, label, "No Product Box purchase links found.", List.of());
+        }
+
+        StringBuilder answer = new StringBuilder(intro);
+        for (Map<String, Object> row : rows) {
+            appendPurchaseLinkRow(answer, row);
+        }
+
+        return AiToolAnswer.of(
+                answer.toString(),
+                toolName,
+                label,
+                "%d Product Box purchase links found.".formatted(rows.size()),
+                rows
+        );
     }
 
     private void appendProductBoxRow(StringBuilder answer, Map<String, Object> row) {
@@ -506,6 +661,28 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
         }
     }
 
+    private void appendInventoryLinkRow(StringBuilder answer, Map<String, Object> row) {
+        answer.append(System.lineSeparator())
+                .append("- ").append(blankToDash(value(row.get("modelName"))))
+                .append(" | inventario: ").append(blankToDash(value(row.get("inventoryItemName"))));
+    }
+
+    private void appendPurchaseLinkRow(StringBuilder answer, Map<String, Object> row) {
+        String purchaseName = value(row.get("purchaseItemName"));
+        if (purchaseName.isBlank()) {
+            purchaseName = value(row.get("purchaseItemId"));
+        }
+
+        answer.append(System.lineSeparator())
+                .append("- ").append(blankToDash(value(row.get("modelName"))))
+                .append(" | compra: ").append(blankToDash(purchaseName));
+
+        String inventoryName = value(row.get("inventoryItemName"));
+        if (!inventoryName.isBlank()) {
+            answer.append(" | inventario: ").append(inventoryName);
+        }
+    }
+
     private String dimensions(Map<String, Object> row) {
         return blankToDash(value(row.get("width")))
                 + " x "
@@ -519,30 +696,31 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
     private String modelStatsSql() {
         return """
                 WITH model_stats AS (
-                    SELECT pbm.id AS model_id,
-                           pbm.name AS model_name,
-                           COALESCE(pbm.description, '') AS description,
-                           pbm.width,
-                           pbm.height,
-                           pbm.depth,
-                           pbm.unit,
-                           pbm.inventory_item_id,
-                           ii.name AS inventory_item_name,
-                           ii.item_type AS inventory_item_type,
-                           pbm.purchase_item_id,
-                           pi.item_name_snapshot AS purchase_item_name,
-                           pi.purchased AS purchase_item_purchased,
-                           pbm.updated_at,
-                           COUNT(DISTINCT CASE
-                               WHEN COALESCE(f.s3_key, f.original_s3_key, f.processed_s3_key, f.ai_enhanced_s3_key) IS NOT NULL
-                               THEN f.face_name
-                           END) AS active_face_count,
-                           COUNT(DISTINCT CASE WHEN f.original_s3_key IS NOT NULL THEN f.face_name END) AS original_texture_count,
-                           COUNT(DISTINCT CASE WHEN f.processed_s3_key IS NOT NULL THEN f.face_name END) AS processed_texture_count,
-                           COUNT(DISTINCT CASE WHEN f.ai_enhanced_s3_key IS NOT NULL THEN f.face_name END) AS ai_enhanced_texture_count,
-                           COALESCE(STRING_AGG(DISTINCT f.texture_status, ', ' ORDER BY f.texture_status) FILTER (WHERE f.texture_status IS NOT NULL), '') AS texture_statuses,
-                           COALESCE(STRING_AGG(DISTINCT f.ai_enhancement_status, ', ' ORDER BY f.ai_enhancement_status) FILTER (WHERE f.ai_enhancement_status IS NOT NULL), '') AS ai_statuses,
-                           COALESCE(STRING_AGG(DISTINCT f.active_texture_source, ', ' ORDER BY f.active_texture_source) FILTER (WHERE f.active_texture_source IS NOT NULL), '') AS active_texture_sources
+                    SELECT
+                        pbm.id AS model_id,
+                        pbm.name AS model_name,
+                        COALESCE(pbm.description, '') AS description,
+                        pbm.width,
+                        pbm.height,
+                        pbm.depth,
+                        pbm.unit,
+                        pbm.inventory_item_id,
+                        ii.name AS inventory_item_name,
+                        ii.item_type AS inventory_item_type,
+                        pbm.purchase_item_id,
+                        pi.item_name_snapshot AS purchase_item_name,
+                        pi.purchased AS purchase_item_purchased,
+                        pbm.updated_at,
+                        COUNT(DISTINCT CASE
+                            WHEN COALESCE(f.s3_key, f.original_s3_key, f.processed_s3_key, f.ai_enhanced_s3_key) IS NOT NULL
+                                THEN f.face_name
+                        END) AS active_face_count,
+                        COUNT(DISTINCT CASE WHEN f.original_s3_key IS NOT NULL THEN f.face_name END) AS original_texture_count,
+                        COUNT(DISTINCT CASE WHEN f.processed_s3_key IS NOT NULL THEN f.face_name END) AS processed_texture_count,
+                        COUNT(DISTINCT CASE WHEN f.ai_enhanced_s3_key IS NOT NULL THEN f.face_name END) AS ai_enhanced_texture_count,
+                        COALESCE(STRING_AGG(DISTINCT f.texture_status, ', ' ORDER BY f.texture_status) FILTER (WHERE f.texture_status IS NOT NULL), '') AS texture_statuses,
+                        COALESCE(STRING_AGG(DISTINCT f.ai_enhancement_status, ', ' ORDER BY f.ai_enhancement_status) FILTER (WHERE f.ai_enhancement_status IS NOT NULL), '') AS ai_statuses,
+                        COALESCE(STRING_AGG(DISTINCT f.active_texture_source, ', ' ORDER BY f.active_texture_source) FILTER (WHERE f.active_texture_source IS NOT NULL), '') AS active_texture_sources
                     FROM product_box_models pbm
                     LEFT JOIN inventory_items ii
                         ON ii.id = pbm.inventory_item_id
@@ -556,20 +734,21 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
                        AND f.organization_id = pbm.organization_id
                     WHERE pbm.organization_id = :organizationId
                       AND pbm.deleted_at IS NULL
-                    GROUP BY pbm.id,
-                             pbm.name,
-                             pbm.description,
-                             pbm.width,
-                             pbm.height,
-                             pbm.depth,
-                             pbm.unit,
-                             pbm.inventory_item_id,
-                             ii.name,
-                             ii.item_type,
-                             pbm.purchase_item_id,
-                             pi.item_name_snapshot,
-                             pi.purchased,
-                             pbm.updated_at
+                    GROUP BY
+                        pbm.id,
+                        pbm.name,
+                        pbm.description,
+                        pbm.width,
+                        pbm.height,
+                        pbm.depth,
+                        pbm.unit,
+                        pbm.inventory_item_id,
+                        ii.name,
+                        ii.item_type,
+                        pbm.purchase_item_id,
+                        pi.item_name_snapshot,
+                        pi.purchased,
+                        pbm.updated_at
                 )
                 """;
     }
@@ -577,33 +756,40 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
     private String missingFacesSql() {
         return """
                 WITH expected_faces(face_name, display_order) AS (
-                    VALUES ('front', 1), ('back', 2), ('left', 3), ('right', 4), ('top', 5), ('bottom', 6)
+                    VALUES
+                        ('front', 1),
+                        ('back', 2),
+                        ('left', 3),
+                        ('right', 4),
+                        ('top', 5),
+                        ('bottom', 6)
                 ),
                 model_stats AS (
-                    SELECT pbm.id AS model_id,
-                           pbm.name AS model_name,
-                           COALESCE(pbm.description, '') AS description,
-                           pbm.width,
-                           pbm.height,
-                           pbm.depth,
-                           pbm.unit,
-                           pbm.inventory_item_id,
-                           ii.name AS inventory_item_name,
-                           ii.item_type AS inventory_item_type,
-                           pbm.purchase_item_id,
-                           pi.item_name_snapshot AS purchase_item_name,
-                           pi.purchased AS purchase_item_purchased,
-                           pbm.updated_at,
-                           COUNT(DISTINCT CASE
-                               WHEN COALESCE(f.s3_key, f.original_s3_key, f.processed_s3_key, f.ai_enhanced_s3_key) IS NOT NULL
-                               THEN f.face_name
-                           END) AS active_face_count,
-                           COUNT(DISTINCT CASE WHEN f.original_s3_key IS NOT NULL THEN f.face_name END) AS original_texture_count,
-                           COUNT(DISTINCT CASE WHEN f.processed_s3_key IS NOT NULL THEN f.face_name END) AS processed_texture_count,
-                           COUNT(DISTINCT CASE WHEN f.ai_enhanced_s3_key IS NOT NULL THEN f.face_name END) AS ai_enhanced_texture_count,
-                           COALESCE(STRING_AGG(DISTINCT f.texture_status, ', ' ORDER BY f.texture_status) FILTER (WHERE f.texture_status IS NOT NULL), '') AS texture_statuses,
-                           COALESCE(STRING_AGG(DISTINCT f.ai_enhancement_status, ', ' ORDER BY f.ai_enhancement_status) FILTER (WHERE f.ai_enhancement_status IS NOT NULL), '') AS ai_statuses,
-                           COALESCE(STRING_AGG(DISTINCT f.active_texture_source, ', ' ORDER BY f.active_texture_source) FILTER (WHERE f.active_texture_source IS NOT NULL), '') AS active_texture_sources
+                    SELECT
+                        pbm.id AS model_id,
+                        pbm.name AS model_name,
+                        COALESCE(pbm.description, '') AS description,
+                        pbm.width,
+                        pbm.height,
+                        pbm.depth,
+                        pbm.unit,
+                        pbm.inventory_item_id,
+                        ii.name AS inventory_item_name,
+                        ii.item_type AS inventory_item_type,
+                        pbm.purchase_item_id,
+                        pi.item_name_snapshot AS purchase_item_name,
+                        pi.purchased AS purchase_item_purchased,
+                        pbm.updated_at,
+                        COUNT(DISTINCT CASE
+                            WHEN COALESCE(f.s3_key, f.original_s3_key, f.processed_s3_key, f.ai_enhanced_s3_key) IS NOT NULL
+                                THEN f.face_name
+                        END) AS active_face_count,
+                        COUNT(DISTINCT CASE WHEN f.original_s3_key IS NOT NULL THEN f.face_name END) AS original_texture_count,
+                        COUNT(DISTINCT CASE WHEN f.processed_s3_key IS NOT NULL THEN f.face_name END) AS processed_texture_count,
+                        COUNT(DISTINCT CASE WHEN f.ai_enhanced_s3_key IS NOT NULL THEN f.face_name END) AS ai_enhanced_texture_count,
+                        COALESCE(STRING_AGG(DISTINCT f.texture_status, ', ' ORDER BY f.texture_status) FILTER (WHERE f.texture_status IS NOT NULL), '') AS texture_statuses,
+                        COALESCE(STRING_AGG(DISTINCT f.ai_enhancement_status, ', ' ORDER BY f.ai_enhancement_status) FILTER (WHERE f.ai_enhancement_status IS NOT NULL), '') AS ai_statuses,
+                        COALESCE(STRING_AGG(DISTINCT f.active_texture_source, ', ' ORDER BY f.active_texture_source) FILTER (WHERE f.active_texture_source IS NOT NULL), '') AS active_texture_sources
                     FROM product_box_models pbm
                     LEFT JOIN inventory_items ii
                         ON ii.id = pbm.inventory_item_id
@@ -617,24 +803,26 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
                        AND f.organization_id = pbm.organization_id
                     WHERE pbm.organization_id = :organizationId
                       AND pbm.deleted_at IS NULL
-                    GROUP BY pbm.id,
-                             pbm.name,
-                             pbm.description,
-                             pbm.width,
-                             pbm.height,
-                             pbm.depth,
-                             pbm.unit,
-                             pbm.inventory_item_id,
-                             ii.name,
-                             ii.item_type,
-                             pbm.purchase_item_id,
-                             pi.item_name_snapshot,
-                             pi.purchased,
-                             pbm.updated_at
+                    GROUP BY
+                        pbm.id,
+                        pbm.name,
+                        pbm.description,
+                        pbm.width,
+                        pbm.height,
+                        pbm.depth,
+                        pbm.unit,
+                        pbm.inventory_item_id,
+                        ii.name,
+                        ii.item_type,
+                        pbm.purchase_item_id,
+                        pi.item_name_snapshot,
+                        pi.purchased,
+                        pbm.updated_at
                 ),
                 missing_faces AS (
-                    SELECT ms.model_id,
-                           STRING_AGG(ef.face_name, ', ' ORDER BY ef.display_order) AS missing_faces
+                    SELECT
+                        ms.model_id,
+                        STRING_AGG(ef.face_name, ', ' ORDER BY ef.display_order) AS missing_faces
                     FROM model_stats ms
                     CROSS JOIN expected_faces ef
                     LEFT JOIN product_box_model_faces f
@@ -679,8 +867,14 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
         }
 
         String search = normalizeForSearch(userQuestion);
-        search = search.replaceAll("\\b(product|box|productbox|caja|cajas|modelo|modelos|3d|textura|texturas|texture|textures|cara|caras|face|faces|inventario|inventory|item|items|producto|productos|compra|compras|purchase|purchases)\\b", " ");
-        search = search.replaceAll("\\b(que|qué|cual|cuál|cuales|cuáles|tiene|tienen|con|sin|los|las|el|la|un|una|unos|unas|de|del|al|y|o|en|por|para|muestra|mostrar|dame|lista|listar|ver|estado|status|resumen|summary|faltan|faltante|faltantes|incompleto|incompletos|incompleta|incompletas)\\b", " ");
+        search = search.replaceAll(
+                "\\b(product|box|productbox|productboxmodel|productboxmodels|caja|cajas|modelo|modelos|3d|textura|texturas|texture|textures|cara|caras|face|faces|inventario|inventory|item|items|producto|productos|compra|compras|purchase|purchases)\\b",
+                " "
+        );
+        search = search.replaceAll(
+                "\\b(que|cual|cuales|tiene|tienen|con|sin|los|las|el|la|un|una|unos|unas|de|del|al|a|y|o|en|por|para|muestra|mostrar|dame|lista|listar|ver|estado|status|resumen|summary|faltan|faltante|faltantes|incompleto|incompletos|incompleta|incompletas|esta|estan|asociado|asociados|asociada|asociadas|relacionado|relacionados|relacionada|relacionadas|ligado|ligados|ligada|ligadas|vinculado|vinculados|vinculada|vinculadas)\\b",
+                " "
+        );
         search = search.replaceAll("\\s+", " ").trim();
 
         if (search.length() > 120) {
@@ -691,14 +885,13 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
     }
 
     private String normalizeForSearch(String text) {
-        String normalized = Normalizer.normalize(text, Normalizer.Form.NFD)
+        return Normalizer.normalize(text, Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "")
                 .toLowerCase(Locale.ROOT)
                 .replaceAll("[^a-z0-9\\s-]", " ")
                 .replace('-', ' ')
                 .replaceAll("\\s+", " ")
                 .trim();
-        return normalized;
     }
 
     private long longValue(Object value) {

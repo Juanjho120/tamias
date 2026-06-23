@@ -4,9 +4,7 @@ import com.tamias.ai.tool.AiToolAnswer;
 import com.tamias.ai.tool.context.AiToolRequestContext;
 import com.tamias.ai.tool.service.ProductBoxReadOnlyToolService;
 import com.tamias.ai.tool.support.AiToolRoutingSupport;
-
 import java.util.Optional;
-
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
@@ -62,9 +60,14 @@ public class ProductBoxToolHandler extends AiToolRoutingSupport implements AiToo
     }
 
     private boolean isProductBoxQuestion(String normalized) {
-        return hasAnyToken(normalized,
+        return hasAnyToken(
+                normalized,
                 "product box",
                 "productbox",
+                "productboxmodel",
+                "productboxmodels",
+                "product box model",
+                "product box models",
                 "box model",
                 "box models",
                 "3d box",
@@ -77,15 +80,25 @@ public class ProductBoxToolHandler extends AiToolRoutingSupport implements AiToo
                 "modelo product box",
                 "modelos product box",
                 "textura 3d",
-                "texturas 3d")
-                || (hasAnyToken(normalized, "textura", "texturas", "texture", "textures", "cara", "caras", "face", "faces")
+                "texturas 3d"
+        ) || (hasAnyToken(normalized, "textura", "texturas", "texture", "textures", "cara", "caras", "face", "faces")
                 && hasAnyToken(normalized, "caja", "cajas", "modelo", "modelos", "product", "box"))
                 || (hasAnyToken(normalized, "caja", "cajas")
-                && hasAnyToken(normalized, "incompleto", "incompletos", "faltan", "faltante", "faltantes", "necesitan atencion", "necesitan atención"));
+                && hasAnyToken(
+                normalized,
+                "incompleto",
+                "incompletos",
+                "faltan",
+                "faltante",
+                "faltantes",
+                "necesitan atencion",
+                "necesitan atención"
+        ));
     }
 
     private boolean isWriteRequest(String normalized) {
-        return hasAnyToken(normalized,
+        return hasAnyToken(
+                normalized,
                 "crea",
                 "crear",
                 "agrega",
@@ -109,11 +122,13 @@ public class ProductBoxToolHandler extends AiToolRoutingSupport implements AiToo
                 "procesa",
                 "procesar",
                 "genera",
-                "generar");
+                "generar"
+        );
     }
 
     private boolean isIncompleteQuestion(String normalized) {
-        return hasAnyToken(normalized,
+        return hasAnyToken(
+                normalized,
                 "incompleto",
                 "incompletos",
                 "incompleta",
@@ -128,7 +143,8 @@ public class ProductBoxToolHandler extends AiToolRoutingSupport implements AiToo
                 "missing faces",
                 "needs attention",
                 "necesitan atencion",
-                "necesitan atención");
+                "necesitan atención"
+        );
     }
 
     private boolean isInventoryWithoutProductBoxQuestion(String normalized) {
@@ -137,7 +153,8 @@ public class ProductBoxToolHandler extends AiToolRoutingSupport implements AiToo
     }
 
     private boolean isInventoryLinkedQuestion(String normalized) {
-        return hasAnyToken(normalized,
+        return hasAnyToken(
+                normalized,
                 "inventario",
                 "inventory",
                 "inventory item",
@@ -145,11 +162,13 @@ public class ProductBoxToolHandler extends AiToolRoutingSupport implements AiToo
                 "item de inventario",
                 "items de inventario",
                 "producto",
-                "productos");
+                "productos"
+        );
     }
 
     private boolean isPurchaseLinkedQuestion(String normalized) {
-        return hasAnyToken(normalized,
+        return hasAnyToken(
+                normalized,
                 "compra",
                 "compras",
                 "purchase",
@@ -157,11 +176,13 @@ public class ProductBoxToolHandler extends AiToolRoutingSupport implements AiToo
                 "purchase item",
                 "purchase items",
                 "item de compra",
-                "items de compra");
+                "items de compra"
+        );
     }
 
     private boolean isTextureStatusQuestion(String normalized) {
-        return hasAnyToken(normalized,
+        return hasAnyToken(
+                normalized,
                 "textura",
                 "texturas",
                 "texture",
@@ -175,11 +196,13 @@ public class ProductBoxToolHandler extends AiToolRoutingSupport implements AiToo
                 "mejorada",
                 "mejoradas",
                 "enhanced",
-                "ia");
+                "ia"
+        );
     }
 
     private boolean isSummaryQuestion(String normalized) {
-        return hasAnyToken(normalized,
+        return hasAnyToken(
+                normalized,
                 "resumen",
                 "summary",
                 "estado",
@@ -189,7 +212,8 @@ public class ProductBoxToolHandler extends AiToolRoutingSupport implements AiToo
                 "cuantos",
                 "cuántos",
                 "cantidad",
-                "total");
+                "total"
+        );
     }
 
     private boolean hasAnyToken(String normalized, String... tokens) {
