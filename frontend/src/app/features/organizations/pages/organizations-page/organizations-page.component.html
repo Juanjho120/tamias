@@ -1,13 +1,7 @@
-<div class="d-flex flex-column flex-lg-row align-items-lg-start justify-content-between gap-3 mb-4">
+<div class="d-flex align-items-start justify-content-between gap-3 mb-4">
   <div>
     <h1 class="h3 mb-1">{{ 'organizations.title' | translate }}</h1>
-    <p class="text-body-secondary mb-0">
-      @if (isSuperAdmin()) {
-        {{ 'organizations.subtitle.superAdmin' | translate }}
-      } @else {
-        {{ 'organizations.subtitle.administrator' | translate }}
-      }
-    </p>
+    <p class="text-body-secondary mb-0">{{ subtitleKey() | translate }}</p>
   </div>
 
   @if (canCreateOrganizations()) {
@@ -19,49 +13,36 @@
 </div>
 
 <div class="row g-3 mb-4">
-  <div class="col-12 col-xl-6">
-    <div class="card h-100 shadow-sm border-0">
+  <div class="col-12 col-lg-6">
+    <div class="card h-100">
       <div class="card-body">
-        <h2 class="h6 text-uppercase text-body-secondary mb-2">
-          {{ 'organizations.permissions.title' | translate }}
-        </h2>
-        <p class="mb-0">
-          @if (isSuperAdmin()) {
-            {{ 'organizations.permissions.superAdmin' | translate }}
-          } @else {
-            {{ 'organizations.permissions.administrator' | translate }}
-          }
-        </p>
+        <h2 class="h6 mb-2">{{ 'organizations.permissions.title' | translate }}</h2>
+        <p class="text-body-secondary mb-0">{{ permissionKey() | translate }}</p>
       </div>
     </div>
   </div>
 
-  <div class="col-12 col-xl-6">
-    <div class="card h-100 shadow-sm border-0">
+  <div class="col-12 col-lg-6">
+    <div class="card h-100">
       <div class="card-body">
-        <h2 class="h6 text-uppercase text-body-secondary mb-2">
-          {{ 'organizations.logo.title' | translate }}
-        </h2>
-        <p class="mb-0 text-body-secondary">
-          {{ 'organizations.logo.description' | translate }}
-        </p>
+        <h2 class="h6 mb-2">{{ 'organizations.logo.title' | translate }}</h2>
+        <p class="text-body-secondary mb-0">{{ 'organizations.logo.description' | translate }}</p>
       </div>
     </div>
   </div>
 </div>
 
 @if (loading()) {
-  <div class="card shadow-sm border-0">
+  <div class="card">
     <div class="card-body text-center py-5 text-body-secondary">
-      <div class="spinner-border spinner-border-sm me-2" aria-hidden="true"></div>
+      <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
       {{ 'organizations.loading' | translate }}
     </div>
   </div>
 } @else if (organizations().length === 0) {
-  <div class="card shadow-sm border-0">
+  <div class="card">
     <div class="card-body text-center py-5">
-      <i class="bi bi-buildings display-5 text-body-secondary"></i>
-      <h2 class="h5 mt-3">{{ 'organizations.empty.title' | translate }}</h2>
+      <h2 class="h5">{{ 'organizations.empty.title' | translate }}</h2>
       <p class="text-body-secondary">{{ 'organizations.empty.description' | translate }}</p>
       @if (canCreateOrganizations()) {
         <button type="button" class="btn btn-primary" (click)="openCreateForm()">
@@ -72,7 +53,7 @@
     </div>
   </div>
 } @else {
-  <div class="card shadow-sm border-0">
+  <div class="card">
     <div class="table-responsive">
       <table class="table align-middle mb-0">
         <thead>
@@ -91,19 +72,13 @@
               <td>
                 <div class="d-flex align-items-center gap-2">
                   @if (organization.logoUrl) {
-                    <img
-                      [src]="organization.logoUrl"
-                      [alt]="organization.name"
-                      class="organization-logo-preview"
-                    />
+                    <img class="organization-logo-preview" [src]="organization.logoUrl" [alt]="organization.name" />
                   } @else {
-                    <span class="organization-logo-fallback">
-                      {{ organizationInitials(organization) }}
-                    </span>
+                    <span class="organization-logo-fallback">{{ organizationInitials(organization) }}</span>
                   }
                   <div>
                     <div class="fw-semibold">{{ organization.name }}</div>
-                    <small class="text-body-secondary">{{ organization.id }}</small>
+                    <div class="small text-body-secondary">{{ organization.id }}</div>
                   </div>
                 </div>
               </td>
@@ -115,10 +90,10 @@
               </td>
               <td>
                 @if (organization.logoOriginalFilename) {
-                  <div class="small fw-semibold">{{ organization.logoOriginalFilename }}</div>
-                  <small class="text-body-secondary">
+                  <div>{{ organization.logoOriginalFilename }}</div>
+                  <div class="small text-body-secondary">
                     {{ organization.logoSizeBytes ? (organization.logoSizeBytes / 1024 / 1024 | number:'1.1-2') : '0' }} MB
-                  </small>
+                  </div>
                 } @else {
                   <span class="text-body-secondary">{{ 'organizations.empty.noLogo' | translate }}</span>
                 }
@@ -127,34 +102,29 @@
               <td class="text-end">
                 <div class="d-inline-flex flex-wrap justify-content-end gap-2">
                   @if (canEditOrganization(organization)) {
-                    <button type="button" class="btn btn-sm btn-outline-primary" (click)="openEditForm(organization)">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" (click)="openEditForm(organization)">
                       <i class="bi bi-pencil-square me-1"></i>
                       {{ 'common.edit' | translate }}
                     </button>
 
-                    <label class="btn btn-sm btn-outline-secondary mb-0" [class.disabled]="uploadingLogoId() === organization.id">
-                      <input
-                        type="file"
-                        class="d-none"
-                        accept="image/jpeg,image/png,image/webp"
-                        [disabled]="uploadingLogoId() === organization.id"
-                        (change)="uploadLogo(organization, $event)"
-                      />
+                    <input
+                      #logoInput
+                      type="file"
+                      class="d-none"
+                      accept="image/jpeg,image/png,image/webp"
+                      (change)="uploadLogo(organization, $event)"
+                    />
+                    <button type="button" class="btn btn-sm btn-outline-primary" (click)="logoInput.click()" [disabled]="uploadingLogoId() === organization.id">
                       @if (uploadingLogoId() === organization.id) {
                         <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
                       } @else {
                         <i class="bi bi-image me-1"></i>
                       }
-                      {{ organization.logoUrl ? ('organizations.actions.replaceLogo' | translate) : ('organizations.actions.uploadLogo' | translate) }}
-                    </label>
+                      {{ (organization.logoUrl ? 'organizations.actions.replaceLogo' : 'organizations.actions.uploadLogo') | translate }}
+                    </button>
 
                     @if (organization.logoUrl) {
-                      <button
-                        type="button"
-                        class="btn btn-sm btn-outline-danger"
-                        [disabled]="deletingLogoId() === organization.id"
-                        (click)="requestDeleteLogo(organization)"
-                      >
+                      <button type="button" class="btn btn-sm btn-outline-danger" (click)="requestDeleteLogo(organization)" [disabled]="deletingLogoId() === organization.id">
                         @if (deletingLogoId() === organization.id) {
                           <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
                         } @else {
@@ -186,23 +156,26 @@
       </table>
     </div>
 
-    <div class="card-footer d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 bg-body">
-      <label class="d-flex align-items-center gap-2 mb-0 small text-body-secondary">
-        {{ 'common.rowsPerPage' | translate }}
+    <div class="card-footer d-flex flex-wrap align-items-center justify-content-between gap-3">
+      <label class="d-flex align-items-center gap-2 mb-0">
+        <span class="text-body-secondary small">{{ 'common.rowsPerPage' | translate }}</span>
         <select class="form-select form-select-sm w-auto" [ngModel]="size()" (ngModelChange)="changePageSize($event)">
-          <option [value]="5">5</option>
-          <option [value]="10">10</option>
-          <option [value]="20">20</option>
-          <option [value]="50">50</option>
+          <option [ngValue]="5">5</option>
+          <option [ngValue]="10">10</option>
+          <option [ngValue]="20">20</option>
+          <option [ngValue]="50">50</option>
         </select>
       </label>
 
-      <div class="d-flex align-items-center gap-2">
-        <span class="small text-body-secondary">{{ pageLabel() }} · {{ totalElements() }} {{ 'common.total' | translate }}</span>
-        <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="first()" (click)="previousPage()">
+      <div class="text-body-secondary small">
+        {{ pageLabel() }} · {{ totalElements() }} {{ 'common.total' | translate }}
+      </div>
+
+      <div class="btn-group">
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="previousPage()" [disabled]="first()">
           {{ 'common.previous' | translate }}
         </button>
-        <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="last()" (click)="nextPage()">
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="nextPage()" [disabled]="last()">
           {{ 'common.next' | translate }}
         </button>
       </div>
@@ -221,25 +194,25 @@
 />
 
 <app-confirm-modal
-  [open]="!!statusToUpdate()"
+  [open]="statusToUpdate() !== null"
   title="organizations.confirmStatus.title"
   [message]="statusConfirmMessage()"
   confirmText="common.confirm"
   cancelText="common.cancel"
-  [loading]="!!updatingStatusId()"
   confirmButtonClass="btn-warning"
+  [loading]="updatingStatusId() !== null"
   (confirm)="confirmStatusUpdate()"
   (cancel)="cancelStatusUpdate()"
 />
 
 <app-confirm-modal
-  [open]="!!logoToDelete()"
+  [open]="logoToDelete() !== null"
   title="organizations.confirmLogoDelete.title"
   [message]="logoDeleteMessage()"
   confirmText="common.delete"
   cancelText="common.cancel"
-  [loading]="!!deletingLogoId()"
   confirmButtonClass="btn-danger"
+  [loading]="deletingLogoId() !== null"
   (confirm)="confirmDeleteLogo()"
   (cancel)="cancelDeleteLogo()"
 />

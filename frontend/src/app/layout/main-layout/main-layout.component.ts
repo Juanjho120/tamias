@@ -95,7 +95,6 @@ export class MainLayoutComponent {
 
   readonly isAdministrator = computed(() => this.user()?.role === 'ADMINISTRATOR');
   readonly isSuperAdmin = computed(() => this.user()?.role === 'SUPER_ADMIN');
-
   readonly canManageOrganizations = computed(() => this.isSuperAdmin());
   readonly canManageUsers = computed(() => this.isAdministrator() || this.isSuperAdmin());
 

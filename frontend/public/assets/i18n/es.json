@@ -1340,6 +1340,10 @@
     "READ_ONLY": {
       "label": "Solo lectura",
       "description": "Puede consultar información, pero no puede crear, actualizar ni eliminar registros operativos."
+    },
+    "SUPER_ADMIN": {
+      "label": "Super administrador",
+      "description": "Acceso global para administrar todas las organizaciones y operar TAMIAS con permisos elevados."
     }
   },
   "users": {

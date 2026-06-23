@@ -81,6 +81,11 @@ export const routes: Routes = [
         title: 'AI Assistant | TAMIAS'
       },
       {
+        path: 'organizations',
+        loadComponent: () => import('./features/organizations/pages/organizations-page/organizations-page.component').then((m) => m.OrganizationsPageComponent),
+        title: 'Organizations | TAMIAS'
+      },
+      {
         path: 'users',
         loadComponent: () => import('./features/users/pages/users-page/users-page.component').then((m) => m.UsersPageComponent),
         title: 'Users | TAMIAS'

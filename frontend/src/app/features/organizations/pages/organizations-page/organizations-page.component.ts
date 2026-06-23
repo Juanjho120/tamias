@@ -2,8 +2,8 @@ import { DatePipe, DecimalPipe, NgClass } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '@ngx-translate/core';
-import { LanguageService } from '../../../../core/i18n/language.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { LanguageService } from '../../../../core/i18n/language.service';
 import { ApiError } from '../../../../core/models/api-error.model';
 import { PageResponse } from '../../../../core/models/page-response.model';
 import { ConfirmModalComponent } from '../../../../shared/confirm-modal/confirm-modal.component';
@@ -62,8 +62,8 @@ import { OrganizationService } from '../../services/organization.service';
 })
 export class OrganizationsPageComponent implements OnInit {
   private readonly toastService = inject(ToastService);
-  private readonly authService = inject(AuthService);
   private readonly languageService = inject(LanguageService);
+  private readonly authService = inject(AuthService);
 
   readonly currentUser = this.authService.currentUser;
   readonly isSuperAdmin = computed(() => this.currentUser()?.role === 'SUPER_ADMIN');
@@ -75,12 +75,10 @@ export class OrganizationsPageComponent implements OnInit {
   readonly uploadingLogoId = signal<string | null>(null);
   readonly deletingLogoId = signal<string | null>(null);
   readonly updatingStatusId = signal<string | null>(null);
-
   readonly organizations = signal<Organization[]>([]);
   readonly selectedOrganization = signal<Organization | null>(null);
   readonly formVisible = signal(false);
   readonly formMode = signal<OrganizationFormMode>('edit');
-
   readonly logoToDelete = signal<Organization | null>(null);
   readonly statusToUpdate = signal<{ organization: Organization; status: OrganizationStatus } | null>(null);
 
@@ -90,6 +88,14 @@ export class OrganizationsPageComponent implements OnInit {
   readonly totalPages = signal(0);
   readonly first = signal(true);
   readonly last = signal(true);
+
+  readonly subtitleKey = computed(() =>
+    this.isSuperAdmin() ? 'organizations.subtitle.superAdmin' : 'organizations.subtitle.administrator'
+  );
+
+  readonly permissionKey = computed(() =>
+    this.isSuperAdmin() ? 'organizations.permissions.superAdmin' : 'organizations.permissions.administrator'
+  );
 
   readonly pageLabel = computed(() => {
     if (this.totalElements() === 0) {
@@ -202,7 +208,6 @@ export class OrganizationsPageComponent implements OnInit {
 
   saveOrganization(request: OrganizationFormSubmit): void {
     this.saving.set(true);
-
     const selectedOrganization = this.selectedOrganization();
     const saveRequest = this.formMode() === 'edit' && selectedOrganization
       ? this.organizationService.update(selectedOrganization.id, request)

@@ -4,41 +4,27 @@
 
 Implemented / refined.
 
-## Goal
+## Summary
 
-Add an organization administration page while keeping the current multi-tenant security model intact.
+This phase adds an organization administration page and introduces the `SUPER_ADMIN` role.
 
-## Role model
+## Access rules
 
-### SUPER_ADMIN
+- `SUPER_ADMIN` can manage all organizations.
+- `ADMINISTRATOR` can keep operational access, but the Organizations sidebar entry is only shown to `SUPER_ADMIN`.
+- `SUPER_ADMIN` inherits operational authorities so existing endpoints protected with `ROLE_ADMINISTRATOR`, `ROLE_PROPERTY_MANAGER`, `ROLE_MAINTENANCE_STAFF`, or `ROLE_READ_ONLY` continue to work.
 
-- Can list all organizations.
-- Can create organizations.
-- Can edit any organization.
-- Can activate/deactivate organizations.
-- Can upload, replace, or delete any organization logo.
-- Receives inherited backend authorities so existing administrator-only operational pages remain available.
+## Frontend notes
 
-### ADMINISTRATOR
+- Route added: `/organizations`.
+- Sidebar item uses `navigation.organizations`.
+- Organization page and modal use the existing JSON i18n files. No feature-specific translation `.ts` files should be introduced.
+- Add `roles.SUPER_ADMIN.label` and `roles.SUPER_ADMIN.description` to `es.json` and `en.json`.
 
-- Can keep using existing organization-scoped operational pages.
-- Cannot access the global organization administration page from the sidebar.
-- Cannot assign `SUPER_ADMIN` to other users.
-
-## Frontend i18n rule
-
-Organization page labels must use the existing JSON translation files:
-
-- `frontend/public/assets/i18n/es.json`
-- `frontend/public/assets/i18n/en.json`
-
-Do not add feature-local TypeScript translation files for this module.
-
-## Verification checklist
+## Verification
 
 - Login as `SUPER_ADMIN`.
-- Existing pages such as Dashboard, Properties, Catalogs, Maintenance, Purchases, Documents, Product Box Models, TAMI and Users remain accessible.
-- Sidebar shows `Organizations` only for `SUPER_ADMIN`.
-- Login as `ADMINISTRATOR`.
-- Sidebar does not show `Organizations`.
-- Organization page labels are translated through `es.json` / `en.json`.
+- Confirm `/organizations` is reachable.
+- Confirm the sidebar shows Organizations only for `SUPER_ADMIN`.
+- Confirm existing pages do not show forbidden errors for `SUPER_ADMIN`.
+- Confirm `roles.SUPER_ADMIN.label` no longer appears as a raw translation key in the Users page.
