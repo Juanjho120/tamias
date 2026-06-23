@@ -1,6 +1,6 @@
 # TAMIAS — Roadmap
 
-This roadmap reflects the current state after AI tool calling/orchestration, S3/image hard-delete work, inventory brand/image work, AI debug traces, smoke-test hardening and Product Box Models through AI awareness.
+This roadmap reflects the current state after AI tool calling/orchestration, S3/image hard-delete work, inventory brand/image work, AI debug traces, smoke-test hardening, Product Box Models through AI awareness and Phase 15 planning.
 
 ## Completed foundation
 
@@ -77,12 +77,6 @@ Completed sub-phases:
 
 Status: Conditional / optional / not started.
 
-Goals:
-
-- Tune threshold, topK, metadata filters, property-aware retrieval and chunk quality only if PDFs/documents still show retrieval issues.
-- Do not start this phase for structured-tool routing, parameter extraction or formatting problems.
-- Keep 9P-I optional for now.
-
 ## Completed implementation queue after initial MVP
 
 Phases 10A through 13A are completed and documented in their corresponding `.md` files.
@@ -123,18 +117,18 @@ Product Box Models phase is complete for now.
 
 ### Phase 15 — Organization Administration and Global UX Polish
 
-Status: Planned / next.
+Status: In progress through 15B.
 
 Documentation: `93-organization-administration-global-ux-15.md`
 
-Planned subphases:
+Subphases:
 
 ```text
-15A Organization logo backend + current organization header
-15B Organization administration page
-15C Organization switcher / multi-organization navigation
-15D Icon-only action buttons with tooltips
-15E TAMI branding and robot animation
+15A Organization logo backend + current organization header — Completed
+15B Organization administration page — Completed
+15C Organization switcher / multi-organization navigation — Planned
+15D Icon-only action buttons with tooltips — Planned
+15E TAMI branding and robot animation — Planned
 ```
 
 Phase decisions:

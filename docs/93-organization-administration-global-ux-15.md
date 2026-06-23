@@ -2,7 +2,7 @@
 
 ## Status
 
-Planned / next.
+In progress through 15B.
 
 ## Purpose
 
@@ -22,9 +22,13 @@ This phase continues the SaaS foundation already present in TAMIAS and improves 
 - The icon button behavior must come from a reusable base/component, not repeated one-off classes.
 - The AI Assistant navigation label should be `TAMI`.
 - The TAMI robot identity should be reusable in the sidebar, AI Assistant page title and active chat/session title.
-- The robot in the active session title should animate as if speaking while the assistant typewriter response is running.
+- The robot in the active session title should animate as if speaking while the assistant response is being typed.
 
 ## 15A — Organization logo backend + current organization header
+
+### Status
+
+Completed.
 
 ### Goal
 
@@ -32,19 +36,12 @@ Allow each organization to store logo metadata and show the active organization 
 
 ### Backend scope
 
-- Add organization logo metadata columns through Flyway:
-  - `logo_key`
-  - `logo_original_filename`
-  - `logo_content_type`
-  - `logo_size_bytes`
-  - `logo_updated_at`
+- Add organization logo metadata columns through Flyway.
 - Update the `Organization` entity.
 - Update organization response DTOs.
-- Update authentication/session organization response DTOs so the current organization can expose logo metadata and/or a presigned logo URL.
+- Update authentication/session organization response DTOs so the current organization can expose a presigned logo URL.
 - Reuse the existing storage/S3 service and image validation patterns.
-- Add endpoints for the current organization logo:
-  - upload/replace logo
-  - delete logo
+- Add endpoints for current organization logo upload/replacement and deletion.
 - Keep organization logo files private in storage.
 - Use presigned URLs for display.
 - Hard-delete the previous logo object from storage when replacing or deleting it.
@@ -53,16 +50,14 @@ Allow each organization to store logo metadata and show the active organization 
 
 - Update auth/session models for organization logo data.
 - Show the active organization logo next to the active organization name.
-- Use a fallback icon or initials when no logo exists.
+- Use a fallback initials badge when no logo exists.
 - Refresh the current session/user organization data after changing the logo.
 
-### Non-goals
-
-- Do not implement the organization switcher in 15A.
-- Do not build the full organization administration page in 15A.
-- Do not introduce public logo buckets.
-
 ## 15B — Organization administration page
+
+### Status
+
+Completed.
 
 ### Goal
 
@@ -70,13 +65,18 @@ Add a UI to administer organizations with different behavior for `SUPER_ADMIN` a
 
 ### Roles and permissions
 
-- `SUPER_ADMIN`
-  - Can view and administer all organizations.
-  - Can create, update, activate/deactivate and edit organization logo data.
-- Organization `ADMINISTRATOR`
-  - Can edit only the current organization.
-  - Can upload/replace/delete only the current organization logo.
-  - Cannot access or modify other organizations.
+#### SUPER_ADMIN
+
+- Can view and administer all organizations.
+- Can create, update, activate/deactivate and edit organization logo data.
+
+#### Organization ADMINISTRATOR
+
+- Can edit only the current organization.
+- Can upload/replace/delete only the current organization logo.
+- Cannot access or modify other organizations.
+- Cannot create, activate or deactivate organizations.
+- Cannot assign `SUPER_ADMIN` through user management.
 
 ### Backend scope
 
@@ -84,21 +84,28 @@ Add a UI to administer organizations with different behavior for `SUPER_ADMIN` a
 - Add read/write endpoints for platform organization administration only when authorized as `SUPER_ADMIN`.
 - Keep current organization endpoints available for organization `ADMINISTRATOR` users.
 - Validate tenant boundaries consistently.
+- Harden user role assignment so only `SUPER_ADMIN` can assign the `SUPER_ADMIN` role.
 
 ### Frontend scope
 
-- Add an organization administration route/page.
+- Add organization administration route/page at `/organizations`.
 - Show platform-wide organization management only to `SUPER_ADMIN`.
 - Show current-organization editing to organization `ADMINISTRATOR`.
 - Include logo upload/replace/delete controls.
 - Reuse existing modal/snackbar patterns.
+- Do not use native `confirm()`.
 
 ### Non-goals
 
+- Do not implement organization switching in 15B.
 - Do not let normal users edit organizations.
 - Do not allow organization `ADMINISTRATOR` users to view or edit other organizations.
 
 ## 15C — Organization switcher / multi-organization navigation
+
+### Status
+
+Planned.
 
 ### Goal
 
@@ -125,6 +132,10 @@ Allow users who belong to more than one organization to change the active organi
 The active organization must be resolved by the backend from the authenticated context. A frontend-only selected organization id is not sufficient for authorization.
 
 ## 15D — Icon-only action buttons with tooltips
+
+### Status
+
+Planned.
 
 ### Goal
 
@@ -168,12 +179,11 @@ Generate record
 - Support variants consistent with the current Bootstrap UI.
 - Migrate action buttons gradually by module.
 
-### Non-goals
-
-- Do not remove accessibility labels just because the visible text is removed.
-- Do not use native `confirm()` for destructive actions.
-
 ## 15E — TAMI branding and robot animation
+
+### Status
+
+Planned.
 
 ### Goal
 
@@ -195,19 +205,14 @@ Improve TAMI's visual identity and replace the generic `AI Assistant` naming in 
 - Keep the robot reusable through a small shared component.
 - Keep animation state controlled by the AI Assistant component so it can be synchronized with the typewriter lifecycle.
 
-### Non-goals
-
-- Do not generate or upload robot image assets in this phase unless a later design decision requires it.
-- Do not change the AI backend behavior as part of branding.
-
 ## Documentation and roadmap
 
 This phase supersedes the previous future-phase numbering:
 
 ```text
-Old future 15 Reports                  -> New future 16 Reports
-Old future 16 Notifications/reminders  -> New future 17 Notifications and reminders
-Old future 17 Blueprint Analysis       -> New future 18 Blueprint Analysis
+Old future 15 Reports -> New future 16 Reports
+Old future 16 Notifications/reminders -> New future 17 Notifications and reminders
+Old future 17 Blueprint Analysis -> New future 18 Blueprint Analysis
 ```
 
 ## Verification checklist

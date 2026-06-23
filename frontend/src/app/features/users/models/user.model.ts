@@ -1,5 +1,4 @@
-export type RoleCode = 'ADMINISTRATOR' | 'PROPERTY_MANAGER' | 'MAINTENANCE_STAFF' | 'READ_ONLY';
-
+export type RoleCode = 'SUPER_ADMIN' | 'ADMINISTRATOR' | 'PROPERTY_MANAGER' | 'MAINTENANCE_STAFF' | 'READ_ONLY';
 export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'INVITED' | 'LOCKED' | 'DELETED';
 
 export interface UserSummary {
