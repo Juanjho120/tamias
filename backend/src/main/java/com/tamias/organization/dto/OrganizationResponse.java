@@ -9,6 +9,11 @@ public record OrganizationResponse(
         String name,
         String description,
         OrganizationStatus status,
+        String logoUrl,
+        String logoOriginalFilename,
+        String logoContentType,
+        Long logoSizeBytes,
+        OffsetDateTime logoUpdatedAt,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt
 ) {

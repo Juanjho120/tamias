@@ -5,6 +5,8 @@ import com.tamias.auth.dto.AuthUserResponse;
 import com.tamias.auth.dto.LoginRequest;
 import com.tamias.auth.dto.LoginResponse;
 import com.tamias.common.exception.NotFoundException;
+import com.tamias.document.storage.FileStorageService;
+import com.tamias.organization.entity.Organization;
 import com.tamias.security.jwt.JwtTokenProvider;
 import com.tamias.security.model.AuthenticatedUser;
 import com.tamias.user.entity.User;
@@ -27,17 +29,20 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
     private final UserOrganizationRepository userOrganizationRepository;
+    private final FileStorageService fileStorageService;
 
     public AuthService(
             AuthenticationManager authenticationManager,
             JwtTokenProvider jwtTokenProvider,
             UserRepository userRepository,
-            UserOrganizationRepository userOrganizationRepository
+            UserOrganizationRepository userOrganizationRepository,
+            FileStorageService fileStorageService
     ) {
         this.authenticationManager = authenticationManager;
         this.jwtTokenProvider = jwtTokenProvider;
         this.userRepository = userRepository;
         this.userOrganizationRepository = userOrganizationRepository;
+        this.fileStorageService = fileStorageService;
     }
 
     @Transactional
@@ -66,6 +71,7 @@ public class AuthService {
         );
 
         String token = jwtTokenProvider.generateToken(authenticatedUser);
+
         return new LoginResponse(
                 token,
                 "Bearer",
@@ -99,11 +105,25 @@ public class AuthService {
                 user.getLastName(),
                 user.getEmail(),
                 userOrganization.getRole().getCode().name(),
-                new AuthOrganizationResponse(
-                        userOrganization.getOrganization().getId(),
-                        userOrganization.getOrganization().getName()
-                ),
+                toAuthOrganizationResponse(userOrganization.getOrganization()),
                 user.isPasswordChangeRequired()
         );
+    }
+
+    private AuthOrganizationResponse toAuthOrganizationResponse(Organization organization) {
+        return new AuthOrganizationResponse(
+                organization.getId(),
+                organization.getName(),
+                buildLogoUrl(organization)
+        );
+    }
+
+    private String buildLogoUrl(Organization organization) {
+        String logoS3Key = organization.getLogoS3Key();
+        if (logoS3Key == null || logoS3Key.isBlank()) {
+            return null;
+        }
+
+        return fileStorageService.buildFileUrl(logoS3Key);
     }
 }

@@ -27,6 +27,24 @@ public class Organization extends AuditableEntity {
     @Column(nullable = false, length = 30)
     private OrganizationStatus status = OrganizationStatus.ACTIVE;
 
+    @Column(name = "logo_original_filename", length = 255)
+    private String logoOriginalFilename;
+
+    @Column(name = "logo_s3_key", columnDefinition = "TEXT")
+    private String logoS3Key;
+
+    @Column(name = "logo_filepath", length = 300)
+    private String logoFilepath;
+
+    @Column(name = "logo_content_type", length = 100)
+    private String logoContentType;
+
+    @Column(name = "logo_size_bytes")
+    private Long logoSizeBytes;
+
+    @Column(name = "logo_updated_at")
+    private OffsetDateTime logoUpdatedAt;
+
     @Column(name = "deleted_at")
     private OffsetDateTime deletedAt;
 }

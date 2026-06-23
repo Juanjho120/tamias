@@ -20,8 +20,46 @@ interface BootstrapOffcanvasApi {
 @Component({
   selector: 'app-main-layout',
   standalone: true,
-  imports: [NgClass, RouterOutlet, RouterLink, RouterLinkActive, TranslatePipe, LanguageSwitcherComponent, ToastContainerComponent],
-  templateUrl: './main-layout.component.html'
+  imports: [
+    NgClass,
+    RouterOutlet,
+    RouterLink,
+    RouterLinkActive,
+    TranslatePipe,
+    LanguageSwitcherComponent,
+    ToastContainerComponent
+  ],
+  templateUrl: './main-layout.component.html',
+  styles: [
+    `
+      .organization-logo,
+      .organization-logo-fallback {
+        width: 34px;
+        height: 34px;
+        min-width: 34px;
+        border-radius: 0.6rem;
+      }
+
+      .organization-logo {
+        object-fit: cover;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        background: #fff;
+      }
+
+      .organization-logo-fallback {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(13, 110, 253, 0.18);
+        background: rgba(13, 110, 253, 0.08);
+        color: #0d6efd;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+      }
+    `
+  ]
 })
 export class MainLayoutComponent {
   private readonly authService = inject(AuthService);
@@ -35,6 +73,24 @@ export class MainLayoutComponent {
     }
 
     return `${user.firstName} ${user.lastName}`;
+  });
+
+  readonly organizationLogoUrl = computed(() => this.user()?.organization?.logoUrl ?? null);
+
+  readonly organizationInitials = computed(() => {
+    const organizationName = this.user()?.organization?.name?.trim();
+    if (!organizationName) {
+      return 'ORG';
+    }
+
+    const initials = organizationName
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((word) => word.charAt(0).toUpperCase())
+      .join('');
+
+    return initials || 'ORG';
   });
 
   readonly isAdministrator = computed(() => this.user()?.role === 'ADMINISTRATOR');
@@ -70,7 +126,6 @@ export class MainLayoutComponent {
 
     const windowWithBootstrap = window as Window & { bootstrap?: { Offcanvas?: BootstrapOffcanvasApi } };
     const offcanvasApi = windowWithBootstrap.bootstrap?.Offcanvas;
-
     if (!offcanvasApi) {
       sidebarElement.classList.remove('show');
       document.querySelectorAll('.offcanvas-backdrop').forEach((backdrop) => backdrop.remove());

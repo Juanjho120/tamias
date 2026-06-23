@@ -50,9 +50,22 @@
         <div class="ms-auto d-flex align-items-center gap-2 gap-md-3">
           <app-language-switcher />
 
-          <div class="d-none d-md-block text-end">
-            <div class="fw-semibold">{{ displayName() }}</div>
-            <div class="small text-muted">{{ user()?.organization?.name }}</div>
+          <div class="d-none d-md-flex align-items-center gap-2 text-end">
+            @if (organizationLogoUrl()) {
+              <img
+                class="organization-logo"
+                [src]="organizationLogoUrl()!"
+                [alt]="user()?.organization?.name || 'Organization logo'">
+            } @else {
+              <span class="organization-logo-fallback" aria-hidden="true">
+                {{ organizationInitials() }}
+              </span>
+            }
+
+            <div>
+              <div class="fw-semibold">{{ displayName() }}</div>
+              <div class="small text-muted">{{ user()?.organization?.name }}</div>
+            </div>
           </div>
 
           <button type="button" class="btn btn-outline-danger btn-sm" (click)="logout()">

@@ -6,6 +6,7 @@ export interface LoginRequest {
 export interface AuthOrganization {
   id: string;
   name: string;
+  logoUrl: string | null;
 }
 
 export interface AuthUser {
