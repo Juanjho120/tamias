@@ -3,6 +3,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
+
 import { LanguageService } from '../../../../core/i18n/language.service';
 import { ApiError } from '../../../../core/models/api-error.model';
 import { PageResponse } from '../../../../core/models/page-response.model';
@@ -22,6 +23,13 @@ import { ProductBoxModelService } from '../../services/product-box-model.service
 import { ProductBoxReferenceDataService } from '../../services/product-box-reference-data.service';
 
 type FormMode = 'create' | 'edit';
+
+type ProductBoxInitialQueryParams = {
+  create: boolean;
+  inventoryItemId: string;
+  purchaseItemId: string;
+  search: string;
+};
 
 @Component({
   selector: 'app-product-box-models-page',
@@ -49,19 +57,24 @@ export class ProductBoxModelsPageComponent implements OnInit {
   readonly saving = signal(false);
   readonly deletingId = signal<string | null>(null);
   readonly loadingReferences = signal(false);
+
   readonly models = signal<ProductBoxModelSummary[]>([]);
   readonly inventoryItems = signal<ProductBoxInventoryItemOption[]>([]);
+
   readonly selectedModel = signal<ProductBoxModel | null>(null);
   readonly modelForFaces = signal<ProductBoxModel | null>(null);
   readonly modelForViewer = signal<ProductBoxModel | null>(null);
   readonly modelToDelete = signal<ProductBoxModelSummary | null>(null);
+
   readonly formVisible = signal(false);
   readonly formMode = signal<FormMode>('create');
   readonly initialFormInventoryItemId = signal<string | null>(null);
   readonly initialFormPurchaseItemId = signal<string | null>(null);
+
   readonly search = signal('');
   readonly inventoryItemId = signal('');
   readonly purchaseItemId = signal('');
+
   readonly page = signal(0);
   readonly size = signal(10);
   readonly totalElements = signal(0);
@@ -92,12 +105,17 @@ export class ProductBoxModelsPageComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.applyInitialQueryParams();
+    const initialQueryParams = this.readInitialQueryParams();
+
+    this.applyInitialQueryParams(initialQueryParams);
     this.loadReferences();
     this.loadModels();
 
-    if (this.shouldOpenCreateFormFromQuery()) {
-      this.openCreateForm();
+    if (initialQueryParams.create) {
+      this.openCreateForm(
+        initialQueryParams.inventoryItemId || null,
+        initialQueryParams.purchaseItemId || null
+      );
     }
   }
 
@@ -179,11 +197,14 @@ export class ProductBoxModelsPageComponent implements OnInit {
     this.loadModels();
   }
 
-  openCreateForm(): void {
+  openCreateForm(initialInventoryItemId?: string | null, initialPurchaseItemId?: string | null): void {
+    const inventoryItemId = initialInventoryItemId ?? (this.inventoryItemId() || null);
+    const purchaseItemId = initialPurchaseItemId ?? (this.purchaseItemId().trim() || null);
+
     this.formMode.set('create');
     this.selectedModel.set(null);
-    this.initialFormInventoryItemId.set(this.inventoryItemId() || null);
-    this.initialFormPurchaseItemId.set(this.purchaseItemId().trim() || null);
+    this.initialFormInventoryItemId.set(inventoryItemId);
+    this.initialFormPurchaseItemId.set(purchaseItemId);
     this.formVisible.set(true);
   }
 
@@ -323,6 +344,7 @@ export class ProductBoxModelsPageComponent implements OnInit {
 
   onFacesChanged(): void {
     const viewerModel = this.modelForViewer();
+
     if (viewerModel) {
       this.productBoxModelService.findById(viewerModel.id).subscribe({
         next: (model) => this.modelForViewer.set(model),
@@ -360,34 +382,41 @@ export class ProductBoxModelsPageComponent implements OnInit {
   completedFacesLabel(model: ProductBoxModelSummary): string {
     const faces = model.faces ?? {};
     const count = PRODUCT_BOX_FACE_NAMES.filter((faceName) => !!faces[faceName]).length;
+
     return this.languageService.instant('productBoxModels.table.facesCount', {
       count,
       total: PRODUCT_BOX_FACE_NAMES.length
     });
   }
 
-  private applyInitialQueryParams(): void {
+  private readInitialQueryParams(): ProductBoxInitialQueryParams {
     const queryParamMap = this.route.snapshot.queryParamMap;
-    const inventoryItemId = (queryParamMap.get('inventoryItemId') ?? '').trim();
-    const purchaseItemId = (queryParamMap.get('purchaseItemId') ?? '').trim();
-    const search = (queryParamMap.get('search') ?? '').trim();
+    const create = (queryParamMap.get('create') ?? '').toLowerCase();
 
-    if (inventoryItemId) {
-      this.inventoryItemId.set(inventoryItemId);
-    }
-
-    if (purchaseItemId) {
-      this.purchaseItemId.set(purchaseItemId);
-    }
-
-    if (search) {
-      this.search.set(search);
-    }
+    return {
+      create: create === 'true' || create === '1',
+      inventoryItemId: (queryParamMap.get('inventoryItemId') ?? '').trim(),
+      purchaseItemId: (queryParamMap.get('purchaseItemId') ?? '').trim(),
+      search: (queryParamMap.get('search') ?? '').trim()
+    };
   }
 
-  private shouldOpenCreateFormFromQuery(): boolean {
-    const create = (this.route.snapshot.queryParamMap.get('create') ?? '').toLowerCase();
-    return create === 'true' || create === '1';
+  private applyInitialQueryParams(queryParams: ProductBoxInitialQueryParams): void {
+    if (queryParams.create) {
+      return;
+    }
+
+    if (queryParams.inventoryItemId) {
+      this.inventoryItemId.set(queryParams.inventoryItemId);
+    }
+
+    if (queryParams.purchaseItemId) {
+      this.purchaseItemId.set(queryParams.purchaseItemId);
+    }
+
+    if (queryParams.search) {
+      this.search.set(queryParams.search);
+    }
   }
 
   private clearInitialFormAssociations(): void {

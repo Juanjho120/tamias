@@ -2,6 +2,7 @@ import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, compu
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
+
 import { LanguageService } from '../../../../core/i18n/language.service';
 import { ApiError } from '../../../../core/models/api-error.model';
 import { ConfirmModalComponent } from '../../../../shared/confirm-modal/confirm-modal.component';
@@ -38,6 +39,7 @@ export class PurchaseItemsModalComponent implements OnChanges {
   readonly deletingId = signal<string | null>(null);
   readonly itemToDelete = signal<PurchaseItem | null>(null);
   readonly editingItem = signal<PurchaseItem | null>(null);
+
   readonly deleteMessage = computed(() => {
     const item = this.itemToDelete();
     if (!item) {
@@ -192,7 +194,8 @@ export class PurchaseItemsModalComponent implements OnChanges {
 
   openProductBoxesForPurchaseItem(item: PurchaseItem): void {
     const queryParams: Record<string, string> = {
-      purchaseItemId: item.id
+      purchaseItemId: item.id,
+      create: 'true'
     };
 
     if (item.inventoryItemId) {
@@ -240,6 +243,7 @@ export class PurchaseItemsModalComponent implements OnChanges {
 
   onInventoryItemSelected(inventoryItemId: string): void {
     const inventoryItem = this.inventoryItems.find((item) => item.id === inventoryItemId);
+
     if (inventoryItem?.unit && !this.itemForm.controls.unit.value) {
       this.itemForm.controls.unit.setValue(inventoryItem.unit);
     }

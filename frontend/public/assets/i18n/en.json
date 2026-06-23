@@ -1503,7 +1503,6 @@
       "noInventoryItem": "No inventory item",
       "purchaseItemId": "Purchase item ID",
       "purchaseItemIdPlaceholder": "Optional purchase item UUID",
-      "purchaseItemHelp": "MVP 14C allows manual purchase item association by UUID. Visual purchase integration is planned for 14E.",
       "save": "Save model"
     },
     "validation": {
