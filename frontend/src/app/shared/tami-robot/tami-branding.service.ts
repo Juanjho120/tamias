@@ -35,16 +35,15 @@ export class TamiBrandingService {
       overflow: visible;
     }
 
-    .tami-robot-shell--sm {
-      --tami-robot-size: 1.52rem;
-    }
+    .tami-robot-shell--sm { --tami-robot-size: 1.52rem; }
+    .tami-robot-shell--md { --tami-robot-size: 2rem; }
+    .tami-robot-shell--lg { --tami-robot-size: 2.7rem; }
 
-    .tami-robot-shell--md {
-      --tami-robot-size: 2rem;
-    }
-
-    .tami-robot-shell--lg {
-      --tami-robot-size: 2.7rem;
+    .tami-robot-shell--head-only {
+      width: calc(var(--tami-robot-size) * 1.05);
+      height: calc(var(--tami-robot-size) * 0.98);
+      min-width: calc(var(--tami-robot-size) * 1.05);
+      align-items: center;
     }
 
     .tami-robot-body {
@@ -162,6 +161,11 @@ export class TamiBrandingService {
       box-shadow: 0 0.36rem 0.86rem rgba(36, 122, 118, 0.2);
       transform: translateX(-50%);
       transform-origin: center 78%;
+    }
+
+    .tami-robot-shell--head-only .tami-robot-head {
+      top: 50%;
+      transform: translate(-50%, -50%);
     }
 
     .tami-robot-head::before {
@@ -292,6 +296,7 @@ export class TamiBrandingService {
       width: calc(var(--tami-robot-size) * 0.11);
       height: calc(var(--tami-robot-size) * 0.11);
       opacity: 0;
+      z-index: 5;
     }
 
     .tami-robot-spark::before,
@@ -307,18 +312,32 @@ export class TamiBrandingService {
     .tami-robot-spark--left { left: 2%; }
     .tami-robot-spark--right { right: 2%; }
 
-    .tami-nav-link {
-      gap: 0.55rem;
+    .tami-robot-shell--head-only .tami-robot-body,
+    .tami-robot-shell--head-only .tami-robot-badge,
+    .tami-robot-shell--head-only .tami-robot-neck,
+    .tami-robot-shell--head-only .tami-robot-arm {
+      display: none;
     }
 
+    .tami-robot-shell--head-only .tami-robot-spark {
+      top: 12%;
+    }
+
+    .tami-nav-link { gap: 0.55rem; }
+
     .tami-nav-link .tami-robot-shell {
-      margin-left: -0.1rem;
-      margin-right: -0.15rem;
+      margin-left: -0.08rem;
+      margin-right: -0.12rem;
     }
 
     .tami-nav-link:hover .tami-robot-head,
     .tami-nav-link:focus-visible .tami-robot-head {
       animation: tamiRobotGreetingHead 1.05s ease-in-out;
+    }
+
+    .tami-nav-link:hover .tami-robot-shell--head-only .tami-robot-head,
+    .tami-nav-link:focus-visible .tami-robot-shell--head-only .tami-robot-head {
+      animation: tamiRobotGreetingHeadOnly 1.05s ease-in-out;
     }
 
     .tami-nav-link:hover .tami-robot-body,
@@ -374,6 +393,13 @@ export class TamiBrandingService {
       18% { transform: translateX(-50%) rotate(-8deg) translateY(-2px); }
       42% { transform: translateX(-50%) rotate(8deg) translateY(-1px); }
       66% { transform: translateX(-50%) rotate(-5deg) translateY(0); }
+    }
+
+    @keyframes tamiRobotGreetingHeadOnly {
+      0%, 100% { transform: translate(-50%, -50%) rotate(0deg) translateY(0); }
+      18% { transform: translate(-50%, -50%) rotate(-8deg) translateY(-2px); }
+      42% { transform: translate(-50%, -50%) rotate(8deg) translateY(-1px); }
+      66% { transform: translate(-50%, -50%) rotate(-5deg) translateY(0); }
     }
 
     @keyframes tamiRobotGreetingBody {
@@ -449,7 +475,11 @@ export class TamiBrandingService {
     this.ngZone.runOutsideAngular(() => {
       window.setTimeout(() => this.enhanceAll(), 0);
       this.observer = new MutationObserver(() => this.scheduleEnhance());
-      this.observer.observe(this.document.body, { childList: true, subtree: true, characterData: true });
+      this.observer.observe(this.document.body, {
+        childList: true,
+        subtree: true,
+        characterData: true
+      });
     });
   }
 
@@ -473,17 +503,19 @@ export class TamiBrandingService {
   }
 
   private enhanceAiNavigationLinks(): void {
-    const links = Array.from(this.document.querySelectorAll('a[href$="/ai-assistant"]'));
+    const links = Array.from(this.document.querySelectorAll<HTMLAnchorElement>('a[href$="/ai-assistant"]'));
 
     links.forEach((link) => {
       link.classList.add('tami-nav-link');
 
-      if (link.querySelector('.tami-robot-shell')) {
+      const existingRobot = link.querySelector<HTMLElement>('.tami-robot-shell');
+      if (existingRobot) {
+        this.ensureHeadOnlyRobot(existingRobot);
         return;
       }
 
-      const robot = this.createRobotElement('tami-robot-shell--sm tami-robot-nav');
-      const icon = link.querySelector('i.bi, .bi, svg');
+      const robot = this.createRobotElement('tami-robot-shell--sm tami-robot-nav tami-robot-shell--head-only', true);
+      const icon = link.querySelector<HTMLElement>('i.bi, .bi, svg');
 
       if (icon) {
         icon.after(robot);
@@ -498,7 +530,7 @@ export class TamiBrandingService {
       return;
     }
 
-    const title = Array.from(this.document.querySelectorAll('h1'))
+    const title = Array.from(this.document.querySelectorAll<HTMLElement>('h1'))
       .find((heading) => this.normalizeText(heading.textContent).startsWith('tami'));
 
     if (!title || title.querySelector('.tami-robot-shell')) {
@@ -506,7 +538,7 @@ export class TamiBrandingService {
     }
 
     title.classList.add('tami-title-enhanced');
-    title.prepend(this.createRobotElement('tami-robot-shell--lg tami-robot-page-title'));
+    title.prepend(this.createRobotElement('tami-robot-shell--lg tami-robot-page-title', false));
   }
 
   private enhanceAiSessionTitle(): void {
@@ -514,18 +546,61 @@ export class TamiBrandingService {
       return;
     }
 
-    const headings = Array.from(this.document.querySelectorAll('h2'));
-    const sessionTitle = headings.find((heading) => {
-      const text = this.normalizeText(heading.textContent);
-      return Boolean(text) && text !== 'sessions' && text !== 'sesiones' && !heading.closest('.list-group');
-    });
+    this.removeMisplacedSessionRobots();
+
+    const sessionTitle = Array.from(this.document.querySelectorAll<HTMLElement>('h2'))
+      .find((heading) => this.isActiveSessionHeading(heading));
 
     if (!sessionTitle || sessionTitle.querySelector('.tami-robot-shell')) {
       return;
     }
 
     sessionTitle.classList.add('tami-session-title-enhanced');
-    sessionTitle.prepend(this.createRobotElement('tami-robot-shell--md tami-robot-session-title'));
+    sessionTitle.prepend(this.createRobotElement('tami-robot-shell--md tami-robot-session-title', false));
+  }
+
+  private removeMisplacedSessionRobots(): void {
+    const headings = Array.from(this.document.querySelectorAll<HTMLElement>('h2.tami-session-title-enhanced'));
+
+    headings
+      .filter((heading) => !this.isActiveSessionHeading(heading))
+      .forEach((heading) => {
+        heading.querySelector('.tami-robot-session-title')?.remove();
+        heading.classList.remove('tami-session-title-enhanced');
+      });
+  }
+
+  private isActiveSessionHeading(heading: HTMLElement): boolean {
+    const text = this.normalizeText(heading.textContent);
+
+    if (!text || this.isSessionsListHeadingText(text) || heading.closest('.list-group')) {
+      return false;
+    }
+
+    const container = heading.parentElement;
+    const containerText = this.normalizeText(container?.textContent ?? '');
+
+    return (
+      containerText.includes('chat') ||
+      containerText.includes('search') ||
+      containerText.includes('buscar') ||
+      containerText.includes('top k') ||
+      containerText.includes('threshold') ||
+      containerText.includes('umbral') ||
+      text.includes('new session') ||
+      text.includes('nueva sesion') ||
+      text.includes('sesion nueva')
+    );
+  }
+
+  private isSessionsListHeadingText(text: string): boolean {
+    return [
+      'sessions',
+      'sesiones',
+      'chat sessions',
+      'sesiones de chat',
+      'historial de sesiones'
+    ].includes(text);
   }
 
   private updateSpeakingState(): void {
@@ -533,11 +608,27 @@ export class TamiBrandingService {
     this.document.body.classList.toggle('tami-is-speaking', isTyping);
   }
 
-  private createRobotElement(extraClasses: string): HTMLElement {
+  private createRobotElement(extraClasses: string, headOnly: boolean): HTMLElement {
     const robot = this.document.createElement('span');
     robot.className = `tami-robot-shell ${extraClasses}`;
     robot.setAttribute('aria-hidden', 'true');
-    robot.innerHTML = `
+    robot.innerHTML = this.robotTemplate();
+
+    if (headOnly) {
+      this.ensureHeadOnlyRobot(robot);
+    }
+
+    return robot;
+  }
+
+  private ensureHeadOnlyRobot(robot: HTMLElement): void {
+    robot.classList.add('tami-robot-shell--head-only');
+    robot.querySelectorAll('.tami-robot-body, .tami-robot-badge, .tami-robot-neck, .tami-robot-arm')
+      .forEach((element) => element.remove());
+  }
+
+  private robotTemplate(): string {
+    return `
       <span class="tami-robot-spark tami-robot-spark--left"></span>
       <span class="tami-robot-spark tami-robot-spark--right"></span>
       <span class="tami-robot-arm tami-robot-arm--left"></span>
@@ -550,14 +641,13 @@ export class TamiBrandingService {
         <span class="tami-robot-cap"></span>
         <span class="tami-robot-ear tami-robot-ear--left"></span>
         <span class="tami-robot-ear tami-robot-ear--right"></span>
-        <span class="tami-robot-eye tami-robot-eye--left"></span>
-        <span class="tami-robot-eye tami-robot-eye--right"></span>
         <span class="tami-robot-cheek tami-robot-cheek--left"></span>
         <span class="tami-robot-cheek tami-robot-cheek--right"></span>
+        <span class="tami-robot-eye tami-robot-eye--left"></span>
+        <span class="tami-robot-eye tami-robot-eye--right"></span>
         <span class="tami-robot-mouth"></span>
       </span>
     `;
-    return robot;
   }
 
   private isAiAssistantRoute(): boolean {
