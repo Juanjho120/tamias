@@ -14,7 +14,9 @@
           [routerLink]="item.route"
           routerLinkActive="active"
           [routerLinkActiveOptions]="{ exact: item.route === '/dashboard' }">
-          <i class="bi" [ngClass]="item.icon"></i>
+          @if (item.icon) {
+            <i class="bi" [ngClass]="item.icon"></i>
+          }
           <span>{{ item.labelKey | translate }}</span>
         </a>
       }
@@ -127,7 +129,9 @@
           routerLinkActive="active"
           [routerLinkActiveOptions]="{ exact: item.route === '/dashboard' }"
           (click)="closeMobileSidebar()">
-          <i class="bi" [ngClass]="item.icon"></i>
+          @if (item.icon) {
+            <i class="bi" [ngClass]="item.icon"></i>
+          }
           <span>{{ item.labelKey | translate }}</span>
         </a>
       }

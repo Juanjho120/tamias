@@ -363,9 +363,11 @@ export class TamiBrandingService {
 
     .tami-title-enhanced,
     .tami-session-title-enhanced {
-      display: flex !important;
+      display: inline-flex !important;
       align-items: center;
       gap: 0.65rem;
+      flex-wrap: wrap;
+      min-width: 0;
     }
 
     .tami-session-title-enhanced .tami-robot-shell {
@@ -551,12 +553,19 @@ export class TamiBrandingService {
     const sessionTitle = Array.from(this.document.querySelectorAll<HTMLElement>('h2'))
       .find((heading) => this.isActiveSessionHeading(heading));
 
-    if (!sessionTitle || sessionTitle.querySelector('.tami-robot-shell')) {
+    if (!sessionTitle) {
       return;
     }
 
     sessionTitle.classList.add('tami-session-title-enhanced');
-    sessionTitle.prepend(this.createRobotElement('tami-robot-shell--md tami-robot-session-title', false));
+
+    const existingRobot = sessionTitle.querySelector<HTMLElement>('.tami-robot-session-title');
+    if (existingRobot) {
+      sessionTitle.append(existingRobot);
+      return;
+    }
+
+    sessionTitle.append(this.createRobotElement('tami-robot-shell--md tami-robot-session-title', false));
   }
 
   private removeMisplacedSessionRobots(): void {

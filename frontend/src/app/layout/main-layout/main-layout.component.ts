@@ -146,7 +146,7 @@ export class MainLayoutComponent implements OnInit {
       { labelKey: 'navigation.tasks', icon: 'bi-check2-square', route: '/tasks' },
       { labelKey: 'navigation.purchases', icon: 'bi-cart-check', route: '/purchases' },
       { labelKey: 'navigation.documents', icon: 'bi-file-earmark-text', route: '/documents' },
-      { labelKey: 'navigation.aiAssistant', icon: 'bi-stars', route: '/ai-assistant' }
+      { labelKey: 'navigation.aiAssistant', icon: '', route: '/ai-assistant' }
     ];
 
     if (this.canManageOrganizations()) {
