@@ -78,7 +78,7 @@ export const routes: Routes = [
       {
         path: 'ai-assistant',
         loadComponent: () => import('./features/ai-assistant/pages/ai-assistant-page/ai-assistant-page.component').then((m) => m.AiAssistantPageComponent),
-        title: 'AI Assistant | TAMIAS'
+        title: 'TAMI | TAMIAS'
       },
       {
         path: 'organizations',

@@ -5,35 +5,45 @@ This roadmap reflects the current state after AI tool calling/orchestration, S3/
 ## Completed foundation
 
 ### Phase 0 — Project Setup
+
 Status: Completed.
 
 ### Phase 1 — Security and SaaS Foundation
+
 Status: Completed / MVP-ready.
 
 ### Phase 2 — Properties and Catalogs
+
 Status: Completed / MVP-ready.
 
 ### Phase 3 — Maintenance
+
 Status: Completed / MVP-ready.
 
 ### Phase 4 — Reservations and Tasks
+
 Status: Completed / MVP-ready.
 
 ### Phase 5 — Purchase Lists
+
 Status: Completed / MVP-ready.
 
 ### Phase 6 — Documents
+
 Status: Completed / MVP-ready.
 
 ### Phase 7 — AI Document Search
+
 Status: Completed / MVP-ready.
 
 ### Phase 8 — MVP Hardening
+
 Status: Completed / partially superseded by security review phases.
 
 ## Completed AI tool calling and orchestration track
 
 ### Phase 9 — AI Tool Calling and AI Orchestration
+
 Status: Completed through 9P-H.
 
 Completed sub-phases:
@@ -64,15 +74,17 @@ Completed sub-phases:
 ```
 
 ### 9P-I — RAG retrieval tuning
+
 Status: Conditional / optional / not started.
 
-## Completed implementation queue
+## Completed implementation queue after initial MVP
 
 Phases 10A through 13A are completed and documented in their corresponding `.md` files.
 
 ## Completed Product Box Models phase
 
 ### Phase 14 — Product Box Models
+
 Status: Completed through 14P.
 
 Documentation: `71-product-box-models-14.md`
@@ -101,38 +113,39 @@ Completed subphases:
 
 Product Box Models phase is complete for now.
 
-## Current implementation queue
+## Completed organization administration and global UX polish phase
 
 ### Phase 15 — Organization Administration and Global UX Polish
-Status: In progress through 15D.
+
+Status: Completed through 15E.
 
 Documentation: `93-organization-administration-global-ux-15.md`
 
-Subphases:
+Completed subphases:
 
 ```text
-15A Organization logo backend + current organization header — Completed
-15B Organization administration page — Completed
-15C Organization switcher / multi-organization navigation — Completed
-15C.1 Global SUPER_ADMIN organization navigation — Completed
-15C.2 User organization memberships management — Completed
-15D Icon-only action buttons with tooltips — Completed
-15E TAMI branding and robot animation — Planned
+15A Organization logo backend + current organization header
+15B Organization administration page
+15C Organization switcher / multi-organization navigation
+15C.1 Global SUPER_ADMIN organization navigation
+15C.2 User organization memberships management
+15D Icon-only action buttons with tooltips
+15E TAMI branding and robot animation
 ```
 
 Phase decisions:
 
-- Organizations must support logos.
-- The active organization logo must appear next to the selected organization name.
+- Organizations support logos.
+- The active organization logo appears next to the selected organization name.
 - A `SUPER_ADMIN` role administers all organizations.
-- `SUPER_ADMIN` navigation is global across active organizations and must not depend on a membership row in every organization.
+- `SUPER_ADMIN` navigation is global across active organizations and does not depend on a membership row in every organization.
 - Only `SUPER_ADMIN` users can assign users to other organizations and define their role in each organization.
 - Organization `ADMINISTRATOR` users can edit only their current organization.
-- Organization switching must be secure and must not rely on a client-only organization id override.
-- Icon-only action buttons must use a shared reusable base for consistency, accessibility and tooltips.
-- The sidebar should show `TAMI` instead of `AI Assistant`.
-- TAMI robot identity should be reusable in the sidebar and AI Assistant page.
-- The robot animation in the AI session title must start when the typewriter response starts and stop when the typewriter response finishes.
+- Organization switching is secure and does not rely on a client-only organization id override.
+- Icon-only action buttons use a shared reusable base for consistency, accessibility and tooltips.
+- The sidebar shows `TAMI` instead of `AI Assistant`.
+- TAMI robot identity is reusable in the sidebar and AI Assistant page.
+- The robot animation in the AI session title starts when the typewriter response starts and stops when the typewriter response finishes.
 
 ## Future phases
 

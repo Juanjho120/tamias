@@ -2,11 +2,13 @@
 
 ## Status
 
-In progress through 15D.
+Completed through 15E.
 
 ## Purpose
 
 Add organization administration, organization logo support, multi-organization navigation and global UX polish before starting the larger Reports, Notifications and Blueprint Analysis phases.
+
+This phase continues the SaaS foundation already present in TAMIAS and improves the day-to-day experience for organization-aware users.
 
 ## High-level decisions
 
@@ -42,11 +44,37 @@ Completed.
 
 Completed and extended by 15C.1 / 15C.2.
 
+### Goal
+
+Allow users who belong to more than one organization to change the active organization from the UI.
+
+### Backend scope
+
+- Add `GET /api/v1/auth/organizations` to list the authenticated user's active organizations.
+- Add `POST /api/v1/auth/switch-organization` to switch the active organization.
+- Validate that normal users belong to the target organization and that both the membership and organization are active.
+- Return an updated authenticated session/token for the selected organization.
+- Keep `/api/v1/auth/me` aligned with the organization id present in the active JWT.
+- Store each user's last selected organization in `users.last_organization_id`.
+- Do not rely on a client-only `organizationId` override.
+
+### Frontend scope
+
+- Add an organization switcher to the main layout/header.
+- Show organization names and the current organization logo when available.
+- Switch session context when the user selects another organization.
+- Refresh current user/session state after switching.
+- Navigate to `/dashboard` after switching to clear organization-scoped screen state.
+
 ## 15C.1 — Global SUPER_ADMIN organization navigation
 
 ### Status
 
 Completed.
+
+### Goal
+
+Allow a user with at least one active usable `SUPER_ADMIN` membership to navigate all active organizations without requiring an explicit membership in each organization.
 
 ## 15C.2 — User organization memberships management
 
@@ -54,34 +82,72 @@ Completed.
 
 Completed.
 
+### Goal
+
+Allow only `SUPER_ADMIN` users to assign users to other organizations and define the role they will have in each organization.
+
+### Backend scope
+
+Endpoints under the existing users backend area, protected with `SUPER_ADMIN` only:
+
+```http
+GET /api/v1/users/{userId}/organizations
+POST /api/v1/users/{userId}/organizations
+PUT /api/v1/users/{userId}/organizations/{organizationId}
+DELETE /api/v1/users/{userId}/organizations/{organizationId}
+```
+
+### Rules
+
+- Only `SUPER_ADMIN` can manage multi-organization memberships.
+- `ADMINISTRATOR` cannot see or use these controls.
+- `SUPER_ADMIN` can assign any role, including `SUPER_ADMIN`.
+- The backend prevents removing a user's last usable `SUPER_ADMIN` access.
+- Normal user creation/update remains scoped to the active organization.
+
 ## 15D — Icon-only action buttons with tooltips
 
 ### Status
 
 Completed.
 
+### Goal
+
+Standardize action buttons in tables and modals so they display only icons while preserving accessible labels and tooltips.
+
 ### Implementation
 
-- Added reusable `IconActionButtonComponent` for new/refactored UI code.
-- Added `IconActionButtonAutoEnhancerService` to apply icon-only action button behavior across existing modules.
-- The enhancer runs globally from `app.config.ts` and covers action buttons inside tables, modals, button groups and dropdown menus.
-- Existing translated button text is reused as the tooltip and accessible label.
-- Common text-only actions receive an inferred Bootstrap icon before the visible text is hidden.
-
-Documentation: `docs/103-icon-action-buttons-tooltips-15d.md`.
+- Shared reusable base: `IconActionButtonComponent`.
+- Global enhancer: `IconActionButtonAutoEnhancerService`.
+- The enhancer converts existing action buttons in tables/modals into icon-only buttons using the translated label as `title` and `aria-label`.
 
 ## 15E — TAMI branding and robot animation
 
 ### Status
 
-Planned.
+Completed.
+
+### Goal
+
+Give the AI Assistant a TAMI identity across navigation and chat UX.
+
+### Frontend scope
+
+- Change the AI Assistant navigation label to `TAMI` through the existing i18n JSON files.
+- Add a reusable robot identity under `shared/tami-robot`.
+- Show a small robot next to the sidebar TAMI item.
+- Animate the sidebar robot only on hover/focus.
+- Show the same robot head next to the `/ai-assistant` title.
+- Show a smaller robot in the active chat/session title.
+- Animate the session title robot as if speaking while the typewriter response is running.
+- Stop the speaking animation exactly when the typewriter response finishes.
 
 ## Documentation and roadmap
 
 This phase supersedes the previous future-phase numbering:
 
 ```text
-Old future 15 Reports                 -> New future 16 Reports
+Old future 15 Reports -> New future 16 Reports
 Old future 16 Notifications/reminders -> New future 17 Notifications and reminders
-Old future 17 Blueprint Analysis      -> New future 18 Blueprint Analysis
+Old future 17 Blueprint Analysis -> New future 18 Blueprint Analysis
 ```
