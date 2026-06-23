@@ -21,7 +21,8 @@
     "total": "total",
     "viewAll": "Ver todo",
     "no": "No",
-    "yes": "Sí"
+    "yes": "Sí",
+    "save": "Guardar"
   },
   "status": {
     "ACTIVE": "Activo",
@@ -1735,6 +1736,60 @@
       "loadError": "No se pudieron cargar las organizaciones disponibles.",
       "switched": "Organización cambiada correctamente.",
       "switchError": "No se pudo cambiar la organización."
+    }
+  },
+  "userOrganizations": {
+    "title": "Membresías de organizaciones",
+    "loading": "Cargando membresías...",
+    "permissions": {
+      "title": "Control SUPER_ADMIN",
+      "description": "Solo los usuarios SUPER_ADMIN pueden asignar usuarios a otras organizaciones y definir el rol que tendrán en cada una."
+    },
+    "fields": {
+      "organization": "Organización",
+      "role": "Rol",
+      "status": "Estado"
+    },
+    "assign": {
+      "title": "Asignar nueva organización",
+      "selectOrganization": "Selecciona una organización",
+      "noAvailableOrganizations": "Este usuario ya tiene membresía en todas las organizaciones activas disponibles."
+    },
+    "list": {
+      "title": "Organizaciones asignadas"
+    },
+    "table": {
+      "organization": "Organización",
+      "role": "Rol",
+      "status": "Estado",
+      "updated": "Actualizado",
+      "actions": "Acciones"
+    },
+    "actions": {
+      "memberships": "Membresías",
+      "assign": "Asignar organización"
+    },
+    "status": {
+      "ACTIVE": "Activa",
+      "INACTIVE": "Inactiva",
+      "DELETED": "Eliminada"
+    },
+    "empty": {
+      "title": "Sin membresías",
+      "description": "Este usuario todavía no tiene organizaciones asignadas."
+    },
+    "confirmDelete": {
+      "title": "Eliminar membresía",
+      "message": "¿Eliminar la membresía de la organización \"{{organization}}\"?"
+    },
+    "messages": {
+      "loadError": "No se pudieron cargar las membresías del usuario.",
+      "assigned": "Membresía asignada correctamente.",
+      "assignError": "No se pudo asignar la organización.",
+      "updated": "Membresía actualizada correctamente.",
+      "updateError": "No se pudo actualizar la membresía.",
+      "deleted": "Membresía eliminada correctamente.",
+      "deleteError": "No se pudo eliminar la membresía."
     }
   }
 }

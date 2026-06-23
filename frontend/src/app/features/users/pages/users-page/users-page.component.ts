@@ -8,8 +8,20 @@ import { ApiError } from '../../../../core/models/api-error.model';
 import { PageResponse } from '../../../../core/models/page-response.model';
 import { ConfirmModalComponent } from '../../../../shared/confirm-modal/confirm-modal.component';
 import { ToastService } from '../../../../shared/toast/toast.service';
-import { RoleCode, User, UserCreateRequest, UserStatus, UserSummary, UserUpdateRequest } from '../../models/user.model';
-import { UserFormModalComponent, UserFormMode, UserFormSubmit } from '../../components/user-form-modal/user-form-modal.component';
+import {
+  RoleCode,
+  User,
+  UserCreateRequest,
+  UserStatus,
+  UserSummary,
+  UserUpdateRequest
+} from '../../models/user.model';
+import {
+  UserFormModalComponent,
+  UserFormMode,
+  UserFormSubmit
+} from '../../components/user-form-modal/user-form-modal.component';
+import { UserOrganizationMembershipsModalComponent } from '../../components/user-organization-memberships-modal/user-organization-memberships-modal.component';
 import { UserService } from '../../services/user.service';
 
 @Component({
@@ -21,7 +33,8 @@ import { UserService } from '../../services/user.service';
     NgClass,
     TranslatePipe,
     ConfirmModalComponent,
-    UserFormModalComponent
+    UserFormModalComponent,
+    UserOrganizationMembershipsModalComponent
   ],
   templateUrl: './users-page.component.html'
 })
@@ -31,18 +44,23 @@ export class UsersPageComponent implements OnInit {
   private readonly authService = inject(AuthService);
 
   readonly currentUser = this.authService.currentUser;
-  readonly currentUserRole = computed<RoleCode>(() => this.currentUser()?.role ?? 'READ_ONLY');
+  readonly currentUserRole = computed<RoleCode>(() => (this.currentUser()?.role as RoleCode | undefined) ?? 'READ_ONLY');
   readonly canAssignSuperAdmin = computed(() => this.currentUserRole() === 'SUPER_ADMIN');
 
   readonly loading = signal(false);
   readonly saving = signal(false);
   readonly deletingId = signal<string | null>(null);
   readonly updatingStatusId = signal<string | null>(null);
+
   readonly users = signal<UserSummary[]>([]);
   readonly selectedUser = signal<User | null>(null);
   readonly userToDelete = signal<UserSummary | null>(null);
+  readonly membershipUser = signal<UserSummary | null>(null);
+
   readonly formVisible = signal(false);
+  readonly membershipsVisible = signal(false);
   readonly formMode = signal<UserFormMode>('create');
+
   readonly page = signal(0);
   readonly size = signal(10);
   readonly totalElements = signal(0);
@@ -80,12 +98,7 @@ export class UsersPageComponent implements OnInit {
 
   loadUsers(): void {
     this.loading.set(true);
-
-    this.userService.findAll({
-      page: this.page(),
-      size: this.size(),
-      sort: 'createdAt,desc'
-    }).subscribe({
+    this.userService.findAll({ page: this.page(), size: this.size(), sort: 'createdAt,desc' }).subscribe({
       next: (response: PageResponse<UserSummary>) => {
         this.users.set(response.content);
         this.page.set(response.page);
@@ -166,7 +179,6 @@ export class UsersPageComponent implements OnInit {
 
   saveUser(request: UserFormSubmit): void {
     this.saving.set(true);
-
     const selectedUser = this.selectedUser();
     const saveRequest = this.formMode() === 'edit' && selectedUser
       ? this.userService.update(selectedUser.id, request as UserUpdateRequest)
@@ -188,6 +200,24 @@ export class UsersPageComponent implements OnInit {
         this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('users.messages.saveError')));
       }
     });
+  }
+
+  openMemberships(user: UserSummary): void {
+    if (!this.canAssignSuperAdmin()) {
+      return;
+    }
+
+    this.membershipUser.set(user);
+    this.membershipsVisible.set(true);
+  }
+
+  closeMemberships(): void {
+    this.membershipsVisible.set(false);
+    this.membershipUser.set(null);
+  }
+
+  onMembershipsChanged(): void {
+    this.loadUsers();
   }
 
   activateUser(user: UserSummary): void {
@@ -291,7 +321,6 @@ export class UsersPageComponent implements OnInit {
 
   private updateStatus(user: UserSummary, status: UserStatus): void {
     this.updatingStatusId.set(user.id);
-
     this.userService.update(user.id, {
       firstName: user.firstName,
       lastName: user.lastName,

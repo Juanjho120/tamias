@@ -1,229 +1,215 @@
-<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
-  <div>
-    <h1 class="h3 mb-1">{{ 'users.title' | translate }}</h1>
-    <p class="text-muted mb-0">{{ 'users.subtitle' | translate }}</p>
+<div class="d-flex flex-column gap-4">
+  <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3">
+    <div>
+      <h1 class="h3 mb-1">{{ 'users.title' | translate }}</h1>
+      <p class="text-body-secondary mb-0">{{ 'users.subtitle' | translate }}</p>
+    </div>
+
+    <button type="button" class="btn btn-primary" (click)="openCreateForm()">
+      <i class="bi bi-person-plus me-2"></i>
+      {{ 'users.newUser' | translate }}
+    </button>
   </div>
 
-  <button type="button" class="btn btn-primary" (click)="openCreateForm()">
-    <i class="bi bi-person-plus me-1"></i>
-    {{ 'users.newUser' | translate }}
-  </button>
-</div>
+  <div class="row g-4">
+    <div class="col-12 col-xl-5">
+      <div class="card h-100">
+        <div class="card-body">
+          <h2 class="h5">{{ 'users.permissions.title' | translate }}</h2>
+          <p class="text-body-secondary">{{ 'users.permissions.description' | translate }}</p>
 
-<div class="row g-4 mb-4">
-  <div class="col-12 col-xl-8">
-    <div class="card page-card h-100">
-      <div class="card-body p-4">
-        <div class="d-flex align-items-start gap-3">
-          <div class="d-inline-flex align-items-center justify-content-center rounded-4 bg-primary-subtle text-primary p-3">
-            <i class="bi bi-shield-lock fs-3"></i>
+          <div class="border rounded p-3">
+            <div class="text-body-secondary small">{{ 'users.currentUser' | translate }}</div>
+            <div class="fw-semibold">{{ currentUser()?.firstName }} {{ currentUser()?.lastName }}</div>
+            <div class="small text-body-secondary">{{ currentUser()?.email }}</div>
+            <span class="badge mt-2" [ngClass]="roleBadgeClass(currentUserRole())">
+              {{ 'roles.' + currentUserRole() + '.label' | translate }}
+            </span>
           </div>
-          <div>
-            <h2 class="h5 mb-2">{{ 'users.permissions.title' | translate }}</h2>
-            <p class="text-muted mb-0">{{ 'users.permissions.description' | translate }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-xl-7">
+      <div class="card h-100">
+        <div class="card-body">
+          <h2 class="h5">{{ 'users.roles.title' | translate }}</h2>
+          <div class="row g-3">
+            @if (canAssignSuperAdmin()) {
+              <div class="col-12 col-md-6">
+                <div class="border rounded p-3 h-100">
+                  <span class="badge text-bg-dark mb-2">{{ 'roles.SUPER_ADMIN.label' | translate }}</span>
+                  <p class="small text-body-secondary mb-0">{{ 'roles.SUPER_ADMIN.description' | translate }}</p>
+                </div>
+              </div>
+            }
+
+            <div class="col-12 col-md-6">
+              <div class="border rounded p-3 h-100">
+                <span class="badge text-bg-primary mb-2">{{ 'roles.ADMINISTRATOR.label' | translate }}</span>
+                <p class="small text-body-secondary mb-0">{{ 'roles.ADMINISTRATOR.description' | translate }}</p>
+              </div>
+            </div>
+            <div class="col-12 col-md-6">
+              <div class="border rounded p-3 h-100">
+                <span class="badge text-bg-success mb-2">{{ 'roles.PROPERTY_MANAGER.label' | translate }}</span>
+                <p class="small text-body-secondary mb-0">{{ 'roles.PROPERTY_MANAGER.description' | translate }}</p>
+              </div>
+            </div>
+            <div class="col-12 col-md-6">
+              <div class="border rounded p-3 h-100">
+                <span class="badge text-bg-warning mb-2">{{ 'roles.MAINTENANCE_STAFF.label' | translate }}</span>
+                <p class="small text-body-secondary mb-0">{{ 'roles.MAINTENANCE_STAFF.description' | translate }}</p>
+              </div>
+            </div>
+            <div class="col-12 col-md-6">
+              <div class="border rounded p-3 h-100">
+                <span class="badge text-bg-secondary mb-2">{{ 'roles.READ_ONLY.label' | translate }}</span>
+                <p class="small text-body-secondary mb-0">{{ 'roles.READ_ONLY.description' | translate }}</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="col-12 col-xl-4">
-    <div class="card page-card h-100">
-      <div class="card-body p-4">
-        <div class="small text-muted mb-2">{{ 'users.currentUser' | translate }}</div>
-        <div class="fw-semibold">{{ currentUser()?.firstName }} {{ currentUser()?.lastName }}</div>
-        <div class="small text-muted">{{ currentUser()?.email }}</div>
-        <span class="badge mt-3" [ngClass]="roleBadgeClass(currentUserRole())">
-          {{ 'roles.' + currentUserRole() + '.label' | translate }}
-        </span>
-      </div>
-    </div>
-  </div>
-</div>
+  <div class="card">
+    <div class="card-body p-0">
+      @if (loading()) {
+        <div class="p-4 text-center text-body-secondary">
+          <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+          {{ 'users.loading' | translate }}
+        </div>
+      } @else if (users().length === 0) {
+        <div class="p-5 text-center text-body-secondary">
+          <h2 class="h5">{{ 'users.empty.title' | translate }}</h2>
+          <p>{{ 'users.empty.description' | translate }}</p>
+          <button type="button" class="btn btn-primary" (click)="openCreateForm()">
+            {{ 'users.newUser' | translate }}
+          </button>
+        </div>
+      } @else {
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead>
+              <tr>
+                <th>{{ 'users.table.name' | translate }}</th>
+                <th>{{ 'users.table.email' | translate }}</th>
+                <th>{{ 'users.table.role' | translate }}</th>
+                <th>{{ 'users.table.status' | translate }}</th>
+                <th>{{ 'users.table.created' | translate }}</th>
+                <th class="text-end">{{ 'users.table.actions' | translate }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (user of users(); track user.id) {
+                <tr>
+                  <td>
+                    <div class="fw-semibold">{{ fullName(user) }}</div>
+                    @if (isCurrentUser(user)) {
+                      <span class="badge text-bg-info">{{ 'users.table.you' | translate }}</span>
+                    }
+                  </td>
+                  <td>{{ user.email }}</td>
+                  <td>
+                    <span class="badge" [ngClass]="roleBadgeClass(user.role)">
+                      {{ 'roles.' + user.role + '.label' | translate }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge" [ngClass]="statusBadgeClass(user.status)">
+                      {{ 'status.' + user.status | translate }}
+                    </span>
+                  </td>
+                  <td>{{ user.createdAt | date:'mediumDate' }}</td>
+                  <td class="text-end">
+                    <div class="btn-group">
+                      @if (canAssignSuperAdmin()) {
+                        <button
+                          type="button"
+                          class="btn btn-outline-secondary btn-sm"
+                          (click)="openMemberships(user)">
+                          <i class="bi bi-diagram-3 me-1"></i>
+                          {{ 'userOrganizations.actions.memberships' | translate }}
+                        </button>
+                      }
 
-<div class="card page-card mb-4">
-  <div class="card-body p-4">
-    <h2 class="h5 mb-3">{{ 'users.roles.title' | translate }}</h2>
+                      @if (canManageUser(user)) {
+                        @if (user.status !== 'ACTIVE') {
+                          <button
+                            type="button"
+                            class="btn btn-outline-success btn-sm"
+                            [disabled]="updatingStatusId() === user.id"
+                            (click)="activateUser(user)">
+                            @if (updatingStatusId() === user.id) {
+                              <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+                            }
+                            {{ 'users.actions.activate' | translate }}
+                          </button>
+                        } @else {
+                          <button
+                            type="button"
+                            class="btn btn-outline-warning btn-sm"
+                            [disabled]="updatingStatusId() === user.id"
+                            (click)="deactivateUser(user)">
+                            @if (updatingStatusId() === user.id) {
+                              <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+                            }
+                            {{ 'users.actions.deactivate' | translate }}
+                          </button>
+                        }
 
-    <div class="row g-3">
-      @if (canAssignSuperAdmin()) {
-        <div class="col-12 col-lg-6 col-xl-3">
-          <div class="border rounded-4 p-3 h-100">
-            <span class="badge text-bg-dark mb-2">{{ 'roles.SUPER_ADMIN.label' | translate }}</span>
-            <div class="small text-muted">{{ 'roles.SUPER_ADMIN.description' | translate }}</div>
-          </div>
+                        <button type="button" class="btn btn-outline-primary btn-sm" (click)="openEditForm(user.id)">
+                          {{ 'common.edit' | translate }}
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-outline-danger btn-sm"
+                          [disabled]="deletingId() === user.id"
+                          (click)="requestDelete(user)">
+                          @if (deletingId() === user.id) {
+                            <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+                          }
+                          {{ 'common.delete' | translate }}
+                        </button>
+                      } @else {
+                        <span class="text-body-secondary">—</span>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
         </div>
       }
-
-      <div class="col-12 col-lg-6 col-xl-3">
-        <div class="border rounded-4 p-3 h-100">
-          <span class="badge text-bg-primary mb-2">{{ 'roles.ADMINISTRATOR.label' | translate }}</span>
-          <div class="small text-muted">{{ 'roles.ADMINISTRATOR.description' | translate }}</div>
-        </div>
-      </div>
-
-      <div class="col-12 col-lg-6 col-xl-3">
-        <div class="border rounded-4 p-3 h-100">
-          <span class="badge text-bg-success mb-2">{{ 'roles.PROPERTY_MANAGER.label' | translate }}</span>
-          <div class="small text-muted">{{ 'roles.PROPERTY_MANAGER.description' | translate }}</div>
-        </div>
-      </div>
-
-      <div class="col-12 col-lg-6 col-xl-3">
-        <div class="border rounded-4 p-3 h-100">
-          <span class="badge text-bg-warning mb-2">{{ 'roles.MAINTENANCE_STAFF.label' | translate }}</span>
-          <div class="small text-muted">{{ 'roles.MAINTENANCE_STAFF.description' | translate }}</div>
-        </div>
-      </div>
-
-      <div class="col-12 col-lg-6 col-xl-3">
-        <div class="border rounded-4 p-3 h-100">
-          <span class="badge text-bg-secondary mb-2">{{ 'roles.READ_ONLY.label' | translate }}</span>
-          <div class="small text-muted">{{ 'roles.READ_ONLY.description' | translate }}</div>
-        </div>
-      </div>
     </div>
-  </div>
-</div>
 
-<div class="card page-card">
-  <div class="card-body p-0">
-    @if (loading()) {
-      <div class="p-5 text-center">
-        <div class="spinner-border text-primary" role="status"></div>
-        <div class="text-muted mt-3">{{ 'users.loading' | translate }}</div>
+    <div class="card-footer d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+      <label class="d-flex align-items-center gap-2 mb-0">
+        <span>{{ 'common.rowsPerPage' | translate }}</span>
+        <select class="form-select form-select-sm w-auto" [ngModel]="size()" (ngModelChange)="changePageSize($event)">
+          <option value="5">5</option>
+          <option value="10">10</option>
+          <option value="20">20</option>
+          <option value="50">50</option>
+        </select>
+      </label>
+
+      <div class="text-body-secondary small">
+        {{ pageLabel() }} · {{ totalElements() }} {{ 'common.total' | translate }}
       </div>
-    } @else if (users().length === 0) {
-      <div class="p-5 text-center">
-        <div class="d-inline-flex align-items-center justify-content-center rounded-4 bg-secondary-subtle text-secondary p-4 mb-3">
-          <i class="bi bi-people fs-1"></i>
-        </div>
-        <h2 class="h5">{{ 'users.empty.title' | translate }}</h2>
-        <p class="text-muted mb-3">{{ 'users.empty.description' | translate }}</p>
-        <button type="button" class="btn btn-primary" (click)="openCreateForm()">
-          {{ 'users.newUser' | translate }}
+
+      <div class="btn-group">
+        <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="first()" (click)="previousPage()">
+          {{ 'common.previous' | translate }}
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="last()" (click)="nextPage()">
+          {{ 'common.next' | translate }}
         </button>
       </div>
-    } @else {
-      <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-          <thead class="table-light">
-          <tr>
-            <th>{{ 'users.table.name' | translate }}</th>
-            <th>{{ 'users.table.email' | translate }}</th>
-            <th>{{ 'users.table.role' | translate }}</th>
-            <th>{{ 'users.table.status' | translate }}</th>
-            <th>{{ 'users.table.created' | translate }}</th>
-            <th class="text-end">{{ 'users.table.actions' | translate }}</th>
-          </tr>
-          </thead>
-          <tbody>
-          @for (user of users(); track user.id) {
-            <tr>
-              <td>
-                <div class="fw-semibold">{{ fullName(user) }}</div>
-                @if (isCurrentUser(user)) {
-                  <div class="small text-primary">{{ 'users.table.you' | translate }}</div>
-                }
-              </td>
-              <td>
-                <span class="text-muted">{{ user.email }}</span>
-              </td>
-              <td>
-                <span class="badge" [ngClass]="roleBadgeClass(user.role)">
-                  {{ 'roles.' + user.role + '.label' | translate }}
-                </span>
-              </td>
-              <td>
-                <span class="badge" [ngClass]="statusBadgeClass(user.status)">
-                  {{ 'status.' + user.status | translate }}
-                </span>
-              </td>
-              <td>
-                <span class="text-muted">{{ user.createdAt | date:'mediumDate' }}</span>
-              </td>
-              <td class="text-end">
-                @if (canManageUser(user)) {
-                  <div class="btn-group">
-                    @if (user.status !== 'ACTIVE') {
-                      <button
-                        type="button"
-                        class="btn btn-outline-success btn-sm"
-                        [disabled]="updatingStatusId() === user.id"
-                        (click)="activateUser(user)">
-                        @if (updatingStatusId() === user.id) {
-                          <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
-                        } @else {
-                          <i class="bi bi-check-circle me-1"></i>
-                        }
-                        {{ 'users.actions.activate' | translate }}
-                      </button>
-                    } @else {
-                      <button
-                        type="button"
-                        class="btn btn-outline-secondary btn-sm"
-                        [disabled]="isCurrentUser(user) || updatingStatusId() === user.id"
-                        (click)="deactivateUser(user)">
-                        @if (updatingStatusId() === user.id) {
-                          <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
-                        } @else {
-                          <i class="bi bi-pause-circle me-1"></i>
-                        }
-                        {{ 'users.actions.deactivate' | translate }}
-                      </button>
-                    }
-
-                    <button type="button" class="btn btn-outline-primary btn-sm" (click)="openEditForm(user.id)">
-                      <i class="bi bi-pencil-square me-1"></i>
-                      {{ 'common.edit' | translate }}
-                    </button>
-
-                    <button
-                      type="button"
-                      class="btn btn-outline-danger btn-sm"
-                      [disabled]="isCurrentUser(user) || deletingId() === user.id"
-                      (click)="requestDelete(user)">
-                      @if (deletingId() === user.id) {
-                        <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
-                      } @else {
-                        <i class="bi bi-trash me-1"></i>
-                      }
-                      {{ 'common.delete' | translate }}
-                    </button>
-                  </div>
-                } @else {
-                  <span class="text-muted">—</span>
-                }
-              </td>
-            </tr>
-          }
-          </tbody>
-        </table>
-      </div>
-
-      <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 p-3 border-top">
-        <div class="d-flex align-items-center gap-2">
-          <span class="text-muted small">{{ 'common.rowsPerPage' | translate }}</span>
-          <select class="form-select form-select-sm w-auto" [ngModel]="size()" (ngModelChange)="changePageSize($event)">
-            <option value="5">5</option>
-            <option value="10">10</option>
-            <option value="20">20</option>
-            <option value="50">50</option>
-          </select>
-        </div>
-        <div class="d-flex align-items-center gap-3">
-          <span class="text-muted small">{{ pageLabel() }} · {{ totalElements() }} {{ 'common.total' | translate }}</span>
-          <div class="btn-group">
-            <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="first()" (click)="previousPage()">
-              {{ 'common.previous' | translate }}
-            </button>
-            <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="last()" (click)="nextPage()">
-              {{ 'common.next' | translate }}
-            </button>
-          </div>
-        </div>
-      </div>
-    }
+    </div>
   </div>
 </div>
 
@@ -234,7 +220,15 @@
   [loading]="saving()"
   [canAssignSuperAdmin]="canAssignSuperAdmin()"
   (save)="saveUser($event)"
-  (cancel)="closeForm()" />
+  (cancel)="closeForm()">
+</app-user-form-modal>
+
+<app-user-organization-memberships-modal
+  [open]="membershipsVisible()"
+  [user]="membershipUser()"
+  (changed)="onMembershipsChanged()"
+  (close)="closeMemberships()">
+</app-user-organization-memberships-modal>
 
 <app-confirm-modal
   [open]="!!userToDelete()"
@@ -245,4 +239,5 @@
   confirmButtonClass="btn-danger"
   [loading]="!!deletingId()"
   (confirm)="confirmDelete()"
-  (cancel)="cancelDelete()" />
+  (cancel)="cancelDelete()">
+</app-confirm-modal>

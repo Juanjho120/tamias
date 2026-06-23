@@ -1,0 +1,219 @@
+@if (open && user) {
+  <div class="modal d-block" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title mb-0">{{ 'userOrganizations.title' | translate }}</h5>
+            <p class="text-body-secondary mb-0">
+              {{ fullName(user) }} · {{ user.email }}
+            </p>
+          </div>
+          <button
+            type="button"
+            class="btn-close"
+            [attr.aria-label]="'common.close' | translate"
+            [disabled]="saving() || loadingData()"
+            (click)="closeModal()">
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div class="alert alert-info mb-4">
+            <strong>{{ 'userOrganizations.permissions.title' | translate }}</strong>
+            <div>{{ 'userOrganizations.permissions.description' | translate }}</div>
+          </div>
+
+          <section class="card mb-4">
+            <div class="card-header">
+              <h6 class="mb-0">{{ 'userOrganizations.assign.title' | translate }}</h6>
+            </div>
+            <div class="card-body">
+              <div class="row g-3 align-items-end">
+                <div class="col-12 col-lg-5">
+                  <label class="form-label" for="membershipOrganization">
+                    {{ 'userOrganizations.fields.organization' | translate }}
+                  </label>
+                  <select
+                    id="membershipOrganization"
+                    class="form-select"
+                    [(ngModel)]="selectedOrganizationId"
+                    [disabled]="saving() || loadingData() || availableOrganizations().length === 0">
+                    <option value="">{{ 'userOrganizations.assign.selectOrganization' | translate }}</option>
+                    @for (organization of availableOrganizations(); track organization.id) {
+                      <option [value]="organization.id">{{ organization.name }}</option>
+                    }
+                  </select>
+                  @if (availableOrganizations().length === 0) {
+                    <div class="form-text">{{ 'userOrganizations.assign.noAvailableOrganizations' | translate }}</div>
+                  }
+                </div>
+
+                <div class="col-12 col-lg-4">
+                  <label class="form-label" for="membershipRole">
+                    {{ 'userOrganizations.fields.role' | translate }}
+                  </label>
+                  <select
+                    id="membershipRole"
+                    class="form-select"
+                    [ngModel]="selectedRole"
+                    (ngModelChange)="updateSelectedRole($event)"
+                    [disabled]="saving() || loadingData()">
+                    @for (role of roles; track role) {
+                      <option [value]="role">{{ 'roles.' + role + '.label' | translate }}</option>
+                    }
+                  </select>
+                </div>
+
+                <div class="col-12 col-lg-3 d-grid">
+                  <button
+                    type="button"
+                    class="btn btn-primary"
+                    [disabled]="saving() || loadingData() || !selectedOrganizationId"
+                    (click)="addMembership()">
+                    @if (saving()) {
+                      <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+                    }
+                    {{ 'userOrganizations.actions.assign' | translate }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h6 class="mb-0">{{ 'userOrganizations.list.title' | translate }}</h6>
+              <span class="badge text-bg-secondary">{{ memberships().length }}</span>
+            </div>
+
+            <div class="card-body p-0">
+              @if (loadingData()) {
+                <div class="p-4 text-center text-body-secondary">
+                  <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+                  {{ 'userOrganizations.loading' | translate }}
+                </div>
+              } @else if (memberships().length === 0) {
+                <div class="p-4 text-center text-body-secondary">
+                  <h6>{{ 'userOrganizations.empty.title' | translate }}</h6>
+                  <p class="mb-0">{{ 'userOrganizations.empty.description' | translate }}</p>
+                </div>
+              } @else {
+                <div class="table-responsive">
+                  <table class="table align-middle mb-0">
+                    <thead>
+                      <tr>
+                        <th>{{ 'userOrganizations.table.organization' | translate }}</th>
+                        <th>{{ 'userOrganizations.table.role' | translate }}</th>
+                        <th>{{ 'userOrganizations.table.status' | translate }}</th>
+                        <th>{{ 'userOrganizations.table.updated' | translate }}</th>
+                        <th class="text-end">{{ 'userOrganizations.table.actions' | translate }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (membership of memberships(); track membership.organizationId) {
+                        <tr>
+                          <td>
+                            <div class="d-flex align-items-center gap-2">
+                              @if (membership.organizationLogoUrl) {
+                                <img
+                                  [src]="membership.organizationLogoUrl"
+                                  [alt]="membership.organizationName"
+                                  class="organization-logo-preview rounded border">
+                              } @else {
+                                <span class="organization-logo-fallback rounded-circle bg-primary-subtle text-primary fw-semibold d-inline-flex align-items-center justify-content-center">
+                                  {{ initials(membership.organizationName) }}
+                                </span>
+                              }
+                              <div>
+                                <div class="fw-semibold">{{ membership.organizationName }}</div>
+                                <div class="small text-body-secondary">{{ membership.organizationId }}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <select
+                              class="form-select form-select-sm"
+                              [ngModel]="roleDraft(membership)"
+                              [disabled]="saving() || deletingOrganizationId() === membership.organizationId"
+                              (ngModelChange)="updateRoleDraft(membership, $event)">
+                              @for (role of roles; track role) {
+                                <option [value]="role">{{ 'roles.' + role + '.label' | translate }}</option>
+                              }
+                            </select>
+                            <span class="badge mt-2" [ngClass]="roleBadgeClass(membership.role)">
+                              {{ 'roles.' + membership.role + '.label' | translate }}
+                            </span>
+                          </td>
+                          <td>
+                            <select
+                              class="form-select form-select-sm"
+                              [ngModel]="statusDraft(membership)"
+                              [disabled]="saving() || deletingOrganizationId() === membership.organizationId"
+                              (ngModelChange)="updateStatusDraft(membership, $event)">
+                              @for (status of statuses; track status) {
+                                <option [value]="status">{{ 'userOrganizations.status.' + status | translate }}</option>
+                              }
+                            </select>
+                            <span class="badge mt-2" [ngClass]="statusBadgeClass(membership.status)">
+                              {{ 'userOrganizations.status.' + membership.status | translate }}
+                            </span>
+                          </td>
+                          <td>{{ membership.updatedAt | date:'medium' }}</td>
+                          <td class="text-end">
+                            <div class="btn-group">
+                              <button
+                                type="button"
+                                class="btn btn-outline-primary btn-sm"
+                                [disabled]="saving() || !hasMembershipChanges(membership)"
+                                (click)="saveMembership(membership)">
+                                {{ 'common.save' | translate }}
+                              </button>
+                              <button
+                                type="button"
+                                class="btn btn-outline-danger btn-sm"
+                                [disabled]="saving() || deletingOrganizationId() === membership.organizationId"
+                                (click)="requestDelete(membership)">
+                                @if (deletingOrganizationId() === membership.organizationId) {
+                                  <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+                                }
+                                {{ 'common.delete' | translate }}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+            </div>
+          </section>
+        </div>
+
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            [disabled]="saving() || loadingData()"
+            (click)="closeModal()">
+            {{ 'common.close' | translate }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop show"></div>
+
+  <app-confirm-modal
+    [open]="!!membershipToDelete()"
+    title="userOrganizations.confirmDelete.title"
+    [message]="deleteMessage()"
+    confirmText="common.delete"
+    cancelText="common.cancel"
+    confirmButtonClass="btn-danger"
+    [loading]="!!deletingOrganizationId()"
+    (confirm)="confirmDelete()"
+    (cancel)="cancelDelete()">
+  </app-confirm-modal>
+}

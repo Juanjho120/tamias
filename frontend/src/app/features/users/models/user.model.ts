@@ -1,5 +1,8 @@
 export type RoleCode = 'SUPER_ADMIN' | 'ADMINISTRATOR' | 'PROPERTY_MANAGER' | 'MAINTENANCE_STAFF' | 'READ_ONLY';
+
 export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'INVITED' | 'LOCKED' | 'DELETED';
+
+export type UserOrganizationMembershipStatus = 'ACTIVE' | 'INACTIVE' | 'DELETED';
 
 export interface UserSummary {
   id: string;
@@ -21,6 +24,26 @@ export interface User {
   lastLoginAt: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface UserOrganizationMembership {
+  organizationId: string;
+  organizationName: string;
+  organizationLogoUrl: string | null;
+  role: RoleCode;
+  status: UserOrganizationMembershipStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserOrganizationMembershipCreateRequest {
+  organizationId: string;
+  role: RoleCode;
+}
+
+export interface UserOrganizationMembershipUpdateRequest {
+  role: RoleCode;
+  status: UserOrganizationMembershipStatus;
 }
 
 export interface UserCreateRequest {
@@ -62,4 +85,9 @@ export const USER_STATUSES: UserStatus[] = [
   'INACTIVE',
   'INVITED',
   'LOCKED'
+];
+
+export const USER_ORGANIZATION_MEMBERSHIP_STATUSES: UserOrganizationMembershipStatus[] = [
+  'ACTIVE',
+  'INACTIVE'
 ];

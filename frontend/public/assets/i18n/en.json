@@ -21,7 +21,8 @@
     "total": "total",
     "viewAll": "View all",
     "no": "No",
-    "yes": "Yes"
+    "yes": "Yes",
+    "save": "Save"
   },
   "status": {
     "ACTIVE": "Active",
@@ -1736,6 +1737,60 @@
       "loadError": "Unable to load available organizations.",
       "switched": "Organization changed successfully.",
       "switchError": "Unable to switch organization."
+    }
+  },
+  "userOrganizations": {
+    "title": "Organization memberships",
+    "loading": "Loading memberships...",
+    "permissions": {
+      "title": "SUPER_ADMIN control",
+      "description": "Only SUPER_ADMIN users can assign users to other organizations and define the role they will have in each one."
+    },
+    "fields": {
+      "organization": "Organization",
+      "role": "Role",
+      "status": "Status"
+    },
+    "assign": {
+      "title": "Assign new organization",
+      "selectOrganization": "Select an organization",
+      "noAvailableOrganizations": "This user already has a membership in all available active organizations."
+    },
+    "list": {
+      "title": "Assigned organizations"
+    },
+    "table": {
+      "organization": "Organization",
+      "role": "Role",
+      "status": "Status",
+      "updated": "Updated",
+      "actions": "Actions"
+    },
+    "actions": {
+      "memberships": "Memberships",
+      "assign": "Assign organization"
+    },
+    "status": {
+      "ACTIVE": "Active",
+      "INACTIVE": "Inactive",
+      "DELETED": "Deleted"
+    },
+    "empty": {
+      "title": "No memberships",
+      "description": "This user does not have assigned organizations yet."
+    },
+    "confirmDelete": {
+      "title": "Delete membership",
+      "message": "Delete membership for organization \"{{organization}}\"?"
+    },
+    "messages": {
+      "loadError": "Unable to load user memberships.",
+      "assigned": "Membership assigned successfully.",
+      "assignError": "Unable to assign organization.",
+      "updated": "Membership updated successfully.",
+      "updateError": "Unable to update membership.",
+      "deleted": "Membership deleted successfully.",
+      "deleteError": "Unable to delete membership."
     }
   }
 }

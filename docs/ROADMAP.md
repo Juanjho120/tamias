@@ -117,7 +117,7 @@ Product Box Models phase is complete for now.
 
 ### Phase 15 — Organization Administration and Global UX Polish
 
-Status: In progress through 15C.1.
+Status: In progress through 15C.2.
 
 Documentation: `93-organization-administration-global-ux-15.md`
 
@@ -128,7 +128,7 @@ Subphases:
 15B Organization administration page — Completed
 15C Organization switcher / multi-organization navigation — Completed
 15C.1 Global SUPER_ADMIN organization navigation — Completed
-15C.2 User organization memberships management — Planned
+15C.2 User organization memberships management — Completed
 15D Icon-only action buttons with tooltips — Planned
 15E TAMI branding and robot animation — Planned
 ```
@@ -137,10 +137,10 @@ Phase decisions:
 
 - Organizations must support logos.
 - The active organization logo must appear next to the selected organization name.
-- A SUPER_ADMIN role administers all organizations.
-- SUPER_ADMIN navigation is global across active organizations and must not depend on a membership row in every organization.
-- Only SUPER_ADMIN users can assign users to other organizations and define their role in each organization.
-- Organization ADMINISTRATOR users can edit only their current organization.
+- A `SUPER_ADMIN` role administers all organizations.
+- `SUPER_ADMIN` navigation is global across active organizations and must not depend on a membership row in every organization.
+- Only `SUPER_ADMIN` users can assign users to other organizations and define their role in each organization.
+- Organization `ADMINISTRATOR` users can edit only their current organization.
 - Organization switching must be secure and must not rely on a client-only organization id override.
 - Icon-only action buttons must use a shared reusable base for consistency, accessibility and tooltips.
 - The sidebar should show `TAMI` instead of `AI Assistant`.

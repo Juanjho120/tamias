@@ -6,16 +6,16 @@ import {
   User,
   UserCreateRequest,
   UserFilters,
+  UserOrganizationMembership,
+  UserOrganizationMembershipCreateRequest,
+  UserOrganizationMembershipUpdateRequest,
   UserSummary,
   UserUpdateRequest
 } from '../models/user.model';
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class UserService {
-  constructor(private readonly apiService: ApiService) {
-  }
+  constructor(private readonly apiService: ApiService) { }
 
   findAll(filters: UserFilters): Observable<PageResponse<UserSummary>> {
     return this.apiService.get<PageResponse<UserSummary>>('/users', {
@@ -39,5 +39,28 @@ export class UserService {
 
   delete(id: string): Observable<void> {
     return this.apiService.delete<void>(`/users/${id}`);
+  }
+
+  findOrganizationMemberships(userId: string): Observable<UserOrganizationMembership[]> {
+    return this.apiService.get<UserOrganizationMembership[]>(`/users/${userId}/organizations`);
+  }
+
+  createOrganizationMembership(
+    userId: string,
+    request: UserOrganizationMembershipCreateRequest
+  ): Observable<UserOrganizationMembership> {
+    return this.apiService.post<UserOrganizationMembership>(`/users/${userId}/organizations`, request);
+  }
+
+  updateOrganizationMembership(
+    userId: string,
+    organizationId: string,
+    request: UserOrganizationMembershipUpdateRequest
+  ): Observable<UserOrganizationMembership> {
+    return this.apiService.put<UserOrganizationMembership>(`/users/${userId}/organizations/${organizationId}`, request);
+  }
+
+  deleteOrganizationMembership(userId: string, organizationId: string): Observable<void> {
+    return this.apiService.delete<void>(`/users/${userId}/organizations/${organizationId}`);
   }
 }
