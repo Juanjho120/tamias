@@ -26,9 +26,7 @@ The implementation follows the existing handler → read-only service → reposi
 
 ### Orchestration hardening
 
-Product Box questions are structured operational questions, not document/RAG questions.
-
-The orchestration layer must treat `productBox.*` tools as deterministic backend tools:
+Product Box questions are structured operational questions, not document/RAG questions. The orchestration layer must treat `productBox.*` tools as deterministic backend tools:
 
 - `AiPlanningService` must respect Product Box tool hits before asking the LLM planner to choose a path.
 - `AiToolFallbackPolicy` must not send Product Box empty answers to RAG fallback.
@@ -64,6 +62,11 @@ The current Product Box schema already contains the fields needed for AI awarene
 - `product_box_model_faces.texture_status`
 - `product_box_model_faces.ai_enhancement_status`
 - `product_box_model_faces.active_texture_source`
+
+Inventory and purchase link answers also reuse the existing inventory brand relationship:
+
+- `inventory_items.brand_id`
+- `brands.name`
 
 ## Supported questions
 
@@ -142,25 +145,27 @@ Inventory link questions intentionally use a concise answer format:
 
 ```text
 Los modelos Product Box están asociados a los siguientes items de inventario:
-
-- <Product Box Model> | inventario: <Inventory Item>
+- <Product Box Model> | inventario: <Brand> <Inventory Item>
 ```
 
 Texture counts, face counts and AI statuses are not included in this answer because they belong to texture/status questions.
+
+If the inventory item name already contains the brand, the brand is not duplicated.
 
 ### Purchase awareness
 
 TAMI can list Product Box Models linked to purchase items using `purchase_items.item_name_snapshot` for the purchase item label.
 
-Purchase link questions intentionally use a concise answer format:
+When the purchase item is linked to an inventory item with a brand, the answer prepends that brand to the purchase item label and to the inventory label when shown:
 
 ```text
 Los modelos Product Box están asociados a los siguientes items de compra:
-
-- <Product Box Model> | compra: <Purchase Item> | inventario: <Inventory Item si existe>
+- <Product Box Model> | compra: <Brand> <Purchase Item> | inventario: <Brand> <Inventory Item>
 ```
 
 Generic wording such as `están asociados a compras` must not be treated as a search term. It should list all Product Box Models with `product_box_models.purchase_item_id` populated for the current organization.
+
+If the item name already contains the brand, the brand is not duplicated.
 
 ### Texture awareness
 
@@ -187,8 +192,8 @@ Crea un Product Box para el café.
 Expected behavior:
 
 - `Dame un resumen de Product Box Models.` returns a grounded answer with `productBox.summary` evidence.
-- `Qué items de inventario tienen Product Box?` returns a concise inventory-link answer with `productBox.inventoryLinks` evidence.
-- `Qué modelos Product Box están asociados a compras?` returns Product Box Models with populated `purchase_item_id` and `productBox.purchaseLinks` evidence.
+- `Qué items de inventario tienen Product Box?` returns a concise inventory-link answer with `productBox.inventoryLinks` evidence and brand + item labels.
+- `Qué modelos Product Box están asociados a compras?` returns Product Box Models with populated `purchase_item_id`, `productBox.purchaseLinks` evidence and brand + item labels when the purchase item has an inventory brand.
 - Product Box operational prompts do not fall back to the generic RAG no-information answer.
 - Texture/status prompts still return detailed texture metrics.
 - The creation prompt returns the read-only guard response.
@@ -203,5 +208,6 @@ Expected behavior:
 - Product Box empty responses do not attempt RAG fallback.
 - Product Box backend answers are returned as-is by answer composition.
 - Generic relation words such as `asociado`, `asociados`, `vinculado`, `relacionado` are not treated as search terms.
+- Inventory and purchase link answers concatenate brand + item name without duplicating the brand.
 - No Product Box write operation is executed from the assistant.
 - No Flyway migration is needed.

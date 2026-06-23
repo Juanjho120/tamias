@@ -32,7 +32,7 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
                         pbm.purchase_item_id,
                         COUNT(DISTINCT CASE
                             WHEN COALESCE(f.s3_key, f.original_s3_key, f.processed_s3_key, f.ai_enhanced_s3_key) IS NOT NULL
-                                THEN f.face_name
+                            THEN f.face_name
                         END) AS active_face_count,
                         COUNT(DISTINCT CASE WHEN f.original_s3_key IS NOT NULL THEN f.face_name END) AS original_texture_count,
                         COUNT(DISTINCT CASE WHEN f.processed_s3_key IS NOT NULL THEN f.face_name END) AS processed_texture_count,
@@ -80,16 +80,16 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
             );
         }
 
-        String answer = "Resumen de Product Box Models:"
-                + System.lineSeparator() + "- Modelos registrados: " + value(row.get("totalModels"))
-                + System.lineSeparator() + "- Asociados a inventario: " + value(row.get("inventoryLinkedModels"))
-                + System.lineSeparator() + "- Asociados a compras: " + value(row.get("purchaseLinkedModels"))
-                + System.lineSeparator() + "- Modelos completos: " + value(row.get("completeModels"))
-                + System.lineSeparator() + "- Modelos incompletos: " + value(row.get("incompleteModels"))
-                + System.lineSeparator() + "- Caras con textura activa: " + value(row.get("activeTextureFaces"))
-                + System.lineSeparator() + "- Caras con textura original: " + value(row.get("originalTextureFaces"))
-                + System.lineSeparator() + "- Caras con textura procesada: " + value(row.get("processedTextureFaces"))
-                + System.lineSeparator() + "- Caras con textura AI-enhanced: " + value(row.get("aiEnhancedTextureFaces"));
+        String answer = "Resumen de Product Box Models:" + System.lineSeparator()
+                + "- Modelos registrados: " + value(row.get("totalModels")) + System.lineSeparator()
+                + "- Asociados a inventario: " + value(row.get("inventoryLinkedModels")) + System.lineSeparator()
+                + "- Asociados a compras: " + value(row.get("purchaseLinkedModels")) + System.lineSeparator()
+                + "- Modelos completos: " + value(row.get("completeModels")) + System.lineSeparator()
+                + "- Modelos incompletos: " + value(row.get("incompleteModels")) + System.lineSeparator()
+                + "- Caras con textura activa: " + value(row.get("activeTextureFaces")) + System.lineSeparator()
+                + "- Caras con textura original: " + value(row.get("originalTextureFaces")) + System.lineSeparator()
+                + "- Caras con textura procesada: " + value(row.get("processedTextureFaces")) + System.lineSeparator()
+                + "- Caras con textura AI-enhanced: " + value(row.get("aiEnhancedTextureFaces"));
 
         return AiToolAnswer.of(
                 answer,
@@ -115,9 +115,13 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
                     unit,
                     inventory_item_id,
                     inventory_item_name,
+                    inventory_item_brand_name,
                     inventory_item_type,
                     purchase_item_id,
                     purchase_item_name,
+                    purchase_item_brand_name,
+                    purchase_inventory_item_name,
+                    purchase_inventory_item_brand_name,
                     purchase_item_purchased,
                     active_face_count,
                     (6 - active_face_count) AS missing_face_count,
@@ -131,20 +135,25 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
                 WHERE 1 = 1
                 """
         );
-
         if (search != null) {
             sql.append(
                     """
-                    AND translate(LOWER(CONCAT_WS(' ', model_name, description, inventory_item_name, purchase_item_name, CAST(model_id AS TEXT), CAST(purchase_item_id AS TEXT))), 'áéíóúüñ', 'aeiouun')
-                        LIKE CONCAT('%', :search, '%')
+                    AND translate(LOWER(CONCAT_WS(' ',
+                        model_name,
+                        description,
+                        inventory_item_name,
+                        inventory_item_brand_name,
+                        purchase_item_name,
+                        purchase_item_brand_name,
+                        purchase_inventory_item_name,
+                        purchase_inventory_item_brand_name,
+                        CAST(model_id AS TEXT),
+                        CAST(purchase_item_id AS TEXT)
+                    )), 'áéíóúüñ', 'aeiouun') LIKE CONCAT('%', :search, '%')
                     """
             );
         }
-
-        sql.append("""
-                ORDER BY updated_at DESC NULLS LAST, model_name ASC
-                LIMIT :limit
-                """);
+        sql.append(""" ORDER BY updated_at DESC NULLS LAST, model_name ASC LIMIT :limit """);
 
         List<Map<String, Object>> rows = query(
                 sql.toString(),
@@ -174,8 +183,8 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
     }
 
     public AiToolAnswer productBoxIncompleteModels() {
-        String sql = missingFacesSql()
-                + """
+        String sql = missingFacesSql() +
+                """
                 SELECT
                     ms.model_id,
                     ms.model_name,
@@ -186,9 +195,13 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
                     ms.unit,
                     ms.inventory_item_id,
                     ms.inventory_item_name,
+                    ms.inventory_item_brand_name,
                     ms.inventory_item_type,
                     ms.purchase_item_id,
                     ms.purchase_item_name,
+                    ms.purchase_item_brand_name,
+                    ms.purchase_inventory_item_name,
+                    ms.purchase_inventory_item_brand_name,
                     ms.purchase_item_purchased,
                     ms.active_face_count,
                     (6 - ms.active_face_count) AS missing_face_count,
@@ -221,9 +234,13 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
                 "unit",
                 "inventoryItemId",
                 "inventoryItemName",
+                "inventoryItemBrandName",
                 "inventoryItemType",
                 "purchaseItemId",
                 "purchaseItemName",
+                "purchaseItemBrandName",
+                "purchaseInventoryItemName",
+                "purchaseInventoryItemBrandName",
                 "purchaseItemPurchased",
                 "activeFaceCount",
                 "missingFaceCount",
@@ -276,9 +293,13 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
                     unit,
                     inventory_item_id,
                     inventory_item_name,
+                    inventory_item_brand_name,
                     inventory_item_type,
                     purchase_item_id,
                     purchase_item_name,
+                    purchase_item_brand_name,
+                    purchase_inventory_item_name,
+                    purchase_inventory_item_brand_name,
                     purchase_item_purchased,
                     active_face_count,
                     (6 - active_face_count) AS missing_face_count,
@@ -292,20 +313,20 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
                 WHERE inventory_item_id IS NOT NULL
                 """
         );
-
         if (search != null) {
             sql.append(
                     """
-                    AND translate(LOWER(CONCAT_WS(' ', model_name, inventory_item_name, inventory_item_type, description)), 'áéíóúüñ', 'aeiouun')
-                        LIKE CONCAT('%', :search, '%')
+                    AND translate(LOWER(CONCAT_WS(' ',
+                        model_name,
+                        inventory_item_name,
+                        inventory_item_brand_name,
+                        inventory_item_type,
+                        description
+                    )), 'áéíóúüñ', 'aeiouun') LIKE CONCAT('%', :search, '%')
                     """
             );
         }
-
-        sql.append("""
-                ORDER BY inventory_item_name ASC, model_name ASC
-                LIMIT :limit
-                """);
+        sql.append(""" ORDER BY inventory_item_brand_name ASC NULLS LAST, inventory_item_name ASC, model_name ASC LIMIT :limit """);
 
         List<Map<String, Object>> rows = query(
                 sql.toString(),
@@ -335,6 +356,7 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
                 SELECT
                     ii.id AS inventory_item_id,
                     ii.name AS inventory_item_name,
+                    b.name AS inventory_item_brand_name,
                     COALESCE(ii.description, '') AS description,
                     ii.item_type,
                     COALESCE(ii.unit, '') AS unit,
@@ -342,31 +364,29 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
                     ii.available_for_maintenance,
                     ii.available_for_reservations
                 FROM inventory_items ii
+                LEFT JOIN brands b
+                    ON b.id = ii.brand_id
+                   AND b.organization_id = ii.organization_id
+                   AND b.deleted_at IS NULL
                 WHERE ii.organization_id = :organizationId
                   AND ii.deleted_at IS NULL
                   AND NOT EXISTS (
-                    SELECT 1
-                    FROM product_box_models pbm
-                    WHERE pbm.organization_id = ii.organization_id
-                      AND pbm.inventory_item_id = ii.id
-                      AND pbm.deleted_at IS NULL
+                      SELECT 1
+                      FROM product_box_models pbm
+                      WHERE pbm.organization_id = ii.organization_id
+                        AND pbm.inventory_item_id = ii.id
+                        AND pbm.deleted_at IS NULL
                   )
                 """
         );
-
         if (search != null) {
             sql.append(
                     """
-                    AND translate(LOWER(CONCAT_WS(' ', ii.name, ii.description, ii.item_type, ii.unit)), 'áéíóúüñ', 'aeiouun')
-                        LIKE CONCAT('%', :search, '%')
+                    AND translate(LOWER(CONCAT_WS(' ', ii.name, b.name, ii.description, ii.item_type, ii.unit)), 'áéíóúüñ', 'aeiouun') LIKE CONCAT('%', :search, '%')
                     """
             );
         }
-
-        sql.append("""
-                ORDER BY ii.name ASC
-                LIMIT :limit
-                """);
+        sql.append(""" ORDER BY b.name ASC NULLS LAST, ii.name ASC LIMIT :limit """);
 
         List<Map<String, Object>> rows = query(
                 sql.toString(),
@@ -379,6 +399,7 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
                 },
                 "inventoryItemId",
                 "inventoryItemName",
+                "inventoryItemBrandName",
                 "description",
                 "itemType",
                 "unit",
@@ -400,7 +421,7 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
         StringBuilder answer = new StringBuilder("Estos items de inventario aún no tienen Product Box Model:");
         for (Map<String, Object> row : rows) {
             answer.append(System.lineSeparator())
-                    .append("- ").append(blankToDash(value(row.get("inventoryItemName"))))
+                    .append("- ").append(brandedItemName(row, "inventoryItemName", "inventoryItemBrandName"))
                     .append(" | tipo: ").append(blankToDash(value(row.get("itemType"))))
                     .append(" | unidad: ").append(blankToDash(value(row.get("unit"))));
         }
@@ -429,9 +450,13 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
                     unit,
                     inventory_item_id,
                     inventory_item_name,
+                    inventory_item_brand_name,
                     inventory_item_type,
                     purchase_item_id,
                     purchase_item_name,
+                    purchase_item_brand_name,
+                    purchase_inventory_item_name,
+                    purchase_inventory_item_brand_name,
                     purchase_item_purchased,
                     active_face_count,
                     (6 - active_face_count) AS missing_face_count,
@@ -445,20 +470,24 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
                 WHERE purchase_item_id IS NOT NULL
                 """
         );
-
         if (search != null) {
             sql.append(
                     """
-                    AND translate(LOWER(CONCAT_WS(' ', model_name, purchase_item_name, inventory_item_name, description, CAST(purchase_item_id AS TEXT))), 'áéíóúüñ', 'aeiouun')
-                        LIKE CONCAT('%', :search, '%')
+                    AND translate(LOWER(CONCAT_WS(' ',
+                        model_name,
+                        purchase_item_name,
+                        purchase_item_brand_name,
+                        inventory_item_name,
+                        inventory_item_brand_name,
+                        purchase_inventory_item_name,
+                        purchase_inventory_item_brand_name,
+                        description,
+                        CAST(purchase_item_id AS TEXT)
+                    )), 'áéíóúüñ', 'aeiouun') LIKE CONCAT('%', :search, '%')
                     """
             );
         }
-
-        sql.append("""
-                ORDER BY purchase_item_name ASC NULLS LAST, model_name ASC
-                LIMIT :limit
-                """);
+        sql.append(""" ORDER BY purchase_item_brand_name ASC NULLS LAST, purchase_item_name ASC NULLS LAST, model_name ASC LIMIT :limit """);
 
         List<Map<String, Object>> rows = query(
                 sql.toString(),
@@ -496,9 +525,13 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
                     unit,
                     inventory_item_id,
                     inventory_item_name,
+                    inventory_item_brand_name,
                     inventory_item_type,
                     purchase_item_id,
                     purchase_item_name,
+                    purchase_item_brand_name,
+                    purchase_inventory_item_name,
+                    purchase_inventory_item_brand_name,
                     purchase_item_purchased,
                     active_face_count,
                     (6 - active_face_count) AS missing_face_count,
@@ -515,20 +548,25 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
                    OR active_face_count > 0
                 """
         );
-
         if (search != null) {
             sql.append(
                     """
-                    AND translate(LOWER(CONCAT_WS(' ', model_name, inventory_item_name, purchase_item_name, texture_statuses, ai_statuses, active_texture_sources)), 'áéíóúüñ', 'aeiouun')
-                        LIKE CONCAT('%', :search, '%')
+                    AND translate(LOWER(CONCAT_WS(' ',
+                        model_name,
+                        inventory_item_name,
+                        inventory_item_brand_name,
+                        purchase_item_name,
+                        purchase_item_brand_name,
+                        purchase_inventory_item_name,
+                        purchase_inventory_item_brand_name,
+                        texture_statuses,
+                        ai_statuses,
+                        active_texture_sources
+                    )), 'áéíóúüñ', 'aeiouun') LIKE CONCAT('%', :search, '%')
                     """
             );
         }
-
-        sql.append("""
-                ORDER BY ai_enhanced_texture_count DESC, processed_texture_count DESC, original_texture_count DESC, model_name ASC
-                LIMIT :limit
-                """);
+        sql.append(""" ORDER BY ai_enhanced_texture_count DESC, processed_texture_count DESC, original_texture_count DESC, model_name ASC LIMIT :limit """);
 
         List<Map<String, Object>> rows = query(
                 sql.toString(),
@@ -640,12 +678,12 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
                 .append("/")
                 .append(blankToDash(value(row.get("aiEnhancedTextureCount"))));
 
-        String inventoryName = value(row.get("inventoryItemName"));
+        String inventoryName = brandedItemName(row, "inventoryItemName", "inventoryItemBrandName");
         if (!inventoryName.isBlank()) {
             answer.append(" | inventario: ").append(inventoryName);
         }
 
-        String purchaseName = value(row.get("purchaseItemName"));
+        String purchaseName = purchaseItemDisplayName(row);
         if (!purchaseName.isBlank()) {
             answer.append(" | compra: ").append(purchaseName);
         }
@@ -664,11 +702,11 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
     private void appendInventoryLinkRow(StringBuilder answer, Map<String, Object> row) {
         answer.append(System.lineSeparator())
                 .append("- ").append(blankToDash(value(row.get("modelName"))))
-                .append(" | inventario: ").append(blankToDash(value(row.get("inventoryItemName"))));
+                .append(" | inventario: ").append(blankToDash(brandedItemName(row, "inventoryItemName", "inventoryItemBrandName")));
     }
 
     private void appendPurchaseLinkRow(StringBuilder answer, Map<String, Object> row) {
-        String purchaseName = value(row.get("purchaseItemName"));
+        String purchaseName = purchaseItemDisplayName(row);
         if (purchaseName.isBlank()) {
             purchaseName = value(row.get("purchaseItemId"));
         }
@@ -677,10 +715,45 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
                 .append("- ").append(blankToDash(value(row.get("modelName"))))
                 .append(" | compra: ").append(blankToDash(purchaseName));
 
-        String inventoryName = value(row.get("inventoryItemName"));
+        String inventoryName = purchaseInventoryDisplayName(row);
         if (!inventoryName.isBlank()) {
             answer.append(" | inventario: ").append(inventoryName);
         }
+    }
+
+    private String purchaseItemDisplayName(Map<String, Object> row) {
+        return brandedName(value(row.get("purchaseItemName")), value(row.get("purchaseItemBrandName")));
+    }
+
+    private String purchaseInventoryDisplayName(Map<String, Object> row) {
+        String purchaseInventoryName = brandedName(
+                value(row.get("purchaseInventoryItemName")),
+                value(row.get("purchaseInventoryItemBrandName"))
+        );
+        if (!purchaseInventoryName.isBlank()) {
+            return purchaseInventoryName;
+        }
+        return brandedItemName(row, "inventoryItemName", "inventoryItemBrandName");
+    }
+
+    private String brandedItemName(Map<String, Object> row, String itemNameKey, String brandNameKey) {
+        return brandedName(value(row.get(itemNameKey)), value(row.get(brandNameKey)));
+    }
+
+    private String brandedName(String itemName, String brandName) {
+        String item = value(itemName).trim();
+        String brand = value(brandName).trim();
+
+        if (item.isBlank()) {
+            return "";
+        }
+        if (brand.isBlank()) {
+            return item;
+        }
+        if (normalizeForSearch(item).contains(normalizeForSearch(brand))) {
+            return item;
+        }
+        return brand + " " + item;
     }
 
     private String dimensions(Map<String, Object> row) {
@@ -706,14 +779,18 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
                         pbm.unit,
                         pbm.inventory_item_id,
                         ii.name AS inventory_item_name,
+                        ib.name AS inventory_item_brand_name,
                         ii.item_type AS inventory_item_type,
                         pbm.purchase_item_id,
                         pi.item_name_snapshot AS purchase_item_name,
+                        pib.name AS purchase_item_brand_name,
+                        pii.name AS purchase_inventory_item_name,
+                        pib.name AS purchase_inventory_item_brand_name,
                         pi.purchased AS purchase_item_purchased,
                         pbm.updated_at,
                         COUNT(DISTINCT CASE
                             WHEN COALESCE(f.s3_key, f.original_s3_key, f.processed_s3_key, f.ai_enhanced_s3_key) IS NOT NULL
-                                THEN f.face_name
+                            THEN f.face_name
                         END) AS active_face_count,
                         COUNT(DISTINCT CASE WHEN f.original_s3_key IS NOT NULL THEN f.face_name END) AS original_texture_count,
                         COUNT(DISTINCT CASE WHEN f.processed_s3_key IS NOT NULL THEN f.face_name END) AS processed_texture_count,
@@ -726,9 +803,21 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
                         ON ii.id = pbm.inventory_item_id
                        AND ii.organization_id = pbm.organization_id
                        AND ii.deleted_at IS NULL
+                    LEFT JOIN brands ib
+                        ON ib.id = ii.brand_id
+                       AND ib.organization_id = ii.organization_id
+                       AND ib.deleted_at IS NULL
                     LEFT JOIN purchase_items pi
                         ON pi.id = pbm.purchase_item_id
                        AND pi.organization_id = pbm.organization_id
+                    LEFT JOIN inventory_items pii
+                        ON pii.id = pi.inventory_item_id
+                       AND pii.organization_id = pi.organization_id
+                       AND pii.deleted_at IS NULL
+                    LEFT JOIN brands pib
+                        ON pib.id = COALESCE(pii.brand_id, ii.brand_id)
+                       AND pib.organization_id = pbm.organization_id
+                       AND pib.deleted_at IS NULL
                     LEFT JOIN product_box_model_faces f
                         ON f.product_box_model_id = pbm.id
                        AND f.organization_id = pbm.organization_id
@@ -744,9 +833,12 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
                         pbm.unit,
                         pbm.inventory_item_id,
                         ii.name,
+                        ib.name,
                         ii.item_type,
                         pbm.purchase_item_id,
                         pi.item_name_snapshot,
+                        pib.name,
+                        pii.name,
                         pi.purchased,
                         pbm.updated_at
                 )
@@ -775,14 +867,18 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
                         pbm.unit,
                         pbm.inventory_item_id,
                         ii.name AS inventory_item_name,
+                        ib.name AS inventory_item_brand_name,
                         ii.item_type AS inventory_item_type,
                         pbm.purchase_item_id,
                         pi.item_name_snapshot AS purchase_item_name,
+                        pib.name AS purchase_item_brand_name,
+                        pii.name AS purchase_inventory_item_name,
+                        pib.name AS purchase_inventory_item_brand_name,
                         pi.purchased AS purchase_item_purchased,
                         pbm.updated_at,
                         COUNT(DISTINCT CASE
                             WHEN COALESCE(f.s3_key, f.original_s3_key, f.processed_s3_key, f.ai_enhanced_s3_key) IS NOT NULL
-                                THEN f.face_name
+                            THEN f.face_name
                         END) AS active_face_count,
                         COUNT(DISTINCT CASE WHEN f.original_s3_key IS NOT NULL THEN f.face_name END) AS original_texture_count,
                         COUNT(DISTINCT CASE WHEN f.processed_s3_key IS NOT NULL THEN f.face_name END) AS processed_texture_count,
@@ -795,9 +891,21 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
                         ON ii.id = pbm.inventory_item_id
                        AND ii.organization_id = pbm.organization_id
                        AND ii.deleted_at IS NULL
+                    LEFT JOIN brands ib
+                        ON ib.id = ii.brand_id
+                       AND ib.organization_id = ii.organization_id
+                       AND ib.deleted_at IS NULL
                     LEFT JOIN purchase_items pi
                         ON pi.id = pbm.purchase_item_id
                        AND pi.organization_id = pbm.organization_id
+                    LEFT JOIN inventory_items pii
+                        ON pii.id = pi.inventory_item_id
+                       AND pii.organization_id = pi.organization_id
+                       AND pii.deleted_at IS NULL
+                    LEFT JOIN brands pib
+                        ON pib.id = COALESCE(pii.brand_id, ii.brand_id)
+                       AND pib.organization_id = pbm.organization_id
+                       AND pib.deleted_at IS NULL
                     LEFT JOIN product_box_model_faces f
                         ON f.product_box_model_id = pbm.id
                        AND f.organization_id = pbm.organization_id
@@ -813,9 +921,12 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
                         pbm.unit,
                         pbm.inventory_item_id,
                         ii.name,
+                        ib.name,
                         ii.item_type,
                         pbm.purchase_item_id,
                         pi.item_name_snapshot,
+                        pib.name,
+                        pii.name,
                         pi.purchased,
                         pbm.updated_at
                 ),
@@ -846,9 +957,13 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
                 "unit",
                 "inventoryItemId",
                 "inventoryItemName",
+                "inventoryItemBrandName",
                 "inventoryItemType",
                 "purchaseItemId",
                 "purchaseItemName",
+                "purchaseItemBrandName",
+                "purchaseInventoryItemName",
+                "purchaseInventoryItemBrandName",
                 "purchaseItemPurchased",
                 "activeFaceCount",
                 "missingFaceCount",
@@ -876,11 +991,9 @@ public class ProductBoxToolRepository extends AiReadOnlyToolSupport {
                 " "
         );
         search = search.replaceAll("\\s+", " ").trim();
-
         if (search.length() > 120) {
             search = search.substring(0, 120).trim();
         }
-
         return nullableSearch(search);
     }
 
