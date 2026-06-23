@@ -3,14 +3,18 @@ import { computed, Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, Observable, tap, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { AuthUser, LoginRequest, LoginResponse } from '../models/auth.models';
+import {
+  AuthOrganizationOption,
+  AuthUser,
+  LoginRequest,
+  LoginResponse,
+  SwitchOrganizationRequest
+} from '../models/auth.models';
 
 const TOKEN_KEY = 'tamias_access_token';
 const USER_KEY = 'tamias_user';
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly apiUrl = `${environment.apiBaseUrl}/auth`;
   private readonly tokenSignal = signal<string | null>(localStorage.getItem(TOKEN_KEY));
@@ -24,8 +28,7 @@ export class AuthService {
   constructor(
     private readonly http: HttpClient,
     private readonly router: Router
-  ) {
-  }
+  ) { }
 
   login(request: LoginRequest): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(`${this.apiUrl}/login`, request)
@@ -33,6 +36,16 @@ export class AuthService {
         tap((response) => this.setSession(response)),
         catchError((error) => throwError(() => error))
       );
+  }
+
+  listOrganizations(): Observable<AuthOrganizationOption[]> {
+    return this.http.get<AuthOrganizationOption[]>(`${this.apiUrl}/organizations`);
+  }
+
+  switchOrganization(organizationId: string): Observable<LoginResponse> {
+    const request: SwitchOrganizationRequest = { organizationId };
+    return this.http.post<LoginResponse>(`${this.apiUrl}/switch-organization`, request)
+      .pipe(tap((response) => this.setSession(response)));
   }
 
   logout(): void {
@@ -53,15 +66,17 @@ export class AuthService {
   }
 
   private setSession(response: LoginResponse): void {
-    localStorage.setItem(TOKEN_KEY, response.accessToken);
+    if (response.accessToken) {
+      localStorage.setItem(TOKEN_KEY, response.accessToken);
+      this.tokenSignal.set(response.accessToken);
+    }
+
     localStorage.setItem(USER_KEY, JSON.stringify(response.user));
-    this.tokenSignal.set(response.accessToken);
     this.userSignal.set(response.user);
   }
 
   private readStoredUser(): AuthUser | null {
     const rawUser = localStorage.getItem(USER_KEY);
-
     if (!rawUser) {
       return null;
     }

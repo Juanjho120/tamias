@@ -16,6 +16,18 @@ export interface AuthOrganization {
   logoUrl: string | null;
 }
 
+export interface AuthOrganizationOption {
+  id: string;
+  name: string;
+  role: AuthRoleCode;
+  logoUrl: string | null;
+  current: boolean;
+}
+
+export interface SwitchOrganizationRequest {
+  organizationId: string;
+}
+
 export interface AuthUser {
   id: string;
   firstName: string;
@@ -27,7 +39,7 @@ export interface AuthUser {
 }
 
 export interface LoginResponse {
-  accessToken: string;
+  accessToken: string | null;
   tokenType: string;
   expiresIn: number;
   user: AuthUser;

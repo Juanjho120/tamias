@@ -1,10 +1,14 @@
 import { NgClass } from '@angular/common';
-import { Component, computed, inject } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
+import { ApiError } from '../../core/models/api-error.model';
+import { AuthOrganizationOption } from '../../core/models/auth.models';
+import { LanguageService } from '../../core/i18n/language.service';
 import { AuthService } from '../../core/services/auth.service';
 import { LanguageSwitcherComponent } from '../../shared/language-switcher/language-switcher.component';
 import { ToastContainerComponent } from '../../shared/toast/toast-container.component';
+import { ToastService } from '../../shared/toast/toast.service';
 
 interface MenuItem {
   labelKey: string;
@@ -32,39 +36,58 @@ interface BootstrapOffcanvasApi {
   templateUrl: './main-layout.component.html',
   styles: [
     `
-      .organization-logo,
-      .organization-logo-fallback {
-        width: 34px;
-        height: 34px;
-        min-width: 34px;
-        border-radius: 0.6rem;
-      }
+    .organization-logo,
+    .organization-logo-fallback {
+      width: 34px;
+      height: 34px;
+      min-width: 34px;
+      border-radius: 0.6rem;
+    }
 
-      .organization-logo {
-        object-fit: cover;
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        background: #fff;
-      }
+    .organization-logo {
+      object-fit: cover;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      background: #fff;
+    }
 
-      .organization-logo-fallback {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border: 1px solid rgba(13, 110, 253, 0.18);
-        background: rgba(13, 110, 253, 0.08);
-        color: #0d6efd;
-        font-size: 0.72rem;
-        font-weight: 700;
-        letter-spacing: 0.02em;
-        text-transform: uppercase;
-      }
+    .organization-logo-fallback {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(13, 110, 253, 0.18);
+      background: rgba(13, 110, 253, 0.08);
+      color: #0d6efd;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    .organization-switcher {
+      min-width: 180px;
+      max-width: 260px;
+    }
+
+    .organization-switcher .form-select {
+      min-height: 31px;
+      padding-top: 0.2rem;
+      padding-bottom: 0.2rem;
+      font-size: 0.8125rem;
+    }
     `
   ]
 })
-export class MainLayoutComponent {
+export class MainLayoutComponent implements OnInit {
   private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
+  private readonly toastService = inject(ToastService);
+  private readonly languageService = inject(LanguageService);
 
   readonly user = this.authService.currentUser;
+  readonly organizationOptions = signal<AuthOrganizationOption[]>([]);
+  readonly loadingOrganizations = signal(false);
+  readonly switchingOrganization = signal(false);
+  readonly selectedOrganizationId = signal<string>('');
 
   readonly displayName = computed(() => {
     const user = this.user();
@@ -97,6 +120,7 @@ export class MainLayoutComponent {
   readonly isSuperAdmin = computed(() => this.user()?.role === 'SUPER_ADMIN');
   readonly canManageOrganizations = computed(() => this.isSuperAdmin());
   readonly canManageUsers = computed(() => this.isAdministrator() || this.isSuperAdmin());
+  readonly canSwitchOrganizations = computed(() => this.organizationOptions().length > 1);
 
   readonly menuItems = computed(() => {
     const items: MenuItem[] = [
@@ -125,6 +149,57 @@ export class MainLayoutComponent {
     return items;
   });
 
+  ngOnInit(): void {
+    this.selectedOrganizationId.set(this.user()?.organization?.id ?? '');
+    this.loadOrganizationOptions();
+  }
+
+  loadOrganizationOptions(): void {
+    if (!this.user()) {
+      return;
+    }
+
+    this.loadingOrganizations.set(true);
+    this.authService.listOrganizations().subscribe({
+      next: (organizations) => {
+        this.organizationOptions.set(organizations);
+        const currentOrganization = organizations.find((organization) => organization.current);
+        this.selectedOrganizationId.set(currentOrganization?.id ?? this.user()?.organization?.id ?? '');
+        this.loadingOrganizations.set(false);
+      },
+      error: (error: unknown) => {
+        this.loadingOrganizations.set(false);
+        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('organizationSwitcher.messages.loadError')));
+      }
+    });
+  }
+
+  switchOrganization(event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    const organizationId = select.value;
+
+    if (!organizationId || organizationId === this.user()?.organization?.id || this.switchingOrganization()) {
+      this.selectedOrganizationId.set(this.user()?.organization?.id ?? '');
+      return;
+    }
+
+    this.switchingOrganization.set(true);
+    this.authService.switchOrganization(organizationId).subscribe({
+      next: () => {
+        this.selectedOrganizationId.set(organizationId);
+        this.switchingOrganization.set(false);
+        this.toastService.success(this.languageService.instant('organizationSwitcher.messages.switched'));
+        this.loadOrganizationOptions();
+        this.router.navigateByUrl('/dashboard');
+      },
+      error: (error: unknown) => {
+        this.switchingOrganization.set(false);
+        this.selectedOrganizationId.set(this.user()?.organization?.id ?? '');
+        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('organizationSwitcher.messages.switchError')));
+      }
+    });
+  }
+
   closeMobileSidebar(): void {
     const sidebarElement = document.getElementById('mobileSidebar');
     if (!sidebarElement) {
@@ -148,5 +223,10 @@ export class MainLayoutComponent {
 
   logout(): void {
     this.authService.logout();
+  }
+
+  private extractErrorMessage(error: unknown, fallback: string): string {
+    const maybeHttpError = error as { error?: ApiError };
+    return maybeHttpError.error?.message ?? fallback;
   }
 }

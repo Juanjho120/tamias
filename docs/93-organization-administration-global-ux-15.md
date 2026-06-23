@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress through 15B.
+In progress through 15C.
 
 ## Purpose
 
@@ -105,7 +105,7 @@ Add a UI to administer organizations with different behavior for `SUPER_ADMIN` a
 
 ### Status
 
-Planned.
+Completed.
 
 ### Goal
 
@@ -113,19 +113,20 @@ Allow users who belong to more than one organization to change the active organi
 
 ### Backend scope
 
-- Add an endpoint to list the authenticated user's active organizations.
-- Add an endpoint to switch the active organization.
+- Add `GET /api/v1/auth/organizations` to list the authenticated user's active organizations.
+- Add `POST /api/v1/auth/switch-organization` to switch the active organization.
 - Validate that the user belongs to the target organization and that both the membership and organization are active.
 - Return an updated authenticated session/token for the selected organization.
+- Keep `/api/v1/auth/me` aligned with the organization id present in the active JWT.
 - Do not rely on a client-only `organizationId` override.
 
 ### Frontend scope
 
 - Add an organization switcher to the main layout/header.
-- Show organization names and logos when available.
+- Show organization names and the current organization logo when available.
 - Switch session context when the user selects another organization.
 - Refresh current user/session state after switching.
-- Clear or reload organization-scoped screen state after switching.
+- Navigate to `/dashboard` after switching to clear organization-scoped screen state.
 
 ### Security notes
 

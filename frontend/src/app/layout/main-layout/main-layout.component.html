@@ -64,7 +64,28 @@
 
             <div>
               <div class="fw-semibold">{{ displayName() }}</div>
-              <div class="small text-muted">{{ user()?.organization?.name }}</div>
+
+              @if (canSwitchOrganizations()) {
+                <div class="organization-switcher">
+                  <label class="visually-hidden" for="organizationSwitcher">
+                    {{ 'organizationSwitcher.label' | translate }}
+                  </label>
+                  <select
+                    id="organizationSwitcher"
+                    class="form-select form-select-sm"
+                    [value]="selectedOrganizationId()"
+                    [disabled]="loadingOrganizations() || switchingOrganization()"
+                    (change)="switchOrganization($event)">
+                    @for (organization of organizationOptions(); track organization.id) {
+                      <option [value]="organization.id">
+                        {{ organization.name }}
+                      </option>
+                    }
+                  </select>
+                </div>
+              } @else {
+                <div class="small text-muted">{{ user()?.organization?.name }}</div>
+              }
             </div>
           </div>
 
