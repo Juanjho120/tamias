@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress through 15C.
+In progress through 15C.1.
 
 ## Purpose
 
@@ -18,6 +18,8 @@ This phase continues the SaaS foundation already present in TAMIAS and improves 
 - Organization `ADMINISTRATOR` users can edit only their current organization.
 - Users who belong to more than one organization must be able to switch the active organization from the UI.
 - Organization switching must be validated server-side and must issue/update the authenticated session context.
+- `SUPER_ADMIN` is global: a user with at least one active usable `SUPER_ADMIN` membership can navigate every active organization without requiring a membership row in each organization.
+- Only `SUPER_ADMIN` users can assign users to other organizations and define the role they will have there.
 - Action buttons in tables and modals should be icon-only with accessible labels and tooltips.
 - The icon button behavior must come from a reusable base/component, not repeated one-off classes.
 - The AI Assistant navigation label should be `TAMI`.
@@ -69,6 +71,7 @@ Add a UI to administer organizations with different behavior for `SUPER_ADMIN` a
 
 - Can view and administer all organizations.
 - Can create, update, activate/deactivate and edit organization logo data.
+- Can assign the `SUPER_ADMIN` role to users.
 
 #### Organization ADMINISTRATOR
 
@@ -77,6 +80,7 @@ Add a UI to administer organizations with different behavior for `SUPER_ADMIN` a
 - Cannot access or modify other organizations.
 - Cannot create, activate or deactivate organizations.
 - Cannot assign `SUPER_ADMIN` through user management.
+- Cannot see `SUPER_ADMIN` in user role selectors.
 
 ### Backend scope
 
@@ -105,7 +109,7 @@ Add a UI to administer organizations with different behavior for `SUPER_ADMIN` a
 
 ### Status
 
-Completed.
+Completed and extended by 15C.1.
 
 ### Goal
 
@@ -115,7 +119,7 @@ Allow users who belong to more than one organization to change the active organi
 
 - Add `GET /api/v1/auth/organizations` to list the authenticated user's active organizations.
 - Add `POST /api/v1/auth/switch-organization` to switch the active organization.
-- Validate that the user belongs to the target organization and that both the membership and organization are active.
+- Validate that normal users belong to the target organization and that both the membership and organization are active.
 - Return an updated authenticated session/token for the selected organization.
 - Keep `/api/v1/auth/me` aligned with the organization id present in the active JWT.
 - Do not rely on a client-only `organizationId` override.
@@ -131,6 +135,59 @@ Allow users who belong to more than one organization to change the active organi
 ### Security notes
 
 The active organization must be resolved by the backend from the authenticated context. A frontend-only selected organization id is not sufficient for authorization.
+
+## 15C.1 — Global SUPER_ADMIN organization navigation
+
+### Status
+
+Completed.
+
+### Goal
+
+Allow a user with at least one active usable `SUPER_ADMIN` membership to navigate all active organizations without requiring an explicit membership in each one.
+
+### Backend scope
+
+- Detect global `SUPER_ADMIN` from active usable memberships.
+- Return every active non-deleted organization from `GET /api/v1/auth/organizations` for global `SUPER_ADMIN` users.
+- Allow `POST /api/v1/auth/switch-organization` to switch global `SUPER_ADMIN` users into any active non-deleted organization.
+- Issue switched tokens with role `SUPER_ADMIN` for global `SUPER_ADMIN` users.
+- Keep normal users restricted to explicit active memberships.
+- Prefer a `SUPER_ADMIN` membership as the default login context when available.
+
+### Non-goals
+
+- Do not implement user membership assignment here.
+- Do not let organization administrators bypass membership restrictions.
+
+## 15C.2 — User organization memberships management
+
+### Status
+
+Planned.
+
+### Goal
+
+Allow only `SUPER_ADMIN` users to assign users to other organizations and define the role they will have in each organization.
+
+### Backend scope
+
+Add endpoints under the existing users backend area, protected with `SUPER_ADMIN` only:
+
+```http
+GET /api/v1/users/{userId}/organizations
+POST /api/v1/users/{userId}/organizations
+PUT /api/v1/users/{userId}/organizations/{organizationId}
+DELETE /api/v1/users/{userId}/organizations/{organizationId}
+```
+
+### Rules
+
+- Only `SUPER_ADMIN` can manage multi-organization memberships.
+- `ADMINISTRATOR` cannot see or use these controls.
+- `SUPER_ADMIN` can assign any role, including `SUPER_ADMIN`.
+- Prevent a user from accidentally removing their last usable `SUPER_ADMIN` access.
+- Normal user creation/update remains scoped to the active organization.
 
 ## 15D — Icon-only action buttons with tooltips
 
@@ -222,6 +279,7 @@ Old future 17 Blueprint Analysis -> New future 18 Blueprint Analysis
 - Reports, Notifications and Blueprint Analysis are moved to phases 16, 17 and 18.
 - Subphases 15A through 15E are documented.
 - Security decisions for `SUPER_ADMIN` vs organization `ADMINISTRATOR` are documented.
-- Organization switcher security expectations are documented.
+- Global `SUPER_ADMIN` navigation expectations are documented.
+- Organization membership management is separated into 15C.2.
 - Icon-only button accessibility expectations are documented.
 - TAMI robot animation lifecycle expectations are documented.

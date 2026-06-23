@@ -1729,5 +1729,13 @@
       "logoUploadError": "Unable to upload logo.",
       "logoDeleteError": "Unable to delete logo."
     }
+  },
+  "organizationSwitcher": {
+    "label": "Switch organization",
+    "messages": {
+      "loadError": "Unable to load available organizations.",
+      "switched": "Organization changed successfully.",
+      "switchError": "Unable to switch organization."
+    }
   }
 }

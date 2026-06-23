@@ -1728,5 +1728,13 @@
       "logoUploadError": "No se pudo subir el logo.",
       "logoDeleteError": "No se pudo eliminar el logo."
     }
+  },
+  "organizationSwitcher": {
+    "label": "Cambiar organización",
+    "messages": {
+      "loadError": "No se pudieron cargar las organizaciones disponibles.",
+      "switched": "Organización cambiada correctamente.",
+      "switchError": "No se pudo cambiar la organización."
+    }
   }
 }

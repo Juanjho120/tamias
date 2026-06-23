@@ -1,39 +1,49 @@
 # TAMIAS — Roadmap
 
-This roadmap reflects the current state after AI tool calling/orchestration, S3/image hard-delete work, inventory brand/image work, AI debug traces, smoke-test hardening, Product Box Models through AI awareness and Phase 15 planning.
+This roadmap reflects the current state after AI tool calling/orchestration, S3/image hard-delete work, inventory brand/image work, AI debug traces, smoke-test hardening, Product Box Models through AI awareness and Phase 15 organization/global UX work.
 
 ## Completed foundation
 
 ### Phase 0 — Project Setup
+
 Status: Completed.
 
 ### Phase 1 — Security and SaaS Foundation
+
 Status: Completed / MVP-ready.
 
 ### Phase 2 — Properties and Catalogs
+
 Status: Completed / MVP-ready.
 
 ### Phase 3 — Maintenance
+
 Status: Completed / MVP-ready.
 
 ### Phase 4 — Reservations and Tasks
+
 Status: Completed / MVP-ready.
 
 ### Phase 5 — Purchase Lists
+
 Status: Completed / MVP-ready.
 
 ### Phase 6 — Documents
+
 Status: Completed / MVP-ready.
 
 ### Phase 7 — AI Document Search
+
 Status: Completed / MVP-ready.
 
 ### Phase 8 — MVP Hardening
+
 Status: Completed / partially superseded by security review phases.
 
 ## Completed AI tool calling and orchestration track
 
 ### Phase 9 — AI Tool Calling and AI Orchestration
+
 Status: Completed through 9P-H.
 
 Completed sub-phases:
@@ -64,6 +74,7 @@ Completed sub-phases:
 ```
 
 ### 9P-I — RAG retrieval tuning
+
 Status: Conditional / optional / not started.
 
 ## Completed implementation queue after initial MVP
@@ -73,6 +84,7 @@ Phases 10A through 13A are completed and documented in their corresponding `.md`
 ## Completed Product Box Models phase
 
 ### Phase 14 — Product Box Models
+
 Status: Completed through 14P.
 
 Documentation: `71-product-box-models-14.md`
@@ -104,7 +116,8 @@ Product Box Models phase is complete for now.
 ## Current implementation queue
 
 ### Phase 15 — Organization Administration and Global UX Polish
-Status: In progress through 15C.
+
+Status: In progress through 15C.1.
 
 Documentation: `93-organization-administration-global-ux-15.md`
 
@@ -114,6 +127,8 @@ Subphases:
 15A Organization logo backend + current organization header — Completed
 15B Organization administration page — Completed
 15C Organization switcher / multi-organization navigation — Completed
+15C.1 Global SUPER_ADMIN organization navigation — Completed
+15C.2 User organization memberships management — Planned
 15D Icon-only action buttons with tooltips — Planned
 15E TAMI branding and robot animation — Planned
 ```
@@ -122,9 +137,10 @@ Phase decisions:
 
 - Organizations must support logos.
 - The active organization logo must appear next to the selected organization name.
-- A SUPER-ADMIN role will be introduced to administer all organizations.
+- A SUPER_ADMIN role administers all organizations.
+- SUPER_ADMIN navigation is global across active organizations and must not depend on a membership row in every organization.
+- Only SUPER_ADMIN users can assign users to other organizations and define their role in each organization.
 - Organization ADMINISTRATOR users can edit only their current organization.
-- Users who belong to multiple organizations must be able to switch the active organization from the UI.
 - Organization switching must be secure and must not rely on a client-only organization id override.
 - Icon-only action buttons must use a shared reusable base for consistency, accessibility and tooltips.
 - The sidebar should show `TAMI` instead of `AI Assistant`.

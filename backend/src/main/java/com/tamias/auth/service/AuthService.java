@@ -10,10 +10,12 @@ import com.tamias.common.exception.NotFoundException;
 import com.tamias.document.storage.FileStorageService;
 import com.tamias.organization.entity.Organization;
 import com.tamias.organization.enums.OrganizationStatus;
+import com.tamias.organization.repository.OrganizationRepository;
 import com.tamias.security.jwt.JwtTokenProvider;
 import com.tamias.security.model.AuthenticatedUser;
 import com.tamias.user.entity.User;
 import com.tamias.user.entity.UserOrganization;
+import com.tamias.user.enums.RoleCode;
 import com.tamias.user.enums.UserOrganizationStatus;
 import com.tamias.user.enums.UserStatus;
 import com.tamias.user.repository.UserOrganizationRepository;
@@ -34,6 +36,7 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
     private final UserOrganizationRepository userOrganizationRepository;
+    private final OrganizationRepository organizationRepository;
     private final FileStorageService fileStorageService;
 
     public AuthService(
@@ -41,12 +44,14 @@ public class AuthService {
             JwtTokenProvider jwtTokenProvider,
             UserRepository userRepository,
             UserOrganizationRepository userOrganizationRepository,
+            OrganizationRepository organizationRepository,
             FileStorageService fileStorageService
     ) {
         this.authenticationManager = authenticationManager;
         this.jwtTokenProvider = jwtTokenProvider;
         this.userRepository = userRepository;
         this.userOrganizationRepository = userOrganizationRepository;
+        this.organizationRepository = organizationRepository;
         this.fileStorageService = fileStorageService;
     }
 
@@ -68,14 +73,34 @@ public class AuthService {
     @Transactional(readOnly = true)
     public LoginResponse getCurrentUserResponse(UUID userId, UUID organizationId) {
         User user = findActiveUser(userId);
-        UserOrganization userOrganization = findActiveMembership(user.getId(), organizationId);
 
+        if (isGlobalSuperAdmin(user)) {
+            Organization organization = findActiveOrganization(organizationId);
+            return buildLoginResponse(user, organization, RoleCode.SUPER_ADMIN, false);
+        }
+
+        UserOrganization userOrganization = findActiveMembership(user.getId(), organizationId);
         return buildLoginResponse(user, userOrganization, false);
     }
 
     @Transactional(readOnly = true)
     public List<AuthOrganizationOptionResponse> findAvailableOrganizations(UUID userId, UUID currentOrganizationId) {
         User user = findActiveUser(userId);
+
+        if (isGlobalSuperAdmin(user)) {
+            return organizationRepository.findByStatusAndDeletedAtIsNull(OrganizationStatus.ACTIVE)
+                    .stream()
+                    .map((organization) -> toOrganizationOptionResponse(
+                            organization,
+                            RoleCode.SUPER_ADMIN,
+                            currentOrganizationId
+                    ))
+                    .sorted(Comparator.comparing(
+                            AuthOrganizationOptionResponse::name,
+                            String.CASE_INSENSITIVE_ORDER
+                    ))
+                    .toList();
+        }
 
         return userOrganizationRepository.findByUser_IdAndStatus(user.getId(), UserOrganizationStatus.ACTIVE)
                 .stream()
@@ -91,21 +116,39 @@ public class AuthService {
     @Transactional
     public LoginResponse switchOrganization(UUID userId, SwitchOrganizationRequest request) {
         User user = findActiveUser(userId);
-        UserOrganization userOrganization = findActiveMembership(user.getId(), request.organizationId());
 
+        if (isGlobalSuperAdmin(user)) {
+            Organization organization = findActiveOrganization(request.organizationId());
+            return buildLoginResponse(user, organization, RoleCode.SUPER_ADMIN, true);
+        }
+
+        UserOrganization userOrganization = findActiveMembership(user.getId(), request.organizationId());
         return buildLoginResponse(user, userOrganization, true);
     }
 
     private LoginResponse buildLoginResponse(User user, UserOrganization userOrganization, boolean includeAccessToken) {
-        String token = null;
+        return buildLoginResponse(
+                user,
+                userOrganization.getOrganization(),
+                userOrganization.getRole().getCode(),
+                includeAccessToken
+        );
+    }
 
+    private LoginResponse buildLoginResponse(
+            User user,
+            Organization organization,
+            RoleCode roleCode,
+            boolean includeAccessToken
+    ) {
+        String token = null;
         if (includeAccessToken) {
             var authenticatedUser = new AuthenticatedUser(
                     user.getId(),
-                    userOrganization.getOrganization().getId(),
+                    organization.getId(),
                     user.getEmail(),
                     user.getPasswordHash(),
-                    userOrganization.getRole().getCode()
+                    roleCode
             );
             token = jwtTokenProvider.generateToken(authenticatedUser);
         }
@@ -114,7 +157,7 @@ public class AuthService {
                 token,
                 "Bearer",
                 jwtTokenProvider.getExpirationSeconds(),
-                toAuthUserResponse(user, userOrganization)
+                toAuthUserResponse(user, organization, roleCode)
         );
     }
 
@@ -130,12 +173,32 @@ public class AuthService {
                 .orElseThrow(() -> new NotFoundException("Invalid credentials"));
     }
 
+    private Organization findActiveOrganization(UUID organizationId) {
+        return organizationRepository.findByIdAndDeletedAtIsNull(organizationId)
+                .filter(organization -> organization.getStatus() == OrganizationStatus.ACTIVE)
+                .orElseThrow(() -> new NotFoundException("Organization is not available for this user"));
+    }
+
     private UserOrganization findDefaultActiveMembership(UUID userId) {
         return userOrganizationRepository.findByUser_IdAndStatus(userId, UserOrganizationStatus.ACTIVE)
                 .stream()
                 .filter(this::isUsableMembership)
-                .findFirst()
+                .min(this::compareDefaultMembershipPriority)
                 .orElseThrow(() -> new NotFoundException("User has no active organization"));
+    }
+
+    private int compareDefaultMembershipPriority(UserOrganization left, UserOrganization right) {
+        boolean leftSuperAdmin = hasRole(left, RoleCode.SUPER_ADMIN);
+        boolean rightSuperAdmin = hasRole(right, RoleCode.SUPER_ADMIN);
+
+        if (leftSuperAdmin != rightSuperAdmin) {
+            return leftSuperAdmin ? -1 : 1;
+        }
+
+        return String.CASE_INSENSITIVE_ORDER.compare(
+                left.getOrganization().getName(),
+                right.getOrganization().getName()
+        );
     }
 
     private UserOrganization findActiveMembership(UUID userId, UUID organizationId) {
@@ -143,6 +206,17 @@ public class AuthService {
                 .filter(userOrganization -> userOrganization.getStatus() == UserOrganizationStatus.ACTIVE)
                 .filter(this::isUsableMembership)
                 .orElseThrow(() -> new NotFoundException("Organization is not available for this user"));
+    }
+
+    private boolean isGlobalSuperAdmin(User user) {
+        return userOrganizationRepository.findByUser_IdAndStatus(user.getId(), UserOrganizationStatus.ACTIVE)
+                .stream()
+                .filter(this::isUsableMembership)
+                .anyMatch(userOrganization -> hasRole(userOrganization, RoleCode.SUPER_ADMIN));
+    }
+
+    private boolean hasRole(UserOrganization userOrganization, RoleCode roleCode) {
+        return userOrganization.getRole() != null && userOrganization.getRole().getCode() == roleCode;
     }
 
     private boolean isUsableMembership(UserOrganization userOrganization) {
@@ -153,14 +227,14 @@ public class AuthService {
                 && organization.getDeletedAt() == null;
     }
 
-    private AuthUserResponse toAuthUserResponse(User user, UserOrganization userOrganization) {
+    private AuthUserResponse toAuthUserResponse(User user, Organization organization, RoleCode roleCode) {
         return new AuthUserResponse(
                 user.getId(),
                 user.getFirstName(),
                 user.getLastName(),
                 user.getEmail(),
-                userOrganization.getRole().getCode().name(),
-                toAuthOrganizationResponse(userOrganization.getOrganization()),
+                roleCode.name(),
+                toAuthOrganizationResponse(organization),
                 user.isPasswordChangeRequired()
         );
     }
@@ -177,11 +251,22 @@ public class AuthService {
             UserOrganization userOrganization,
             UUID currentOrganizationId
     ) {
-        Organization organization = userOrganization.getOrganization();
+        return toOrganizationOptionResponse(
+                userOrganization.getOrganization(),
+                userOrganization.getRole().getCode(),
+                currentOrganizationId
+        );
+    }
+
+    private AuthOrganizationOptionResponse toOrganizationOptionResponse(
+            Organization organization,
+            RoleCode roleCode,
+            UUID currentOrganizationId
+    ) {
         return new AuthOrganizationOptionResponse(
                 organization.getId(),
                 organization.getName(),
-                userOrganization.getRole().getCode().name(),
+                roleCode.name(),
                 buildLogoUrl(organization),
                 organization.getId().equals(currentOrganizationId)
         );
@@ -192,7 +277,6 @@ public class AuthService {
         if (logoS3Key == null || logoS3Key.isBlank()) {
             return null;
         }
-
         return fileStorageService.buildFileUrl(logoS3Key);
     }
 }

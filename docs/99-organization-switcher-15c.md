@@ -2,22 +2,22 @@
 
 ## Status
 
-Implemented.
+Implemented and extended by 15C.1.
 
 ## Goal
 
 Allow authenticated users who belong to more than one active organization to switch the active organization from the TAMIAS UI.
 
-The active organization is not stored as a client-only override. The backend validates the membership and returns a new JWT/session context for the selected organization.
+The active organization is not stored as a client-only override. The backend validates the switch request and returns a new JWT/session context for the selected organization.
 
 ## Backend scope
 
-### New DTOs
+### DTOs
 
 - `AuthOrganizationOptionResponse`
 - `SwitchOrganizationRequest`
 
-### New endpoints
+### Endpoints
 
 ```http
 GET /api/v1/auth/organizations
@@ -74,7 +74,7 @@ Response:
 
 ## Validation rules
 
-The switch endpoint validates that:
+For normal users, the switch endpoint validates that:
 
 - the authenticated user exists and is active
 - the target organization exists through an active `user_organizations` membership
@@ -84,11 +84,26 @@ The switch endpoint validates that:
 
 If any of these checks fail, the backend returns a controlled error and no token is issued.
 
+## 15C.1 extension
+
+15C.1 adds global `SUPER_ADMIN` navigation:
+
+- users with at least one active usable `SUPER_ADMIN` membership can see every active organization
+- `SUPER_ADMIN` can switch to active organizations even without explicit membership in each organization
+- the switched token keeps role `SUPER_ADMIN`
+- normal users still require active membership
+
+See:
+
+```text
+docs/100-global-super-admin-organization-navigation-15c1.md
+```
+
 ## Session behavior
 
-- Login still selects a default active organization.
-- `/api/v1/auth/me` now respects the organization id from the current JWT instead of falling back to the first active membership.
-- Switching organizations issues a new JWT with the selected `organizationId` and the role assigned for that membership.
+- Login selects a default active organization.
+- `/api/v1/auth/me` respects the organization id from the current JWT.
+- Switching organizations issues a new JWT with the selected `organizationId`.
 - The frontend replaces the stored token and current user session with the switch response.
 
 ## Frontend scope
@@ -118,8 +133,9 @@ The implementation expects these keys in `es.json` and `en.json`:
 
 - Do not allow arbitrary organization id overrides from localStorage or query params.
 - Do not change tenant boundaries in existing services.
-- Do not let users switch to organizations where they do not have an active membership.
-- Do not implement global impersonation for `SUPER_ADMIN` in this subphase.
+- Do not implement user organization membership management in 15C/15C.1.
+
+Membership management is deferred to 15C.2.
 
 ## Verification checklist
 
@@ -129,4 +145,5 @@ The implementation expects these keys in `es.json` and `en.json`:
 - Local storage token and user session are replaced after switching.
 - `/api/v1/auth/me` reflects the organization from the active JWT.
 - Organization-scoped pages load data for the selected organization after switching.
-- Inactive/deleted memberships and inactive/deleted organizations are not listed.
+- Inactive/deleted memberships and inactive/deleted organizations are not listed for normal users.
+- Global `SUPER_ADMIN` users can switch to all active organizations without losing `SUPER_ADMIN` role.
