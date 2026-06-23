@@ -60,6 +60,7 @@ public class UserService {
     @Transactional(readOnly = true)
     public PageResponse<UserSummaryResponse> findAll(Pageable pageable) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
+
         var page = userOrganizationRepository
                 .findByOrganization_IdAndStatus(
                         organizationId,
@@ -67,25 +68,30 @@ public class UserService {
                         pageable
                 )
                 .map(userMapper::toSummaryResponse);
+
         return PageResponse.from(page);
     }
 
     @Transactional(readOnly = true)
     public UserResponse findById(UUID id) {
         UserOrganization userOrganization = findUserOrganizationInCurrentOrganization(id);
+        ensureCanManageTargetRole(userOrganization);
         return userMapper.toResponse(userOrganization);
     }
 
     @Transactional
     public UserResponse create(UserCreateRequest request) {
         validateRoleAssignment(request.role());
+
         UUID organizationId = currentUserService.getCurrentOrganizationId();
+
         if (userRepository.existsByEmailIgnoreCase(request.email())) {
             throw new ConflictException("Email is already registered");
         }
 
         var organization = organizationRepository.findByIdAndDeletedAtIsNull(organizationId)
                 .orElseThrow(() -> new NotFoundException("Organization not found"));
+
         var role = roleRepository.findByCode(request.role())
                 .orElseThrow(() -> new BadRequestException("Invalid role"));
 
@@ -111,7 +117,10 @@ public class UserService {
     @Transactional
     public UserResponse update(UUID id, UserUpdateRequest request) {
         validateRoleAssignment(request.role());
+
         UserOrganization userOrganization = findUserOrganizationInCurrentOrganization(id);
+        ensureCanManageTargetRole(userOrganization);
+
         User user = userOrganization.getUser();
 
         if (request.status() == UserStatus.DELETED) {
@@ -119,15 +128,13 @@ public class UserService {
         }
 
         if (currentUserService.getCurrentUserId().equals(id)) {
-            if (request.status() != user.getStatus()
-                    || request.role() != userOrganization.getRole().getCode()) {
+            if (request.status() != user.getStatus() || request.role() != userOrganization.getRole().getCode()) {
                 throw new BadRequestException("You cannot change your own role or status");
             }
         }
 
         String normalizedEmail = request.email().trim();
-        if (!user.getEmail().equalsIgnoreCase(normalizedEmail)
-                && userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
+        if (!user.getEmail().equalsIgnoreCase(normalizedEmail) && userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
             throw new ConflictException("Email is already registered");
         }
 
@@ -153,6 +160,8 @@ public class UserService {
         }
 
         UserOrganization userOrganization = findUserOrganizationInCurrentOrganization(id);
+        ensureCanManageTargetRole(userOrganization);
+
         User user = userOrganization.getUser();
         user.setStatus(UserStatus.DELETED);
         user.setDeletedAt(OffsetDateTime.now());
@@ -166,20 +175,37 @@ public class UserService {
         if (role != RoleCode.SUPER_ADMIN) {
             return;
         }
-        if (!RoleCode.SUPER_ADMIN.name().equals(currentUserService.getCurrentRole())) {
+
+        if (!isCurrentUserSuperAdmin()) {
             throw new BadRequestException("Only a super administrator can assign the SUPER_ADMIN role");
         }
     }
 
+    private void ensureCanManageTargetRole(UserOrganization userOrganization) {
+        if (userOrganization.getRole().getCode() != RoleCode.SUPER_ADMIN) {
+            return;
+        }
+
+        if (!isCurrentUserSuperAdmin()) {
+            throw new BadRequestException("Only a super administrator can manage a SUPER_ADMIN user");
+        }
+    }
+
+    private boolean isCurrentUserSuperAdmin() {
+        return RoleCode.SUPER_ADMIN.name().equals(currentUserService.getCurrentRole());
+    }
+
     private UserOrganization findUserOrganizationInCurrentOrganization(UUID userId) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
+
         UserOrganization userOrganization = userOrganizationRepository
                 .findByUser_IdAndOrganization_Id(userId, organizationId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
-        if (userOrganization.getStatus() == UserOrganizationStatus.DELETED
-                || userOrganization.getUser().getDeletedAt() != null) {
+
+        if (userOrganization.getStatus() == UserOrganizationStatus.DELETED || userOrganization.getUser().getDeletedAt() != null) {
             throw new NotFoundException("User not found");
         }
+
         return userOrganization;
     }
 }

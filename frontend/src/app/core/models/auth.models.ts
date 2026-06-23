@@ -1,3 +1,10 @@
+export type AuthRoleCode =
+  | 'SUPER_ADMIN'
+  | 'ADMINISTRATOR'
+  | 'PROPERTY_MANAGER'
+  | 'MAINTENANCE_STAFF'
+  | 'READ_ONLY';
+
 export interface LoginRequest {
   email: string;
   password: string;
@@ -14,7 +21,7 @@ export interface AuthUser {
   firstName: string;
   lastName: string;
   email: string;
-  role: string;
+  role: AuthRoleCode;
   organization: AuthOrganization;
   passwordChangeRequired: boolean;
 }

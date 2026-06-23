@@ -52,6 +52,11 @@ export const ROLE_CODES: RoleCode[] = [
   'READ_ONLY'
 ];
 
+export const ROLE_CODES_WITH_SUPER_ADMIN: RoleCode[] = [
+  'SUPER_ADMIN',
+  ...ROLE_CODES
+];
+
 export const USER_STATUSES: UserStatus[] = [
   'ACTIVE',
   'INACTIVE',

@@ -31,19 +31,18 @@ export class UsersPageComponent implements OnInit {
   private readonly authService = inject(AuthService);
 
   readonly currentUser = this.authService.currentUser;
+  readonly currentUserRole = computed<RoleCode>(() => this.currentUser()?.role ?? 'READ_ONLY');
+  readonly canAssignSuperAdmin = computed(() => this.currentUserRole() === 'SUPER_ADMIN');
 
   readonly loading = signal(false);
   readonly saving = signal(false);
   readonly deletingId = signal<string | null>(null);
   readonly updatingStatusId = signal<string | null>(null);
-
   readonly users = signal<UserSummary[]>([]);
   readonly selectedUser = signal<User | null>(null);
   readonly userToDelete = signal<UserSummary | null>(null);
-
   readonly formVisible = signal(false);
   readonly formMode = signal<UserFormMode>('create');
-
   readonly page = signal(0);
   readonly size = signal(10);
   readonly totalElements = signal(0);
@@ -64,7 +63,6 @@ export class UsersPageComponent implements OnInit {
 
   readonly deleteMessage = computed(() => {
     const user = this.userToDelete();
-
     if (!user) {
       return '';
     }
@@ -74,8 +72,7 @@ export class UsersPageComponent implements OnInit {
     });
   });
 
-  constructor(private readonly userService: UserService) {
-  }
+  constructor(private readonly userService: UserService) { }
 
   ngOnInit(): void {
     this.loadUsers();
@@ -137,8 +134,12 @@ export class UsersPageComponent implements OnInit {
   }
 
   openEditForm(userId: string): void {
-    this.loading.set(true);
+    const summary = this.users().find((user) => user.id === userId);
+    if (summary && !this.canManageUser(summary)) {
+      return;
+    }
 
+    this.loading.set(true);
     this.userService.findById(userId).subscribe({
       next: (user: User) => {
         this.selectedUser.set(user);
@@ -167,7 +168,6 @@ export class UsersPageComponent implements OnInit {
     this.saving.set(true);
 
     const selectedUser = this.selectedUser();
-
     const saveRequest = this.formMode() === 'edit' && selectedUser
       ? this.userService.update(selectedUser.id, request as UserUpdateRequest)
       : this.userService.create(request as UserCreateRequest);
@@ -191,14 +191,26 @@ export class UsersPageComponent implements OnInit {
   }
 
   activateUser(user: UserSummary): void {
+    if (!this.canManageUser(user)) {
+      return;
+    }
+
     this.updateStatus(user, 'ACTIVE');
   }
 
   deactivateUser(user: UserSummary): void {
+    if (!this.canManageUser(user)) {
+      return;
+    }
+
     this.updateStatus(user, 'INACTIVE');
   }
 
   requestDelete(user: UserSummary): void {
+    if (!this.canManageUser(user)) {
+      return;
+    }
+
     this.userToDelete.set(user);
   }
 
@@ -212,13 +224,11 @@ export class UsersPageComponent implements OnInit {
 
   confirmDelete(): void {
     const user = this.userToDelete();
-
     if (!user) {
       return;
     }
 
     this.deletingId.set(user.id);
-
     this.userService.delete(user.id).subscribe({
       next: () => {
         this.deletingId.set(null);
@@ -256,6 +266,8 @@ export class UsersPageComponent implements OnInit {
 
   roleBadgeClass(role: RoleCode): string {
     switch (role) {
+      case 'SUPER_ADMIN':
+        return 'text-bg-dark';
       case 'ADMINISTRATOR':
         return 'text-bg-primary';
       case 'PROPERTY_MANAGER':
@@ -271,6 +283,10 @@ export class UsersPageComponent implements OnInit {
 
   isCurrentUser(user: UserSummary): boolean {
     return this.currentUser()?.id === user.id;
+  }
+
+  canManageUser(user: Pick<UserSummary, 'role'>): boolean {
+    return this.canAssignSuperAdmin() || user.role !== 'SUPER_ADMIN';
   }
 
   private updateStatus(user: UserSummary, status: UserStatus): void {

@@ -4,6 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslatePipe } from '@ngx-translate/core';
 import {
   ROLE_CODES,
+  ROLE_CODES_WITH_SUPER_ADMIN,
   RoleCode,
   User,
   UserCreateRequest,
@@ -13,7 +14,6 @@ import {
 } from '../../models/user.model';
 
 export type UserFormMode = 'create' | 'edit';
-
 export type UserFormSubmit = UserCreateRequest | UserUpdateRequest;
 
 @Component({
@@ -29,13 +29,12 @@ export class UserFormModalComponent implements OnChanges {
   @Input() mode: UserFormMode = 'create';
   @Input() user: User | null = null;
   @Input() loading = false;
+  @Input() canAssignSuperAdmin = false;
 
   @Output() save = new EventEmitter<UserFormSubmit>();
   @Output() cancel = new EventEmitter<void>();
 
-  readonly roles = ROLE_CODES;
   readonly statuses = USER_STATUSES;
-
   readonly form = this.formBuilder.nonNullable.group({
     firstName: ['', [Validators.required, Validators.maxLength(100)]],
     lastName: ['', [Validators.required, Validators.maxLength(100)]],
@@ -45,8 +44,12 @@ export class UserFormModalComponent implements OnChanges {
     status: this.formBuilder.nonNullable.control<UserStatus>('ACTIVE', [Validators.required])
   });
 
+  get roles(): readonly RoleCode[] {
+    return this.canAssignSuperAdmin ? ROLE_CODES_WITH_SUPER_ADMIN : ROLE_CODES;
+  }
+
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['open'] || changes['user'] || changes['mode']) {
+    if (changes['open'] || changes['user'] || changes['mode'] || changes['canAssignSuperAdmin']) {
       this.patchForm();
     }
   }
@@ -110,8 +113,16 @@ export class UserFormModalComponent implements OnChanges {
       lastName: this.user.lastName,
       email: this.user.email,
       password: '',
-      role: this.user.role,
+      role: this.resolveEditableRole(this.user.role),
       status: this.user.status === 'DELETED' ? 'INACTIVE' : this.user.status
     });
+  }
+
+  private resolveEditableRole(role: RoleCode): RoleCode {
+    if (role === 'SUPER_ADMIN' && !this.canAssignSuperAdmin) {
+      return 'ADMINISTRATOR';
+    }
+
+    return role;
   }
 }

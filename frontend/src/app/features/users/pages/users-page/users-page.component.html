@@ -33,8 +33,8 @@
         <div class="small text-muted mb-2">{{ 'users.currentUser' | translate }}</div>
         <div class="fw-semibold">{{ currentUser()?.firstName }} {{ currentUser()?.lastName }}</div>
         <div class="small text-muted">{{ currentUser()?.email }}</div>
-        <span class="badge text-bg-primary mt-3">
-          {{ 'roles.' + currentUser()?.role + '.label' | translate }}
+        <span class="badge mt-3" [ngClass]="roleBadgeClass(currentUserRole())">
+          {{ 'roles.' + currentUserRole() + '.label' | translate }}
         </span>
       </div>
     </div>
@@ -44,25 +44,38 @@
 <div class="card page-card mb-4">
   <div class="card-body p-4">
     <h2 class="h5 mb-3">{{ 'users.roles.title' | translate }}</h2>
+
     <div class="row g-3">
+      @if (canAssignSuperAdmin()) {
+        <div class="col-12 col-lg-6 col-xl-3">
+          <div class="border rounded-4 p-3 h-100">
+            <span class="badge text-bg-dark mb-2">{{ 'roles.SUPER_ADMIN.label' | translate }}</span>
+            <div class="small text-muted">{{ 'roles.SUPER_ADMIN.description' | translate }}</div>
+          </div>
+        </div>
+      }
+
       <div class="col-12 col-lg-6 col-xl-3">
         <div class="border rounded-4 p-3 h-100">
           <span class="badge text-bg-primary mb-2">{{ 'roles.ADMINISTRATOR.label' | translate }}</span>
           <div class="small text-muted">{{ 'roles.ADMINISTRATOR.description' | translate }}</div>
         </div>
       </div>
+
       <div class="col-12 col-lg-6 col-xl-3">
         <div class="border rounded-4 p-3 h-100">
           <span class="badge text-bg-success mb-2">{{ 'roles.PROPERTY_MANAGER.label' | translate }}</span>
           <div class="small text-muted">{{ 'roles.PROPERTY_MANAGER.description' | translate }}</div>
         </div>
       </div>
+
       <div class="col-12 col-lg-6 col-xl-3">
         <div class="border rounded-4 p-3 h-100">
           <span class="badge text-bg-warning mb-2">{{ 'roles.MAINTENANCE_STAFF.label' | translate }}</span>
           <div class="small text-muted">{{ 'roles.MAINTENANCE_STAFF.description' | translate }}</div>
         </div>
       </div>
+
       <div class="col-12 col-lg-6 col-xl-3">
         <div class="border rounded-4 p-3 h-100">
           <span class="badge text-bg-secondary mb-2">{{ 'roles.READ_ONLY.label' | translate }}</span>
@@ -105,31 +118,32 @@
           </tr>
           </thead>
           <tbody>
-            @for (user of users(); track user.id) {
-              <tr>
-                <td>
-                  <div class="fw-semibold">{{ fullName(user) }}</div>
-                  @if (isCurrentUser(user)) {
-                    <div class="small text-primary">{{ 'users.table.you' | translate }}</div>
-                  }
-                </td>
-                <td>
-                  <span class="text-muted">{{ user.email }}</span>
-                </td>
-                <td>
-                  <span class="badge" [ngClass]="roleBadgeClass(user.role)">
-                    {{ 'roles.' + user.role + '.label' | translate }}
-                  </span>
-                </td>
-                <td>
-                  <span class="badge" [ngClass]="statusBadgeClass(user.status)">
-                    {{ 'status.' + user.status | translate }}
-                  </span>
-                </td>
-                <td>
-                  <span class="text-muted">{{ user.createdAt | date:'mediumDate' }}</span>
-                </td>
-                <td class="text-end">
+          @for (user of users(); track user.id) {
+            <tr>
+              <td>
+                <div class="fw-semibold">{{ fullName(user) }}</div>
+                @if (isCurrentUser(user)) {
+                  <div class="small text-primary">{{ 'users.table.you' | translate }}</div>
+                }
+              </td>
+              <td>
+                <span class="text-muted">{{ user.email }}</span>
+              </td>
+              <td>
+                <span class="badge" [ngClass]="roleBadgeClass(user.role)">
+                  {{ 'roles.' + user.role + '.label' | translate }}
+                </span>
+              </td>
+              <td>
+                <span class="badge" [ngClass]="statusBadgeClass(user.status)">
+                  {{ 'status.' + user.status | translate }}
+                </span>
+              </td>
+              <td>
+                <span class="text-muted">{{ user.createdAt | date:'mediumDate' }}</span>
+              </td>
+              <td class="text-end">
+                @if (canManageUser(user)) {
                   <div class="btn-group">
                     @if (user.status !== 'ACTIVE') {
                       <button
@@ -177,9 +191,12 @@
                       {{ 'common.delete' | translate }}
                     </button>
                   </div>
-                </td>
-              </tr>
-            }
+                } @else {
+                  <span class="text-muted">—</span>
+                }
+              </td>
+            </tr>
+          }
           </tbody>
         </table>
       </div>
@@ -194,7 +211,6 @@
             <option value="50">50</option>
           </select>
         </div>
-
         <div class="d-flex align-items-center gap-3">
           <span class="text-muted small">{{ pageLabel() }} · {{ totalElements() }} {{ 'common.total' | translate }}</span>
           <div class="btn-group">
@@ -216,6 +232,7 @@
   [mode]="formMode()"
   [user]="selectedUser()"
   [loading]="saving()"
+  [canAssignSuperAdmin]="canAssignSuperAdmin()"
   (save)="saveUser($event)"
   (cancel)="closeForm()" />
 
