@@ -1,24 +1,17 @@
 # 17 — Blueprint Analysis
 
-Status: **Future / planned after Reports and Notifications**
+Status: **Superseded / moved**
 
-## Purpose
+Blueprint Analysis was originally planned as Phase 17, but this phase has moved because Phase 15 is now Organization Administration and Global UX Polish.
 
-Add blueprint/plan analysis capabilities after the operational/reporting/notification roadmap is stable.
+Blueprint Analysis is now planned as:
 
-## Scope candidates
+```text
+18 Blueprint Analysis
+```
 
-- Upload floor plans or blueprints.
-- Extract measurements when possible.
-- Search blueprint metadata through TAMI.
-- Use OCR and/or vision models only after a dedicated design phase.
+Active documentation for the moved phase:
 
-## Technical direction
-
-Blueprint Analysis should be handled separately because it may require OCR, vision models, image/PDF processing, confidence scoring and careful UX for uncertain measurements.
-
-## Non-goals
-
-- Do not mix Blueprint Analysis with Product Box Models.
-- Product Box Models render boxes from user-provided dimensions and images; they do not analyze images.
-- Do not assume AI can accurately infer dimensions from an image without a dedicated validation workflow.
+```text
+docs/96-blueprint-analysis-18.md
+```
