@@ -8,6 +8,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
+import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -41,6 +42,9 @@ public class User extends AuditableEntity {
 
     @Column(name = "last_login_at")
     private OffsetDateTime lastLoginAt;
+
+    @Column(name = "last_organization_id")
+    private UUID lastOrganizationId;
 
     @Column(name = "deleted_at")
     private OffsetDateTime deletedAt;

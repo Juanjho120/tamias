@@ -75,7 +75,7 @@
                     [attr.aria-label]="'organizationSwitcher.label' | translate"
                     (change)="switchOrganization($event)">
                     @for (organization of organizationOptions(); track organization.id) {
-                      <option [value]="organization.id">
+                      <option [value]="organization.id" [selected]="organization.id === selectedOrganizationId()">
                         {{ organization.name }}
                       </option>
                     }

@@ -23,6 +23,7 @@ import com.tamias.user.repository.UserRepository;
 import java.time.OffsetDateTime;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -62,11 +63,18 @@ public class AuthService {
         );
 
         User user = findActiveUserByEmail(request.email());
-        UserOrganization userOrganization = findDefaultActiveMembership(user.getId());
-
         user.setLastLoginAt(OffsetDateTime.now());
-        userRepository.save(user);
 
+        if (isGlobalSuperAdmin(user)) {
+            Organization organization = findLoginOrganizationForGlobalSuperAdmin(user);
+            rememberLastOrganization(user, organization.getId());
+            userRepository.save(user);
+            return buildLoginResponse(user, organization, RoleCode.SUPER_ADMIN, true);
+        }
+
+        UserOrganization userOrganization = findLoginMembership(user);
+        rememberLastOrganization(user, userOrganization.getOrganization().getId());
+        userRepository.save(user);
         return buildLoginResponse(user, userOrganization, true);
     }
 
@@ -119,10 +127,14 @@ public class AuthService {
 
         if (isGlobalSuperAdmin(user)) {
             Organization organization = findActiveOrganization(request.organizationId());
+            rememberLastOrganization(user, organization.getId());
+            userRepository.save(user);
             return buildLoginResponse(user, organization, RoleCode.SUPER_ADMIN, true);
         }
 
         UserOrganization userOrganization = findActiveMembership(user.getId(), request.organizationId());
+        rememberLastOrganization(user, userOrganization.getOrganization().getId());
+        userRepository.save(user);
         return buildLoginResponse(user, userOrganization, true);
     }
 
@@ -179,6 +191,35 @@ public class AuthService {
                 .orElseThrow(() -> new NotFoundException("Organization is not available for this user"));
     }
 
+    private Organization findLoginOrganizationForGlobalSuperAdmin(User user) {
+        return findLastActiveOrganization(user.getLastOrganizationId())
+                .orElseGet(() -> findDefaultActiveMembership(user.getId()).getOrganization());
+    }
+
+    private UserOrganization findLoginMembership(User user) {
+        return findLastActiveMembership(user.getId(), user.getLastOrganizationId())
+                .orElseGet(() -> findDefaultActiveMembership(user.getId()));
+    }
+
+    private Optional<Organization> findLastActiveOrganization(UUID organizationId) {
+        if (organizationId == null) {
+            return Optional.empty();
+        }
+
+        return organizationRepository.findByIdAndDeletedAtIsNull(organizationId)
+                .filter(organization -> organization.getStatus() == OrganizationStatus.ACTIVE);
+    }
+
+    private Optional<UserOrganization> findLastActiveMembership(UUID userId, UUID organizationId) {
+        if (organizationId == null) {
+            return Optional.empty();
+        }
+
+        return userOrganizationRepository.findByUser_IdAndOrganization_Id(userId, organizationId)
+                .filter(userOrganization -> userOrganization.getStatus() == UserOrganizationStatus.ACTIVE)
+                .filter(this::isUsableMembership);
+    }
+
     private UserOrganization findDefaultActiveMembership(UUID userId) {
         return userOrganizationRepository.findByUser_IdAndStatus(userId, UserOrganizationStatus.ACTIVE)
                 .stream()
@@ -225,6 +266,10 @@ public class AuthService {
                 && organization != null
                 && organization.getStatus() == OrganizationStatus.ACTIVE
                 && organization.getDeletedAt() == null;
+    }
+
+    private void rememberLastOrganization(User user, UUID organizationId) {
+        user.setLastOrganizationId(organizationId);
     }
 
     private AuthUserResponse toAuthUserResponse(User user, Organization organization, RoleCode roleCode) {
