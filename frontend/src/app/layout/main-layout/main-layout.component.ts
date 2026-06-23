@@ -2,7 +2,6 @@ import { NgClass } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
-
 import { LanguageService } from '../../core/i18n/language.service';
 import { ApiError } from '../../core/models/api-error.model';
 import { AuthOrganizationOption } from '../../core/models/auth.models';
@@ -64,6 +63,10 @@ interface BootstrapOffcanvasApi {
         text-transform: uppercase;
       }
 
+      .organization-context {
+        max-width: min(520px, 52vw);
+      }
+
       .organization-switcher {
         min-width: 180px;
         max-width: 260px;
@@ -74,6 +77,10 @@ interface BootstrapOffcanvasApi {
         padding-top: 0.2rem;
         padding-bottom: 0.2rem;
         font-size: 0.8125rem;
+      }
+
+      .header-actions {
+        flex-shrink: 0;
       }
     `
   ]
@@ -164,7 +171,6 @@ export class MainLayoutComponent implements OnInit {
     }
 
     this.loadingOrganizations.set(true);
-
     this.authService.listOrganizations().subscribe({
       next: (organizations) => {
         this.organizationOptions.set(organizations);
@@ -197,7 +203,7 @@ export class MainLayoutComponent implements OnInit {
         this.switchingOrganization.set(false);
         this.toastService.success(this.languageService.instant('organizationSwitcher.messages.switched'));
         this.loadOrganizationOptions();
-        this.router.navigateByUrl('/dashboard');
+        this.navigateAfterOrganizationSwitch();
       },
       error: (error: unknown) => {
         this.switchingOrganization.set(false);
@@ -215,7 +221,6 @@ export class MainLayoutComponent implements OnInit {
 
     const windowWithBootstrap = window as Window & { bootstrap?: { Offcanvas?: BootstrapOffcanvasApi } };
     const offcanvasApi = windowWithBootstrap.bootstrap?.Offcanvas;
-
     if (!offcanvasApi) {
       sidebarElement.classList.remove('show');
       document.querySelectorAll('.offcanvas-backdrop').forEach((backdrop) => backdrop.remove());
@@ -230,6 +235,20 @@ export class MainLayoutComponent implements OnInit {
 
   logout(): void {
     this.authService.logout();
+  }
+
+  private navigateAfterOrganizationSwitch(): void {
+    const dashboardRoute = '/dashboard';
+    const currentPath = this.router.url.split('?')[0];
+
+    if (currentPath === dashboardRoute) {
+      this.router.navigateByUrl('/profile', { skipLocationChange: true }).then(() => {
+        this.router.navigateByUrl(dashboardRoute);
+      });
+      return;
+    }
+
+    this.router.navigateByUrl(dashboardRoute);
   }
 
   private syncSelectedOrganizationFromSession(): void {
