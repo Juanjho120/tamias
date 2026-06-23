@@ -1,39 +1,49 @@
 # TAMIAS — Roadmap
 
-This roadmap reflects the current state after AI tool calling/orchestration, S3/image hard-delete work, inventory brand/image work, AI debug traces, smoke-test hardening and Product Box Models through Angular AI enhanced preview and accept workflow plus OpenCV runtime controls.
+This roadmap reflects the current state after AI tool calling/orchestration, S3/image hard-delete work, inventory brand/image work, AI debug traces, smoke-test hardening and Product Box Models through Inventory/Purchases integration.
 
 ## Completed foundation
 
 ### Phase 0 — Project Setup
+
 Status: Completed.
 
 ### Phase 1 — Security and SaaS Foundation
+
 Status: Completed / MVP-ready.
 
 ### Phase 2 — Properties and Catalogs
+
 Status: Completed / MVP-ready.
 
 ### Phase 3 — Maintenance
+
 Status: Completed / MVP-ready.
 
 ### Phase 4 — Reservations and Tasks
+
 Status: Completed / MVP-ready.
 
 ### Phase 5 — Purchase Lists
+
 Status: Completed / MVP-ready.
 
 ### Phase 6 — Documents
+
 Status: Completed / MVP-ready.
 
 ### Phase 7 — AI Document Search
+
 Status: Completed / MVP-ready.
 
 ### Phase 8 — MVP Hardening
+
 Status: Completed / partially superseded by security review phases.
 
 ## Completed AI tool calling and orchestration track
 
 ### Phase 9 — AI Tool Calling and AI Orchestration
+
 Status: Completed through 9P-H.
 
 Completed sub-phases:
@@ -64,6 +74,7 @@ Completed sub-phases:
 ```
 
 ### 9P-I — RAG retrieval tuning
+
 Status: Conditional / optional / not started.
 
 Goals:
@@ -79,7 +90,8 @@ Phases 10A through 13A are completed and documented in their corresponding `.md`
 ## Current implementation queue
 
 ### Phase 14 — Product Box Models
-Status: In progress / completed through 14N.1.
+
+Status: In progress / completed through 14O.
 
 Documentation: `71-product-box-models-14.md`
 
@@ -101,12 +113,12 @@ Completed subphases:
 14M AI Texture enhancement backend
 14N Angular AI enhanced preview and accept workflow
 14N.1 Product Box OpenCV runtime controls and testing profile
+14O Integration with Inventory/Purchases
 ```
 
 Next subphases:
 
 ```text
-14O Integration with Inventory/Purchases
 14P AI awareness for Product Box Models
 ```
 

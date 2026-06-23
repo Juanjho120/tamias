@@ -23,6 +23,8 @@ export class ProductBoxModelFormModalComponent implements OnChanges {
   @Input() model: ProductBoxModel | null = null;
   @Input() saving = false;
   @Input() inventoryItems: ProductBoxInventoryItemOption[] = [];
+  @Input() initialInventoryItemId: string | null = null;
+  @Input() initialPurchaseItemId: string | null = null;
 
   @Output() closed = new EventEmitter<void>();
   @Output() save = new EventEmitter<ProductBoxModelRequest>();
@@ -38,7 +40,13 @@ export class ProductBoxModelFormModalComponent implements OnChanges {
       return;
     }
 
-    if (changes['open'] || changes['model'] || changes['mode']) {
+    if (
+      changes['open'] ||
+      changes['model'] ||
+      changes['mode'] ||
+      changes['initialInventoryItemId'] ||
+      changes['initialPurchaseItemId']
+    ) {
       this.form = this.model ? this.toForm(this.model) : this.emptyForm();
       this.submitted.set(false);
     }
@@ -85,8 +93,8 @@ export class ProductBoxModelFormModalComponent implements OnChanges {
 
   private emptyForm(): ProductBoxModelRequest {
     return {
-      inventoryItemId: null,
-      purchaseItemId: null,
+      inventoryItemId: this.initialInventoryItemId || null,
+      purchaseItemId: this.initialPurchaseItemId || null,
       name: '',
       description: null,
       width: null,
@@ -109,7 +117,7 @@ export class ProductBoxModelFormModalComponent implements OnChanges {
     };
   }
 
-  private isPositive(value: number | null): boolean {
+  isPositive(value: number | null): boolean {
     return value !== null && Number(value) > 0;
   }
 }

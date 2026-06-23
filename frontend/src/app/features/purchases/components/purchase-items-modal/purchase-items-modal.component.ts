@@ -1,5 +1,6 @@
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject, signal } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { LanguageService } from '../../../../core/i18n/language.service';
 import { ApiError } from '../../../../core/models/api-error.model';
@@ -21,11 +22,13 @@ export class PurchaseItemsModalComponent implements OnChanges {
   private readonly toastService = inject(ToastService);
   private readonly languageService = inject(LanguageService);
   private readonly formBuilder = inject(FormBuilder);
+  private readonly router = inject(Router);
 
   @Input() open = false;
   @Input() purchaseListSummary: PurchaseListSummary | null = null;
   @Input() inventoryItems: PurchaseInventoryItemOption[] = [];
   @Input() brands: PurchaseBrandOption[] = [];
+
   @Output() close = new EventEmitter<void>();
   @Output() itemsChanged = new EventEmitter<void>();
 
@@ -35,6 +38,16 @@ export class PurchaseItemsModalComponent implements OnChanges {
   readonly deletingId = signal<string | null>(null);
   readonly itemToDelete = signal<PurchaseItem | null>(null);
   readonly editingItem = signal<PurchaseItem | null>(null);
+  readonly deleteMessage = computed(() => {
+    const item = this.itemToDelete();
+    if (!item) {
+      return '';
+    }
+
+    return this.languageService.instant('purchases.items.confirmDeleteMessage', {
+      name: this.itemDisplayName(item)
+    });
+  });
 
   readonly itemForm = this.formBuilder.nonNullable.group({
     inventoryItemId: [''],
@@ -177,6 +190,19 @@ export class PurchaseItemsModalComponent implements OnChanges {
     });
   }
 
+  openProductBoxesForPurchaseItem(item: PurchaseItem): void {
+    const queryParams: Record<string, string> = {
+      purchaseItemId: item.id
+    };
+
+    if (item.inventoryItemId) {
+      queryParams['inventoryItemId'] = item.inventoryItemId;
+    }
+
+    this.requestClose();
+    this.router.navigate(['/product-box-models'], { queryParams });
+  }
+
   requestDeleteItem(item: PurchaseItem): void {
     this.itemToDelete.set(item);
   }
@@ -214,7 +240,6 @@ export class PurchaseItemsModalComponent implements OnChanges {
 
   onInventoryItemSelected(inventoryItemId: string): void {
     const inventoryItem = this.inventoryItems.find((item) => item.id === inventoryItemId);
-
     if (inventoryItem?.unit && !this.itemForm.controls.unit.value) {
       this.itemForm.controls.unit.setValue(inventoryItem.unit);
     }

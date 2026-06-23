@@ -1,6 +1,7 @@
 import { DatePipe, NgClass } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { LanguageService } from '../../../../core/i18n/language.service';
 import { ApiError } from '../../../../core/models/api-error.model';
@@ -42,6 +43,7 @@ export class ProductBoxModelsPageComponent implements OnInit {
   private readonly referenceDataService = inject(ProductBoxReferenceDataService);
   private readonly toastService = inject(ToastService);
   private readonly languageService = inject(LanguageService);
+  private readonly route = inject(ActivatedRoute);
 
   readonly loading = signal(false);
   readonly saving = signal(false);
@@ -55,6 +57,8 @@ export class ProductBoxModelsPageComponent implements OnInit {
   readonly modelToDelete = signal<ProductBoxModelSummary | null>(null);
   readonly formVisible = signal(false);
   readonly formMode = signal<FormMode>('create');
+  readonly initialFormInventoryItemId = signal<string | null>(null);
+  readonly initialFormPurchaseItemId = signal<string | null>(null);
   readonly search = signal('');
   readonly inventoryItemId = signal('');
   readonly purchaseItemId = signal('');
@@ -82,12 +86,19 @@ export class ProductBoxModelsPageComponent implements OnInit {
       return '';
     }
 
-    return this.languageService.instant('productBoxModels.confirmDeleteMessage', { name: model.name });
+    return this.languageService.instant('productBoxModels.confirmDeleteMessage', {
+      name: model.name
+    });
   });
 
   ngOnInit(): void {
+    this.applyInitialQueryParams();
     this.loadReferences();
     this.loadModels();
+
+    if (this.shouldOpenCreateFormFromQuery()) {
+      this.openCreateForm();
+    }
   }
 
   loadReferences(): void {
@@ -171,10 +182,13 @@ export class ProductBoxModelsPageComponent implements OnInit {
   openCreateForm(): void {
     this.formMode.set('create');
     this.selectedModel.set(null);
+    this.initialFormInventoryItemId.set(this.inventoryItemId() || null);
+    this.initialFormPurchaseItemId.set(this.purchaseItemId().trim() || null);
     this.formVisible.set(true);
   }
 
   openEditForm(modelId: string): void {
+    this.clearInitialFormAssociations();
     this.loading.set(true);
     this.productBoxModelService.findById(modelId).subscribe({
       next: (model) => {
@@ -240,6 +254,7 @@ export class ProductBoxModelsPageComponent implements OnInit {
     this.formVisible.set(false);
     this.selectedModel.set(null);
     this.formMode.set('create');
+    this.clearInitialFormAssociations();
   }
 
   saveModel(request: ProductBoxModelRequest): void {
@@ -345,11 +360,39 @@ export class ProductBoxModelsPageComponent implements OnInit {
   completedFacesLabel(model: ProductBoxModelSummary): string {
     const faces = model.faces ?? {};
     const count = PRODUCT_BOX_FACE_NAMES.filter((faceName) => !!faces[faceName]).length;
-
     return this.languageService.instant('productBoxModels.table.facesCount', {
       count,
       total: PRODUCT_BOX_FACE_NAMES.length
     });
+  }
+
+  private applyInitialQueryParams(): void {
+    const queryParamMap = this.route.snapshot.queryParamMap;
+    const inventoryItemId = (queryParamMap.get('inventoryItemId') ?? '').trim();
+    const purchaseItemId = (queryParamMap.get('purchaseItemId') ?? '').trim();
+    const search = (queryParamMap.get('search') ?? '').trim();
+
+    if (inventoryItemId) {
+      this.inventoryItemId.set(inventoryItemId);
+    }
+
+    if (purchaseItemId) {
+      this.purchaseItemId.set(purchaseItemId);
+    }
+
+    if (search) {
+      this.search.set(search);
+    }
+  }
+
+  private shouldOpenCreateFormFromQuery(): boolean {
+    const create = (this.route.snapshot.queryParamMap.get('create') ?? '').toLowerCase();
+    return create === 'true' || create === '1';
+  }
+
+  private clearInitialFormAssociations(): void {
+    this.initialFormInventoryItemId.set(null);
+    this.initialFormPurchaseItemId.set(null);
   }
 
   private applyPage(response: PageResponse<ProductBoxModelSummary>): void {

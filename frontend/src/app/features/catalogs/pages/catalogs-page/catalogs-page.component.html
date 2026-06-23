@@ -1,185 +1,181 @@
-<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+<div class="d-flex flex-column flex-md-row justify-content-between gap-3 align-items-md-center mb-4">
   <div>
     <h1 class="h3 mb-1">{{ 'catalogs.title' | translate }}</h1>
-    <p class="text-muted mb-0">{{ 'catalogs.subtitle' | translate }}</p>
+    <p class="text-body-secondary mb-0">{{ 'catalogs.subtitle' | translate }}</p>
   </div>
+
   <button type="button" class="btn btn-primary" (click)="openCreateForm()">
     <i class="bi bi-plus-lg me-1"></i>
     {{ 'catalogs.newItem' | translate }}
   </button>
 </div>
 
-<div class="row g-4">
-  <div class="col-12 col-xl-3">
-    <div class="card page-card">
-      <div class="card-body p-3">
-        <div class="list-group list-group-flush">
-          @for (config of configs; track config.key) {
-            <button
-              type="button"
-              class="list-group-item list-group-item-action rounded-3 border-0 mb-1"
-              [class.active]="selectedConfig().key === config.key"
-              (click)="selectCatalog(config)">
-              <div class="fw-semibold">{{ config.titleKey | translate }}</div>
-              <div class="small" [class.text-white-50]="selectedConfig().key === config.key" [class.text-muted]="selectedConfig().key !== config.key">
-                {{ config.descriptionKey | translate }}
-              </div>
-            </button>
+<div class="row g-3 mb-4">
+  @for (config of configs; track config.key) {
+    <div class="col-12 col-md-6 col-xl-3">
+      <button
+        type="button"
+        class="card h-100 w-100 text-start border-0 shadow-sm"
+        [ngClass]="selectedConfig().key === config.key ? 'bg-primary text-white' : 'bg-body'"
+        (click)="selectCatalog(config)"
+      >
+        <div class="card-body">
+          <h2 class="h6 mb-1">{{ config.titleKey | translate }}</h2>
+          <p class="small mb-0" [ngClass]="selectedConfig().key === config.key ? 'text-white-50' : 'text-body-secondary'">
+            {{ config.descriptionKey | translate }}
+          </p>
+        </div>
+      </button>
+    </div>
+  }
+</div>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-lg-center mb-3">
+      <div>
+        <h2 class="h5 mb-1">{{ selectedConfig().titleKey | translate }}</h2>
+        <p class="text-body-secondary mb-0">{{ selectedConfig().descriptionKey | translate }}</p>
+      </div>
+    </div>
+
+    <div class="row g-3 align-items-end">
+      <div class="col-12 col-md-5 col-xl-4">
+        <label class="form-label" for="catalogStatus">{{ 'catalogs.filters.status' | translate }}</label>
+        <select id="catalogStatus" class="form-select" [(ngModel)]="status">
+          <option value="">{{ 'catalogs.filters.allStatuses' | translate }}</option>
+          @for (item of statuses; track item) {
+            <option [value]="item">{{ 'status.' + item | translate }}</option>
           }
-        </div>
+        </select>
       </div>
-    </div>
-  </div>
 
-  <div class="col-12 col-xl-9">
-    <div class="card page-card mb-4">
-      <div class="card-body p-4">
-        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-end gap-3">
-          <div>
-            <h2 class="h4 mb-1">{{ selectedConfig().titleKey | translate }}</h2>
-            <p class="text-muted mb-0">{{ selectedConfig().descriptionKey | translate }}</p>
-          </div>
-
-          <div class="d-flex flex-column flex-md-row gap-2 align-items-md-end">
-            <div>
-              <label for="catalog-status-filter" class="form-label">{{ 'catalogs.filters.status' | translate }}</label>
-              <select
-                id="catalog-status-filter"
-                class="form-select"
-                [ngModel]="status()"
-                (ngModelChange)="status.set($event)">
-                <option value="">{{ 'catalogs.filters.allStatuses' | translate }}</option>
-                @for (item of statuses; track item) {
-                  <option [value]="item">{{ 'status.' + item | translate }}</option>
-                }
-              </select>
-            </div>
-
-            <div class="d-flex gap-2">
-              <button type="button" class="btn btn-primary" (click)="applyFilters()">
-                <i class="bi bi-search me-1"></i>
-                {{ 'common.search' | translate }}
-              </button>
-              <button type="button" class="btn btn-outline-secondary" (click)="clearFilters()">
-                {{ 'common.clear' | translate }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card page-card">
-      <div class="card-body p-0">
-        @if (loading()) {
-          <div class="p-5 text-center">
-            <div class="spinner-border text-primary" role="status"></div>
-            <div class="text-muted mt-3">{{ 'catalogs.loading' | translate }}</div>
-          </div>
-        } @else if (items().length === 0) {
-          <div class="p-5 text-center">
-            <div class="d-inline-flex align-items-center justify-content-center rounded-4 bg-secondary-subtle text-secondary p-4 mb-3">
-              <i class="bi bi-tags fs-1"></i>
-            </div>
-            <h2 class="h5">{{ 'catalogs.empty.title' | translate }}</h2>
-            <p class="text-muted mb-3">{{ 'catalogs.empty.description' | translate }}</p>
-            <button type="button" class="btn btn-primary" (click)="openCreateForm()">
-              {{ 'catalogs.newItem' | translate }}
-            </button>
-          </div>
-        } @else {
-          <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-              <thead class="table-light">
-              <tr>
-                @for (field of tableFields(); track field.key) {
-                  <th>{{ field.labelKey | translate }}</th>
-                }
-                <th>{{ 'catalogs.fields.status' | translate }}</th>
-                <th>{{ 'catalogs.fields.createdAt' | translate }}</th>
-                <th class="text-end">{{ 'catalogs.table.actions' | translate }}</th>
-              </tr>
-              </thead>
-              <tbody>
-                @for (item of items(); track item.id) {
-                  <tr>
-                    @for (field of tableFields(); track field.key) {
-                      <td>
-                        @if (field.primary) {
-                          <div class="fw-semibold">{{ displayValue(item, field) }}</div>
-                        } @else {
-                          <span class="text-muted">{{ displayValue(item, field) }}</span>
-                        }
-                      </td>
-                    }
-                    <td>
-                      <span class="badge" [ngClass]="statusBadgeClass(item.status)">
-                        {{ 'status.' + item.status | translate }}
-                      </span>
-                    </td>
-                    <td>
-                      <span class="text-muted">{{ item.createdAt | date:'mediumDate' }}</span>
-                    </td>
-                    <td class="text-end">
-                      <div class="btn-group">
-                        @if (isInventoryItemsCatalog()) {
-                          <button type="button" class="btn btn-outline-secondary btn-sm" (click)="openImagesModal(item)">
-                            <i class="bi bi-images me-1"></i>
-                            {{ 'catalogs.items.inventoryItems.images.button' | translate }}
-                          </button>
-                        }
-                        <button type="button" class="btn btn-outline-primary btn-sm" (click)="openEditForm(item)">
-                          <i class="bi bi-pencil-square me-1"></i>
-                          {{ 'common.edit' | translate }}
-                        </button>
-                        <button
-                          type="button"
-                          class="btn btn-outline-danger btn-sm"
-                          [disabled]="deletingId() === item.id"
-                          (click)="requestDelete(item)">
-                          @if (deletingId() === item.id) {
-                            <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
-                          } @else {
-                            <i class="bi bi-trash me-1"></i>
-                          }
-                          {{ 'common.delete' | translate }}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-
-          <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 p-3 border-top">
-            <div class="d-flex align-items-center gap-2">
-              <span class="text-muted small">{{ 'common.rowsPerPage' | translate }}</span>
-              <select class="form-select form-select-sm w-auto" [ngModel]="size()" (ngModelChange)="changePageSize($event)">
-                <option value="5">5</option>
-                <option value="10">10</option>
-                <option value="20">20</option>
-                <option value="50">50</option>
-              </select>
-            </div>
-
-            <div class="d-flex align-items-center gap-3">
-              <span class="text-muted small">{{ pageLabel() }} · {{ totalElements() }} {{ 'common.total' | translate }}</span>
-              <div class="btn-group">
-                <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="first()" (click)="previousPage()">
-                  {{ 'common.previous' | translate }}
-                </button>
-                <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="last()" (click)="nextPage()">
-                  {{ 'common.next' | translate }}
-                </button>
-              </div>
-            </div>
-          </div>
-        }
+      <div class="col-12 col-md-7 col-xl-8 d-flex gap-2 justify-content-md-end">
+        <button type="button" class="btn btn-outline-secondary" (click)="clearFilters()">
+          {{ 'common.clear' | translate }}
+        </button>
+        <button type="button" class="btn btn-primary" (click)="applyFilters()">
+          {{ 'common.search' | translate }}
+        </button>
       </div>
     </div>
   </div>
 </div>
+
+@if (loading()) {
+  <div class="card shadow-sm">
+    <div class="card-body text-center py-5">
+      <div class="spinner-border text-primary mb-3" role="status"></div>
+      <p class="mb-0 text-body-secondary">{{ 'catalogs.loading' | translate }}</p>
+    </div>
+  </div>
+} @else if (items().length === 0) {
+  <div class="card shadow-sm">
+    <div class="card-body text-center py-5">
+      <i class="bi bi-tags display-5 text-body-secondary"></i>
+      <h2 class="h5 mt-3">{{ 'catalogs.empty.title' | translate }}</h2>
+      <p class="text-body-secondary">{{ 'catalogs.empty.description' | translate }}</p>
+      <button type="button" class="btn btn-primary" (click)="openCreateForm()">
+        <i class="bi bi-plus-lg me-1"></i>
+        {{ 'catalogs.newItem' | translate }}
+      </button>
+    </div>
+  </div>
+} @else {
+  <div class="card shadow-sm">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            @for (field of tableFields(); track field.key) {
+              <th scope="col">{{ field.labelKey | translate }}</th>
+            }
+            <th scope="col">{{ 'catalogs.fields.status' | translate }}</th>
+            <th scope="col">{{ 'catalogs.fields.createdAt' | translate }}</th>
+            <th scope="col" class="text-end">{{ 'catalogs.table.actions' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of items(); track item.id) {
+            <tr>
+              @for (field of tableFields(); track field.key) {
+                <td>
+                  @if (field.primary) {
+                    <span class="fw-semibold">{{ displayValue(item, field) }}</span>
+                  } @else {
+                    {{ displayValue(item, field) }}
+                  }
+                </td>
+              }
+              <td>
+                <span class="badge" [ngClass]="statusBadgeClass(item.status)">
+                  {{ 'status.' + item.status | translate }}
+                </span>
+              </td>
+              <td>{{ item.createdAt | date:'mediumDate' }}</td>
+              <td>
+                <div class="d-flex flex-wrap gap-2 justify-content-end">
+                  @if (isInventoryItemsCatalog()) {
+                    <button type="button" class="btn btn-sm btn-outline-primary" (click)="openProductBoxesForInventoryItem(item)">
+                      <i class="bi bi-box-seam me-1"></i>
+                      {{ 'productBoxModels.title' | translate }}
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" (click)="openImagesModal(item)">
+                      <i class="bi bi-images me-1"></i>
+                      {{ 'catalogs.items.inventoryItems.images.button' | translate }}
+                    </button>
+                  }
+                  <button type="button" class="btn btn-sm btn-outline-secondary" (click)="openEditForm(item)">
+                    <i class="bi bi-pencil me-1"></i>
+                    {{ 'common.edit' | translate }}
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-danger"
+                    [disabled]="deletingId() === item.id"
+                    (click)="requestDelete(item)"
+                  >
+                    @if (deletingId() === item.id) {
+                      <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+                    } @else {
+                      <i class="bi bi-trash me-1"></i>
+                    }
+                    {{ 'common.delete' | translate }}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card-footer d-flex flex-column flex-md-row justify-content-between gap-3 align-items-md-center">
+      <div class="d-flex align-items-center gap-2">
+        <label class="form-label mb-0" for="catalogPageSize">{{ 'common.rowsPerPage' | translate }}</label>
+        <select id="catalogPageSize" class="form-select form-select-sm w-auto" [ngModel]="size()" (ngModelChange)="changePageSize($event)">
+          <option value="5">5</option>
+          <option value="10">10</option>
+          <option value="20">20</option>
+          <option value="50">50</option>
+        </select>
+      </div>
+
+      <div class="text-body-secondary small">
+        {{ pageLabel() }} · {{ totalElements() }} {{ 'common.total' | translate }}
+      </div>
+
+      <div class="btn-group">
+        <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="first()" (click)="previousPage()">
+          {{ 'common.previous' | translate }}
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="last()" (click)="nextPage()">
+          {{ 'common.next' | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
 
 <app-catalog-form-modal
   [open]="formVisible()"
@@ -187,20 +183,23 @@
   [item]="selectedItem()"
   [loading]="saving()"
   (save)="saveItem($event)"
-  (cancel)="closeForm()" />
+  (cancel)="closeForm()"
+/>
 
 <app-inventory-item-images-modal
   [open]="!!imageModalItem()"
   [inventoryItem]="imageModalItem()"
-  (closed)="closeImagesModal()" />
+  (closed)="closeImagesModal()"
+/>
 
 <app-confirm-modal
   [open]="!!itemToDelete()"
-  title="catalogs.confirmDeleteTitle"
+  title="common.delete"
   [message]="deleteMessage()"
   confirmText="common.delete"
   cancelText="common.cancel"
   confirmButtonClass="btn-danger"
   [loading]="!!deletingId()"
   (confirm)="confirmDelete()"
-  (cancel)="cancelDelete()" />
+  (cancel)="cancelDelete()"
+/>

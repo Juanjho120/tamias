@@ -2,15 +2,16 @@
   <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
       <div class="modal-content">
-        <form (ngSubmit)="submit()" novalidate>
+        <form #productBoxForm="ngForm" (ngSubmit)="submit()">
           <div class="modal-header">
             <div>
               <h5 class="modal-title">
+                <i class="bi bi-box-seam me-2"></i>
                 {{ (mode === 'create' ? 'productBoxModels.form.createTitle' : 'productBoxModels.form.editTitle') | translate }}
               </h5>
-              <p class="text-muted mb-0 small">{{ 'productBoxModels.form.subtitle' | translate }}</p>
+              <p class="text-body-secondary small mb-0">{{ 'productBoxModels.form.subtitle' | translate }}</p>
             </div>
-            <button type="button" class="btn-close" aria-label="Close" [disabled]="saving" (click)="close()"></button>
+            <button type="button" class="btn-close" [disabled]="saving" (click)="close()" aria-label="Close"></button>
           </div>
 
           <div class="modal-body">
@@ -19,13 +20,12 @@
                 <label class="form-label" for="productBoxName">{{ 'productBoxModels.form.name' | translate }}</label>
                 <input
                   id="productBoxName"
-                  name="name"
+                  name="productBoxName"
                   type="text"
                   class="form-control"
-                  maxlength="255"
-                  required
-                  [(ngModel)]="form.name"
                   [class.is-invalid]="submitted() && !form.name.trim()"
+                  [(ngModel)]="form.name"
+                  required
                 />
                 @if (submitted() && !form.name.trim()) {
                   <div class="invalid-feedback d-block">{{ 'productBoxModels.validation.nameRequired' | translate }}</div>
@@ -33,91 +33,102 @@
               </div>
 
               <div class="col-12">
-                <label class="form-label" for="productBoxDescription">{{ 'productBoxModels.form.description' | translate }}</label>
+                <label class="form-label" for="productBoxDescription">
+                  {{ 'productBoxModels.form.description' | translate }}
+                </label>
                 <textarea
                   id="productBoxDescription"
-                  name="description"
-                  rows="3"
+                  name="productBoxDescription"
                   class="form-control"
+                  rows="3"
                   [(ngModel)]="form.description"
                 ></textarea>
               </div>
 
-              <div class="col-md-4">
+              <div class="col-12 col-md-4">
                 <label class="form-label" for="productBoxWidth">{{ 'productBoxModels.form.width' | translate }}</label>
                 <input
                   id="productBoxWidth"
-                  name="width"
+                  name="productBoxWidth"
                   type="number"
+                  class="form-control"
                   min="0.01"
                   step="0.01"
-                  class="form-control"
-                  required
+                  [class.is-invalid]="submitted() && !isPositive(form.width)"
                   [(ngModel)]="form.width"
-                  [class.is-invalid]="submitted() && (!form.width || form.width <= 0)"
+                  required
                 />
               </div>
 
-              <div class="col-md-4">
+              <div class="col-12 col-md-4">
                 <label class="form-label" for="productBoxHeight">{{ 'productBoxModels.form.height' | translate }}</label>
                 <input
                   id="productBoxHeight"
-                  name="height"
+                  name="productBoxHeight"
                   type="number"
+                  class="form-control"
                   min="0.01"
                   step="0.01"
-                  class="form-control"
-                  required
+                  [class.is-invalid]="submitted() && !isPositive(form.height)"
                   [(ngModel)]="form.height"
-                  [class.is-invalid]="submitted() && (!form.height || form.height <= 0)"
+                  required
                 />
               </div>
 
-              <div class="col-md-4">
+              <div class="col-12 col-md-4">
                 <label class="form-label" for="productBoxDepth">{{ 'productBoxModels.form.depth' | translate }}</label>
                 <input
                   id="productBoxDepth"
-                  name="depth"
+                  name="productBoxDepth"
                   type="number"
+                  class="form-control"
                   min="0.01"
                   step="0.01"
-                  class="form-control"
-                  required
+                  [class.is-invalid]="submitted() && !isPositive(form.depth)"
                   [(ngModel)]="form.depth"
-                  [class.is-invalid]="submitted() && (!form.depth || form.depth <= 0)"
+                  required
                 />
               </div>
 
-              @if (submitted() && (!form.width || form.width <= 0 || !form.height || form.height <= 0 || !form.depth || form.depth <= 0)) {
+              @if (submitted() && (!isPositive(form.width) || !isPositive(form.height) || !isPositive(form.depth))) {
                 <div class="col-12">
-                  <div class="invalid-feedback d-block">{{ 'productBoxModels.validation.dimensionsRequired' | translate }}</div>
+                  <div class="text-danger small">{{ 'productBoxModels.validation.dimensionsRequired' | translate }}</div>
                 </div>
               }
 
-              <div class="col-md-4">
+              <div class="col-12 col-md-4">
                 <label class="form-label" for="productBoxUnit">{{ 'productBoxModels.form.unit' | translate }}</label>
-                <select id="productBoxUnit" name="unit" class="form-select" required [(ngModel)]="form.unit">
+                <select id="productBoxUnit" name="productBoxUnit" class="form-select" [(ngModel)]="form.unit" required>
                   @for (unit of units; track unit) {
-                    <option [ngValue]="unit">{{ 'productBoxModels.units.' + unit | translate }}</option>
+                    <option [value]="unit">{{ 'productBoxModels.units.' + unit | translate }}</option>
                   }
                 </select>
               </div>
 
-              <div class="col-md-8">
-                <label class="form-label" for="productBoxInventoryItem">{{ 'productBoxModels.form.inventoryItem' | translate }}</label>
-                <select id="productBoxInventoryItem" name="inventoryItemId" class="form-select" [(ngModel)]="form.inventoryItemId">
+              <div class="col-12 col-md-8">
+                <label class="form-label" for="productBoxInventoryItem">
+                  {{ 'productBoxModels.form.inventoryItem' | translate }}
+                </label>
+                <select
+                  id="productBoxInventoryItem"
+                  name="productBoxInventoryItem"
+                  class="form-select"
+                  [(ngModel)]="form.inventoryItemId"
+                >
                   <option [ngValue]="null">{{ 'productBoxModels.form.noInventoryItem' | translate }}</option>
                   @for (item of inventoryItems; track item.id) {
-                    <option [ngValue]="item.id">{{ inventoryItemLabel(item) }}</option>
+                    <option [value]="item.id">{{ inventoryItemLabel(item) }}</option>
                   }
                 </select>
               </div>
 
               <div class="col-12">
-                <label class="form-label" for="productBoxPurchaseItemId">{{ 'productBoxModels.form.purchaseItemId' | translate }}</label>
+                <label class="form-label" for="productBoxPurchaseItemId">
+                  {{ 'productBoxModels.form.purchaseItemId' | translate }}
+                </label>
                 <input
                   id="productBoxPurchaseItemId"
-                  name="purchaseItemId"
+                  name="productBoxPurchaseItemId"
                   type="text"
                   class="form-control"
                   [(ngModel)]="form.purchaseItemId"
