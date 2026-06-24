@@ -21,6 +21,8 @@ import {
 import { AiPropertyOption } from '../../models/ai-reference.model';
 import { AiAssistantService } from '../../services/ai-assistant.service';
 import { AiReferenceDataService } from '../../services/ai-reference-data.service';
+import { TamiSpeechAudioService } from '../../services/tami-speech-audio.service';
+import { TamiRobotComponent } from '../../../../shared/tami-robot/tami-robot.component';
 
 type AssistantMode = 'chat' | 'search';
 
@@ -39,7 +41,8 @@ type AiAnimatedLocalMessage = AiLocalMessage & {
     TitleCasePipe,
     TranslatePipe,
     AiSourceListComponent,
-    AiSessionTitleModalComponent
+    AiSessionTitleModalComponent,
+    TamiRobotComponent
   ],
   templateUrl: './ai-assistant-page.component.html',
   styles: [`
@@ -62,9 +65,13 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
   private readonly referenceDataService = inject(AiReferenceDataService);
   private readonly toastService = inject(ToastService);
   private readonly languageService = inject(LanguageService);
+  private readonly tamiSpeechAudioService = inject(TamiSpeechAudioService);
 
   private readonly typingDelayMs = 12;
   private readonly typingTimers = new Map<string, ReturnType<typeof setInterval>>();
+  private readonly tamiSpeechSpeedRatio = 0.75;
+  readonly tamiMouthAnimationDurationMs = Math.round((this.typingDelayMs * 4) / this.tamiSpeechSpeedRatio);
+  private readonly tamiSpeechBlipIntervalMs = this.tamiMouthAnimationDurationMs;
 
   readonly loadingReferences = signal(false);
   readonly loadingSessions = signal(false);
@@ -525,6 +532,8 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
       return;
     }
 
+    this.tamiSpeechAudioService.start({ intervalMs: this.tamiSpeechBlipIntervalMs });
+
     let currentIndex = 0;
     const chunkSize = this.resolveTypingChunkSize(answer);
 
@@ -553,6 +562,7 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
       ? { ...message, content: answer, displayedContent: answer, typing: false }
       : message));
     this.stopTypingTimer(messageId);
+    this.tamiSpeechAudioService.stop();
     onComplete?.();
   }
 
@@ -574,6 +584,7 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
 
   private clearTypingTimers(): void {
     this.typingAssistant.set(false);
+    this.tamiSpeechAudioService.stop();
 
     for (const timer of this.typingTimers.values()) {
       clearInterval(timer);
@@ -591,6 +602,10 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
 
     clearInterval(timer);
     this.typingTimers.delete(messageId);
+
+    if (this.typingTimers.size === 0) {
+      this.tamiSpeechAudioService.stop();
+    }
   }
 
   private scrollToBottom(): void {

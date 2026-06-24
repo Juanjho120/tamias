@@ -9,7 +9,7 @@ export type TamiRobotMode = 'idle' | 'hover' | 'speaking';
   standalone: true,
   imports: [NgClass],
   template: `
-    <span class="tami-robot" [ngClass]="robotClasses" aria-hidden="true">
+    <span class="tami-robot" [ngClass]="robotClasses" aria-hidden="true" [style.--tami-mouth-animation-duration.ms]="mouthAnimationDurationMs">
       <span class="tami-robot__spark tami-robot__spark--left"></span>
       <span class="tami-robot__spark tami-robot__spark--right"></span>
       <span class="tami-robot__arm tami-robot__arm--left"></span>
@@ -330,7 +330,10 @@ export type TamiRobotMode = 'idle' | 'hover' | 'speaking';
       }
 
       .tami-robot--speaking .tami-robot__mouth {
-        animation: tamiRobotTalk 0.17s ease-in-out infinite;
+        animation-name: tamiRobotTalk;
+        animation-duration: var(--tami-mouth-animation-duration, 170ms);
+        animation-timing-function: ease-in-out;
+        animation-iteration-count: infinite;
       }
 
       .tami-robot--speaking .tami-robot__eye {
@@ -405,6 +408,7 @@ export type TamiRobotMode = 'idle' | 'hover' | 'speaking';
 export class TamiRobotComponent {
   @Input() size: TamiRobotSize = 'md';
   @Input() mode: TamiRobotMode = 'idle';
+  @Input() mouthAnimationDurationMs = 170;
 
   get robotClasses(): string[] {
     return [`tami-robot--${this.size}`, `tami-robot--${this.mode}`];
