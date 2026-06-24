@@ -12,6 +12,8 @@ import com.tamias.common.exception.ConflictException;
 import com.tamias.common.exception.NotFoundException;
 import com.tamias.organization.repository.OrganizationRepository;
 import com.tamias.security.service.CurrentUserService;
+import com.tamias.user.entity.User;
+import com.tamias.user.repository.UserRepository;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -22,20 +24,24 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class MaintenancePersonService {
+
     private final MaintenancePersonRepository repository;
     private final OrganizationRepository organizationRepository;
     private final CurrentUserService currentUserService;
+    private final UserRepository userRepository;
     private final CatalogMapper catalogMapper;
 
     public MaintenancePersonService(
-        MaintenancePersonRepository repository,
-        OrganizationRepository organizationRepository,
-        CurrentUserService currentUserService,
-        CatalogMapper catalogMapper
+            MaintenancePersonRepository repository,
+            OrganizationRepository organizationRepository,
+            CurrentUserService currentUserService,
+            UserRepository userRepository,
+            CatalogMapper catalogMapper
     ) {
         this.repository = repository;
         this.organizationRepository = organizationRepository;
         this.currentUserService = currentUserService;
+        this.userRepository = userRepository;
         this.catalogMapper = catalogMapper;
     }
 
@@ -43,10 +49,9 @@ public class MaintenancePersonService {
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF', 'READ_ONLY')")
     public PageResponse<MaintenancePersonResponse> findAll(CatalogStatus status, Pageable pageable) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-
         Page<MaintenancePerson> page = status == null
-            ? repository.findByOrganization_IdAndDeletedAtIsNull(organizationId, pageable)
-            : repository.findByOrganization_IdAndStatusAndDeletedAtIsNull(organizationId, status, pageable);
+                ? repository.findByOrganization_IdAndDeletedAtIsNull(organizationId, pageable)
+                : repository.findByOrganization_IdAndStatusAndDeletedAtIsNull(organizationId, status, pageable);
 
         return PageResponse.from(page.map(catalogMapper::toMaintenancePersonResponse));
     }
@@ -70,11 +75,13 @@ public class MaintenancePersonService {
         }
 
         var organization = organizationRepository.findByIdAndDeletedAtIsNull(organizationId)
-            .orElseThrow(() -> new NotFoundException("Organization not found"));
+                .orElseThrow(() -> new NotFoundException("Organization not found"));
+        User currentUser = findCurrentUser();
 
         MaintenancePerson entity = new MaintenancePerson();
         entity.setOrganization(organization);
-
+        entity.setCreatedBy(currentUser);
+        entity.setUpdatedBy(currentUser);
         catalogMapper.updateMaintenancePerson(entity, request);
         entity.setFullName(normalizedFullName);
 
@@ -91,12 +98,13 @@ public class MaintenancePersonService {
         String normalizedFullName = request.fullName().trim();
 
         if (!entity.getFullName().equalsIgnoreCase(normalizedFullName)
-            && repository.existsByOrganization_IdAndFullNameIgnoreCaseAndDeletedAtIsNull(organizationId, normalizedFullName)) {
+                && repository.existsByOrganization_IdAndFullNameIgnoreCaseAndDeletedAtIsNull(organizationId, normalizedFullName)) {
             throw new ConflictException("maintenance person full name already exists");
         }
 
         catalogMapper.updateMaintenancePerson(entity, request);
         entity.setFullName(normalizedFullName);
+        entity.setUpdatedBy(findCurrentUser());
 
         return catalogMapper.toMaintenancePersonResponse(repository.save(entity));
     }
@@ -105,18 +113,25 @@ public class MaintenancePersonService {
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
     public void delete(UUID id) {
         MaintenancePerson entity = findEntity(id);
+        User currentUser = findCurrentUser();
 
         entity.setStatus(CatalogStatus.DELETED);
         entity.setDeletedAt(OffsetDateTime.now());
+        entity.setDeletedBy(currentUser);
+        entity.setUpdatedBy(currentUser);
 
         repository.save(entity);
     }
 
     private MaintenancePerson findEntity(UUID id) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-
         return repository.findByIdAndOrganization_IdAndDeletedAtIsNull(id, organizationId)
-            .orElseThrow(() -> new NotFoundException("maintenance person not found"));
+                .orElseThrow(() -> new NotFoundException("maintenance person not found"));
+    }
+
+    private User findCurrentUser() {
+        return userRepository.findByIdAndDeletedAtIsNull(currentUserService.getCurrentUserId())
+                .orElseThrow(() -> new NotFoundException("User not found"));
     }
 
     private void validateWritableStatus(CatalogStatus status) {

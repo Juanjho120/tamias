@@ -12,6 +12,8 @@ import com.tamias.common.exception.ConflictException;
 import com.tamias.common.exception.NotFoundException;
 import com.tamias.organization.repository.OrganizationRepository;
 import com.tamias.security.service.CurrentUserService;
+import com.tamias.user.entity.User;
+import com.tamias.user.repository.UserRepository;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -22,20 +24,24 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class TaskTemplateService {
+
     private final TaskTemplateRepository repository;
     private final OrganizationRepository organizationRepository;
     private final CurrentUserService currentUserService;
+    private final UserRepository userRepository;
     private final CatalogMapper catalogMapper;
 
     public TaskTemplateService(
-        TaskTemplateRepository repository,
-        OrganizationRepository organizationRepository,
-        CurrentUserService currentUserService,
-        CatalogMapper catalogMapper
+            TaskTemplateRepository repository,
+            OrganizationRepository organizationRepository,
+            CurrentUserService currentUserService,
+            UserRepository userRepository,
+            CatalogMapper catalogMapper
     ) {
         this.repository = repository;
         this.organizationRepository = organizationRepository;
         this.currentUserService = currentUserService;
+        this.userRepository = userRepository;
         this.catalogMapper = catalogMapper;
     }
 
@@ -43,10 +49,9 @@ public class TaskTemplateService {
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF', 'READ_ONLY')")
     public PageResponse<TaskTemplateResponse> findAll(CatalogStatus status, Pageable pageable) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-
         Page<TaskTemplate> page = status == null
-            ? repository.findByOrganization_IdAndDeletedAtIsNull(organizationId, pageable)
-            : repository.findByOrganization_IdAndStatusAndDeletedAtIsNull(organizationId, status, pageable);
+                ? repository.findByOrganization_IdAndDeletedAtIsNull(organizationId, pageable)
+                : repository.findByOrganization_IdAndStatusAndDeletedAtIsNull(organizationId, status, pageable);
 
         return PageResponse.from(page.map(catalogMapper::toTaskTemplateResponse));
     }
@@ -70,11 +75,13 @@ public class TaskTemplateService {
         }
 
         var organization = organizationRepository.findByIdAndDeletedAtIsNull(organizationId)
-            .orElseThrow(() -> new NotFoundException("Organization not found"));
+                .orElseThrow(() -> new NotFoundException("Organization not found"));
+        User currentUser = findCurrentUser();
 
         TaskTemplate entity = new TaskTemplate();
         entity.setOrganization(organization);
-
+        entity.setCreatedBy(currentUser);
+        entity.setUpdatedBy(currentUser);
         catalogMapper.updateTaskTemplate(entity, request);
         entity.setName(normalizedName);
 
@@ -91,12 +98,13 @@ public class TaskTemplateService {
         String normalizedName = request.name().trim();
 
         if (!entity.getName().equalsIgnoreCase(normalizedName)
-            && repository.existsByOrganization_IdAndNameIgnoreCaseAndDeletedAtIsNull(organizationId, normalizedName)) {
+                && repository.existsByOrganization_IdAndNameIgnoreCaseAndDeletedAtIsNull(organizationId, normalizedName)) {
             throw new ConflictException("task template name already exists");
         }
 
         catalogMapper.updateTaskTemplate(entity, request);
         entity.setName(normalizedName);
+        entity.setUpdatedBy(findCurrentUser());
 
         return catalogMapper.toTaskTemplateResponse(repository.save(entity));
     }
@@ -105,18 +113,25 @@ public class TaskTemplateService {
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
     public void delete(UUID id) {
         TaskTemplate entity = findEntity(id);
+        User currentUser = findCurrentUser();
 
         entity.setStatus(CatalogStatus.DELETED);
         entity.setDeletedAt(OffsetDateTime.now());
+        entity.setDeletedBy(currentUser);
+        entity.setUpdatedBy(currentUser);
 
         repository.save(entity);
     }
 
     private TaskTemplate findEntity(UUID id) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-
         return repository.findByIdAndOrganization_IdAndDeletedAtIsNull(id, organizationId)
-            .orElseThrow(() -> new NotFoundException("task template not found"));
+                .orElseThrow(() -> new NotFoundException("task template not found"));
+    }
+
+    private User findCurrentUser() {
+        return userRepository.findByIdAndDeletedAtIsNull(currentUserService.getCurrentUserId())
+                .orElseThrow(() -> new NotFoundException("User not found"));
     }
 
     private void validateWritableStatus(CatalogStatus status) {

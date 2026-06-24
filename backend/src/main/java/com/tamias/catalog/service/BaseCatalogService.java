@@ -12,6 +12,8 @@ import com.tamias.common.exception.ConflictException;
 import com.tamias.common.exception.NotFoundException;
 import com.tamias.organization.repository.OrganizationRepository;
 import com.tamias.security.service.CurrentUserService;
+import com.tamias.user.entity.User;
+import com.tamias.user.repository.UserRepository;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -20,20 +22,24 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 
 public abstract class BaseCatalogService<T extends BaseCatalogEntity> {
+
     private final BaseCatalogRepository<T> repository;
     private final OrganizationRepository organizationRepository;
     private final CurrentUserService currentUserService;
+    private final UserRepository userRepository;
     private final CatalogMapper catalogMapper;
 
     protected BaseCatalogService(
-        BaseCatalogRepository<T> repository,
-        OrganizationRepository organizationRepository,
-        CurrentUserService currentUserService,
-        CatalogMapper catalogMapper
+            BaseCatalogRepository<T> repository,
+            OrganizationRepository organizationRepository,
+            CurrentUserService currentUserService,
+            UserRepository userRepository,
+            CatalogMapper catalogMapper
     ) {
         this.repository = repository;
         this.organizationRepository = organizationRepository;
         this.currentUserService = currentUserService;
+        this.userRepository = userRepository;
         this.catalogMapper = catalogMapper;
     }
 
@@ -41,10 +47,9 @@ public abstract class BaseCatalogService<T extends BaseCatalogEntity> {
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF', 'READ_ONLY')")
     public PageResponse<CatalogResponse> findAll(CatalogStatus status, Pageable pageable) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-
         Page<T> page = status == null
-            ? repository.findByOrganization_IdAndDeletedAtIsNull(organizationId, pageable)
-            : repository.findByOrganization_IdAndStatusAndDeletedAtIsNull(organizationId, status, pageable);
+                ? repository.findByOrganization_IdAndDeletedAtIsNull(organizationId, pageable)
+                : repository.findByOrganization_IdAndStatusAndDeletedAtIsNull(organizationId, status, pageable);
 
         return PageResponse.from(page.map(catalogMapper::toCatalogResponse));
     }
@@ -68,11 +73,13 @@ public abstract class BaseCatalogService<T extends BaseCatalogEntity> {
         }
 
         var organization = organizationRepository.findByIdAndDeletedAtIsNull(organizationId)
-            .orElseThrow(() -> new NotFoundException("Organization not found"));
+                .orElseThrow(() -> new NotFoundException("Organization not found"));
+        User currentUser = findCurrentUser();
 
         T entity = newEntity();
         entity.setOrganization(organization);
-
+        entity.setCreatedBy(currentUser);
+        entity.setUpdatedBy(currentUser);
         catalogMapper.updateBaseCatalog(entity, request);
         entity.setName(normalizedName);
 
@@ -89,12 +96,13 @@ public abstract class BaseCatalogService<T extends BaseCatalogEntity> {
         String normalizedName = request.name().trim();
 
         if (!entity.getName().equalsIgnoreCase(normalizedName)
-            && repository.existsByOrganization_IdAndNameIgnoreCaseAndDeletedAtIsNull(organizationId, normalizedName)) {
+                && repository.existsByOrganization_IdAndNameIgnoreCaseAndDeletedAtIsNull(organizationId, normalizedName)) {
             throw new ConflictException(getCatalogName() + " name already exists");
         }
 
         catalogMapper.updateBaseCatalog(entity, request);
         entity.setName(normalizedName);
+        entity.setUpdatedBy(findCurrentUser());
 
         return catalogMapper.toCatalogResponse(repository.save(entity));
     }
@@ -103,18 +111,25 @@ public abstract class BaseCatalogService<T extends BaseCatalogEntity> {
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
     public void delete(UUID id) {
         T entity = findEntityInCurrentOrganization(id);
+        User currentUser = findCurrentUser();
 
         entity.setStatus(CatalogStatus.DELETED);
         entity.setDeletedAt(OffsetDateTime.now());
+        entity.setDeletedBy(currentUser);
+        entity.setUpdatedBy(currentUser);
 
         repository.save(entity);
     }
 
     protected T findEntityInCurrentOrganization(UUID id) {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-
         return repository.findByIdAndOrganization_IdAndDeletedAtIsNull(id, organizationId)
-            .orElseThrow(() -> new NotFoundException(getCatalogName() + " not found"));
+                .orElseThrow(() -> new NotFoundException(getCatalogName() + " not found"));
+    }
+
+    private User findCurrentUser() {
+        return userRepository.findByIdAndDeletedAtIsNull(currentUserService.getCurrentUserId())
+                .orElseThrow(() -> new NotFoundException("User not found"));
     }
 
     private void validateWritableStatus(CatalogStatus status) {

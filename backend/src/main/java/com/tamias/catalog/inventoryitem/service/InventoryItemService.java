@@ -15,6 +15,8 @@ import com.tamias.common.exception.ConflictException;
 import com.tamias.common.exception.NotFoundException;
 import com.tamias.organization.repository.OrganizationRepository;
 import com.tamias.security.service.CurrentUserService;
+import com.tamias.user.entity.User;
+import com.tamias.user.repository.UserRepository;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -30,6 +32,7 @@ public class InventoryItemService {
     private final BrandRepository brandRepository;
     private final OrganizationRepository organizationRepository;
     private final CurrentUserService currentUserService;
+    private final UserRepository userRepository;
     private final CatalogMapper catalogMapper;
 
     public InventoryItemService(
@@ -37,12 +40,14 @@ public class InventoryItemService {
             BrandRepository brandRepository,
             OrganizationRepository organizationRepository,
             CurrentUserService currentUserService,
+            UserRepository userRepository,
             CatalogMapper catalogMapper
     ) {
         this.repository = repository;
         this.brandRepository = brandRepository;
         this.organizationRepository = organizationRepository;
         this.currentUserService = currentUserService;
+        this.userRepository = userRepository;
         this.catalogMapper = catalogMapper;
     }
 
@@ -94,6 +99,7 @@ public class InventoryItemService {
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
     public InventoryItemResponse create(InventoryItemRequest request) {
         validateWritableStatus(request.status());
+
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         String normalizedName = request.name().trim();
 
@@ -103,9 +109,12 @@ public class InventoryItemService {
 
         var organization = organizationRepository.findByIdAndDeletedAtIsNull(organizationId)
                 .orElseThrow(() -> new NotFoundException("Organization not found"));
+        User currentUser = findCurrentUser();
 
         InventoryItem entity = new InventoryItem();
         entity.setOrganization(organization);
+        entity.setCreatedBy(currentUser);
+        entity.setUpdatedBy(currentUser);
         catalogMapper.updateInventoryItem(entity, request);
         entity.setName(normalizedName);
         entity.setBrand(resolveBrand(request.brandId(), organizationId));
@@ -117,6 +126,7 @@ public class InventoryItemService {
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
     public InventoryItemResponse update(UUID id, InventoryItemRequest request) {
         validateWritableStatus(request.status());
+
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         InventoryItem entity = findEntity(id);
         String normalizedName = request.name().trim();
@@ -129,6 +139,7 @@ public class InventoryItemService {
         catalogMapper.updateInventoryItem(entity, request);
         entity.setName(normalizedName);
         entity.setBrand(resolveBrand(request.brandId(), organizationId));
+        entity.setUpdatedBy(findCurrentUser());
 
         return catalogMapper.toInventoryItemResponse(repository.save(entity));
     }
@@ -137,8 +148,13 @@ public class InventoryItemService {
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER')")
     public void delete(UUID id) {
         InventoryItem entity = findEntity(id);
+        User currentUser = findCurrentUser();
+
         entity.setStatus(CatalogStatus.DELETED);
         entity.setDeletedAt(OffsetDateTime.now());
+        entity.setDeletedBy(currentUser);
+        entity.setUpdatedBy(currentUser);
+
         repository.save(entity);
     }
 
@@ -161,6 +177,11 @@ public class InventoryItemService {
         }
 
         return brand;
+    }
+
+    private User findCurrentUser() {
+        return userRepository.findByIdAndDeletedAtIsNull(currentUserService.getCurrentUserId())
+                .orElseThrow(() -> new NotFoundException("User not found"));
     }
 
     private void validateWritableStatus(CatalogStatus status) {
