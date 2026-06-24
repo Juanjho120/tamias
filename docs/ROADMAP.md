@@ -5,35 +5,45 @@ This roadmap reflects the current state after AI tool calling/orchestration, S3/
 ## Completed foundation
 
 ### Phase 0 — Project Setup
+
 Status: Completed.
 
 ### Phase 1 — Security and SaaS Foundation
+
 Status: Completed / MVP-ready.
 
 ### Phase 2 — Properties and Catalogs
+
 Status: Completed / MVP-ready.
 
 ### Phase 3 — Maintenance
+
 Status: Completed / MVP-ready.
 
 ### Phase 4 — Reservations and Tasks
+
 Status: Completed / MVP-ready.
 
 ### Phase 5 — Purchase Lists
+
 Status: Completed / MVP-ready.
 
 ### Phase 6 — Documents
+
 Status: Completed / MVP-ready.
 
 ### Phase 7 — AI Document Search
+
 Status: Completed / MVP-ready.
 
 ### Phase 8 — MVP Hardening
+
 Status: Completed / partially superseded by security review phases.
 
 ## Completed AI tool calling and orchestration track
 
 ### Phase 9 — AI Tool Calling and AI Orchestration
+
 Status: Completed through 9P-H.
 
 Completed sub-phases:
@@ -64,6 +74,7 @@ Completed sub-phases:
 ```
 
 ### 9P-I — RAG retrieval tuning
+
 Status: Conditional / optional / not started.
 
 ## Completed implementation queue after initial MVP
@@ -73,6 +84,7 @@ Phases 10A through 13A are completed and documented in their corresponding `.md`
 ## Completed Product Box Models phase
 
 ### Phase 14 — Product Box Models
+
 Status: Completed through 14P.
 
 Documentation: `71-product-box-models-14.md`
@@ -104,9 +116,12 @@ Product Box Models phase is complete for now.
 ## Completed organization administration and global UX polish phase
 
 ### Phase 15 — Organization Administration and Global UX Polish
+
 Status: Completed through 15F.
 
-Documentation: `93-organization-administration-global-ux-15.md`
+Documentation:
+- `93-organization-administration-global-ux-15.md`
+- `105-ai-read-only-tool-support-decomposition-15f.md`
 
 Completed subphases:
 
@@ -139,9 +154,10 @@ Phase decisions:
 ## Active / next implementation phase
 
 ### Phase 16 — Payments
+
 Status: Planned / next.
 
-Documentation: `97-payments-16.md`
+Documentation: `106-payments-16.md`
 
 Purpose:
 
@@ -172,9 +188,9 @@ Planned subphases:
 Future phase documents:
 
 ```text
-98-reports-17.md
-99-notifications-reminders-18.md
-100-blueprint-analysis-19.md
+107-reports-17.md
+108-notifications-reminders-18.md
+109-blueprint-analysis-19.md
 ```
 
 The previous documents `94-reports-16.md`, `95-notifications-reminders-17.md` and `96-blueprint-analysis-18.md` are superseded because Payments was introduced as Phase 16 before Reports.
