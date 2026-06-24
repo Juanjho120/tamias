@@ -1,23 +1,12 @@
 package com.tamias.ai.tool.repository;
 
-import com.tamias.ai.dto.AiToolEvidenceResponse;
 import com.tamias.ai.tool.AiToolAnswer;
 import com.tamias.ai.tool.support.AiReadOnlyToolSupport;
 import com.tamias.security.service.CurrentUserService;
 import jakarta.persistence.EntityManager;
-import java.math.BigDecimal;
-import java.sql.Date;
-import java.sql.Timestamp;
-import java.time.LocalDate;
-import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,12 +20,10 @@ public class AssistantProfileToolRepository extends AiReadOnlyToolSupport {
 
     public AiToolAnswer capabilities() {
         String answer = """
-                Soy el asistente IA de TAMIAS. Te ayudo a consultar información operativa de tus alojamientos sin modificar datos.
-
-                Puedo apoyarte con propiedades, catálogos, reservaciones próximas, mantenimientos, compras, tareas, documentos y estado del índice RAG. También puedo combinar varias consultas para darte una visión operativa más útil.
-
-                Por seguridad, en esta fase sigo siendo read-only: no creo, edito, elimino registros ni envío notificaciones automáticamente.
+                Soy el asistente IA de TAMIAS.
+                Te ayudo a consultar información operativa de tus alojamientos sin modificar datos. Puedo apoyarte con propiedades, catálogos, reservaciones próximas, mantenimientos, compras, pagos, tareas, documentos, modelos 3D Product Box y estado del índice RAG. También puedo combinar varias consultas para darte una visión operativa más útil. Por seguridad, en esta fase sigo siendo read-only: no creo, edito, elimino registros ni envío notificaciones automáticamente.
                 """.trim();
+
         return AiToolAnswer.of(
                 answer,
                 "assistant.capabilities",
@@ -50,8 +37,13 @@ public class AssistantProfileToolRepository extends AiReadOnlyToolSupport {
         UUID userId = currentUserService.getCurrentUserId();
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         List<Map<String, Object>> rows = query("""
-                SELECT u.first_name, u.last_name, u.email, u.status, u.password_change_required,
-                       r.code AS role_code, o.name AS organization_name
+                SELECT u.first_name,
+                       u.last_name,
+                       u.email,
+                       u.status,
+                       u.password_change_required,
+                       r.code AS role_code,
+                       o.name AS organization_name
                 FROM users u
                 JOIN user_organizations uo ON uo.user_id = u.id
                 JOIN organizations o ON o.id = uo.organization_id
@@ -97,8 +89,9 @@ public class AssistantProfileToolRepository extends AiReadOnlyToolSupport {
         } else if (containsAny(normalizedQuestion, "nombre", "llamo")) {
             answer = "Te llamas " + blankToDash(fullName) + ".";
         } else {
-            answer = "Tienes sesión activa como " + blankToDash(fullName) + " (" + blankToDash(email)
-                    + "), con rol " + blankToDash(role) + " dentro de " + blankToDash(organizationName) + ".";
+            answer = "Tienes sesión activa como " + blankToDash(fullName)
+                    + " (" + blankToDash(email) + "), con rol " + blankToDash(role)
+                    + " dentro de " + blankToDash(organizationName) + ".";
         }
 
         return AiToolAnswer.of(
@@ -113,15 +106,18 @@ public class AssistantProfileToolRepository extends AiReadOnlyToolSupport {
     public AiToolAnswer currentOrganizationSummary() {
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         List<Map<String, Object>> rows = query("""
-                SELECT o.name, o.description, o.status, COUNT(DISTINCT uo.user_id) AS user_count
+                SELECT o.name,
+                       o.description,
+                       o.status,
+                       COUNT(DISTINCT uo.user_id) AS user_count
                 FROM organizations o
-                LEFT JOIN user_organizations uo ON uo.organization_id = o.id AND uo.status = 'ACTIVE'
+                LEFT JOIN user_organizations uo ON uo.organization_id = o.id
+                    AND uo.status = 'ACTIVE'
                 WHERE o.id = :organizationId
                   AND o.deleted_at IS NULL
                 GROUP BY o.id, o.name, o.description, o.status
                 LIMIT 1
-                """, q -> q.setParameter("organizationId", organizationId),
-                "name", "description", "status", "userCount");
+                """, q -> q.setParameter("organizationId", organizationId), "name", "description", "status", "userCount");
 
         if (rows.isEmpty()) {
             return AiToolAnswer.of(
@@ -137,6 +133,7 @@ public class AssistantProfileToolRepository extends AiReadOnlyToolSupport {
         String answer = "Estás trabajando en " + blankToDash(value(row.get("name"))) + ".\n"
                 + "Estado: " + blankToDash(value(row.get("status"))) + ".\n"
                 + "Usuarios activos asociados: " + blankToDash(value(row.get("userCount"))) + ".";
+
         return AiToolAnswer.of(
                 answer,
                 "organization.currentSummary",

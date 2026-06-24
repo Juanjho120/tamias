@@ -1,6 +1,6 @@
 # TAMIAS — Roadmap
 
-This roadmap reflects the current state after AI tool calling/orchestration, S3/image hard-delete work, inventory brand/image work, AI debug traces, smoke-test hardening, Product Box Models through AI awareness, Phase 15 organization/global UX work, the AI read-only support decomposition and Payments through the Angular page.
+This roadmap reflects the current state after AI tool calling/orchestration, S3/image hard-delete work, inventory brand/image work, AI debug traces, smoke-test hardening, Product Box Models through AI awareness, Phase 15 organization/global UX work, the AI read-only support decomposition and Payments through AI awareness.
 
 ## Completed foundation
 
@@ -137,11 +137,11 @@ Completed subphases:
 15F AI read-only tool support decomposition
 ```
 
-## Active implementation phase
+## Completed payments phase
 
 ### Phase 16 — Payments
 
-Status: In progress through 16D.
+Status: Completed through 16E.
 
 Documentation: `106-payments-16.md`
 
@@ -153,25 +153,37 @@ Purpose:
 - Add a dedicated Angular payments screen.
 - Add read-only TAMI awareness for payment summaries and searches.
 
-Implemented subphases:
+Completed subphases:
 
 ```text
 16A Payments backend foundation
 16B Payment images with S3 hard delete
 16C Payment categories in catalogs
 16D Angular payments page
-```
-
-Remaining subphase:
-
-```text
 16E AI awareness for payments
 ```
+
+Phase decisions:
+
+- Payments are an internal operational registry, not a payment processor.
+- Payments use soft delete.
+- Payment images use hard delete from S3 and database.
+- Payment categories are organization-scoped catalogs.
+- TAMI payment tools are read-only and scoped to the selected organization.
+- `SUPER_ADMIN` payment queries use the organization selected in the token, not a global cross-organization query.
+- Payment AI awareness is implemented with a dedicated handler/service/repository and does not grow `AiReadOnlyToolSupport` again.
+
+## Active / next implementation phase
+
+### Phase 17 — Reports
+
+Status: Planned / next.
+
+Documentation: `107-reports-17.md`
 
 ## Future phases
 
 ```text
-17 Reports
 18 Notifications and reminders
 19 Blueprint Analysis
 ```
@@ -179,7 +191,6 @@ Remaining subphase:
 Future phase documents:
 
 ```text
-107-reports-17.md
 108-notifications-reminders-18.md
 109-blueprint-analysis-19.md
 ```

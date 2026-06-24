@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress through 16D.
+Completed through 16E.
 
 ## Purpose
 
@@ -284,14 +284,19 @@ Non-scope for 16D:
 
 ## 16E — AI awareness for payments
 
-Planned.
+Status: Implemented.
 
-- Add payment read-only repository/service/handler.
-- Add routing examples/patterns.
-- Add smoke-test prompts.
-- Keep AI tools read-only.
+Implemented scope:
 
-Suggested tools:
+- Added `PaymentToolRepository` under `ai/tool/repository`.
+- Added `PaymentReadOnlyToolService` under `ai/tool/service`.
+- Added `PaymentToolHandler` under `ai/tool/handler`.
+- Registered the handler through the existing Spring `List<AiToolHandler>` architecture.
+- Kept `AiReadOnlyToolSupport` untouched so the Phase 15F split does not regress into a monolithic class.
+- Added read-only payment tools scoped by `CurrentUserService.getCurrentOrganizationId()`.
+- Updated TAMI capabilities text to mention payments.
+
+Implemented tools:
 
 ```text
 payment.summary
@@ -303,9 +308,11 @@ payment.byProperty
 payment.monthlyTotals
 payment.highestPayments
 payment.imagesSummary
+payment.withoutCategory
+payment.categories
 ```
 
-Questions TAMI should handle:
+Supported questions:
 
 ```text
 ¿Cuánto pagué este mes?
@@ -316,15 +323,16 @@ Questions TAMI should handle:
 ¿Cuál fue el pago más alto?
 ¿Cuánto se pagó por la Casa A?
 ¿Qué pagos hay sin categoría?
+¿Qué categorías de pago tengo?
 ```
 
 Rules:
 
-- AI tools must be organization-scoped.
-- AI tools must respect the selected organization for `SUPER_ADMIN`.
-- AI tools must be read-only.
-- AI tools must not expose raw S3 keys unless the existing image tools already do so.
-- Avoid mixing payment answers with purchase-list answers unless the user's question clearly asks for both.
+- AI tools are organization-scoped.
+- AI tools respect the selected organization for `SUPER_ADMIN`.
+- AI tools are read-only.
+- AI tools do not expose raw S3 keys.
+- Payment answers avoid mixing with purchase-list answers unless the user's question explicitly includes payment scope.
 
 ## Non-goals
 

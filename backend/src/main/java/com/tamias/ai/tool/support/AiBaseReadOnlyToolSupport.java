@@ -5,7 +5,7 @@ import jakarta.persistence.EntityManager;
 
 public abstract class AiBaseReadOnlyToolSupport {
 
-    protected static final int DEFAULT_LIMIT = 10;
+    protected static final int DEFAULT_LIMIT = 5;
 
     protected final EntityManager entityManager;
     protected final CurrentUserService currentUserService;
