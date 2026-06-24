@@ -2,26 +2,20 @@
 
 ## Status
 
-Future / planned after Reports.
+Superseded / moved.
 
-## Purpose
+## New location
 
-Add notification and reminder capabilities for TAMIAS after the Reports phase is designed/implemented.
+Notifications and reminders moved to:
 
-## Scope candidates
+```text
+docs/99-notifications-reminders-18.md
+```
 
-- Email notifications.
-- Scheduled maintenance reminders.
-- Reservation check-in/check-out reminders.
-- Task due reminders.
-- Purchase/list follow-up reminders.
-- Admin-configurable notification preferences.
+## Reason
 
-## Technical direction
+Payments was introduced as Phase 16 and Reports moved to Phase 17. Notifications and reminders therefore moved to Phase 18.
 
-Notifications should be separated from Reports because they involve delivery channels, schedules, retries, user preferences and potentially background jobs.
+## Rule
 
-## Non-goals
-
-- Do not combine notification delivery with report rendering in the same phase.
-- Do not use TAMI for write/send actions until write-capable AI features are explicitly designed and approved.
+Do not implement Notifications and reminders from this document. Use `docs/99-notifications-reminders-18.md` instead.

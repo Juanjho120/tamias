@@ -1,49 +1,39 @@
 # TAMIAS — Roadmap
 
-This roadmap reflects the current state after AI tool calling/orchestration, S3/image hard-delete work, inventory brand/image work, AI debug traces, smoke-test hardening, Product Box Models through AI awareness and Phase 15 organization/global UX work.
+This roadmap reflects the current state after AI tool calling/orchestration, S3/image hard-delete work, inventory brand/image work, AI debug traces, smoke-test hardening, Product Box Models through AI awareness, Phase 15 organization/global UX work and the AI read-only support decomposition.
 
 ## Completed foundation
 
 ### Phase 0 — Project Setup
-
 Status: Completed.
 
 ### Phase 1 — Security and SaaS Foundation
-
 Status: Completed / MVP-ready.
 
 ### Phase 2 — Properties and Catalogs
-
 Status: Completed / MVP-ready.
 
 ### Phase 3 — Maintenance
-
 Status: Completed / MVP-ready.
 
 ### Phase 4 — Reservations and Tasks
-
 Status: Completed / MVP-ready.
 
 ### Phase 5 — Purchase Lists
-
 Status: Completed / MVP-ready.
 
 ### Phase 6 — Documents
-
 Status: Completed / MVP-ready.
 
 ### Phase 7 — AI Document Search
-
 Status: Completed / MVP-ready.
 
 ### Phase 8 — MVP Hardening
-
 Status: Completed / partially superseded by security review phases.
 
 ## Completed AI tool calling and orchestration track
 
 ### Phase 9 — AI Tool Calling and AI Orchestration
-
 Status: Completed through 9P-H.
 
 Completed sub-phases:
@@ -74,7 +64,6 @@ Completed sub-phases:
 ```
 
 ### 9P-I — RAG retrieval tuning
-
 Status: Conditional / optional / not started.
 
 ## Completed implementation queue after initial MVP
@@ -84,7 +73,6 @@ Phases 10A through 13A are completed and documented in their corresponding `.md`
 ## Completed Product Box Models phase
 
 ### Phase 14 — Product Box Models
-
 Status: Completed through 14P.
 
 Documentation: `71-product-box-models-14.md`
@@ -116,7 +104,6 @@ Product Box Models phase is complete for now.
 ## Completed organization administration and global UX polish phase
 
 ### Phase 15 — Organization Administration and Global UX Polish
-
 Status: Completed through 15F.
 
 Documentation: `93-organization-administration-global-ux-15.md`
@@ -147,12 +134,47 @@ Phase decisions:
 - The sidebar shows `TAMI` instead of `AI Assistant`.
 - TAMI robot identity is reusable in the sidebar and AI Assistant page.
 - The robot animation in the AI session title starts when the typewriter response starts and stops when the typewriter response finishes.
-- AI read-only tool support is decomposed into smaller support classes so future phases, including Reports, do not continue growing a single monolithic base class.
+- AI read-only tool support is decomposed into smaller support classes so future phases, including Payments and Reports, do not continue growing a single monolithic base class.
+
+## Active / next implementation phase
+
+### Phase 16 — Payments
+Status: Planned / next.
+
+Documentation: `97-payments-16.md`
+
+Purpose:
+
+- Add a small organization-scoped payment registry for operational expenses and payments.
+- Support payment categories as part of the catalog system.
+- Support payment images/receipts stored privately in S3 with presigned URLs.
+- Add a dedicated Angular payments screen.
+- Add read-only TAMI awareness for payment summaries and searches.
+
+Planned subphases:
+
+```text
+16A Payments backend foundation
+16B Payment images with S3 hard delete
+16C Payment categories in catalogs
+16D Angular payments page
+16E AI awareness for payments
+```
 
 ## Future phases
 
 ```text
-16 Reports
-17 Notifications and reminders
-18 Blueprint Analysis
+17 Reports
+18 Notifications and reminders
+19 Blueprint Analysis
 ```
+
+Future phase documents:
+
+```text
+98-reports-17.md
+99-notifications-reminders-18.md
+100-blueprint-analysis-19.md
+```
+
+The previous documents `94-reports-16.md`, `95-notifications-reminders-17.md` and `96-blueprint-analysis-18.md` are superseded because Payments was introduced as Phase 16 before Reports.

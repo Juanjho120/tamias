@@ -6,9 +6,7 @@ Completed through 15F.
 
 ## Purpose
 
-Add organization administration, organization logo support, multi-organization navigation and global UX polish before starting the larger Reports, Notifications and Blueprint Analysis phases.
-
-This phase continues the SaaS foundation already present in TAMIAS and improves the day-to-day experience for organization-aware users.
+Add organization administration, organization logo support, multi-organization navigation and global UX polish before starting the larger operational phases. This phase continues the SaaS foundation already present in TAMIAS and improves the day-to-day experience for organization-aware users.
 
 ## High-level decisions
 
@@ -25,7 +23,7 @@ This phase continues the SaaS foundation already present in TAMIAS and improves 
 - The AI Assistant navigation label should be `TAMI`.
 - The TAMI robot identity should be reusable in the sidebar, AI Assistant page title and active chat/session title.
 - The robot in the active session title should animate as if speaking while the assistant response is being typed.
-- AI read-only tool support should stay maintainable by decomposing the large shared support class before starting Reports.
+- AI read-only tool support should stay maintainable by decomposing the large shared support class before starting Payments and Reports.
 
 ## 15A — Organization logo backend + current organization header
 
@@ -151,7 +149,7 @@ Completed.
 
 ### Goal
 
-Reduce the maintenance risk of the AI read-only tools by decomposing the large `AiReadOnlyToolSupport` base class before starting Phase 16 Reports.
+Reduce the maintenance risk of the AI read-only tools by decomposing the large `AiReadOnlyToolSupport` base class before starting Payments and Reports.
 
 ### Backend scope
 
@@ -182,14 +180,23 @@ Reduce the maintenance risk of the AI read-only tools by decomposing the large `
 - No frontend changes.
 - No translation changes.
 - No AI behavior changes intended.
-- Do not add Reports code to this phase.
+- Do not add Payments or Reports code to this phase.
 
 ## Documentation and roadmap
 
-This phase supersedes the previous future-phase numbering:
+This phase originally prepared the codebase for Reports. Payments was later introduced as a new operational module before Reports, so the next active phase is now:
 
 ```text
-Old future 15 Reports -> New future 16 Reports
-Old future 16 Notifications/reminders -> New future 17 Notifications and reminders
-Old future 17 Blueprint Analysis -> New future 18 Blueprint Analysis
+16 Payments
+17 Reports
+18 Notifications and reminders
+19 Blueprint Analysis
+```
+
+Superseded future-phase documents:
+
+```text
+94-reports-16.md -> moved to 98-reports-17.md
+95-notifications-reminders-17.md -> moved to 99-notifications-reminders-18.md
+96-blueprint-analysis-18.md -> moved to 100-blueprint-analysis-19.md
 ```

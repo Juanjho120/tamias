@@ -2,25 +2,20 @@
 
 ## Status
 
-Future / planned after Reports and Notifications.
+Superseded / moved.
 
-## Purpose
+## New location
 
-Add blueprint/plan analysis capabilities after the operational/reporting/notification roadmap is stable.
+Blueprint Analysis moved to:
 
-## Scope candidates
+```text
+docs/100-blueprint-analysis-19.md
+```
 
-- Upload floor plans or blueprints.
-- Extract measurements when possible.
-- Search blueprint metadata through TAMI.
-- Use OCR and/or vision models only after a dedicated design phase.
+## Reason
 
-## Technical direction
+Payments was introduced as Phase 16, Reports moved to Phase 17 and Notifications/reminders moved to Phase 18. Blueprint Analysis therefore moved to Phase 19.
 
-Blueprint Analysis should be handled separately because it may require OCR, vision models, image/PDF processing, confidence scoring and careful UX for uncertain measurements.
+## Rule
 
-## Non-goals
-
-- Do not mix Blueprint Analysis with Product Box Models.
-- Product Box Models render boxes from user-provided dimensions and images; they do not analyze images.
-- Do not assume AI can accurately infer dimensions from an image without a dedicated validation workflow.
+Do not implement Blueprint Analysis from this document. Use `docs/100-blueprint-analysis-19.md` instead.

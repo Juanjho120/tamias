@@ -2,29 +2,20 @@
 
 ## Status
 
-Future / planned after Organization Administration and Global UX Polish.
+Superseded / moved.
 
-## Purpose
+## New location
 
-Add report generation for TAMIAS after the organization administration and global UX polish work is complete.
+Reports moved to:
 
-## Scope candidates
+```text
+docs/98-reports-17.md
+```
 
-- Operational PDF reports.
-- Maintenance cost reports.
-- Purchase cost reports.
-- Reservation summaries.
-- Inventory usage reports.
-- Image/file storage summaries if useful.
+## Reason
 
-## Technical direction
+Payments was introduced as a new operational module before Reports. Payments needs its own schema, CRUD UI, S3 image handling, catalog integration and read-only AI tools before Reports are implemented.
 
-Reports should build on existing stable data and avoid changing operational flows.
+## Rule
 
-JasperReports remains the likely backend reporting technology, but implementation should be designed in a dedicated report phase instead of being mixed with organization administration, Product Box Models or AI/RAG phases.
-
-## Non-goals
-
-- Do not add notification delivery in this phase.
-- Do not add Blueprint Analysis in this phase.
-- Do not make TAMI execute report writes/actions unless a later write-capable AI phase is explicitly approved.
+Do not implement Reports from this document. Use `docs/98-reports-17.md` instead.
