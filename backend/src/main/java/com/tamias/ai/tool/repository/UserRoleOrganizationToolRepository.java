@@ -103,7 +103,16 @@ public class UserRoleOrganizationToolRepository extends AiReadOnlyToolSupport {
                 userQuestion,
                 "usuario", "usuarios", "son", "con", "tiene", "tienen", "rol", "role", "roles", "administradores", "administrador", "activos", "inactivos"
         ));
-        if (containsAny(normalizedQuestion, "administrador", "administradores", "administrator", "admin")) {
+        if (containsAny(
+                normalizedQuestion,
+                "super admin",
+                "super_admin",
+                "super administrador",
+                "superadministrador",
+                "superadministradores"
+        )) {
+            search = "super admin";
+        } else if (containsAny(normalizedQuestion, "administrador", "administradores", "administrator", "admin")) {
             search = "administrator";
         } else if (containsAny(normalizedQuestion, "property manager", "property managers", "manager")) {
             search = "property manager";
@@ -235,6 +244,20 @@ public class UserRoleOrganizationToolRepository extends AiReadOnlyToolSupport {
                 userQuestion,
                 "permiso", "permisos", "tiene", "rol", "role", "resumen", "que", "cuales", "cuáles"
         ));
+
+        String normalizedQuestion = normalize(userQuestion);
+
+        if (containsAny(
+                normalizedQuestion,
+                "super admin",
+                "super_admin",
+                "super administrador",
+                "superadministrador",
+                "superadministradores"
+        )) {
+            search = "super admin";
+        }
+
         List<Map<String, Object>> rows = roleRows(search);
         if (rows.isEmpty()) {
             return AiToolAnswer.of(
@@ -269,6 +292,7 @@ public class UserRoleOrganizationToolRepository extends AiReadOnlyToolSupport {
                 SELECT COUNT(DISTINCT u.id) AS total_users,
                        COUNT(DISTINCT CASE WHEN u.status = 'ACTIVE' AND uo.status = 'ACTIVE' THEN u.id END) AS active_users,
                        COUNT(DISTINCT CASE WHEN u.status <> 'ACTIVE' OR uo.status <> 'ACTIVE' THEN u.id END) AS non_active_users,
+                       COUNT(DISTINCT CASE WHEN r.code = 'SUPER_ADMIN' AND u.status = 'ACTIVE' AND uo.status = 'ACTIVE' THEN u.id END) AS super_admins,
                        COUNT(DISTINCT CASE WHEN r.code = 'ADMINISTRATOR' AND u.status = 'ACTIVE' AND uo.status = 'ACTIVE' THEN u.id END) AS administrators,
                        COUNT(DISTINCT CASE WHEN r.code = 'PROPERTY_MANAGER' AND u.status = 'ACTIVE' AND uo.status = 'ACTIVE' THEN u.id END) AS property_managers,
                        COUNT(DISTINCT CASE WHEN r.code = 'MAINTENANCE_STAFF' AND u.status = 'ACTIVE' AND uo.status = 'ACTIVE' THEN u.id END) AS maintenance_staff,
@@ -279,12 +303,13 @@ public class UserRoleOrganizationToolRepository extends AiReadOnlyToolSupport {
                 WHERE uo.organization_id = :organizationId
                   AND u.deleted_at IS NULL
                 """, q -> q.setParameter("organizationId", organizationId),
-                "totalUsers", "activeUsers", "nonActiveUsers", "administrators", "propertyManagers", "maintenanceStaff", "readOnlyUsers");
+                "totalUsers", "activeUsers", "nonActiveUsers", "superAdmins", "administrators", "propertyManagers", "maintenanceStaff", "readOnlyUsers");
         Map<String, Object> row = rows.isEmpty() ? Map.of() : rows.get(0);
         String answer = "Usuarios de tu organización:\n"
                 + "- Total: " + blankToDash(value(row.get("totalUsers"))) + "\n"
                 + "- Activos: " + blankToDash(value(row.get("activeUsers"))) + "\n"
                 + "- No activos: " + blankToDash(value(row.get("nonActiveUsers"))) + "\n"
+                + "- Super Admins activos: " + blankToDash(value(row.get("superAdmins"))) + "\n"
                 + "- Administradores activos: " + blankToDash(value(row.get("administrators"))) + "\n"
                 + "- Property Managers activos: " + blankToDash(value(row.get("propertyManagers"))) + "\n"
                 + "- Maintenance Staff activos: " + blankToDash(value(row.get("maintenanceStaff"))) + "\n"

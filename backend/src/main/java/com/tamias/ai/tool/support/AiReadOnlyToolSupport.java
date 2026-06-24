@@ -2119,56 +2119,74 @@ public abstract class AiReadOnlyToolSupport {
     }
 
     protected boolean isCurrentUserAdministrator() {
-        UUID userId = currentUserService.getCurrentUserId();
-        UUID organizationId = currentUserService.getCurrentOrganizationId();
-        Object count = scalar("""
-                SELECT COUNT(*)
-                FROM user_organizations uo
-                JOIN roles r ON r.id = uo.role_id
-                JOIN users u ON u.id = uo.user_id
-                WHERE uo.user_id = :userId
-                  AND uo.organization_id = :organizationId
-                  AND uo.status = 'ACTIVE'
-                  AND u.status = 'ACTIVE'
-                  AND u.deleted_at IS NULL
-                  AND r.code = 'ADMINISTRATOR'
-                """, q -> {
-                    q.setParameter("userId", userId);
-                    q.setParameter("organizationId", organizationId);
-                });
-        return toLong(count) > 0;
+        String currentRole = currentUserService.getCurrentRole();
+        return "ADMINISTRATOR".equals(currentRole) || "SUPER_ADMIN".equals(currentRole);
+    }
+
+    protected boolean isCurrentUserSuperAdmin() {
+        return "SUPER_ADMIN".equals(currentUserService.getCurrentRole());
     }
 
     protected AiToolAnswer adminOnlyDenied(String toolName, String displayName) {
-        String answer = "Esta consulta solo está disponible para usuarios con rol ADMINISTRATOR dentro de la organización actual. "
-                + "Por seguridad, no puedo listar usuarios, roles ni accesos si tu sesión no tiene ese rol.";
-        return AiToolAnswer.of(answer, toolName, displayName, "Admin-only AI tool blocked for the current user.", List.of());
+        String answer = "Esta consulta solo está disponible para usuarios con rol ADMINISTRATOR o SUPER_ADMIN. "
+                + "Por seguridad, no puedo listar usuarios, roles ni accesos si tu sesión no tiene uno de esos roles.";
+
+        return AiToolAnswer.of(
+                answer,
+                toolName,
+                displayName,
+                "Admin-only AI tool blocked for the current user.",
+                List.of()
+        );
     }
 
     protected List<Map<String, Object>> currentUserAccessRows() {
         UUID userId = currentUserService.getCurrentUserId();
         UUID organizationId = currentUserService.getCurrentOrganizationId();
-        return query("""
-                SELECT u.id,
-                       TRIM(CONCAT(u.first_name, ' ', u.last_name)) AS full_name,
-                       u.email,
-                       u.status AS user_status,
-                       u.last_login_at,
-                       u.password_change_required,
-                       uo.status AS membership_status,
-                       r.code AS role_code,
-                       r.name AS role_name
-                FROM user_organizations uo
-                JOIN users u ON u.id = uo.user_id
-                JOIN roles r ON r.id = uo.role_id
-                WHERE uo.user_id = :userId
-                  AND uo.organization_id = :organizationId
-                  AND u.deleted_at IS NULL
-                LIMIT 1
-                """, q -> {
+
+        List<Map<String, Object>> rows = query("""
+            SELECT u.id,
+                   TRIM(CONCAT(u.first_name, ' ', u.last_name)) AS full_name,
+                   u.email,
+                   u.status AS user_status,
+                   u.last_login_at,
+                   u.password_change_required,
+                   uo.status AS membership_status,
+                   r.code AS role_code,
+                   r.name AS role_name
+            FROM user_organizations uo
+            JOIN users u ON u.id = uo.user_id
+            JOIN roles r ON r.id = uo.role_id
+            WHERE uo.user_id = :userId
+              AND uo.organization_id = :organizationId
+              AND u.deleted_at IS NULL
+            LIMIT 1
+            """, q -> {
                     q.setParameter("userId", userId);
                     q.setParameter("organizationId", organizationId);
-                }, "id", "fullName", "email", "userStatus", "lastLoginAt", "passwordChangeRequired", "membershipStatus", "roleCode", "roleName");
+                },
+                "id", "fullName", "email", "userStatus", "lastLoginAt", "passwordChangeRequired", "membershipStatus", "roleCode", "roleName");
+
+        if (!rows.isEmpty() || !isCurrentUserSuperAdmin()) {
+            return rows;
+        }
+
+        return query("""
+            SELECT u.id,
+                   TRIM(CONCAT(u.first_name, ' ', u.last_name)) AS full_name,
+                   u.email,
+                   u.status AS user_status,
+                   u.last_login_at,
+                   u.password_change_required,
+                   CAST('GLOBAL_SUPER_ADMIN' AS TEXT) AS membership_status,
+                   CAST('SUPER_ADMIN' AS TEXT) AS role_code,
+                   CAST('Super Admin' AS TEXT) AS role_name
+            FROM users u
+            WHERE u.id = :userId
+              AND u.deleted_at IS NULL
+            LIMIT 1
+            """, q -> q.setParameter("userId", userId),
+                "id", "fullName", "email", "userStatus", "lastLoginAt", "passwordChangeRequired", "membershipStatus", "roleCode", "roleName");
     }
 
     protected List<Map<String, Object>> userRows(String statusFilterSql, String search, int limit) {
@@ -2275,6 +2293,8 @@ public abstract class AiReadOnlyToolSupport {
     protected String rolePermissionText(String code, String description) {
         String normalizedCode = value(code).toUpperCase(Locale.ROOT);
         return switch (normalizedCode) {
+            case "SUPER_ADMIN" -> "acceso global de administración: puede administrar organizaciones, navegar entre organizaciones activas y hereda permisos operativos dentro de la organización seleccionada. "
+                    + blankToDash(description);
             case "ADMINISTRATOR" -> "acceso completo dentro de la organización. " + blankToDash(description);
             case "PROPERTY_MANAGER" -> "gestiona la operación diaria de propiedades. " + blankToDash(description);
             case "MAINTENANCE_STAFF" -> "apoya con mantenimiento y tareas asignadas. " + blankToDash(description);
