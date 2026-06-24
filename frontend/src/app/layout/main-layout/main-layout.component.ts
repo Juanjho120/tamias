@@ -2,6 +2,7 @@ import { NgClass } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
+
 import { LanguageService } from '../../core/i18n/language.service';
 import { ApiError } from '../../core/models/api-error.model';
 import { AuthOrganizationOption } from '../../core/models/auth.models';
@@ -36,7 +37,6 @@ interface BootstrapOffcanvasApi {
   templateUrl: './main-layout.component.html',
   styles: [
     `
-
       :host {
         display: block;
         min-height: 100vh;
@@ -174,12 +174,13 @@ export class MainLayoutComponent implements OnInit {
   readonly organizationOptions = signal<AuthOrganizationOption[]>([]);
   readonly loadingOrganizations = signal(false);
   readonly switchingOrganization = signal(false);
-  readonly selectedOrganizationId = signal<string>('');
+  readonly selectedOrganizationId = signal('');
 
   readonly currentOrganizationId = computed(() => this.user()?.organization?.id ?? '');
 
   readonly displayName = computed(() => {
     const user = this.user();
+
     if (!user) {
       return 'User';
     }
@@ -191,6 +192,7 @@ export class MainLayoutComponent implements OnInit {
 
   readonly organizationInitials = computed(() => {
     const organizationName = this.user()?.organization?.name?.trim();
+
     if (!organizationName) {
       return 'ORG';
     }
@@ -224,6 +226,7 @@ export class MainLayoutComponent implements OnInit {
       { labelKey: 'navigation.reservations', icon: 'bi-calendar2-week', route: '/reservations' },
       { labelKey: 'navigation.tasks', icon: 'bi-check2-square', route: '/tasks' },
       { labelKey: 'navigation.purchases', icon: 'bi-cart-check', route: '/purchases' },
+      { labelKey: 'navigation.payments', icon: 'bi-credit-card', route: '/payments' },
       { labelKey: 'navigation.documents', icon: 'bi-file-earmark-text', route: '/documents' },
       { labelKey: 'navigation.aiAssistant', icon: '', route: '/ai-assistant' }
     ];
@@ -250,6 +253,7 @@ export class MainLayoutComponent implements OnInit {
     }
 
     this.loadingOrganizations.set(true);
+
     this.authService.listOrganizations().subscribe({
       next: (organizations) => {
         this.organizationOptions.set(organizations);
@@ -259,7 +263,9 @@ export class MainLayoutComponent implements OnInit {
       error: (error: unknown) => {
         this.loadingOrganizations.set(false);
         this.syncSelectedOrganizationFromSession();
-        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('organizationSwitcher.messages.loadError')));
+        this.toastService.error(
+          this.extractErrorMessage(error, this.languageService.instant('organizationSwitcher.messages.loadError'))
+        );
       }
     });
   }
@@ -287,19 +293,23 @@ export class MainLayoutComponent implements OnInit {
       error: (error: unknown) => {
         this.switchingOrganization.set(false);
         this.syncSelectedOrganizationFromSession();
-        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('organizationSwitcher.messages.switchError')));
+        this.toastService.error(
+          this.extractErrorMessage(error, this.languageService.instant('organizationSwitcher.messages.switchError'))
+        );
       }
     });
   }
 
   closeMobileSidebar(): void {
     const sidebarElement = document.getElementById('mobileSidebar');
+
     if (!sidebarElement) {
       return;
     }
 
     const windowWithBootstrap = window as Window & { bootstrap?: { Offcanvas?: BootstrapOffcanvasApi } };
     const offcanvasApi = windowWithBootstrap.bootstrap?.Offcanvas;
+
     if (!offcanvasApi) {
       sidebarElement.classList.remove('show');
       document.querySelectorAll('.offcanvas-backdrop').forEach((backdrop) => backdrop.remove());
@@ -336,8 +346,9 @@ export class MainLayoutComponent implements OnInit {
 
   private syncSelectedOrganizationFromOptions(organizations: AuthOrganizationOption[]): void {
     const sessionOrganizationId = this.currentOrganizationId();
-    const currentOrganization = organizations.find((organization) => organization.id === sessionOrganizationId)
-      ?? organizations.find((organization) => organization.current);
+    const currentOrganization =
+      organizations.find((organization) => organization.id === sessionOrganizationId) ??
+      organizations.find((organization) => organization.current);
 
     this.selectedOrganizationId.set(currentOrganization?.id ?? sessionOrganizationId);
   }

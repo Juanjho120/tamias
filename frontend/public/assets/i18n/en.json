@@ -54,7 +54,8 @@
     "aiAssistant": "TAMI",
     "users": "Users",
     "productBoxModels": "3D box models",
-    "organizations": "Organizations"
+    "organizations": "Organizations",
+    "payments": "Payments"
   },
   "login": {
     "title": "Welcome",
@@ -1795,6 +1796,115 @@
       "updateError": "Unable to update membership.",
       "deleted": "Membership deleted successfully.",
       "deleteError": "Unable to delete membership."
+    }
+  },
+  "payments": {
+    "title": "Payments",
+    "subtitle": "Register operational payments, expenses and receipts by organization.",
+    "newPayment": "New payment",
+    "loading": "Loading payments...",
+    "filters": {
+      "property": "Property",
+      "allProperties": "All properties",
+      "category": "Category",
+      "allCategories": "All categories",
+      "method": "Method",
+      "allMethods": "All methods",
+      "dateFrom": "From",
+      "dateTo": "To",
+      "search": "Search",
+      "searchPlaceholder": "Name, responsible person or description"
+    },
+    "summary": {
+      "visibleTotal": "Visible total"
+    },
+    "pagination": {
+      "noItems": "No payments",
+      "pageOf": "Page {{page}} of {{totalPages}}"
+    },
+    "empty": {
+      "title": "No payments registered",
+      "description": "Create the first payment to start tracking expenses and receipts."
+    },
+    "table": {
+      "payDate": "Payment date",
+      "name": "Payment",
+      "category": "Category",
+      "property": "Property",
+      "method": "Method",
+      "amount": "Amount",
+      "responsible": "Responsible",
+      "actions": "Actions"
+    },
+    "method": {
+      "CREDIT": "Credit",
+      "DEBIT": "Debit",
+      "CASH": "Cash",
+      "BANK_TRANSFER": "Bank transfer"
+    },
+    "form": {
+      "createTitle": "New payment",
+      "editTitle": "Edit payment",
+      "subtitle": "Register operational payments already made or tracked internally.",
+      "name": "Name",
+      "category": "Category",
+      "selectCategory": "Select a category",
+      "property": "Property",
+      "noProperty": "No specific property",
+      "method": "Method",
+      "amount": "Amount",
+      "payDate": "Payment date",
+      "responsible": "Responsible",
+      "description": "Description",
+      "save": "Save payment"
+    },
+    "validation": {
+      "nameRequired": "Payment name is required.",
+      "categoryRequired": "Category is required.",
+      "methodRequired": "Method is required.",
+      "amountRequired": "Amount is required and cannot be negative.",
+      "payDateRequired": "Payment date is required."
+    },
+    "messages": {
+      "referencesError": "Reference data could not be loaded.",
+      "loadError": "Payments could not be loaded.",
+      "detailError": "Payment details could not be loaded.",
+      "created": "Payment created successfully.",
+      "updated": "Payment updated successfully.",
+      "saveError": "Payment could not be saved.",
+      "deleted": "Payment deleted successfully.",
+      "deleteError": "Payment could not be deleted."
+    },
+    "confirmDeleteTitle": "Delete payment",
+    "confirmDeleteMessage": "Are you sure you want to delete payment \"{{name}}\" from {{date}}?",
+    "images": {
+      "button": "Images",
+      "title": "Payment images",
+      "loading": "Loading images...",
+      "previewUnavailable": "Preview unavailable",
+      "urlExpiresIn": "URL expires in {{seconds}} seconds",
+      "confirmDeleteTitle": "Delete image",
+      "confirmDeleteMessage": "Are you sure you want to delete image \"{{filename}}\"?",
+      "upload": {
+        "file": "File",
+        "help": "Allowed formats: JPG, PNG or WEBP.",
+        "noFilesSelected": "No files selected.",
+        "selectedFiles": "{{count}} files selected.",
+        "uploading": "Uploading...",
+        "button": "Upload images"
+      },
+      "empty": {
+        "title": "No images",
+        "description": "Add receipts, vouchers or screenshots related to this payment."
+      },
+      "messages": {
+        "loadError": "Payment images could not be loaded.",
+        "fileRequired": "Select at least one image.",
+        "uploaded": "Images uploaded successfully.",
+        "uploadError": "Images could not be uploaded.",
+        "deleted": "Image deleted successfully.",
+        "deleteError": "Image could not be deleted."
+      }
     }
   }
 }

@@ -1,6 +1,6 @@
 # TAMIAS — Roadmap
 
-This roadmap reflects the current state after AI tool calling/orchestration, S3/image hard-delete work, inventory brand/image work, AI debug traces, smoke-test hardening, Product Box Models through AI awareness, Phase 15 organization/global UX work, the AI read-only support decomposition and Payments backend/image/catalog foundation work.
+This roadmap reflects the current state after AI tool calling/orchestration, S3/image hard-delete work, inventory brand/image work, AI debug traces, smoke-test hardening, Product Box Models through AI awareness, Phase 15 organization/global UX work, the AI read-only support decomposition and Payments through the Angular page.
 
 ## Completed foundation
 
@@ -120,6 +120,7 @@ Product Box Models phase is complete for now.
 Status: Completed through 15F.
 
 Documentation:
+
 - `93-organization-administration-global-ux-15.md`
 - `105-ai-read-only-tool-support-decomposition-15f.md`
 
@@ -136,26 +137,11 @@ Completed subphases:
 15F AI read-only tool support decomposition
 ```
 
-Phase decisions:
-
-- Organizations support logos.
-- The active organization logo appears next to the selected organization name.
-- A `SUPER_ADMIN` role administers all organizations.
-- `SUPER_ADMIN` navigation is global across active organizations and does not depend on a membership row in every organization.
-- Only `SUPER_ADMIN` users can assign users to other organizations and define their role in each organization.
-- Organization `ADMINISTRATOR` users can edit only their current organization.
-- Organization switching is secure and does not rely on a client-only organization id override.
-- Icon-only action buttons use a shared reusable base for consistency, accessibility and tooltips.
-- The sidebar shows `TAMI` instead of `AI Assistant`.
-- TAMI robot identity is reusable in the sidebar and AI Assistant page.
-- The robot animation in the AI session title starts when the typewriter response starts and stops when the typewriter response finishes.
-- AI read-only tool support is decomposed into smaller support classes so future phases, including Payments and Reports, do not continue growing a single monolithic base class.
-
 ## Active implementation phase
 
 ### Phase 16 — Payments
 
-Status: In progress through 16C.
+Status: In progress through 16D.
 
 Documentation: `106-payments-16.md`
 
@@ -167,18 +153,18 @@ Purpose:
 - Add a dedicated Angular payments screen.
 - Add read-only TAMI awareness for payment summaries and searches.
 
-Completed subphases:
+Implemented subphases:
 
 ```text
 16A Payments backend foundation
 16B Payment images with S3 hard delete
 16C Payment categories in catalogs
+16D Angular payments page
 ```
 
-Planned remaining subphases:
+Remaining subphase:
 
 ```text
-16D Angular payments page
 16E AI awareness for payments
 ```
 

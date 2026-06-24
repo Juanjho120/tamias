@@ -1,0 +1,171 @@
+@if (open) {
+  <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title">{{ 'payments.images.title' | translate }}</h5>
+            @if (paymentLabel()) {
+              <p class="text-muted small mb-0">{{ paymentLabel() }}</p>
+            }
+          </div>
+          <button
+            type="button"
+            class="btn-close"
+            [attr.aria-label]="'common.close' | translate"
+            [disabled]="uploading() || !!deletingId()"
+            (click)="close()"
+          ></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="card border-0 bg-body-tertiary mb-4">
+            <div class="card-body">
+              <label class="form-label fw-semibold" for="payment-image-file">
+                {{ 'payments.images.upload.file' | translate }}
+              </label>
+              <input
+                #fileInput
+                id="payment-image-file"
+                type="file"
+                class="form-control"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                [disabled]="uploading()"
+                (change)="onFilesSelected($event)"
+              />
+              <div class="form-text">{{ 'payments.images.upload.help' | translate }}</div>
+
+              <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
+                <span class="small text-muted">{{ filesSummary() }}</span>
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary btn-sm"
+                  [disabled]="selectedFiles().length === 0 || uploading()"
+                  (click)="clearUploadSelection()"
+                >
+                  {{ 'common.clear' | translate }}
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-primary btn-sm"
+                  [disabled]="selectedFiles().length === 0 || uploading()"
+                  (click)="uploadSelected()"
+                >
+                  @if (uploading()) {
+                    <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+                    {{ 'payments.images.upload.uploading' | translate }}
+                  } @else {
+                    <i class="bi bi-cloud-arrow-up me-1"></i>
+                    {{ 'payments.images.upload.button' | translate }}
+                  }
+                </button>
+              </div>
+
+              @if (selectedPreviews().length > 0) {
+                <div class="d-flex flex-wrap gap-3 mt-3">
+                  @for (preview of selectedPreviews(); track preview.url) {
+                    <div class="border rounded p-2 bg-body">
+                      <img
+                        class="rounded payment-image-upload-preview"
+                        [src]="preview.url"
+                        [alt]="preview.fileName"
+                      />
+                      <div class="small fw-semibold text-truncate mt-2" style="max-width: 10rem;">
+                        {{ preview.fileName }}
+                      </div>
+                      <div class="small text-muted">{{ formatSize(preview.sizeBytes) }}</div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+
+          @if (loading()) {
+            <div class="d-flex align-items-center gap-2 text-muted">
+              <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+              {{ 'payments.images.loading' | translate }}
+            </div>
+          } @else if (images().length === 0) {
+            <div class="text-center py-5">
+              <i class="bi bi-images display-5 text-muted"></i>
+              <h3 class="h5 mt-3">{{ 'payments.images.empty.title' | translate }}</h3>
+              <p class="text-muted mb-0">{{ 'payments.images.empty.description' | translate }}</p>
+            </div>
+          } @else {
+            <div class="row g-3">
+              @for (image of images(); track image.id) {
+                <div class="col-md-6 col-xl-4">
+                  <div class="card h-100 border-0 shadow-sm">
+                    @if (image.fileUrl) {
+                      <button type="button" class="btn p-0 border-0" (click)="openImage(image)">
+                        <img
+                          class="card-img-top payment-image-preview"
+                          [src]="image.fileUrl"
+                          [alt]="image.originalFilename"
+                        />
+                      </button>
+                    } @else {
+                      <div class="card-img-top bg-body-tertiary d-flex align-items-center justify-content-center payment-image-preview">
+                        <span class="text-muted">{{ 'payments.images.previewUnavailable' | translate }}</span>
+                      </div>
+                    }
+
+                    <div class="card-body">
+                      <h6 class="card-title text-truncate" [title]="image.originalFilename">
+                        {{ image.originalFilename }}
+                      </h6>
+                      <p class="card-text small text-muted mb-1">{{ image.createdAt | date:'medium' }}</p>
+                      <p class="card-text small text-muted mb-0">{{ formatSize(image.sizeBytes) }}</p>
+                      @if (image.fileUrlExpiresIn) {
+                        <p class="card-text small text-muted mb-0">
+                          {{ 'payments.images.urlExpiresIn' | translate:{ seconds: image.fileUrlExpiresIn } }}
+                        </p>
+                      }
+                    </div>
+
+                    <div class="card-footer bg-transparent border-0 pt-0">
+                      <button
+                        type="button"
+                        class="btn btn-outline-danger btn-sm"
+                        [disabled]="deletingId() === image.id"
+                        (click)="requestDelete(image)"
+                      >
+                        @if (deletingId() === image.id) {
+                          <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+                        } @else {
+                          <i class="bi bi-trash me-1"></i>
+                        }
+                        {{ 'common.delete' | translate }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" [disabled]="uploading() || !!deletingId()" (click)="close()">
+            {{ 'common.close' | translate }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+
+  <app-confirm-modal
+    [open]="!!imageToDelete()"
+    title="payments.images.confirmDeleteTitle"
+    [message]="deleteMessage()"
+    confirmText="common.delete"
+    cancelText="common.cancel"
+    confirmButtonClass="btn-danger"
+    [loading]="!!deletingId()"
+    (confirm)="confirmDelete()"
+    (cancel)="cancelDelete()"
+  ></app-confirm-modal>
+}

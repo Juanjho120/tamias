@@ -1,0 +1,155 @@
+@if (open) {
+  <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content border-0 shadow">
+        <form [formGroup]="form" (ngSubmit)="submit()">
+          <div class="modal-header">
+            <div>
+              <h5 class="modal-title">
+                {{ (payment ? 'payments.form.editTitle' : 'payments.form.createTitle') | translate }}
+              </h5>
+              <p class="text-muted small mb-0">{{ 'payments.form.subtitle' | translate }}</p>
+            </div>
+            <button
+              type="button"
+              class="btn-close"
+              [attr.aria-label]="'common.close' | translate"
+              [disabled]="loading"
+              (click)="cancel.emit()"
+            ></button>
+          </div>
+
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label" for="payment-name">{{ 'payments.form.name' | translate }}</label>
+                <input
+                  id="payment-name"
+                  type="text"
+                  class="form-control"
+                  formControlName="name"
+                  [ngClass]="{ 'is-invalid': isInvalid('name') }"
+                  maxlength="150"
+                />
+                @if (isInvalid('name')) {
+                  <div class="invalid-feedback">{{ 'payments.validation.nameRequired' | translate }}</div>
+                }
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label" for="payment-category">{{ 'payments.form.category' | translate }}</label>
+                <select
+                  id="payment-category"
+                  class="form-select"
+                  formControlName="categoryId"
+                  [ngClass]="{ 'is-invalid': isInvalid('categoryId') }"
+                >
+                  <option value="">{{ 'payments.form.selectCategory' | translate }}</option>
+                  @for (category of categories; track category.id) {
+                    <option [value]="category.id">{{ category.name }}</option>
+                  }
+                </select>
+                @if (isInvalid('categoryId')) {
+                  <div class="invalid-feedback">{{ 'payments.validation.categoryRequired' | translate }}</div>
+                }
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label" for="payment-property">{{ 'payments.form.property' | translate }}</label>
+                <select id="payment-property" class="form-select" formControlName="propertyId">
+                  <option value="">{{ 'payments.form.noProperty' | translate }}</option>
+                  @for (property of properties; track property.id) {
+                    <option [value]="property.id">{{ property.name }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label" for="payment-method">{{ 'payments.form.method' | translate }}</label>
+                <select
+                  id="payment-method"
+                  class="form-select"
+                  formControlName="method"
+                  [ngClass]="{ 'is-invalid': isInvalid('method') }"
+                >
+                  @for (method of methods; track method) {
+                    <option [value]="method">{{ 'payments.method.' + method | translate }}</option>
+                  }
+                </select>
+                @if (isInvalid('method')) {
+                  <div class="invalid-feedback">{{ 'payments.validation.methodRequired' | translate }}</div>
+                }
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label" for="payment-amount">{{ 'payments.form.amount' | translate }}</label>
+                <input
+                  id="payment-amount"
+                  type="number"
+                  class="form-control"
+                  formControlName="amount"
+                  min="0"
+                  step="0.01"
+                  [ngClass]="{ 'is-invalid': isInvalid('amount') }"
+                />
+                @if (isInvalid('amount')) {
+                  <div class="invalid-feedback">{{ 'payments.validation.amountRequired' | translate }}</div>
+                }
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label" for="payment-pay-date">{{ 'payments.form.payDate' | translate }}</label>
+                <input
+                  id="payment-pay-date"
+                  type="date"
+                  class="form-control"
+                  formControlName="payDate"
+                  [ngClass]="{ 'is-invalid': isInvalid('payDate') }"
+                />
+                @if (isInvalid('payDate')) {
+                  <div class="invalid-feedback">{{ 'payments.validation.payDateRequired' | translate }}</div>
+                }
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label" for="payment-responsible">{{ 'payments.form.responsible' | translate }}</label>
+                <input
+                  id="payment-responsible"
+                  type="text"
+                  class="form-control"
+                  formControlName="responsible"
+                  maxlength="150"
+                />
+              </div>
+
+              <div class="col-12">
+                <label class="form-label" for="payment-description">{{ 'payments.form.description' | translate }}</label>
+                <textarea
+                  id="payment-description"
+                  class="form-control"
+                  formControlName="description"
+                  rows="3"
+                ></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" [disabled]="loading" (click)="cancel.emit()">
+              {{ 'common.cancel' | translate }}
+            </button>
+            <button type="submit" class="btn btn-primary" [disabled]="loading">
+              @if (loading) {
+                <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+                {{ 'common.saving' | translate }}
+              } @else {
+                {{ 'payments.form.save' | translate }}
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}

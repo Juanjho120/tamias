@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress through 16C.
+In progress through 16D.
 
 ## Purpose
 
@@ -169,7 +169,7 @@ GET    /api/v1/payments
 GET    /api/v1/payments/{id}
 POST   /api/v1/payments
 PUT    /api/v1/payments/{id}
-DELETE /api/v1/payments/{id}
+DELETE /api/v1/payments
 
 GET    /api/v1/catalogs/payment-categories
 GET    /api/v1/catalogs/payment-categories/{id}
@@ -195,14 +195,6 @@ Security rules:
 - Create/update are allowed for `ADMINISTRATOR`, `PROPERTY_MANAGER` and `MAINTENANCE_STAFF`.
 - Delete is allowed for `ADMINISTRATOR` and `PROPERTY_MANAGER`.
 - `SUPER_ADMIN` works through inherited authorities and the selected organization in the token.
-
-Non-scope for 16A:
-
-- No payment image S3 upload/delete endpoints yet.
-- No frontend Payments page yet.
-- No catalog frontend integration yet.
-- No TAMI payment tools yet.
-- No Reports integration yet.
 
 ## 16B — Payment images with S3 hard delete
 
@@ -234,13 +226,6 @@ Security rules:
 - Upload/delete are allowed for `ADMINISTRATOR`, `PROPERTY_MANAGER` and `MAINTENANCE_STAFF`.
 - `SUPER_ADMIN` works through inherited authorities and the selected organization in the token.
 
-Non-scope for 16B:
-
-- No frontend Payments page yet.
-- No catalog frontend integration yet.
-- No TAMI payment tools yet.
-- No Reports integration yet.
-
 ## 16C — Payment categories in catalogs
 
 Status: Implemented.
@@ -262,24 +247,40 @@ Frontend behavior:
 - No dedicated payment-category page is introduced.
 - No new translation `.ts` files are introduced.
 
-Non-scope for 16C:
-
-- No payments page yet.
-- No payment form category dropdown yet.
-- No payment image modal in frontend yet.
-- No TAMI payment tools yet.
-- No Reports integration yet.
-
 ## 16D — Angular payments page
 
-Planned.
+Status: Implemented.
 
-- Add payments feature page.
-- Add sidebar item.
-- Add list/filter/create/edit/delete UX.
-- Add category dropdown fed by `payment_categories`.
-- Add images modal.
-- Add translation keys.
+Implemented scope:
+
+- Added dedicated Angular standalone feature under `frontend/src/app/features/payments`.
+- Added route `/payments`.
+- Added Payments sidebar item.
+- Added payment list with filters:
+  - property
+  - category
+  - method
+  - date range
+  - search
+- Added paginated table.
+- Added visible page total using the existing `QuetzalCurrencyPipe`.
+- Added create/edit modal.
+- Added soft-delete flow using `ConfirmModalComponent`, not native `confirm()`.
+- Added payment image modal that uses the 16B endpoints.
+- Added upload preview, clear selection and hard-delete image flow.
+- Added frontend services:
+  - `PaymentService`
+  - `PaymentReferenceDataService`
+  - `PaymentImageService`
+- Added frontend models for payments, references and images.
+- Added translation keys for `navigation.payments` and the `payments` namespace.
+
+Non-scope for 16D:
+
+- No backend changes.
+- No Flyway.
+- No TAMI payment tools yet.
+- No Reports integration yet.
 
 ## 16E — AI awareness for payments
 

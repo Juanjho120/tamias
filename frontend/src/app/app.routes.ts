@@ -71,6 +71,11 @@ export const routes: Routes = [
         title: 'Purchases | TAMIAS'
       },
       {
+        path: 'payments',
+        loadComponent: () => import('./features/payments/pages/payments-page/payments-page.component').then((m) => m.PaymentsPageComponent),
+        title: 'Payments | TAMIAS'
+      },
+      {
         path: 'documents',
         loadComponent: () => import('./features/documents/pages/documents-page/documents-page.component').then((m) => m.DocumentsPageComponent),
         title: 'Documents | TAMIAS'

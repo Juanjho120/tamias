@@ -54,7 +54,8 @@
     "aiAssistant": "TAMI",
     "users": "Usuarios",
     "productBoxModels": "Modelos 3D de cajas",
-    "organizations": "Organizaciones"
+    "organizations": "Organizaciones",
+    "payments": "Pagos"
   },
   "login": {
     "title": "Bienvenido",
@@ -1794,6 +1795,115 @@
       "updateError": "No se pudo actualizar la membresía.",
       "deleted": "Membresía eliminada correctamente.",
       "deleteError": "No se pudo eliminar la membresía."
+    }
+  },
+  "payments": {
+    "title": "Pagos",
+    "subtitle": "Registra pagos operativos, gastos y comprobantes por organización.",
+    "newPayment": "Nuevo pago",
+    "loading": "Cargando pagos...",
+    "filters": {
+      "property": "Propiedad",
+      "allProperties": "Todas las propiedades",
+      "category": "Categoría",
+      "allCategories": "Todas las categorías",
+      "method": "Método",
+      "allMethods": "Todos los métodos",
+      "dateFrom": "Desde",
+      "dateTo": "Hasta",
+      "search": "Buscar",
+      "searchPlaceholder": "Nombre, responsable o descripción"
+    },
+    "summary": {
+      "visibleTotal": "Total visible"
+    },
+    "pagination": {
+      "noItems": "Sin pagos",
+      "pageOf": "Página {{page}} de {{totalPages}}"
+    },
+    "empty": {
+      "title": "No hay pagos registrados",
+      "description": "Crea el primer pago para empezar a llevar control de gastos y comprobantes."
+    },
+    "table": {
+      "payDate": "Fecha de pago",
+      "name": "Pago",
+      "category": "Categoría",
+      "property": "Propiedad",
+      "method": "Método",
+      "amount": "Monto",
+      "responsible": "Responsable",
+      "actions": "Acciones"
+    },
+    "method": {
+      "CREDIT": "Crédito",
+      "DEBIT": "Débito",
+      "CASH": "Efectivo",
+      "BANK_TRANSFER": "Transferencia bancaria"
+    },
+    "form": {
+      "createTitle": "Nuevo pago",
+      "editTitle": "Editar pago",
+      "subtitle": "Registra pagos operativos ya realizados o pendientes de control interno.",
+      "name": "Nombre",
+      "category": "Categoría",
+      "selectCategory": "Selecciona una categoría",
+      "property": "Propiedad",
+      "noProperty": "Sin propiedad específica",
+      "method": "Método",
+      "amount": "Monto",
+      "payDate": "Fecha de pago",
+      "responsible": "Responsable",
+      "description": "Descripción",
+      "save": "Guardar pago"
+    },
+    "validation": {
+      "nameRequired": "El nombre del pago es obligatorio.",
+      "categoryRequired": "La categoría es obligatoria.",
+      "methodRequired": "El método es obligatorio.",
+      "amountRequired": "El monto es obligatorio y no puede ser negativo.",
+      "payDateRequired": "La fecha de pago es obligatoria."
+    },
+    "messages": {
+      "referencesError": "No se pudieron cargar los datos de referencia.",
+      "loadError": "No se pudieron cargar los pagos.",
+      "detailError": "No se pudo cargar el detalle del pago.",
+      "created": "Pago creado correctamente.",
+      "updated": "Pago actualizado correctamente.",
+      "saveError": "No se pudo guardar el pago.",
+      "deleted": "Pago eliminado correctamente.",
+      "deleteError": "No se pudo eliminar el pago."
+    },
+    "confirmDeleteTitle": "Eliminar pago",
+    "confirmDeleteMessage": "¿Seguro que deseas eliminar el pago \"{{name}}\" del {{date}}?",
+    "images": {
+      "button": "Imágenes",
+      "title": "Imágenes del pago",
+      "loading": "Cargando imágenes...",
+      "previewUnavailable": "Vista previa no disponible",
+      "urlExpiresIn": "URL expira en {{seconds}} segundos",
+      "confirmDeleteTitle": "Eliminar imagen",
+      "confirmDeleteMessage": "¿Seguro que deseas eliminar la imagen \"{{filename}}\"?",
+      "upload": {
+        "file": "Archivo",
+        "help": "Formatos permitidos: JPG, PNG o WEBP.",
+        "noFilesSelected": "No hay archivos seleccionados.",
+        "selectedFiles": "{{count}} archivos seleccionados.",
+        "uploading": "Subiendo...",
+        "button": "Subir imágenes"
+      },
+      "empty": {
+        "title": "No hay imágenes",
+        "description": "Agrega comprobantes, recibos o capturas relacionadas con este pago."
+      },
+      "messages": {
+        "loadError": "No se pudieron cargar las imágenes del pago.",
+        "fileRequired": "Selecciona al menos una imagen.",
+        "uploaded": "Imágenes subidas correctamente.",
+        "uploadError": "No se pudieron subir las imágenes.",
+        "deleted": "Imagen eliminada correctamente.",
+        "deleteError": "No se pudo eliminar la imagen."
+      }
     }
   }
 }

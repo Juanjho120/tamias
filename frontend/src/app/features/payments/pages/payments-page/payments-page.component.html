@@ -1,0 +1,275 @@
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+  <div>
+    <h1 class="h3 mb-1">{{ 'payments.title' | translate }}</h1>
+    <p class="text-muted mb-0">{{ 'payments.subtitle' | translate }}</p>
+  </div>
+
+  <button type="button" class="btn btn-primary" (click)="openCreateForm()">
+    <i class="bi bi-plus-lg me-1"></i>
+    {{ 'payments.newPayment' | translate }}
+  </button>
+</div>
+
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <div class="row g-3 align-items-end">
+      <div class="col-md-4 col-xl-2">
+        <label class="form-label" for="payment-filter-property">{{ 'payments.filters.property' | translate }}</label>
+        <select
+          id="payment-filter-property"
+          class="form-select"
+          [ngModel]="propertyId()"
+          (ngModelChange)="propertyId.set($event)"
+        >
+          <option value="">{{ 'payments.filters.allProperties' | translate }}</option>
+          @for (property of references().properties; track property.id) {
+            <option [value]="property.id">{{ property.name }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="col-md-4 col-xl-2">
+        <label class="form-label" for="payment-filter-category">{{ 'payments.filters.category' | translate }}</label>
+        <select
+          id="payment-filter-category"
+          class="form-select"
+          [ngModel]="categoryId()"
+          (ngModelChange)="categoryId.set($event)"
+        >
+          <option value="">{{ 'payments.filters.allCategories' | translate }}</option>
+          @for (category of references().categories; track category.id) {
+            <option [value]="category.id">{{ category.name }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="col-md-4 col-xl-2">
+        <label class="form-label" for="payment-filter-method">{{ 'payments.filters.method' | translate }}</label>
+        <select
+          id="payment-filter-method"
+          class="form-select"
+          [ngModel]="method()"
+          (ngModelChange)="method.set($event)"
+        >
+          <option value="">{{ 'payments.filters.allMethods' | translate }}</option>
+          @for (item of methods; track item) {
+            <option [value]="item">{{ 'payments.method.' + item | translate }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="col-md-4 col-xl-2">
+        <label class="form-label" for="payment-filter-date-from">{{ 'payments.filters.dateFrom' | translate }}</label>
+        <input
+          id="payment-filter-date-from"
+          type="date"
+          class="form-control"
+          [ngModel]="dateFrom()"
+          (ngModelChange)="dateFrom.set($event)"
+        />
+      </div>
+
+      <div class="col-md-4 col-xl-2">
+        <label class="form-label" for="payment-filter-date-to">{{ 'payments.filters.dateTo' | translate }}</label>
+        <input
+          id="payment-filter-date-to"
+          type="date"
+          class="form-control"
+          [ngModel]="dateTo()"
+          (ngModelChange)="dateTo.set($event)"
+        />
+      </div>
+
+      <div class="col-md-4 col-xl-2">
+        <label class="form-label" for="payment-filter-search">{{ 'payments.filters.search' | translate }}</label>
+        <input
+          id="payment-filter-search"
+          type="search"
+          class="form-control"
+          [placeholder]="'payments.filters.searchPlaceholder' | translate"
+          [ngModel]="search()"
+          (ngModelChange)="search.set($event)"
+          (keyup.enter)="applyFilters()"
+        />
+      </div>
+
+      <div class="col-12 d-flex flex-wrap gap-2">
+        <button type="button" class="btn btn-outline-primary" (click)="applyFilters()">
+          <i class="bi bi-search me-1"></i>
+          {{ 'common.search' | translate }}
+        </button>
+        <button type="button" class="btn btn-outline-secondary" (click)="clearFilters()">
+          <i class="bi bi-x-lg me-1"></i>
+          {{ 'common.clear' | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-body">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+      <div class="text-muted small">
+        {{ 'payments.summary.visibleTotal' | translate }}:
+        <span class="fw-semibold text-body">{{ visibleTotal() | quetzalCurrency }}</span>
+      </div>
+
+      <div class="text-muted small">
+        {{ pageLabel() }} · {{ totalElements() }} {{ 'common.total' | translate }}
+      </div>
+    </div>
+
+    @if (loading()) {
+      <div class="d-flex align-items-center gap-2 text-muted py-4">
+        <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+        {{ 'payments.loading' | translate }}
+      </div>
+    } @else if (payments().length === 0) {
+      <div class="text-center py-5">
+        <i class="bi bi-credit-card display-5 text-muted"></i>
+        <h2 class="h5 mt-3">{{ 'payments.empty.title' | translate }}</h2>
+        <p class="text-muted">{{ 'payments.empty.description' | translate }}</p>
+        <button type="button" class="btn btn-primary" (click)="openCreateForm()">
+          {{ 'payments.newPayment' | translate }}
+        </button>
+      </div>
+    } @else {
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead>
+            <tr>
+              <th>{{ 'payments.table.payDate' | translate }}</th>
+              <th>{{ 'payments.table.name' | translate }}</th>
+              <th>{{ 'payments.table.category' | translate }}</th>
+              <th>{{ 'payments.table.property' | translate }}</th>
+              <th>{{ 'payments.table.method' | translate }}</th>
+              <th class="text-end">{{ 'payments.table.amount' | translate }}</th>
+              <th>{{ 'payments.table.responsible' | translate }}</th>
+              <th class="text-end">{{ 'payments.table.actions' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (payment of payments(); track payment.id) {
+              <tr>
+                <td>
+                  <div class="fw-semibold">{{ payment.payDate | date:'mediumDate' }}</div>
+                  <div class="small text-muted">{{ payment.createdAt | date:'mediumDate' }}</div>
+                </td>
+                <td>
+                  <div class="fw-semibold">{{ payment.name }}</div>
+                  @if (payment.description) {
+                    <div class="small text-muted text-truncate" style="max-width: 18rem;">
+                      {{ payment.description }}
+                    </div>
+                  }
+                </td>
+                <td>{{ payment.categoryName }}</td>
+                <td>{{ payment.propertyName || '—' }}</td>
+                <td>
+                  <span class="badge" [ngClass]="methodBadgeClass(payment.method)">
+                    {{ 'payments.method.' + payment.method | translate }}
+                  </span>
+                </td>
+                <td class="text-end fw-semibold">{{ payment.amount | quetzalCurrency }}</td>
+                <td>{{ payment.responsible || '—' }}</td>
+                <td>
+                  <div class="d-flex justify-content-end gap-2">
+                    <button
+                      type="button"
+                      class="btn btn-outline-secondary btn-sm"
+                      [title]="'payments.images.button' | translate"
+                      [attr.aria-label]="'payments.images.button' | translate"
+                      (click)="openImages(payment)"
+                    >
+                      <i class="bi bi-images"></i>
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-outline-primary btn-sm"
+                      [title]="'common.edit' | translate"
+                      [attr.aria-label]="'common.edit' | translate"
+                      (click)="openEditForm(payment.id)"
+                    >
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-outline-danger btn-sm"
+                      [disabled]="deletingId() === payment.id"
+                      [title]="'common.delete' | translate"
+                      [attr.aria-label]="'common.delete' | translate"
+                      (click)="requestDelete(payment)"
+                    >
+                      @if (deletingId() === payment.id) {
+                        <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                      } @else {
+                        <i class="bi bi-trash"></i>
+                      }
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mt-3">
+        <div class="d-flex align-items-center gap-2">
+          <label class="text-muted small" for="payments-page-size">{{ 'common.rowsPerPage' | translate }}</label>
+          <select
+            id="payments-page-size"
+            class="form-select form-select-sm w-auto"
+            [ngModel]="size()"
+            (ngModelChange)="changePageSize($event)"
+          >
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+          </select>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+          <span class="text-muted small">{{ pageLabel() }}</span>
+          <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="first()" (click)="previousPage()">
+            {{ 'common.previous' | translate }}
+          </button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="last()" (click)="nextPage()">
+            {{ 'common.next' | translate }}
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+</div>
+
+<app-payment-form-modal
+  [open]="formVisible()"
+  [payment]="selectedPayment()"
+  [properties]="references().properties"
+  [categories]="references().categories"
+  [loading]="saving()"
+  (save)="savePayment($event)"
+  (cancel)="closeForm()"
+></app-payment-form-modal>
+
+<app-payment-images-modal
+  [open]="!!paymentForImages()"
+  [payment]="paymentForImages()"
+  (closed)="closeImages()"
+  (imagesChanged)="loadPayments()"
+></app-payment-images-modal>
+
+<app-confirm-modal
+  [open]="!!paymentToDelete()"
+  title="payments.confirmDeleteTitle"
+  [message]="deleteMessage()"
+  confirmText="common.delete"
+  cancelText="common.cancel"
+  confirmButtonClass="btn-danger"
+  [loading]="!!deletingId()"
+  (confirm)="confirmDelete()"
+  (cancel)="cancelDelete()"
+></app-confirm-modal>
