@@ -9,7 +9,7 @@ export class TamiSpeechAudioService {
   private audioContext?: AudioContext;
   private timer?: ReturnType<typeof setInterval>;
   private readonly defaultIntervalMs = 72;
-  private readonly volume = 0.035;
+  private readonly volume = 0.12;
 
   start(options: SpeechBlipOptions = {}): void {
     this.stop();

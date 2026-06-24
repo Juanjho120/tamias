@@ -393,7 +393,7 @@ export class TamiBrandingService {
     }
 
     body.tami-is-speaking .tami-robot-session-title .tami-robot-mouth {
-      animation: tamiRobotTalk 0.17s ease-in-out infinite;
+      animation: tamiRobotTalk 0.34s ease-in-out infinite;
     }
 
     body.tami-is-speaking .tami-robot-session-title .tami-robot-eye {
