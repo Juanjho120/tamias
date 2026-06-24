@@ -22,7 +22,6 @@ import { AiPropertyOption } from '../../models/ai-reference.model';
 import { AiAssistantService } from '../../services/ai-assistant.service';
 import { AiReferenceDataService } from '../../services/ai-reference-data.service';
 import { TamiSpeechAudioService } from '../../services/tami-speech-audio.service';
-import { TamiRobotComponent } from '../../../../shared/tami-robot/tami-robot.component';
 
 type AssistantMode = 'chat' | 'search';
 
@@ -41,8 +40,7 @@ type AiAnimatedLocalMessage = AiLocalMessage & {
     TitleCasePipe,
     TranslatePipe,
     AiSourceListComponent,
-    AiSessionTitleModalComponent,
-    TamiRobotComponent
+    AiSessionTitleModalComponent
   ],
   templateUrl: './ai-assistant-page.component.html',
   styles: [`
