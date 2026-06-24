@@ -117,7 +117,7 @@ Product Box Models phase is complete for now.
 
 ### Phase 15 — Organization Administration and Global UX Polish
 
-Status: Completed through 15E.
+Status: Completed through 15F.
 
 Documentation: `93-organization-administration-global-ux-15.md`
 
@@ -131,6 +131,7 @@ Completed subphases:
 15C.2 User organization memberships management
 15D Icon-only action buttons with tooltips
 15E TAMI branding and robot animation
+15F AI read-only tool support decomposition
 ```
 
 Phase decisions:
@@ -146,6 +147,7 @@ Phase decisions:
 - The sidebar shows `TAMI` instead of `AI Assistant`.
 - TAMI robot identity is reusable in the sidebar and AI Assistant page.
 - The robot animation in the AI session title starts when the typewriter response starts and stops when the typewriter response finishes.
+- AI read-only tool support is decomposed into smaller support classes so future phases, including Reports, do not continue growing a single monolithic base class.
 
 ## Future phases
 

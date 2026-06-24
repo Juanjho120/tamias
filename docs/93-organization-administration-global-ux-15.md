@@ -2,7 +2,7 @@
 
 ## Status
 
-Completed through 15E.
+Completed through 15F.
 
 ## Purpose
 
@@ -25,6 +25,7 @@ This phase continues the SaaS foundation already present in TAMIAS and improves 
 - The AI Assistant navigation label should be `TAMI`.
 - The TAMI robot identity should be reusable in the sidebar, AI Assistant page title and active chat/session title.
 - The robot in the active session title should animate as if speaking while the assistant response is being typed.
+- AI read-only tool support should stay maintainable by decomposing the large shared support class before starting Reports.
 
 ## 15A — Organization logo backend + current organization header
 
@@ -141,6 +142,47 @@ Give the AI Assistant a TAMI identity across navigation and chat UX.
 - Show a smaller robot in the active chat/session title.
 - Animate the session title robot as if speaking while the typewriter response is running.
 - Stop the speaking animation exactly when the typewriter response finishes.
+
+## 15F — AI read-only tool support decomposition
+
+### Status
+
+Completed.
+
+### Goal
+
+Reduce the maintenance risk of the AI read-only tools by decomposing the large `AiReadOnlyToolSupport` base class before starting Phase 16 Reports.
+
+### Backend scope
+
+- Keep the public inheritance entry point as `AiReadOnlyToolSupport` so existing AI repositories continue to compile without broad repository rewrites.
+- Split shared read-only AI support responsibilities into smaller support classes under `backend/src/main/java/com/tamias/ai/tool/support`.
+- Preserve the existing AI tool behavior, routing, prompts and response style.
+- Keep organization-scoped read-only behavior based on the current authenticated organization context.
+- Keep `SUPER_ADMIN`-aware access helpers available to admin-oriented AI tools.
+
+### Resulting support areas
+
+- Base/current user context support.
+- Query/scalar helpers.
+- Search and text normalization helpers.
+- Formatting helpers.
+- Scheduled maintenance and reservation read helpers.
+- Document read helpers.
+- Reservation supplies and task read helpers.
+- Maintenance, property and catalog read helpers.
+- Purchase read helpers.
+- File and image read helpers.
+- AI chat history read helpers.
+- User, role and access helpers.
+
+### Rules
+
+- No database schema changes.
+- No frontend changes.
+- No translation changes.
+- No AI behavior changes intended.
+- Do not add Reports code to this phase.
 
 ## Documentation and roadmap
 
