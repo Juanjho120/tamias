@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress through 16A.
+In progress through 16B.
 
 ## Purpose
 
@@ -206,13 +206,40 @@ Non-scope for 16A:
 
 ## 16B — Payment images with S3 hard delete
 
-Planned.
+Status: Implemented.
 
-- Add payment image service/controller.
-- Upload images to S3.
-- Generate presigned URLs.
-- Delete S3 object and database row on removal.
-- Validate content types and size.
+Implemented scope:
+
+- `PaymentImageController` under `/api/v1/payments/{paymentId}/images`.
+- `PaymentImageService` with organization-scoped reads, upload, file serving and deletion.
+- S3 upload through the existing `FileStorageService` pattern.
+- Presigned image URLs through the existing `ImageMapper` / `FileStorageService.buildFileUrl(...)` pattern.
+- Image validation through the existing `ImageValidationService`.
+- Hard delete on image removal: delete S3 object and physically delete the `payment_images` row.
+- `ImageMapper` now maps `PaymentImage` to `ImageResponse` and `ImageUploadResponse`.
+
+Endpoints added:
+
+```http
+GET    /api/v1/payments/{paymentId}/images
+GET    /api/v1/payments/{paymentId}/images/{imageId}
+POST   /api/v1/payments/{paymentId}/images
+GET    /api/v1/payments/{paymentId}/images/{imageId}/file
+DELETE /api/v1/payments/{paymentId}/images/{imageId}
+```
+
+Security rules:
+
+- Reads and file preview are allowed for `ADMINISTRATOR`, `PROPERTY_MANAGER`, `MAINTENANCE_STAFF` and `READ_ONLY`.
+- Upload/delete are allowed for `ADMINISTRATOR`, `PROPERTY_MANAGER` and `MAINTENANCE_STAFF`.
+- `SUPER_ADMIN` works through inherited authorities and the selected organization in the token.
+
+Non-scope for 16B:
+
+- No frontend Payments page yet.
+- No catalog frontend integration yet.
+- No TAMI payment tools yet.
+- No Reports integration yet.
 
 ## 16C — Payment categories in catalogs
 
