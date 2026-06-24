@@ -13,7 +13,6 @@ import {
   signal
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import Tooltip from 'bootstrap/js/dist/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 import { LanguageService } from '../../core/i18n/language.service';
 import { ApiError } from '../../core/models/api-error.model';
@@ -35,6 +34,28 @@ import {
 import { DashboardService } from './services/dashboard.service';
 import { DashboardAnalyticsComponent } from './components/dashboard-analytics/dashboard-analytics.component';
 
+type BootstrapTooltipInstance = {
+  dispose(): void;
+};
+
+type BootstrapTooltipOptions = {
+  html?: boolean;
+  placement?: string;
+  trigger?: string;
+  container?: string;
+  customClass?: string;
+  fallbackPlacements?: string[];
+};
+
+type BootstrapTooltipConstructor = new (
+  element: HTMLElement,
+  options?: BootstrapTooltipOptions
+) => BootstrapTooltipInstance;
+
+declare const bootstrap: {
+  Tooltip: BootstrapTooltipConstructor;
+};
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,
@@ -49,7 +70,7 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
   private readonly toastService = inject(ToastService);
   private readonly languageService = inject(LanguageService);
 
-  private readonly tooltipInstances = new Map<HTMLElement, Tooltip>();
+  private readonly tooltipInstances = new Map<HTMLElement, BootstrapTooltipInstance>();
   private needsTooltipRefresh = false;
 
   readonly loading = signal(false);
@@ -963,7 +984,7 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
 
     for (const elementRef of elements) {
       const element = elementRef.nativeElement;
-      const tooltip = new Tooltip(element, {
+      const tooltip = new bootstrap.Tooltip(element, {
         html: true,
         placement: 'auto',
         trigger: 'click hover focus',
