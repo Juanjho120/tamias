@@ -1,6 +1,6 @@
 # TAMIAS — Roadmap
 
-This roadmap reflects the current state after AI tool calling/orchestration, S3/image hard-delete work, inventory brand/image work, AI debug traces, smoke-test hardening, Product Box Models through AI awareness, Phase 15 organization/global UX work, the AI read-only support decomposition and Payments backend/image foundation work.
+This roadmap reflects the current state after AI tool calling/orchestration, S3/image hard-delete work, inventory brand/image work, AI debug traces, smoke-test hardening, Product Box Models through AI awareness, Phase 15 organization/global UX work, the AI read-only support decomposition and Payments backend/image/catalog foundation work.
 
 ## Completed foundation
 
@@ -120,7 +120,6 @@ Product Box Models phase is complete for now.
 Status: Completed through 15F.
 
 Documentation:
-
 - `93-organization-administration-global-ux-15.md`
 - `105-ai-read-only-tool-support-decomposition-15f.md`
 
@@ -156,7 +155,7 @@ Phase decisions:
 
 ### Phase 16 — Payments
 
-Status: In progress through 16B.
+Status: In progress through 16C.
 
 Documentation: `106-payments-16.md`
 
@@ -173,12 +172,12 @@ Completed subphases:
 ```text
 16A Payments backend foundation
 16B Payment images with S3 hard delete
+16C Payment categories in catalogs
 ```
 
 Planned remaining subphases:
 
 ```text
-16C Payment categories in catalogs
 16D Angular payments page
 16E AI awareness for payments
 ```

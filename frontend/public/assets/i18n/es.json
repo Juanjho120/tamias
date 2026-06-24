@@ -609,6 +609,10 @@
       "taskTemplates": {
         "title": "Plantillas de tareas",
         "description": "Plantillas reutilizables para checklists operativos."
+      },
+      "paymentCategories": {
+        "title": "Categorías de pago",
+        "description": "Categorías para clasificar pagos operativos como electricidad, agua, internet, limpieza, reparaciones o comisiones."
       }
     }
   },

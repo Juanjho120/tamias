@@ -610,6 +610,10 @@
       "taskTemplates": {
         "title": "Task templates",
         "description": "Reusable task templates for operational checklists."
+      },
+      "paymentCategories": {
+        "title": "Payment categories",
+        "description": "Categories used to classify operational payments such as electricity, water, internet, cleaning, repairs or commissions."
       }
     }
   },

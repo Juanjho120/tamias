@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress through 16B.
+In progress through 16C.
 
 ## Purpose
 
@@ -243,12 +243,32 @@ Non-scope for 16B:
 
 ## 16C — Payment categories in catalogs
 
-Planned.
+Status: Implemented.
 
-- Add payment category to frontend catalog administration.
-- Add translation keys.
+Implemented scope:
 
-Backend payment-category endpoints were added in 16A so the frontend can consume them in 16C.
+- Added `payment-categories` to the existing Angular catalog configuration.
+- Reused the generic catalog page, modal, service and status filter.
+- Reused the existing backend endpoints added in 16A under `/api/v1/catalogs/payment-categories`.
+- Added translation keys for payment categories in `frontend/public/assets/i18n/es.json` and `frontend/public/assets/i18n/en.json`.
+
+Frontend behavior:
+
+- Payment categories appear as another catalog card in the existing Catalogs page.
+- Payment categories use the same fields as other base catalogs:
+  - `name`
+  - `description`
+  - `status`
+- No dedicated payment-category page is introduced.
+- No new translation `.ts` files are introduced.
+
+Non-scope for 16C:
+
+- No payments page yet.
+- No payment form category dropdown yet.
+- No payment image modal in frontend yet.
+- No TAMI payment tools yet.
+- No Reports integration yet.
 
 ## 16D — Angular payments page
 
@@ -257,6 +277,7 @@ Planned.
 - Add payments feature page.
 - Add sidebar item.
 - Add list/filter/create/edit/delete UX.
+- Add category dropdown fed by `payment_categories`.
 - Add images modal.
 - Add translation keys.
 
