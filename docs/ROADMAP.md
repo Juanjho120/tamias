@@ -1,6 +1,6 @@
 # TAMIAS — Roadmap
 
-This roadmap reflects the current state after AI tool calling/orchestration, S3/image hard-delete work, inventory brand/image work, AI debug traces, smoke-test hardening, Product Box Models through AI awareness, Phase 15 organization/global UX work and the AI read-only support decomposition.
+This roadmap reflects the current state after AI tool calling/orchestration, S3/image hard-delete work, inventory brand/image work, AI debug traces, smoke-test hardening, Product Box Models through AI awareness, Phase 15 organization/global UX work, the AI read-only support decomposition and the start of the Payments module.
 
 ## Completed foundation
 
@@ -120,6 +120,7 @@ Product Box Models phase is complete for now.
 Status: Completed through 15F.
 
 Documentation:
+
 - `93-organization-administration-global-ux-15.md`
 - `105-ai-read-only-tool-support-decomposition-15f.md`
 
@@ -151,11 +152,11 @@ Phase decisions:
 - The robot animation in the AI session title starts when the typewriter response starts and stops when the typewriter response finishes.
 - AI read-only tool support is decomposed into smaller support classes so future phases, including Payments and Reports, do not continue growing a single monolithic base class.
 
-## Active / next implementation phase
+## Active implementation phase
 
 ### Phase 16 — Payments
 
-Status: Planned / next.
+Status: In progress through 16A.
 
 Documentation: `106-payments-16.md`
 
@@ -167,10 +168,15 @@ Purpose:
 - Add a dedicated Angular payments screen.
 - Add read-only TAMI awareness for payment summaries and searches.
 
-Planned subphases:
+Completed subphases:
 
 ```text
 16A Payments backend foundation
+```
+
+Planned remaining subphases:
+
+```text
 16B Payment images with S3 hard delete
 16C Payment categories in catalogs
 16D Angular payments page

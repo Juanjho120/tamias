@@ -2,7 +2,7 @@
 
 ## Status
 
-Planned / next.
+In progress through 16A.
 
 ## Purpose
 
@@ -36,18 +36,21 @@ organization_id
 name
 description
 status
+created_by
+updated_by
 created_at
 updated_at
 deleted_at
+deleted_by
 ```
 
 Rules:
 
 - Organization-scoped.
-- Must follow the existing catalog table pattern.
-- `status` should support the same catalog lifecycle used by current base catalogs.
-- Soft delete through `deleted_at` and/or catalog status pattern already used in the project.
-- Unique category names should be enforced per organization among non-deleted rows.
+- Follows the current `BaseCatalogEntity` pattern.
+- `status` supports the current catalog lifecycle: `ACTIVE`, `INACTIVE`, `DELETED`.
+- Soft delete through `deleted_at` and catalog status.
+- Unique category names are enforced per organization among rows following the current catalog pattern.
 
 Examples:
 
@@ -73,10 +76,10 @@ Fields:
 id
 organization_id
 property_id nullable
+category_id
 name
 description
 method
-category_id
 amount
 responsible
 pay_date
@@ -93,7 +96,7 @@ Rules:
 
 - Organization-scoped.
 - `property_id` is optional so payments can be global to the organization or linked to a property.
-- `category_id` references `payment_categories`.
+- `category_id` references `payment_categories` and is required.
 - `method` allowed values:
   - `CREDIT`
   - `DEBIT`
@@ -101,7 +104,7 @@ Rules:
   - `BANK_TRANSFER`
 - `amount` must be non-negative.
 - `responsible` is a free-text field, not a user FK, so real-world names can be recorded even when the person is not a TAMIAS user.
-- Use soft delete for payments.
+- Payments use soft delete through `status = DELETED` and `deleted_at`.
 - Do not store sensitive card/bank details.
 
 ### `payment_images`
@@ -131,54 +134,35 @@ Rules:
 - Image content is stored in S3, never in `bytea`.
 - Use private S3 objects with presigned URLs.
 - Follow the existing S3 metadata pattern used by other image modules.
-- On replacement/removal, delete the S3 object and hard-delete the database row.
+- On removal, delete the S3 object and hard-delete the database row.
 - Do not use soft delete for `payment_images`.
 - Validate allowed content types consistently with other image modules:
   - JPG/JPEG
   - PNG
   - WEBP
 
-## Expected Flyway
+## 16A — Payments backend foundation
 
-The current migration sequence should be checked before implementation. At the time this document was created, the next expected Flyway was:
+Status: Implemented.
 
-```text
-V40__create_payments.sql
-```
+Implemented scope:
 
-Implementation must verify the latest migration number again before creating the Flyway.
+- `V40__create_payments.sql`.
+- `payment_categories` table.
+- `payments` table.
+- `payment_images` table prepared for 16B.
+- `PaymentMethod` enum.
+- `PaymentStatus` enum.
+- `Payment` entity.
+- `PaymentImage` entity/repository prepared for 16B.
+- `PaymentCategory` catalog entity/repository/service/controller.
+- `PaymentRequest` and `PaymentResponse` DTOs.
+- `PaymentMapper`.
+- `PaymentRepository` with organization-scoped filters.
+- `PaymentService` with CRUD, organization scoping, date range validation and soft delete.
+- `PaymentController` under `/api/v1/payments`.
 
-## Backend scope
-
-Suggested package:
-
-```text
-backend/src/main/java/com/tamias/payment
-```
-
-Suggested subpackages:
-
-```text
-controller
-dto
-entity
-enums
-mapper
-repository
-service
-```
-
-Suggested enum:
-
-```text
-PaymentMethod
-- CREDIT
-- DEBIT
-- CASH
-- BANK_TRANSFER
-```
-
-Suggested endpoints:
+Endpoints added:
 
 ```http
 GET    /api/v1/payments
@@ -186,9 +170,15 @@ GET    /api/v1/payments/{id}
 POST   /api/v1/payments
 PUT    /api/v1/payments/{id}
 DELETE /api/v1/payments/{id}
+
+GET    /api/v1/catalogs/payment-categories
+GET    /api/v1/catalogs/payment-categories/{id}
+POST   /api/v1/catalogs/payment-categories
+PUT    /api/v1/catalogs/payment-categories/{id}
+DELETE /api/v1/catalogs/payment-categories/{id}
 ```
 
-Suggested filters for `GET /api/v1/payments`:
+Filters for `GET /api/v1/payments`:
 
 ```text
 propertyId
@@ -199,95 +189,58 @@ dateTo
 search
 ```
 
-Rules:
+Security rules:
 
-- All reads/writes must be scoped to `CurrentUserService.getCurrentOrganizationId()`.
-- `SUPER_ADMIN` should operate against the currently selected organization from the token, not globally across all organizations at once.
-- Soft delete must prevent deleted payments from appearing in normal queries.
-- Deleting a payment should also delete related payment images from S3 and DB, unless a safer existing project pattern says otherwise.
+- Reads are allowed for `ADMINISTRATOR`, `PROPERTY_MANAGER`, `MAINTENANCE_STAFF` and `READ_ONLY`.
+- Create/update are allowed for `ADMINISTRATOR`, `PROPERTY_MANAGER` and `MAINTENANCE_STAFF`.
+- Delete is allowed for `ADMINISTRATOR` and `PROPERTY_MANAGER`.
+- `SUPER_ADMIN` works through inherited authorities and the selected organization in the token.
 
-## Payment images backend scope
+Non-scope for 16A:
 
-Suggested endpoints:
+- No payment image S3 upload/delete endpoints yet.
+- No frontend Payments page yet.
+- No catalog frontend integration yet.
+- No TAMI payment tools yet.
+- No Reports integration yet.
 
-```http
-GET    /api/v1/payments/{paymentId}/images
-POST   /api/v1/payments/{paymentId}/images
-DELETE /api/v1/payments/{paymentId}/images/{imageId}
-```
+## 16B — Payment images with S3 hard delete
 
-Rules:
+Planned.
 
-- Reuse existing S3 upload/presigned URL services and validation patterns.
-- Do not create a duplicate S3 abstraction if an existing one already covers this use case.
-- Return image metadata plus presigned URL like other entity image modules.
-- Hard delete S3 object and DB row on delete.
+- Add payment image service/controller.
+- Upload images to S3.
+- Generate presigned URLs.
+- Delete S3 object and database row on removal.
+- Validate content types and size.
 
-## Catalog integration scope
+## 16C — Payment categories in catalogs
 
-Payment categories must become part of the existing catalog administration experience.
+Planned.
 
-Suggested package:
+- Add payment category to frontend catalog administration.
+- Add translation keys.
 
-```text
-backend/src/main/java/com/tamias/catalog/paymentcategory
-```
+Backend payment-category endpoints were added in 16A so the frontend can consume them in 16C.
 
-Frontend must add the payment category catalog tab/section following existing catalog UI patterns.
+## 16D — Angular payments page
 
-Rules:
+Planned.
 
-- Do not create a separate payment category screen if current catalogs are centrally managed.
-- Use existing catalog status/soft delete behavior.
-- Use existing translation JSON files:
-  - `frontend/public/assets/i18n/es.json`
-  - `frontend/public/assets/i18n/en.json`
+- Add payments feature page.
+- Add sidebar item.
+- Add list/filter/create/edit/delete UX.
+- Add images modal.
+- Add translation keys.
 
-## Frontend scope
+## 16E — AI awareness for payments
 
-Suggested feature package:
+Planned.
 
-```text
-frontend/src/app/features/payments
-```
-
-Suggested UI:
-
-- Payments page accessible from sidebar.
-- Table with filters.
-- Create/edit modal.
-- Delete modal, not native `confirm()`.
-- Images modal using the same UX pattern as other image modules.
-- Total amount summary for the active filters.
-- Method/category/property display labels.
-- Strict Angular typing.
-- Standalone Angular 19 pattern.
-- ngx-translate keys in existing JSON files only.
-
-Suggested columns:
-
-```text
-Pay date
-Name
-Category
-Method
-Amount
-Property
-Responsible
-Actions
-```
-
-Suggested actions:
-
-```text
-Edit
-Delete
-Images
-```
-
-## AI scope
-
-Add read-only TAMI tools for payments. No write actions.
+- Add payment read-only repository/service/handler.
+- Add routing examples/patterns.
+- Add smoke-test prompts.
+- Keep AI tools read-only.
 
 Suggested tools:
 
@@ -323,55 +276,6 @@ Rules:
 - AI tools must be read-only.
 - AI tools must not expose raw S3 keys unless the existing image tools already do so.
 - Avoid mixing payment answers with purchase-list answers unless the user's question clearly asks for both.
-
-## Proposed subphases
-
-```text
-16A Payments backend foundation
-16B Payment images with S3 hard delete
-16C Payment categories in catalogs
-16D Angular payments page
-16E AI awareness for payments
-```
-
-### 16A — Payments backend foundation
-
-- Create Flyway.
-- Create entities/enums/DTOs/repositories/services/controllers.
-- Implement CRUD.
-- Implement soft delete.
-- Implement organization scoping.
-- Implement filters.
-- Do not add images yet unless needed by the same Flyway.
-
-### 16B — Payment images with S3 hard delete
-
-- Add payment image entity/repository/service/controller.
-- Upload images to S3.
-- Generate presigned URLs.
-- Delete S3 object and database row on removal.
-- Validate content types and size.
-
-### 16C — Payment categories in catalogs
-
-- Add payment category backend catalog support.
-- Add payment category to frontend catalog administration.
-- Add translation keys.
-
-### 16D — Angular payments page
-
-- Add payments feature page.
-- Add sidebar item.
-- Add list/filter/create/edit/delete UX.
-- Add images modal.
-- Add translation keys.
-
-### 16E — AI awareness for payments
-
-- Add payment read-only repository/service/handler.
-- Add routing examples/patterns.
-- Add smoke-test prompts.
-- Keep AI tools read-only.
 
 ## Non-goals
 
