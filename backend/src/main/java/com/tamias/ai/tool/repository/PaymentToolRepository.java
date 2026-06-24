@@ -67,7 +67,9 @@ public class PaymentToolRepository extends AiReadOnlyToolSupport {
         PaymentDateRange range = paymentDateRange(userQuestion);
         String search = nullableSearch(extractSearchText(
                 userQuestion,
-                "pago", "pagos", "pague", "pagué", "pagado", "pagados", "gasto", "gastos",
+                "pago", "pagos", "pague", "pagué", "pagado", "pagados", "pagada", "pagadas",
+                "gasto", "gastos", "gastado", "gastados", "gastada", "gastadas", "gaste", "gasté",
+                "he", "has", "ha", "hemos", "han", "haber", "habia", "había",
                 "busca", "buscar", "muestra", "listame", "lístame", "recibo", "recibos", "comprobante", "comprobantes",
                 "mes", "semana", "ano", "año", "actual", "este", "esta", "pasado", "pasada"
         ));
@@ -105,7 +107,9 @@ public class PaymentToolRepository extends AiReadOnlyToolSupport {
         PaymentDateRange range = paymentDateRange(userQuestion);
         String search = nullableSearch(extractSearchText(
                 userQuestion,
-                "pago", "pagos", "pague", "pagué", "pagado", "pagados", "gasto", "gastos",
+                "pago", "pagos", "pague", "pagué", "pagado", "pagados", "pagada", "pagadas",
+                "gasto", "gastos", "gastado", "gastados", "gastada", "gastadas", "gaste", "gasté",
+                "he", "has", "ha", "hemos", "han", "haber", "habia", "había",
                 "categoria", "categoría", "categorias", "categorías", "por", "de", "del",
                 "cuanto", "cuánto", "total", "mes", "semana", "ano", "año", "actual", "este", "esta", "pasado", "pasada"
         ));
@@ -152,7 +156,9 @@ public class PaymentToolRepository extends AiReadOnlyToolSupport {
         PaymentDateRange range = paymentDateRange(userQuestion);
         String search = nullableSearch(extractSearchText(
                 userQuestion,
-                "pago", "pagos", "pague", "pagué", "pagado", "pagados", "gasto", "gastos",
+                "pago", "pagos", "pague", "pagué", "pagado", "pagados", "pagada", "pagadas",
+                "gasto", "gastos", "gastado", "gastados", "gastada", "gastadas", "gaste", "gasté",
+                "he", "has", "ha", "hemos", "han", "haber", "habia", "había",
                 "propiedad", "propiedades", "casa", "bungalow", "alojamiento", "por", "de", "del",
                 "cuanto", "cuánto", "total", "mes", "semana", "ano", "año", "actual", "este", "esta", "pasado", "pasada"
         ));
