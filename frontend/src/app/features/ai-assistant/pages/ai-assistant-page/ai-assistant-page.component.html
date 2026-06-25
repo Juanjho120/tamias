@@ -269,11 +269,18 @@
             rows="2"
             [placeholder]="mode() === 'chat' ? ('aiAssistant.input.chatPlaceholder' | translate) : ('aiAssistant.input.searchPlaceholder' | translate)"
             [ngModel]="question()"
-            (ngModelChange)="question.set($event)"
+            (ngModelChange)="question.set($event); prepareTamiSpeechAudio()"
             [disabled]="sending() || typingAssistant() || searching()"
+            (focus)="prepareTamiSpeechAudio()"
+            (pointerdown)="prepareTamiSpeechAudio()"
             (keydown)="handleQuestionKeydown($event)">
           </textarea>
-          <button type="button" class="btn btn-primary" [disabled]="!question().trim() || sending() || typingAssistant() || searching()" (click)="send()">
+          <button
+            type="button"
+            class="btn btn-primary"
+            [disabled]="!question().trim() || sending() || typingAssistant() || searching()"
+            (pointerdown)="prepareTamiSpeechAudio()"
+            (click)="send()">
             @if (sending() || searching()) {
               <span class="spinner-border spinner-border-sm me-1"></span>
             } @else {

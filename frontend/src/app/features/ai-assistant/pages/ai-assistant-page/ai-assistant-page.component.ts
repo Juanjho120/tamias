@@ -137,6 +137,7 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.clearTypingTimers();
+    this.tamiSpeechAudioService.release();
   }
 
   loadProperties(): void {
@@ -250,11 +251,21 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.pendingTamiSpeechPreparation = this.tamiSpeechAudioService.prepare();
+    this.prepareTamiSpeechAudio();
     this.chat(question);
   }
 
+  prepareTamiSpeechAudio(): void {
+    if (this.mode() !== 'chat') {
+      return;
+    }
+
+    this.pendingTamiSpeechPreparation ??= this.tamiSpeechAudioService.prepare();
+  }
+
   handleQuestionKeydown(event: KeyboardEvent): void {
+    this.prepareTamiSpeechAudio();
+
     if (event.key !== 'Enter' || event.shiftKey) {
       return;
     }
