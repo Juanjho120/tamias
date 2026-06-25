@@ -37,6 +37,7 @@ import { DashboardAnalyticsComponent } from './components/dashboard-analytics/da
 type BootstrapTooltipInstance = {
   dispose(): void;
   hide(): void;
+  show(): void;
 };
 
 type BootstrapTooltipOptions = {
@@ -73,6 +74,8 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
 
   private readonly tooltipInstances = new Map<HTMLElement, BootstrapTooltipInstance>();
   private needsTooltipRefresh = false;
+  private activeTouchTooltipElement?: HTMLElement;
+  private readonly touchTooltipClickListener = (event: Event) => this.toggleTouchTooltip(event);
   private readonly globalTooltipInteractionListener = (event: Event) => this.hideTooltipsFromGlobalInteraction(event);
   private readonly globalTooltipDismissListener = () => this.hideTooltips();
 
@@ -993,22 +996,60 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
       const tooltip = new bootstrap.Tooltip(element, {
         html: true,
         placement: 'auto',
-        trigger: touchDevice ? 'click' : 'hover focus',
+        trigger: touchDevice ? 'manual' : 'hover focus',
         container: 'body',
         customClass: 'reservation-calendar-bootstrap-tooltip',
         fallbackPlacements: ['top', 'bottom', 'right', 'left']
       });
+
+      if (touchDevice) {
+        element.addEventListener('click', this.touchTooltipClickListener);
+        element.addEventListener('touchend', this.touchTooltipClickListener);
+      }
 
       this.tooltipInstances.set(element, tooltip);
     }
   }
 
   private disposeTooltips(): void {
+    for (const element of this.tooltipInstances.keys()) {
+      element.removeEventListener('click', this.touchTooltipClickListener);
+      element.removeEventListener('touchend', this.touchTooltipClickListener);
+    }
+
     for (const tooltip of this.tooltipInstances.values()) {
       tooltip.dispose();
     }
 
     this.tooltipInstances.clear();
+    this.activeTouchTooltipElement = undefined;
+  }
+
+  private toggleTouchTooltip(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const element = event.currentTarget as HTMLElement | null;
+
+    if (!element) {
+      return;
+    }
+
+    const tooltip = this.tooltipInstances.get(element);
+
+    if (!tooltip) {
+      return;
+    }
+
+    if (this.activeTouchTooltipElement === element) {
+      tooltip.hide();
+      this.activeTouchTooltipElement = undefined;
+      return;
+    }
+
+    this.hideTooltips();
+    tooltip.show();
+    this.activeTouchTooltipElement = element;
   }
 
   private registerTooltipDismissHandlers(): void {
@@ -1045,6 +1086,8 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
     for (const tooltip of this.tooltipInstances.values()) {
       tooltip.hide();
     }
+
+    this.activeTouchTooltipElement = undefined;
   }
 
   private isTouchDevice(): boolean {
