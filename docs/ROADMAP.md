@@ -89,30 +89,6 @@ Status: Completed through 14P.
 
 Documentation: `71-product-box-models-14.md`
 
-Completed subphases:
-
-```text
-14A Product Box Models backend foundation
-14B Product Box Face Images
-14C Angular Product Box CRUD
-14D Three.js Product Box Viewer
-14E Product Box 3D Textures architecture/design
-14F Texture metadata + original upload
-14G OpenCV perspective correction backend
-14H Angular corner editor + processed texture preview
-14I Accept/retry/delete texture workflow
-14J Automatic contour detection and image enhancement
-14K AI Texture Enhancement architecture/design
-14L AI Texture metadata and backend provider abstraction
-14M AI Texture enhancement backend
-14N Angular AI enhanced preview and accept workflow
-14N.1 Product Box OpenCV runtime controls and testing profile
-14O Integration with Inventory/Purchases
-14P AI awareness for Product Box Models
-```
-
-Product Box Models phase is complete for now.
-
 ## Completed organization administration and global UX polish phase
 
 ### Phase 15 — Organization Administration and Global UX Polish
@@ -122,19 +98,6 @@ Status: Completed through 15F.
 Documentation:
 - `93-organization-administration-global-ux-15.md`
 - `105-ai-read-only-tool-support-decomposition-15f.md`
-
-Completed subphases:
-
-```text
-15A Organization logo backend + current organization header
-15B Organization administration page
-15C Organization switcher / multi-organization navigation
-15C.1 Global SUPER_ADMIN organization navigation
-15C.2 User organization memberships management
-15D Icon-only action buttons with tooltips
-15E TAMI branding and robot animation
-15F AI read-only tool support decomposition
-```
 
 ## Completed payments phase
 
@@ -154,21 +117,11 @@ Completed subphases:
 16E AI awareness for payments
 ```
 
-Phase decisions:
-
-- Payments are an internal operational registry, not a payment processor.
-- Payments use soft delete.
-- Payment images use hard delete from S3 and database.
-- Payment categories are organization-scoped catalogs.
-- TAMI payment tools are read-only and scoped to the selected organization.
-- `SUPER_ADMIN` payment queries use the organization selected in the token, not a global cross-organization query.
-- Payment AI awareness is implemented with a dedicated handler/service/repository and does not grow `AiReadOnlyToolSupport` again.
-
 ## Active implementation block before Reports
 
 ### Pre-Reports Operational Polish
 
-Status: In progress through A.
+Status: In progress through B.
 
 Documentation: `110-pre-reports-operational-polish.md`
 
@@ -181,12 +134,12 @@ Completed subphases:
 
 ```text
 A Maintenance before/after/general images and serviced items
+B AI sessions sort/delete, organization selector refresh and TAMI speech sync
 ```
 
 Remaining subphases:
 
 ```text
-B AI sessions sort/delete, organization selector refresh and TAMI speech sync
 C Dashboard calendar date/timezone and mobile tooltip behavior
 D Maintenance last-by-person AI tool
 E Closure checks before Reports

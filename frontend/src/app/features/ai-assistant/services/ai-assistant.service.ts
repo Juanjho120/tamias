@@ -15,12 +15,9 @@ import {
   AiSearchResponse
 } from '../models/ai-assistant.model';
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class AiAssistantService {
-  constructor(private readonly apiService: ApiService) {
-  }
+  constructor(private readonly apiService: ApiService) {}
 
   search(request: AiSearchRequest): Observable<AiSearchResponse> {
     return this.apiService.post<AiSearchResponse>('/ai/search', request);
@@ -53,5 +50,9 @@ export class AiAssistantService {
 
   updateSessionTitle(sessionId: string, request: AiChatSessionUpdateRequest): Observable<AiChatSessionSummary> {
     return this.apiService.patch<AiChatSessionSummary>(`/ai/chat-sessions/${sessionId}/title`, request);
+  }
+
+  deleteSession(sessionId: string): Observable<void> {
+    return this.apiService.delete<void>(`/ai/chat-sessions/${sessionId}`);
   }
 }

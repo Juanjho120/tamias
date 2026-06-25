@@ -2,10 +2,10 @@ import { DatePipe, NgClass, TitleCasePipe } from '@angular/common';
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '@ngx-translate/core';
-
 import { LanguageService } from '../../../../core/i18n/language.service';
 import { ApiError } from '../../../../core/models/api-error.model';
 import { PageResponse } from '../../../../core/models/page-response.model';
+import { ConfirmModalComponent } from '../../../../shared/confirm-modal/confirm-modal.component';
 import { ToastService } from '../../../../shared/toast/toast.service';
 import { AiSourceListComponent } from '../../components/ai-source-list/ai-source-list.component';
 import { AiSessionTitleModalComponent } from '../../components/ai-session-title-modal/ai-session-title-modal.component';
@@ -24,7 +24,7 @@ import { AiReferenceDataService } from '../../services/ai-reference-data.service
 import { TamiSpeechAudioService } from '../../services/tami-speech-audio.service';
 
 type AssistantMode = 'chat' | 'search';
-
+type AiSessionSort = 'createdAt,desc' | 'createdAt,asc';
 type AiAnimatedLocalMessage = AiLocalMessage & {
   displayedContent?: string;
   typing?: boolean;
@@ -39,6 +39,7 @@ type AiAnimatedLocalMessage = AiLocalMessage & {
     NgClass,
     TitleCasePipe,
     TranslatePipe,
+    ConfirmModalComponent,
     AiSourceListComponent,
     AiSessionTitleModalComponent
   ],
@@ -64,7 +65,6 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
   private readonly toastService = inject(ToastService);
   private readonly languageService = inject(LanguageService);
   private readonly tamiSpeechAudioService = inject(TamiSpeechAudioService);
-
   private readonly typingDelayMs = 12;
   private readonly typingTimers = new Map<string, ReturnType<typeof setInterval>>();
   private readonly tamiSpeechSpeedRatio = 0.75;
@@ -78,40 +78,36 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
   readonly typingAssistant = signal(false);
   readonly searching = signal(false);
   readonly renaming = signal(false);
-
+  readonly deletingSessionId = signal<string | null>(null);
   readonly properties = signal<AiPropertyOption[]>([]);
   readonly sessions = signal<AiChatSessionSummary[]>([]);
   readonly activeSession = signal<AiChatSession | null>(null);
   readonly messages = signal<AiAnimatedLocalMessage[]>([]);
   readonly searchResult = signal<AiSearchResponse | null>(null);
   readonly sessionToRename = signal<AiChatSessionSummary | null>(null);
-
+  readonly sessionToDelete = signal<AiChatSessionSummary | null>(null);
   readonly propertyId = signal('');
   readonly mode = signal<AssistantMode>('chat');
   readonly question = signal('');
   readonly topK = signal(5);
   readonly similarityThreshold = signal(0.3);
-
+  readonly sessionSort = signal<AiSessionSort>('createdAt,desc');
   readonly sessionPage = signal(0);
   readonly sessionSize = signal(20);
   readonly sessionTotalElements = signal(0);
   readonly sessionTotalPages = signal(0);
   readonly sessionFirst = signal(true);
   readonly sessionLast = signal(true);
-
   readonly activeSessionTitle = computed(() => {
     const session = this.activeSession();
-
     if (session?.title) {
       return session.title;
     }
 
     return this.languageService.instant('aiAssistant.chat.newSession');
   });
-
   readonly selectedPropertyName = computed(() => {
     const selectedPropertyId = this.propertyId();
-
     if (!selectedPropertyId) {
       return this.languageService.instant('aiAssistant.properties.all');
     }
@@ -119,8 +115,17 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
     return this.properties().find((property) => property.id === selectedPropertyId)?.name
       ?? this.languageService.instant('aiAssistant.properties.selected');
   });
-
   readonly renameTitle = computed(() => this.sessionToRename()?.title ?? '');
+  readonly deleteSessionMessage = computed(() => {
+    const session = this.sessionToDelete();
+    if (!session) {
+      return '';
+    }
+
+    return this.languageService.instant('aiAssistant.sessions.confirmDeleteMessage', {
+      title: session.title || this.languageService.instant('aiAssistant.sessions.untitled')
+    });
+  });
 
   ngOnInit(): void {
     this.loadProperties();
@@ -133,7 +138,6 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
 
   loadProperties(): void {
     this.loadingReferences.set(true);
-
     this.referenceDataService.loadProperties().subscribe({
       next: (properties) => {
         this.properties.set(properties);
@@ -148,12 +152,11 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
 
   loadSessions(): void {
     this.loadingSessions.set(true);
-
     this.aiAssistantService.findSessions({
       propertyId: this.propertyId() || undefined,
       page: this.sessionPage(),
       size: this.sessionSize(),
-      sort: 'updatedAt,desc'
+      sort: this.sessionSort()
     }).subscribe({
       next: (response: PageResponse<AiChatSessionSummary>) => {
         this.sessions.set(response.content);
@@ -178,6 +181,13 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
     this.activeSession.set(null);
     this.messages.set([]);
     this.searchResult.set(null);
+    this.loadSessions();
+  }
+
+  changeSessionSort(value: string): void {
+    const nextSort: AiSessionSort = value === 'createdAt,asc' ? 'createdAt,asc' : 'createdAt,desc';
+    this.sessionSort.set(nextSort);
+    this.sessionPage.set(0);
     this.loadSessions();
   }
 
@@ -211,7 +221,6 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
     this.clearTypingTimers();
     this.loadingSession.set(true);
     this.searchResult.set(null);
-
     this.aiAssistantService.findSession(sessionId).subscribe({
       next: (session: AiChatSession) => {
         this.activeSession.set(session);
@@ -229,7 +238,6 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
 
   send(): void {
     const question = this.question().trim();
-
     if (!question || this.sending() || this.typingAssistant() || this.searching()) {
       return;
     }
@@ -239,6 +247,7 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
       return;
     }
 
+    void this.tamiSpeechAudioService.prepare();
     this.chat(question);
   }
 
@@ -255,7 +264,6 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
     const currentSession = this.activeSession();
     const requestPropertyId = currentSession?.propertyId ?? (this.propertyId() || null);
     const requestTitle = currentSession?.title ?? this.createTitleFromQuestion(question);
-
     const temporaryUserMessage: AiAnimatedLocalMessage = {
       id: crypto.randomUUID(),
       role: 'USER',
@@ -284,7 +292,7 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
           role: 'ASSISTANT',
           content: response.answer,
           displayedContent: '',
-          typing: true,
+          typing: false,
           createdAt: now,
           sources: response.sources ?? [],
           grounded: response.grounded,
@@ -314,7 +322,7 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
           });
         }
 
-        this.animateAssistantMessage(response.assistantMessageId, response.answer, () => {
+        void this.animateAssistantMessage(response.assistantMessageId, response.answer, () => {
           this.typingAssistant.set(false);
           this.loadSessions();
           setTimeout(() => this.scrollToBottom(), 0);
@@ -335,7 +343,6 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
     this.question.set('');
     this.searching.set(true);
     this.searchResult.set(null);
-
     this.aiAssistantService.search({
       question,
       propertyId: this.propertyId() || null,
@@ -368,22 +375,18 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
 
   saveRename(title: string): void {
     const session = this.sessionToRename();
-
     if (!session) {
       return;
     }
 
     this.renaming.set(true);
-
     this.aiAssistantService.updateSessionTitle(session.id, { title }).subscribe({
       next: () => {
         this.renaming.set(false);
         this.sessionToRename.set(null);
         this.toastService.success(this.languageService.instant('aiAssistant.messages.renamed'));
         this.loadSessions();
-
         const activeSession = this.activeSession();
-
         if (activeSession?.id === session.id) {
           this.activeSession.set({ ...activeSession, title });
         }
@@ -395,6 +398,44 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
     });
   }
 
+  requestDeleteSession(session: AiChatSessionSummary, event?: MouseEvent): void {
+    event?.stopPropagation();
+    this.sessionToDelete.set(session);
+  }
+
+  cancelDeleteSession(): void {
+    if (this.deletingSessionId()) {
+      return;
+    }
+
+    this.sessionToDelete.set(null);
+  }
+
+  confirmDeleteSession(): void {
+    const session = this.sessionToDelete();
+    if (!session) {
+      return;
+    }
+
+    this.deletingSessionId.set(session.id);
+    this.aiAssistantService.deleteSession(session.id).subscribe({
+      next: () => {
+        this.deletingSessionId.set(null);
+        this.sessionToDelete.set(null);
+        this.toastService.success(this.languageService.instant('aiAssistant.messages.sessionDeleted'));
+
+        if (this.activeSession()?.id === session.id) {
+          this.newSession();
+        }
+
+        this.loadSessions();
+      },
+      error: (error: unknown) => {
+        this.deletingSessionId.set(null);
+        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('aiAssistant.messages.sessionDeleteError')));
+      }
+    });
+  }
 
   roleLabel(role: AiLocalMessage['role']): string {
     if (role === 'ASSISTANT') {
@@ -447,31 +488,27 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
     if (toolName.includes('reservation')) {
       return 'bi-calendar-check';
     }
-
     if (toolName.includes('maintenance')) {
       return 'bi-tools';
     }
-
+    if (toolName.includes('payment')) {
+      return 'bi-credit-card';
+    }
     if (toolName.includes('purchase')) {
       return 'bi-bag-check';
     }
-
     if (toolName.includes('task')) {
       return 'bi-check2-square';
     }
-
     if (toolName.includes('document') || toolName.includes('rag')) {
       return 'bi-file-earmark-text';
     }
-
     if (toolName.includes('property')) {
       return 'bi-house-door';
     }
-
     if (toolName.includes('user')) {
       return 'bi-person-circle';
     }
-
     if (toolName.includes('organization')) {
       return 'bi-building';
     }
@@ -522,7 +559,7 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
     return `${question.substring(0, 57)}...`;
   }
 
-  private animateAssistantMessage(messageId: string, answer: string, onComplete?: () => void): void {
+  private async animateAssistantMessage(messageId: string, answer: string, onComplete?: () => void): Promise<void> {
     this.stopTypingTimer(messageId);
 
     if (!answer) {
@@ -530,11 +567,20 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.tamiSpeechAudioService.start({ intervalMs: this.tamiSpeechBlipIntervalMs });
+    await this.tamiSpeechAudioService.start({ intervalMs: this.tamiSpeechBlipIntervalMs });
+
+    if (!this.messages().some((message) => message.id === messageId)) {
+      this.tamiSpeechAudioService.stop();
+      return;
+    }
+
+    this.messages.update((messages) => messages.map((message) => message.id === messageId
+      ? { ...message, typing: true }
+      : message
+    ));
 
     let currentIndex = 0;
     const chunkSize = this.resolveTypingChunkSize(answer);
-
     const timer = setInterval(() => {
       currentIndex = Math.min(currentIndex + chunkSize, answer.length);
       const displayedContent = answer.slice(0, currentIndex);
@@ -542,13 +588,12 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
 
       this.messages.update((messages) => messages.map((message) => message.id === messageId
         ? { ...message, displayedContent, typing: !done }
-        : message));
-
+        : message
+      ));
       setTimeout(() => this.scrollToBottom(), 0);
 
       if (done) {
-        this.stopTypingTimer(messageId);
-        onComplete?.();
+        this.finishTypingMessage(messageId, answer, onComplete);
       }
     }, this.typingDelayMs);
 
@@ -558,7 +603,8 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
   private finishTypingMessage(messageId: string, answer: string, onComplete?: () => void): void {
     this.messages.update((messages) => messages.map((message) => message.id === messageId
       ? { ...message, content: answer, displayedContent: answer, typing: false }
-      : message));
+      : message
+    ));
     this.stopTypingTimer(messageId);
     this.tamiSpeechAudioService.stop();
     onComplete?.();
@@ -568,11 +614,9 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
     if (answer.length > 2_000) {
       return 8;
     }
-
     if (answer.length > 1_000) {
       return 5;
     }
-
     if (answer.length > 500) {
       return 3;
     }
@@ -593,7 +637,6 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
 
   private stopTypingTimer(messageId: string): void {
     const timer = this.typingTimers.get(messageId);
-
     if (!timer) {
       return;
     }
@@ -608,7 +651,6 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
 
   private scrollToBottom(): void {
     const container = this.messagesContainer?.nativeElement;
-
     if (!container) {
       return;
     }
@@ -632,7 +674,6 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
     if (value instanceof Date) {
       return value.toLocaleString();
     }
-
     if (typeof value === 'boolean') {
       return value ? 'Sí' : 'No';
     }

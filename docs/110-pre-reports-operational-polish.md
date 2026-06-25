@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress through A.
+In progress through B.
 
 ## Purpose
 
@@ -29,165 +29,85 @@ Requested improvements:
 
 Status: Implemented.
 
-### A1 — Maintenance image roles
+Summary:
 
-Maintenance images now support an explicit role/group:
-
-```text
-BEFORE
-AFTER
-GENERAL
-```
-
-Database change:
-
-```text
-V41__maintenance_image_roles_and_serviced_items.sql
-```
-
-The migration adds:
-
-```text
-maintenance_record_images.image_role varchar(20) not null default 'GENERAL'
-```
-
-Rules:
-
+- Maintenance images now support `BEFORE`, `AFTER` and `GENERAL` roles.
 - Existing images default to `GENERAL`.
-- Upload accepts a selected role.
-- Existing images can be reassigned between `BEFORE`, `AFTER` and `GENERAL`.
-- The maintenance images modal groups images by role.
-- The upload role selector and the per-image role selectors must stay synchronized with the value being submitted or displayed.
-- S3 behavior does not change.
-- Deletion remains hard delete: object removed from S3 and row removed from database.
-- No images are stored in `bytea`.
-
-Backend additions:
-
-```text
-MaintenanceImageRole enum
-MaintenanceRecordImageRoleRequest DTO
-PATCH /api/v1/maintenance-records/{maintenanceRecordId}/images/{imageId}/role
-```
-
-Frontend additions:
-
-```text
-Upload role selector
-Per-image role selector
-Grouped image sections: Before, After, General
-Selector synchronization fix for upload and existing image role controls
-```
-
-### A2 — Serviced maintenance items
-
-Maintenance now distinguishes:
-
-```text
-maintenance_record_items = items/materials used during the maintenance
-maintenance_record_serviced_items = items/equipment that received maintenance
-```
-
-New table:
-
-```text
-maintenance_record_serviced_items
-```
-
-Fields:
-
-```text
-id
-organization_id
-maintenance_record_id
-inventory_item_id nullable
-item_name_snapshot
-quantity
-unit
-notes
-created_by
-created_at
-updated_by
-updated_at
-deleted_by
-deleted_at
-```
-
-Rules:
-
-- Serviced items use soft delete.
-- `inventory_item_id` is nullable to allow manual/free-text serviced items.
-- `item_name_snapshot` preserves the label used at maintenance time.
-- If an inventory item is selected, it must belong to the selected organization and be available for maintenance.
-- Organization scoping follows the maintenance record.
-- Serviced items are independent from the items/materials used during maintenance.
-
-Backend endpoints:
-
-```http
-GET    /api/v1/maintenance-records/{maintenanceRecordId}/serviced-items
-POST   /api/v1/maintenance-records/{maintenanceRecordId}/serviced-items
-PUT    /api/v1/maintenance-records/{maintenanceRecordId}/serviced-items/{servicedItemId}
-DELETE /api/v1/maintenance-records/{maintenanceRecordId}/serviced-items/{servicedItemId}
-```
-
-Frontend wording:
-
-```text
-Items usados
-Items con mantenimiento
-```
-
-### A3 — Maintenance detail modal split
-
-The maintenance detail UI was refined so each responsibility has its own action and modal.
-
-Final UI structure:
-
-```text
-People modal
-- Component: maintenance-people-modal
-- Purpose: add/list/remove people involved in the maintenance.
-- Table action icon: people icon.
-
-Used materials/details modal
-- Component: maintenance-details-modal
-- Purpose: add/list/remove items/materials used during the maintenance.
-- This modal no longer manages people.
-- Table action icon: box/materials icon.
-
-Serviced items modal
-- Component: maintenance-serviced-items-modal
-- Purpose: add/list/update/remove items/equipment that received maintenance.
-- Table action icon: wrench-adjustable-circle icon.
-
-Tasks
-- Existing tasks behavior remains unchanged.
-- The Tasks icon remains the same.
-```
-
-Rationale:
-
-- `maintenance-details-modal` had grown to mix people and used materials.
-- People are not materials, and serviced items are not used materials.
-- Separate modals make the maintenance table actions clearer and reduce confusion between Tasks, Details/Materials and Serviced items.
-- The Details action now means only materials/items used during maintenance.
-
-Button/icon decision:
-
-```text
-People: people icon
-Materials used / Details: box-seam icon
-Serviced items: wrench-adjustable-circle icon
-Tasks: list-check icon
-Images: images icon
-Edit: pencil-square icon
-Delete: trash icon
-```
+- The image modal groups images by role and role selectors stay synchronized with the real value.
+- `maintenance_record_serviced_items` stores items/equipment that received maintenance.
+- People, used materials and serviced items are managed from separate modals.
 
 ## B — AI sessions sort/delete, organization selector refresh and TAMI speech sync
 
-Status: Planned.
+Status: Implemented.
+
+### B1 — AI chat session sorting
+
+AI chat sessions can now be sorted by creation date from the AI Assistant page.
+
+Supported UI sort options:
+
+```text
+Created date descending
+Created date ascending
+```
+
+Implementation notes:
+
+- The existing pageable backend endpoint is reused.
+- The frontend passes `sort=createdAt,desc` or `sort=createdAt,asc`.
+- Sorting resets the session page back to the first page.
+- No database changes are needed.
+
+### B2 — AI chat session deletion
+
+A full session delete action is now available from the AI Assistant session list.
+
+Backend endpoint:
+
+```http
+DELETE /api/v1/ai/chat-sessions/{sessionId}
+```
+
+Rules:
+
+- Only the session owner in the selected organization can delete the session.
+- Message debug rows are deleted first.
+- Chat messages are deleted second.
+- The session row is deleted last.
+- The delete operation is transactional.
+- No native `confirm()` is used; the frontend uses the shared confirm modal.
+
+### B3 — Organization selector refresh
+
+The organization switcher refreshes when organization administration changes the available organization list.
+
+Implemented behavior:
+
+```text
+- Create organization -> selector reloads without F5.
+- Update organization name/logo -> selector reloads without F5.
+- Activate/deactivate organization -> selector reloads without F5.
+- Delete organization logo -> selector reloads without F5.
+```
+
+Implementation notes:
+
+- `AuthService` exposes a lightweight organization options refresh observable.
+- `OrganizationsPageComponent` emits refresh events after organization mutations.
+- `MainLayoutComponent` listens and reloads organization options.
+
+### B4 — TAMI speech sync
+
+TAMI speech audio is now prepared before the typewriter starts the visible speaking cursor.
+
+Implementation notes:
+
+- `TamiSpeechAudioService` exposes `prepare()` to resume/warm the browser `AudioContext`.
+- The AI Assistant page calls `prepare()` from the user send interaction.
+- The actual typewriter cursor is enabled after `start()` has attempted to resume audio and triggered the first blip.
+- This reduces the idle-delay where the mouth animation starts before sound.
+- The audio remains synthetic/original and does not use copyrighted game assets.
 
 ## C — Dashboard calendar date/timezone and mobile tooltip behavior
 

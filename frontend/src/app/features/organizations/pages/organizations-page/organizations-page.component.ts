@@ -38,13 +38,11 @@ import { OrganizationService } from '../../services/organization.service';
         min-width: 42px;
         border-radius: 0.75rem;
       }
-
       .organization-logo-preview {
         object-fit: cover;
         border: 1px solid rgba(0, 0, 0, 0.08);
         background: #fff;
       }
-
       .organization-logo-fallback {
         display: inline-flex;
         align-items: center;
@@ -69,7 +67,6 @@ export class OrganizationsPageComponent implements OnInit {
   readonly isSuperAdmin = computed(() => this.currentUser()?.role === 'SUPER_ADMIN');
   readonly isAdministrator = computed(() => this.currentUser()?.role === 'ADMINISTRATOR');
   readonly canCreateOrganizations = computed(() => this.isSuperAdmin());
-
   readonly loading = signal(false);
   readonly saving = signal(false);
   readonly uploadingLogoId = signal<string | null>(null);
@@ -81,22 +78,20 @@ export class OrganizationsPageComponent implements OnInit {
   readonly formMode = signal<OrganizationFormMode>('edit');
   readonly logoToDelete = signal<Organization | null>(null);
   readonly statusToUpdate = signal<{ organization: Organization; status: OrganizationStatus } | null>(null);
-
   readonly page = signal(0);
   readonly size = signal(10);
   readonly totalElements = signal(0);
   readonly totalPages = signal(0);
   readonly first = signal(true);
   readonly last = signal(true);
-
-  readonly subtitleKey = computed(() =>
-    this.isSuperAdmin() ? 'organizations.subtitle.superAdmin' : 'organizations.subtitle.administrator'
+  readonly subtitleKey = computed(() => this.isSuperAdmin()
+    ? 'organizations.subtitle.superAdmin'
+    : 'organizations.subtitle.administrator'
   );
-
-  readonly permissionKey = computed(() =>
-    this.isSuperAdmin() ? 'organizations.permissions.superAdmin' : 'organizations.permissions.administrator'
+  readonly permissionKey = computed(() => this.isSuperAdmin()
+    ? 'organizations.permissions.superAdmin'
+    : 'organizations.permissions.administrator'
   );
-
   readonly pageLabel = computed(() => {
     if (this.totalElements() === 0) {
       return this.languageService.instant('organizations.pagination.empty');
@@ -107,7 +102,6 @@ export class OrganizationsPageComponent implements OnInit {
       totalPages: this.totalPages()
     });
   });
-
   readonly statusConfirmMessage = computed(() => {
     const target = this.statusToUpdate();
     if (!target) {
@@ -120,7 +114,6 @@ export class OrganizationsPageComponent implements OnInit {
 
     return this.languageService.instant(key, { name: target.organization.name });
   });
-
   readonly logoDeleteMessage = computed(() => {
     const organization = this.logoToDelete();
     if (!organization) {
@@ -130,7 +123,7 @@ export class OrganizationsPageComponent implements OnInit {
     return this.languageService.instant('organizations.confirmLogoDelete.message', { name: organization.name });
   });
 
-  constructor(private readonly organizationService: OrganizationService) { }
+  constructor(private readonly organizationService: OrganizationService) {}
 
   ngOnInit(): void {
     this.loadOrganizations();
@@ -222,6 +215,7 @@ export class OrganizationsPageComponent implements OnInit {
             : this.languageService.instant('organizations.messages.created')
         );
         this.syncCurrentOrganization(organization);
+        this.authService.notifyOrganizationOptionsChanged();
         this.closeForm();
         this.loadOrganizations();
       },
@@ -264,6 +258,7 @@ export class OrganizationsPageComponent implements OnInit {
             ? this.languageService.instant('organizations.messages.activated')
             : this.languageService.instant('organizations.messages.deactivated')
         );
+        this.authService.notifyOrganizationOptionsChanged();
         this.loadOrganizations();
       },
       error: (error: unknown) => {
@@ -288,6 +283,7 @@ export class OrganizationsPageComponent implements OnInit {
         this.uploadingLogoId.set(null);
         this.toastService.success(this.languageService.instant('organizations.messages.logoUpdated'));
         this.syncCurrentOrganization(updatedOrganization);
+        this.authService.notifyOrganizationOptionsChanged();
         this.loadOrganizations();
       },
       error: (error: unknown) => {
@@ -322,6 +318,7 @@ export class OrganizationsPageComponent implements OnInit {
         this.logoToDelete.set(null);
         this.toastService.success(this.languageService.instant('organizations.messages.logoDeleted'));
         this.syncCurrentOrganization(updatedOrganization);
+        this.authService.notifyOrganizationOptionsChanged();
         this.loadOrganizations();
       },
       error: (error: unknown) => {

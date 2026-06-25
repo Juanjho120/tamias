@@ -3,7 +3,6 @@
     <h1 class="h3 mb-1">TAMI</h1>
     <p class="text-muted mb-0">{{ 'aiAssistant.subtitle' | translate }}</p>
   </div>
-
   <button type="button" class="btn btn-primary" (click)="newSession()">
     <i class="bi bi-plus-lg me-1"></i>
     {{ 'aiAssistant.chat.newSession' | translate }}
@@ -15,14 +14,12 @@
     <div class="card page-card h-100">
       <div class="card-body">
         <label for="ai-property" class="form-label">{{ 'aiAssistant.properties.label' | translate }}</label>
-
         <select
           id="ai-property"
           class="form-select mb-3"
           [ngModel]="propertyId()"
           (ngModelChange)="propertyId.set($event); refreshByProperty()">
           <option value="">{{ 'aiAssistant.properties.all' | translate }}</option>
-
           @for (property of properties(); track property.id) {
             <option [value]="property.id">{{ property.name }}</option>
           }
@@ -30,11 +27,22 @@
 
         <div class="d-flex justify-content-between align-items-center mb-2">
           <h2 class="h6 mb-0">{{ 'aiAssistant.sessions.title' | translate }}</h2>
-
           @if (loadingSessions()) {
             <span class="spinner-border spinner-border-sm text-primary"></span>
           }
         </div>
+
+        <label for="ai-session-sort" class="form-label small text-muted mb-1">
+          {{ 'aiAssistant.sessions.sort.label' | translate }}
+        </label>
+        <select
+          id="ai-session-sort"
+          class="form-select form-select-sm mb-3"
+          [ngModel]="sessionSort()"
+          (ngModelChange)="changeSessionSort($event)">
+          <option value="createdAt,desc">{{ 'aiAssistant.sessions.sort.newestFirst' | translate }}</option>
+          <option value="createdAt,asc">{{ 'aiAssistant.sessions.sort.oldestFirst' | translate }}</option>
+        </select>
 
         @if (sessions().length === 0 && !loadingSessions()) {
           <div class="text-muted small border rounded-3 p-3">
@@ -55,12 +63,26 @@
                       {{ session.propertyName || ('aiAssistant.properties.all' | translate) }}
                     </div>
                     <div class="small" [class.text-muted]="!isActiveSession(session)">
-                      {{ session.updatedAt | date:'short' }} · {{ session.messageCount }} msg
+                      {{ session.createdAt | date:'short' }} · {{ session.messageCount }} msg
                     </div>
                   </div>
-
-                  <span class="btn btn-sm btn-link p-0" (click)="openRename(session, $event)">
-                    <i class="bi bi-pencil-square"></i>
+                  <span class="d-inline-flex align-items-center gap-2 flex-shrink-0">
+                    <span
+                      class="btn btn-sm btn-link p-0"
+                      [attr.aria-label]="'aiAssistant.sessions.rename' | translate"
+                      (click)="openRename(session, $event)">
+                      <i class="bi bi-pencil-square"></i>
+                    </span>
+                    <span
+                      class="btn btn-sm btn-link text-danger p-0"
+                      [attr.aria-label]="'aiAssistant.sessions.delete' | translate"
+                      (click)="requestDeleteSession(session, $event)">
+                      @if (deletingSessionId() === session.id) {
+                        <span class="spinner-border spinner-border-sm"></span>
+                      } @else {
+                        <i class="bi bi-trash"></i>
+                      }
+                    </span>
                   </span>
                 </div>
               </button>
@@ -114,6 +136,7 @@
 
             <label class="small text-muted">{{ 'aiAssistant.settings.topK' | translate }}</label>
             <input type="number" class="form-control form-control-sm ai-number-input" min="1" max="20" [ngModel]="topK()" (ngModelChange)="topK.set(+$event)">
+
             <label class="small text-muted">{{ 'aiAssistant.settings.threshold' | translate }}</label>
             <input type="number" class="form-control form-control-sm ai-number-input" min="0" max="1" step="0.05" [ngModel]="similarityThreshold()" (ngModelChange)="similarityThreshold.set(+$event)">
           </div>
@@ -133,7 +156,6 @@
               {{ 'aiAssistant.search.foundSources' | translate:{ count: searchResult()?.sourceCount || 0 } }}
             </div>
           </div>
-
           <app-ai-source-list [sources]="searchResult()?.sources || []" />
         } @else if (messages().length === 0) {
           <div class="p-5 text-center">
@@ -150,14 +172,12 @@
                 <div class="ai-message-bubble">
                   <div class="small text-muted mb-1 d-flex flex-wrap align-items-center gap-1">
                     <span>{{ roleLabel(message.role) }} · {{ message.createdAt | date:'shortTime' }}</span>
-
                     @if (hasSystemEvidence(message)) {
                       <span class="badge rounded-pill text-bg-info ai-evidence-status-badge">
                         <i class="bi bi-database-check me-1"></i>
                         Datos del sistema
                       </span>
                     }
-
                     @if (message.grounded !== undefined) {
                       @if (message.grounded) {
                         <span class="badge rounded-pill text-bg-success">{{ 'aiAssistant.chat.grounded' | translate }}</span>
@@ -253,18 +273,15 @@
             [disabled]="sending() || typingAssistant() || searching()"
             (keydown)="handleQuestionKeydown($event)">
           </textarea>
-
           <button type="button" class="btn btn-primary" [disabled]="!question().trim() || sending() || typingAssistant() || searching()" (click)="send()">
             @if (sending() || searching()) {
               <span class="spinner-border spinner-border-sm me-1"></span>
             } @else {
               <i class="bi bi-send me-1"></i>
             }
-
             {{ mode() === 'chat' ? ('aiAssistant.input.send' | translate) : ('aiAssistant.input.search' | translate) }}
           </button>
         </div>
-
         <div class="small text-muted mt-2">
           Presiona <kbd>Enter</kbd> para enviar y <kbd>Shift</kbd> + <kbd>Enter</kbd> para bajar una línea.
         </div>
@@ -279,3 +296,14 @@
   [loading]="renaming()"
   (save)="saveRename($event)"
   (cancel)="closeRename()" />
+
+<app-confirm-modal
+  [open]="!!sessionToDelete()"
+  title="aiAssistant.sessions.confirmDeleteTitle"
+  [message]="deleteSessionMessage()"
+  confirmText="common.delete"
+  cancelText="common.cancel"
+  [loading]="!!deletingSessionId()"
+  confirmButtonClass="btn-danger"
+  (confirm)="confirmDeleteSession()"
+  (cancel)="cancelDeleteSession()" />

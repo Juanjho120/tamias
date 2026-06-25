@@ -1321,7 +1321,16 @@
       "empty": "No chat sessions found.",
       "untitled": "Untitled session",
       "renameTitle": "Rename chat session",
-      "titleLabel": "Session title"
+      "titleLabel": "Session title",
+      "sort": {
+        "label": "Sort sessions",
+        "newestFirst": "Newest first",
+        "oldestFirst": "Oldest first"
+      },
+      "rename": "Rename session",
+      "delete": "Delete session",
+      "confirmDeleteTitle": "Delete session",
+      "confirmDeleteMessage": "Are you sure you want to delete session \"{{title}}\"? This will also delete its messages."
     },
     "chat": {
       "newSession": "New session",
@@ -1373,7 +1382,9 @@
       "chatError": "Unable to send question.",
       "searchError": "Unable to search relevant sources.",
       "renameError": "Unable to rename chat session.",
-      "renamed": "Chat session renamed successfully."
+      "renamed": "Chat session renamed successfully.",
+      "sessionDeleted": "Session deleted successfully.",
+      "sessionDeleteError": "Session could not be deleted."
     }
   },
   "roles": {

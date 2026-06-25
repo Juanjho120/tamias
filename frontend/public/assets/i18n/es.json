@@ -1320,7 +1320,16 @@
       "empty": "No se encontraron sesiones de chat.",
       "untitled": "Sesión sin título",
       "renameTitle": "Renombrar sesión de chat",
-      "titleLabel": "Título de la sesión"
+      "titleLabel": "Título de la sesión",
+      "sort": {
+        "label": "Ordenar sesiones",
+        "newestFirst": "Más recientes primero",
+        "oldestFirst": "Más antiguas primero"
+      },
+      "rename": "Renombrar sesión",
+      "delete": "Eliminar sesión",
+      "confirmDeleteTitle": "Eliminar sesión",
+      "confirmDeleteMessage": "¿Seguro que deseas eliminar la sesión \"{{title}}\"? Esta acción eliminará también sus mensajes."
     },
     "chat": {
       "newSession": "Nueva sesión",
@@ -1372,7 +1381,9 @@
       "chatError": "No se pudo enviar la pregunta.",
       "searchError": "No se pudieron buscar fuentes relevantes.",
       "renameError": "No se pudo renombrar la sesión.",
-      "renamed": "Sesión renombrada correctamente."
+      "renamed": "Sesión renombrada correctamente.",
+      "sessionDeleted": "Sesión eliminada correctamente.",
+      "sessionDeleteError": "No se pudo eliminar la sesión."
     }
   },
   "roles": {

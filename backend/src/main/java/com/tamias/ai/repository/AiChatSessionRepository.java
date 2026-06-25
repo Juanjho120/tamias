@@ -19,5 +19,10 @@ public interface AiChatSessionRepository extends JpaRepository<AiChatSession, UU
 
     Page<AiChatSession> findByOrganization_IdAndProperty_Id(UUID organizationId, UUID propertyId, Pageable pageable);
 
-    Page<AiChatSession> findByOrganization_IdAndCreatedBy_IdAndProperty_Id(UUID organizationId, UUID createdById, UUID propertyId, Pageable pageable);
+    Page<AiChatSession> findByOrganization_IdAndCreatedBy_IdAndProperty_Id(
+            UUID organizationId,
+            UUID createdById,
+            UUID propertyId,
+            Pageable pageable
+    );
 }

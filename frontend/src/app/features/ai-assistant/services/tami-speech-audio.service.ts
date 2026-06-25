@@ -11,26 +11,40 @@ export class TamiSpeechAudioService {
   private readonly defaultIntervalMs = 72;
   private readonly volume = 0.12;
 
-  start(options: SpeechBlipOptions = {}): void {
-    this.stop();
-
+  async prepare(): Promise<boolean> {
     if (typeof window === 'undefined') {
-      return;
+      return false;
     }
 
-    const intervalMs = Math.max(48, options.intervalMs ?? this.defaultIntervalMs);
     const context = this.getAudioContext();
-
-    if (!context) {
-      return;
+    if (!context || context.state === 'closed') {
+      return false;
     }
 
     if (context.state === 'suspended') {
-      void context.resume().catch(() => undefined);
+      try {
+        await context.resume();
+      } catch {
+        return false;
+      }
     }
 
+    return context.state === 'running';
+  }
+
+  async start(options: SpeechBlipOptions = {}): Promise<boolean> {
+    this.stop();
+
+    const ready = await this.prepare();
+    if (!ready) {
+      return false;
+    }
+
+    const intervalMs = Math.max(48, options.intervalMs ?? this.defaultIntervalMs);
     this.playBlip();
     this.timer = setInterval(() => this.playBlip(), intervalMs);
+
+    return true;
   }
 
   stop(): void {
@@ -46,7 +60,6 @@ export class TamiSpeechAudioService {
     }
 
     const AudioContextConstructor = window.AudioContext ?? window.webkitAudioContext;
-
     if (!AudioContextConstructor) {
       return undefined;
     }
@@ -57,8 +70,7 @@ export class TamiSpeechAudioService {
 
   private playBlip(): void {
     const context = this.audioContext;
-
-    if (!context || context.state === 'closed') {
+    if (!context || context.state !== 'running') {
       return;
     }
 
