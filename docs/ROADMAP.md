@@ -120,7 +120,6 @@ Product Box Models phase is complete for now.
 Status: Completed through 15F.
 
 Documentation:
-
 - `93-organization-administration-global-ux-15.md`
 - `105-ai-read-only-tool-support-decomposition-15f.md`
 
@@ -145,14 +144,6 @@ Status: Completed through 16E.
 
 Documentation: `106-payments-16.md`
 
-Purpose:
-
-- Add a small organization-scoped payment registry for operational expenses and payments.
-- Support payment categories as part of the catalog system.
-- Support payment images/receipts stored privately in S3 with presigned URLs.
-- Add a dedicated Angular payments screen.
-- Add read-only TAMI awareness for payment summaries and searches.
-
 Completed subphases:
 
 ```text
@@ -173,17 +164,33 @@ Phase decisions:
 - `SUPER_ADMIN` payment queries use the organization selected in the token, not a global cross-organization query.
 - Payment AI awareness is implemented with a dedicated handler/service/repository and does not grow `AiReadOnlyToolSupport` again.
 
-## Active / next implementation phase
+## Active / next implementation block before Reports
 
-### Phase 17 — Reports
+### Pre-Reports Operational Polish
 
 Status: Planned / next.
 
-Documentation: `107-reports-17.md`
+Documentation: `110-pre-reports-operational-polish.md`
+
+Purpose:
+
+- Stabilize maintenance imagery, maintenance item tracking, AI chat session management, TAMI speech sync, organization selector refresh, dashboard calendar dates and mobile tooltip behavior before starting Reports.
+- Keep Reports as Phase 17, but do not begin report implementation until this polish block is completed.
+
+Planned subphases:
+
+```text
+A Maintenance before/after/general images and serviced items
+B AI sessions sort/delete, organization selector refresh and TAMI speech sync
+C Dashboard calendar date/timezone and mobile tooltip behavior
+D Maintenance last-by-person AI tool
+E Closure checks before Reports
+```
 
 ## Future phases
 
 ```text
+17 Reports
 18 Notifications and reminders
 19 Blueprint Analysis
 ```
@@ -191,6 +198,7 @@ Documentation: `107-reports-17.md`
 Future phase documents:
 
 ```text
+107-reports-17.md
 108-notifications-reminders-18.md
 109-blueprint-analysis-19.md
 ```
