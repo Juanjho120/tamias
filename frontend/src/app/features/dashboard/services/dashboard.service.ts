@@ -134,8 +134,9 @@ export class DashboardService {
       sort: 'scheduledAt,asc'
     }).pipe(
       map((response) => response.content.filter((record) => {
-        const scheduledAt = this.normalizeDate(record.scheduledAt);
-        return !!scheduledAt && scheduledAt >= startDate && scheduledAt <= endDate;
+        const calendarDate = this.normalizeDate(record.performedAt ?? record.scheduledAt);
+
+        return !!calendarDate && calendarDate >= startDate && calendarDate <= endDate;
       })),
       switchMap((records) => {
         const requests = records.map((record) =>
@@ -277,20 +278,41 @@ export class DashboardService {
   }
 
   private today(): string {
-    return new Date().toISOString().slice(0, 10);
+    return this.toLocalDateString(new Date());
   }
 
   private daysFromNow(days: number): string {
     const date = new Date();
     date.setDate(date.getDate() + days);
-    return date.toISOString().slice(0, 10);
+
+    return this.toLocalDateString(date);
   }
 
   private normalizeDate(value: string | null | undefined): string | null {
-    if (!value) {
+    const rawValue = String(value ?? '').trim();
+
+    if (!rawValue) {
       return null;
     }
 
-    return String(value).slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(rawValue)) {
+      return rawValue;
+    }
+
+    const parsedDate = new Date(rawValue);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return null;
+    }
+
+    return this.toLocalDateString(parsedDate);
+  }
+
+  private toLocalDateString(date: Date): string {
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, '0');
+    const day = `${date.getDate()}`.padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
   }
 }

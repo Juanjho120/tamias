@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress through B.
+In progress through C.
 
 ## Purpose
 
@@ -111,7 +111,16 @@ Implementation notes:
 
 ## C — Dashboard calendar date/timezone and mobile tooltip behavior
 
-Status: Planned.
+Status: Implemented.
+
+Implemented behavior:
+
+- Maintenance calendar icons use `performedAt ?? scheduledAt`.
+- ISO datetime values are converted to local dates before placing icons on calendar days.
+- Date-only values keep their original date.
+- Maintenance tooltips show formatted local date/time instead of raw ISO strings.
+- Dashboard calendar tooltips use `hover/focus` on desktop and `click` on touch devices.
+- Open tooltips are dismissed when tapping outside, scrolling or resizing.
 
 ## D — Maintenance last-by-person AI tool
 

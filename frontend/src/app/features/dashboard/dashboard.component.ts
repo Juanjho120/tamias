@@ -36,6 +36,7 @@ import { DashboardAnalyticsComponent } from './components/dashboard-analytics/da
 
 type BootstrapTooltipInstance = {
   dispose(): void;
+  hide(): void;
 };
 
 type BootstrapTooltipOptions = {
@@ -72,6 +73,8 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
 
   private readonly tooltipInstances = new Map<HTMLElement, BootstrapTooltipInstance>();
   private needsTooltipRefresh = false;
+  private readonly globalTooltipInteractionListener = (event: Event) => this.hideTooltipsFromGlobalInteraction(event);
+  private readonly globalTooltipDismissListener = () => this.hideTooltips();
 
   readonly loading = signal(false);
   readonly loadingCalendar = signal(false);
@@ -181,6 +184,7 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
   });
 
   ngOnInit(): void {
+    this.registerTooltipDismissHandlers();
     this.loadDashboard();
     this.loadCalendar();
   }
@@ -195,6 +199,7 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.unregisterTooltipDismissHandlers();
     this.disposeTooltips();
   }
 
@@ -508,7 +513,7 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
         [this.languageService.instant('dashboard.calendar.tooltip.peopleTotal'), String(maintenance.peopleTotal)],
         [this.languageService.instant('dashboard.calendar.tooltip.status'), this.languageService.instant(`maintenance.status.${maintenance.status}`)],
         [this.languageService.instant('dashboard.calendar.tooltip.cost'), this.formatMoney(maintenance.cost)],
-        [this.languageService.instant('dashboard.calendar.tooltip.performedAt'), maintenance.performedAt || '—']
+        [this.languageService.instant('dashboard.calendar.tooltip.performedAt'), this.formatDateTime(maintenance.performedAt)]
       ]
     );
   }
@@ -627,7 +632,7 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
     const daysByDate = new Map(days.map((day) => [day.date, day]));
 
     for (const maintenance of calendarData.maintenanceRecords) {
-      const date = this.normalizeDashboardDate(maintenance.scheduledAt);
+      const date = this.normalizeDashboardDate(maintenance.performedAt ?? maintenance.scheduledAt);
 
       if (!date) {
         continue;
@@ -981,13 +986,14 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.disposeTooltips();
 
     const elements = this.calendarTooltipElements?.toArray() ?? [];
+    const touchDevice = this.isTouchDevice();
 
     for (const elementRef of elements) {
       const element = elementRef.nativeElement;
       const tooltip = new bootstrap.Tooltip(element, {
         html: true,
         placement: 'auto',
-        trigger: 'click hover focus',
+        trigger: touchDevice ? 'click' : 'hover focus',
         container: 'body',
         customClass: 'reservation-calendar-bootstrap-tooltip',
         fallbackPlacements: ['top', 'bottom', 'right', 'left']
@@ -1003,6 +1009,46 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
     }
 
     this.tooltipInstances.clear();
+  }
+
+  private registerTooltipDismissHandlers(): void {
+    document.addEventListener('click', this.globalTooltipInteractionListener, true);
+    document.addEventListener('touchstart', this.globalTooltipInteractionListener, true);
+    window.addEventListener('scroll', this.globalTooltipDismissListener, true);
+    window.addEventListener('resize', this.globalTooltipDismissListener);
+  }
+
+  private unregisterTooltipDismissHandlers(): void {
+    document.removeEventListener('click', this.globalTooltipInteractionListener, true);
+    document.removeEventListener('touchstart', this.globalTooltipInteractionListener, true);
+    window.removeEventListener('scroll', this.globalTooltipDismissListener, true);
+    window.removeEventListener('resize', this.globalTooltipDismissListener);
+  }
+
+  private hideTooltipsFromGlobalInteraction(event: Event): void {
+    const target = event.target as Element | null;
+
+    if (!target) {
+      this.hideTooltips();
+      return;
+    }
+
+    const clickedTooltipTrigger = [...this.tooltipInstances.keys()].some((element) => element.contains(target));
+    const clickedTooltipBody = !!target.closest('.tooltip');
+
+    if (!clickedTooltipTrigger && !clickedTooltipBody) {
+      this.hideTooltips();
+    }
+  }
+
+  private hideTooltips(): void {
+    for (const tooltip of this.tooltipInstances.values()) {
+      tooltip.hide();
+    }
+  }
+
+  private isTouchDevice(): boolean {
+    return window.matchMedia?.('(hover: none), (pointer: coarse)').matches ?? 'ontouchstart' in window;
   }
 
   private escapeHtml(value: string): string {
@@ -1061,11 +1107,23 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   private normalizeDashboardDate(value: string | null | undefined): string | null {
-    if (!value) {
+    const rawValue = String(value ?? '').trim();
+
+    if (!rawValue) {
       return null;
     }
 
-    return String(value).slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(rawValue)) {
+      return rawValue;
+    }
+
+    const parsedDate = new Date(rawValue);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return null;
+    }
+
+    return this.toLocalDateString(parsedDate);
   }
 
   private calendarSegmentColumnSpan(segment: DashboardReservationCalendarSegment): number {
@@ -1083,10 +1141,10 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
       return null;
     }
 
-    const isoMatch = rawValue.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    const dateOnlyMatch = rawValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
 
-    if (isoMatch) {
-      return new Date(Number(isoMatch[1]), Number(isoMatch[2]) - 1, Number(isoMatch[3]));
+    if (dateOnlyMatch) {
+      return new Date(Number(dateOnlyMatch[1]), Number(dateOnlyMatch[2]) - 1, Number(dateOnlyMatch[3]));
     }
 
     const fallbackDate = new Date(rawValue);
@@ -1123,10 +1181,21 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   private formatDateTime(value: string | null | undefined): string {
-    if (!value) {
+    const rawValue = String(value ?? '').trim();
+
+    if (!rawValue) {
       return '—';
     }
 
-    return formatDate(value, 'dd/MM/yyyy HH:mm:ss', this.calendarLocale());
+    const dateOnlyMatch = rawValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    const date = dateOnlyMatch
+      ? new Date(Number(dateOnlyMatch[1]), Number(dateOnlyMatch[2]) - 1, Number(dateOnlyMatch[3]))
+      : new Date(rawValue);
+
+    if (Number.isNaN(date.getTime())) {
+      return '—';
+    }
+
+    return formatDate(date, 'dd/MM/yyyy HH:mm:ss', this.calendarLocale());
   }
 }

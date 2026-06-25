@@ -121,7 +121,7 @@ Completed subphases:
 
 ### Pre-Reports Operational Polish
 
-Status: In progress through B.
+Status: In progress through C.
 
 Documentation: `110-pre-reports-operational-polish.md`
 
