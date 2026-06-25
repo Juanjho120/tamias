@@ -46,33 +46,6 @@ Status: Completed / partially superseded by security review phases.
 
 Status: Completed through 9P-H.
 
-Completed sub-phases:
-
-```text
-9B Backend read-only AI tools
-9C AI Assistant integration
-9D AI Assistant frontend UX
-9G Property and catalog read-only tools
-9H Inventory and maintenance analytics tools
-9I Scheduled maintenance, reservation and guest tools
-9J Reservation supply and task tools
-9K Purchase analytics tools
-9L Document metadata and RAG health tools
-9M File, image and dashboard analytics tools
-9N Admin user, role and organization tools
-9O AI chat session history tools
-9P-A AI orchestration safe refactor
-9P-B AI tool handler split
-9P-C AI read-only domain service split
-9P-C.1 AI tool package reorganization
-9P-C.2 AI tool repository split
-9P-D Tool/RAG fallback
-9P-E LLM-driven planning
-9P-F AI orchestration smoke tests and RAG diagnostics
-9P-G AI orchestration observability and persisted debug traces
-9P-H AI smoke test hardening and final fixes
-```
-
 ### 9P-I — RAG retrieval tuning
 
 Status: Conditional / optional / not started.
@@ -107,21 +80,11 @@ Status: Completed through 16E.
 
 Documentation: `106-payments-16.md`
 
-Completed subphases:
-
-```text
-16A Payments backend foundation
-16B Payment images with S3 hard delete
-16C Payment categories in catalogs
-16D Angular payments page
-16E AI awareness for payments
-```
-
 ## Active implementation block before Reports
 
 ### Pre-Reports Operational Polish
 
-Status: In progress through C.
+Status: In progress through D.
 
 Documentation: `110-pre-reports-operational-polish.md`
 
@@ -135,13 +98,13 @@ Completed subphases:
 ```text
 A Maintenance before/after/general images and serviced items
 B AI sessions sort/delete, organization selector refresh and TAMI speech sync
+C Dashboard calendar date/timezone and mobile tooltip behavior
+D Maintenance last-by-person AI tool
 ```
 
 Remaining subphases:
 
 ```text
-C Dashboard calendar date/timezone and mobile tooltip behavior
-D Maintenance last-by-person AI tool
 E Closure checks before Reports
 ```
 

@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress through C.
+In progress through D.
 
 ## Purpose
 
@@ -31,7 +31,7 @@ Status: Implemented.
 
 Summary:
 
-- Maintenance images now support `BEFORE`, `AFTER` and `GENERAL` roles.
+- Maintenance images support `BEFORE`, `AFTER` and `GENERAL` roles.
 - Existing images default to `GENERAL`.
 - The image modal groups images by role and role selectors stay synchronized with the real value.
 - `maintenance_record_serviced_items` stores items/equipment that received maintenance.
@@ -41,90 +41,80 @@ Summary:
 
 Status: Implemented.
 
-### B1 — AI chat session sorting
+Summary:
 
-AI chat sessions can now be sorted by creation date from the AI Assistant page.
-
-Supported UI sort options:
-
-```text
-Created date descending
-Created date ascending
-```
-
-Implementation notes:
-
-- The existing pageable backend endpoint is reused.
-- The frontend passes `sort=createdAt,desc` or `sort=createdAt,asc`.
-- Sorting resets the session page back to the first page.
-- No database changes are needed.
-
-### B2 — AI chat session deletion
-
-A full session delete action is now available from the AI Assistant session list.
-
-Backend endpoint:
-
-```http
-DELETE /api/v1/ai/chat-sessions/{sessionId}
-```
-
-Rules:
-
-- Only the session owner in the selected organization can delete the session.
-- Message debug rows are deleted first.
-- Chat messages are deleted second.
-- The session row is deleted last.
-- The delete operation is transactional.
-- No native `confirm()` is used; the frontend uses the shared confirm modal.
-
-### B3 — Organization selector refresh
-
-The organization switcher refreshes when organization administration changes the available organization list.
-
-Implemented behavior:
-
-```text
-- Create organization -> selector reloads without F5.
-- Update organization name/logo -> selector reloads without F5.
-- Activate/deactivate organization -> selector reloads without F5.
-- Delete organization logo -> selector reloads without F5.
-```
-
-Implementation notes:
-
-- `AuthService` exposes a lightweight organization options refresh observable.
-- `OrganizationsPageComponent` emits refresh events after organization mutations.
-- `MainLayoutComponent` listens and reloads organization options.
-
-### B4 — TAMI speech sync
-
-TAMI speech audio is now prepared before the typewriter starts the visible speaking cursor.
-
-Implementation notes:
-
-- `TamiSpeechAudioService` exposes `prepare()` to resume/warm the browser `AudioContext`.
-- The AI Assistant page calls `prepare()` from the user send interaction.
-- The actual typewriter cursor is enabled after `start()` has attempted to resume audio and triggered the first blip.
-- This reduces the idle-delay where the mouth animation starts before sound.
-- The audio remains synthetic/original and does not use copyrighted game assets.
+- AI chat sessions can be sorted by creation date ascending or descending.
+- AI chat sessions can be fully deleted with messages and debug traces.
+- The organization selector refreshes after organization administration changes.
+- TAMI speech audio is kept warm from user interaction so audio, mouth animation and typewriter start together more reliably.
 
 ## C — Dashboard calendar date/timezone and mobile tooltip behavior
 
 Status: Implemented.
 
-Implemented behavior:
+Summary:
 
 - Maintenance calendar icons use `performedAt ?? scheduledAt`.
 - ISO datetime values are converted to local dates before placing icons on calendar days.
 - Date-only values keep their original date.
 - Maintenance tooltips show formatted local date/time instead of raw ISO strings.
-- Dashboard calendar tooltips use `hover/focus` on desktop and `click` on touch devices.
+- Dashboard calendar tooltips use `hover/focus` on desktop and manual tap behavior on touch devices.
 - Open tooltips are dismissed when tapping outside, scrolling or resizing.
+- Mobile tooltips can be reopened after scroll dismissal.
 
 ## D — Maintenance last-by-person AI tool
 
-Status: Planned.
+Status: Implemented.
+
+Implemented tool:
+
+```text
+maintenance.lastByPerson
+```
+
+Supported questions:
+
+```text
+¿Cuál fue el último mantenimiento que hizo Juanjo?
+¿Cuándo fue el último mantenimiento que hizo Juanjo?
+¿Cuál fue el último mantenimiento realizado por Juanjo?
+```
+
+Search behavior:
+
+- Searches the maintenance record main responsible person through `maintenance_records.maintenance_person_id`.
+- Searches involved people through `maintenance_record_people`.
+- Matches against `maintenance_people.full_name`.
+- Uses the selected organization from the token.
+- `SUPER_ADMIN` queries are scoped to the selected organization, not all organizations.
+- Does not modify data.
+
+Ordering:
+
+```text
+COALESCE(performed_at, scheduled_at, created_at) DESC
+```
+
+Returned information:
+
+```text
+title
+property
+maintenance date used for ordering
+status
+match source
+main responsible person
+involved people
+category
+type
+cost
+```
+
+Implementation notes:
+
+- Added a dedicated handler/service/repository for this tool.
+- Did not grow `AiReadOnlyToolSupport`.
+- The handler is ordered before general maintenance analytics so person-specific latest maintenance questions do not fall into generic maintenance search.
 
 ## E — Closure checks before Reports
 
