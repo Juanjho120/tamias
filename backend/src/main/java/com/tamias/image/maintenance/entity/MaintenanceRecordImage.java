@@ -2,6 +2,7 @@ package com.tamias.image.maintenance.entity;
 
 import com.tamias.common.entity.BaseEntity;
 import com.tamias.image.enums.ImageStatus;
+import com.tamias.image.maintenance.enums.MaintenanceImageRole;
 import com.tamias.maintenance.entity.MaintenanceRecord;
 import com.tamias.organization.entity.Organization;
 import com.tamias.user.entity.User;
@@ -46,6 +47,10 @@ public class MaintenanceRecordImage extends BaseEntity {
 
     @Column(name = "size_bytes", nullable = false)
     private Long sizeBytes;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "image_role", nullable = false, length = 20)
+    private MaintenanceImageRole imageRole = MaintenanceImageRole.GENERAL;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)

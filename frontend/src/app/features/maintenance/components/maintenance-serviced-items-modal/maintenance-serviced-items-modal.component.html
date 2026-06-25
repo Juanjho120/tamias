@@ -1,0 +1,183 @@
+@if (open) {
+  <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title">{{ 'maintenance.details.servicedItems.title' | translate }}</h5>
+            <div class="small text-muted">
+              {{ maintenanceRecord?.title }} · {{ maintenanceRecord?.propertyName }}
+            </div>
+          </div>
+          <button
+            type="button"
+            class="btn-close"
+            aria-label="Close"
+            [disabled]="loading() || saving() || deleting()"
+            (click)="requestClose()">
+          </button>
+        </div>
+
+        <div class="modal-body">
+          @if (loading()) {
+            <div class="p-5 text-center">
+              <div class="spinner-border text-primary" role="status"></div>
+              <div class="text-muted mt-3">{{ 'maintenance.details.loading' | translate }}</div>
+            </div>
+          } @else {
+            <section class="card border-0 bg-light mb-4">
+              <div class="card-body">
+                <div class="d-flex flex-column flex-lg-row justify-content-between gap-2 mb-3">
+                  <div>
+                    <h6 class="mb-1">{{ 'maintenance.details.servicedItems.title' | translate }}</h6>
+                    <p class="text-muted small mb-0">{{ 'maintenance.details.servicedItems.description' | translate }}</p>
+                  </div>
+                </div>
+
+                <form [formGroup]="servicedItemForm" class="row g-3 align-items-end" (ngSubmit)="saveItem()">
+                  <div class="col-12 col-lg-4">
+                    <label class="form-label" for="maintenance-serviced-item">
+                      {{ 'maintenance.details.servicedItems.item' | translate }}
+                    </label>
+                    <select
+                      id="maintenance-serviced-item"
+                      class="form-select"
+                      formControlName="inventoryItemId"
+                      (change)="onInventoryItemSelected(servicedItemForm.controls.inventoryItemId.value)">
+                      <option value="">{{ 'maintenance.details.servicedItems.noCatalogItem' | translate }}</option>
+                      @for (item of inventoryItemOptions; track item.id) {
+                        <option [value]="item.id">{{ inventoryItemDisplayName(item) }}</option>
+                      }
+                    </select>
+                  </div>
+
+                  <div class="col-12 col-lg-4">
+                    <label class="form-label" for="maintenance-serviced-item-name">
+                      {{ 'maintenance.details.servicedItems.manualItemName' | translate }}
+                    </label>
+                    <input
+                      id="maintenance-serviced-item-name"
+                      type="text"
+                      class="form-control"
+                      [formControl]="servicedItemForm.controls.itemNameSnapshot" />
+                  </div>
+
+                  <div class="col-6 col-lg-2">
+                    <label class="form-label" for="maintenance-serviced-item-quantity">
+                      {{ 'maintenance.details.servicedItems.quantity' | translate }}
+                    </label>
+                    <input
+                      id="maintenance-serviced-item-quantity"
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      class="form-control"
+                      [formControl]="servicedItemForm.controls.quantity" />
+                  </div>
+
+                  <div class="col-6 col-lg-2">
+                    <label class="form-label" for="maintenance-serviced-item-unit">
+                      {{ 'maintenance.details.servicedItems.unit' | translate }}
+                    </label>
+                    <input
+                      id="maintenance-serviced-item-unit"
+                      type="text"
+                      class="form-control"
+                      [formControl]="servicedItemForm.controls.unit" />
+                  </div>
+
+                  <div class="col-12">
+                    <label class="form-label" for="maintenance-serviced-item-notes">
+                      {{ 'maintenance.details.servicedItems.notes' | translate }}
+                    </label>
+                    <textarea
+                      id="maintenance-serviced-item-notes"
+                      rows="2"
+                      class="form-control"
+                      [formControl]="servicedItemForm.controls.notes">
+                    </textarea>
+                  </div>
+
+                  <div class="col-12 d-flex justify-content-end gap-2">
+                    @if (editingItem()) {
+                      <button type="button" class="btn btn-outline-secondary" [disabled]="saving()" (click)="cancelEdit()">
+                        {{ 'common.cancel' | translate }}
+                      </button>
+                    }
+                    <button type="submit" class="btn btn-primary" [disabled]="saving()">
+                      @if (saving()) {
+                        <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+                      } @else {
+                        <i class="bi bi-plus-lg me-1"></i>
+                      }
+                      {{ (editingItem() ? 'maintenance.details.servicedItems.update' : 'maintenance.details.servicedItems.add') | translate }}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </section>
+
+            @if (servicedItems().length === 0) {
+              <div class="border rounded-3 p-4 text-center text-muted small">
+                {{ 'maintenance.details.servicedItems.empty' | translate }}
+              </div>
+            } @else {
+              <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th>{{ 'maintenance.details.servicedItems.item' | translate }}</th>
+                      <th>{{ 'maintenance.details.servicedItems.quantity' | translate }}</th>
+                      <th>{{ 'maintenance.details.servicedItems.unit' | translate }}</th>
+                      <th>{{ 'maintenance.details.servicedItems.notes' | translate }}</th>
+                      <th class="text-end">{{ 'maintenance.table.actions' | translate }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (item of servicedItems(); track trackById($index, item)) {
+                      <tr>
+                        <td class="fw-semibold">{{ servicedItemDisplayName(item) }}</td>
+                        <td>{{ item.quantity !== null && item.quantity !== undefined ? (item.quantity | number:'1.0-2') : '—' }}</td>
+                        <td>{{ item.unit || '—' }}</td>
+                        <td>{{ item.notes || '—' }}</td>
+                        <td class="text-end">
+                          <div class="btn-group">
+                            <button type="button" class="btn btn-outline-primary btn-sm" (click)="editItem(item)">
+                              <i class="bi bi-pencil-square me-1"></i>
+                              {{ 'common.edit' | translate }}
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-sm" (click)="requestRemoveItem(item)">
+                              <i class="bi bi-trash me-1"></i>
+                              {{ 'common.delete' | translate }}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          }
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" [disabled]="saving() || deleting()" (click)="requestClose()">
+            {{ 'common.close' | translate }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <app-confirm-modal
+    [open]="!!itemToDelete()"
+    title="common.confirmAction"
+    [message]="deleteMessage()"
+    confirmText="common.delete"
+    cancelText="common.cancel"
+    [loading]="deleting()"
+    confirmButtonClass="btn-danger"
+    (confirm)="confirmDelete()"
+    (cancel)="cancelDelete()" />
+}

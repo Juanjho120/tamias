@@ -428,7 +428,8 @@
         "file": "Image file",
         "help": "Allowed types: JPG, PNG, WEBP. Maximum size is controlled by backend configuration.",
         "button": "Upload image",
-        "uploading": "Uploading..."
+        "uploading": "Uploading...",
+        "role": "Image type"
       },
       "empty": {
         "title": "No images yet",
@@ -440,7 +441,30 @@
         "uploaded": "Image uploaded successfully.",
         "uploadError": "Unable to upload image.",
         "deleted": "Image deleted successfully.",
-        "deleteError": "Unable to delete image."
+        "deleteError": "Unable to delete image.",
+        "roleUpdated": "Image type updated successfully.",
+        "roleUpdateError": "Image type could not be updated."
+      },
+      "role": {
+        "label": "Classification",
+        "BEFORE": "Before",
+        "AFTER": "After",
+        "GENERAL": "General"
+      },
+      "groups": {
+        "empty": "There are no images in this group.",
+        "BEFORE": {
+          "title": "Before",
+          "description": "Photos taken before performing the maintenance."
+        },
+        "AFTER": {
+          "title": "After",
+          "description": "Photos taken after performing the maintenance."
+        },
+        "GENERAL": {
+          "title": "General",
+          "description": "Related photos that do not belong to before or after."
+        }
       }
     },
     "details": {
@@ -480,7 +504,27 @@
         "materialUpdated": "Material updated successfully.",
         "materialSaveError": "Unable to save material.",
         "itemRemoved": "Item removed successfully.",
-        "deleteError": "Unable to remove detail."
+        "deleteError": "Unable to remove detail.",
+        "servicedItemRequired": "Select an inventory item or enter a manual name.",
+        "servicedItemAdded": "Serviced item added successfully.",
+        "servicedItemUpdated": "Serviced item updated successfully.",
+        "servicedItemSaveError": "Serviced item could not be saved.",
+        "servicedItemRemoved": "Serviced item removed successfully."
+      },
+      "confirmRemoveServicedItemMessage": "Are you sure you want to remove serviced item \"{{name}}\"?",
+      "servicedItems": {
+        "title": "Serviced items",
+        "description": "Register the items, equipment or products that received maintenance.",
+        "item": "Item",
+        "noCatalogItem": "No inventory item",
+        "manualItemName": "Manual name",
+        "quantity": "Quantity",
+        "unit": "Unit",
+        "notes": "Notes",
+        "add": "Add serviced item",
+        "update": "Update serviced item",
+        "empty": "No serviced items registered.",
+        "button": "Serviced items"
       }
     }
   },

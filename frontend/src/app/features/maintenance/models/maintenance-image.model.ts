@@ -1,4 +1,5 @@
 export type ImageStatus = 'ACTIVE' | 'INACTIVE' | 'DELETED';
+export type MaintenanceImageRole = 'BEFORE' | 'AFTER' | 'GENERAL';
 
 export interface MaintenanceImage {
   id: string;
@@ -8,6 +9,7 @@ export interface MaintenanceImage {
   contentType: string;
   sizeBytes: number;
   cover: boolean | null;
+  imageRole: MaintenanceImageRole | null;
   status: ImageStatus;
   createdAt: string;
   fileUrl: string | null;
@@ -21,8 +23,13 @@ export interface MaintenanceImageUploadResponse {
   contentType: string;
   sizeBytes: number;
   cover: boolean | null;
+  imageRole: MaintenanceImageRole | null;
   status: ImageStatus;
   createdAt: string;
   fileUrl: string | null;
   fileUrlExpiresIn: number | null;
+}
+
+export interface MaintenanceImageRoleRequest {
+  imageRole: MaintenanceImageRole;
 }

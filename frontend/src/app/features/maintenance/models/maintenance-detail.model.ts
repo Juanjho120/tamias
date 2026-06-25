@@ -39,3 +39,26 @@ export interface MaintenanceRecordItemRequest {
 }
 
 export type MaintenanceRecordItemUpdateRequest = MaintenanceRecordItemRequest;
+
+export interface MaintenanceRecordServicedItem {
+  id: string;
+  maintenanceRecordId: string;
+  inventoryItemId: string | null;
+  inventoryItemName: string | null;
+  inventoryItemBrandId: string | null;
+  inventoryItemBrandName: string | null;
+  itemNameSnapshot: string | null;
+  quantity: number | null;
+  unit: string | null;
+  notes: string | null;
+}
+
+export interface MaintenanceRecordServicedItemRequest {
+  inventoryItemId: string | null;
+  itemNameSnapshot: string | null;
+  quantity: number | null;
+  unit: string | null;
+  notes: string | null;
+}
+
+export type MaintenanceRecordServicedItemUpdateRequest = MaintenanceRecordServicedItemRequest;

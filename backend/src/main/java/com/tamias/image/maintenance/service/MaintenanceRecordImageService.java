@@ -6,6 +6,7 @@ import com.tamias.image.dto.ImageResponse;
 import com.tamias.image.dto.ImageUploadResponse;
 import com.tamias.image.enums.ImageStatus;
 import com.tamias.image.maintenance.entity.MaintenanceRecordImage;
+import com.tamias.image.maintenance.enums.MaintenanceImageRole;
 import com.tamias.image.maintenance.repository.MaintenanceRecordImageRepository;
 import com.tamias.image.mapper.ImageMapper;
 import com.tamias.image.service.ImageValidationService;
@@ -77,14 +78,21 @@ public class MaintenanceRecordImageService {
 
     @Transactional
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF')")
-    public ImageUploadResponse upload(UUID maintenanceRecordId, MultipartFile file) {
+    public ImageUploadResponse upload(
+            UUID maintenanceRecordId,
+            MultipartFile file,
+            MaintenanceImageRole imageRole
+    ) {
         imageValidationService.validateImage(file);
 
         UUID organizationId = currentUserService.getCurrentOrganizationId();
         MaintenanceRecord maintenanceRecord = validateMaintenanceRecord(maintenanceRecordId, organizationId);
         User currentUser = getCurrentUser();
 
-        var storedFile = fileStorageService.store(file, maintenanceRecord.getOrganization().getId() + "/maintenance/" + maintenanceRecord.getId());
+        var storedFile = fileStorageService.store(
+                file,
+                maintenanceRecord.getOrganization().getId() + "/maintenance/" + maintenanceRecord.getId()
+        );
 
         MaintenanceRecordImage entity = new MaintenanceRecordImage();
         entity.setOrganization(maintenanceRecord.getOrganization());
@@ -94,10 +102,23 @@ public class MaintenanceRecordImageService {
         entity.setFilepath(storedFile.filepath());
         entity.setContentType(storedFile.contentType());
         entity.setSizeBytes(storedFile.sizeBytes());
+        entity.setImageRole(imageRole != null ? imageRole : MaintenanceImageRole.GENERAL);
         entity.setStatus(ImageStatus.ACTIVE);
         entity.setCreatedBy(currentUser);
 
         return imageMapper.toUploadResponse(imageRepository.save(entity));
+    }
+
+    @Transactional
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF')")
+    public ImageResponse updateRole(
+            UUID maintenanceRecordId,
+            UUID imageId,
+            MaintenanceImageRole imageRole
+    ) {
+        MaintenanceRecordImage image = findImage(maintenanceRecordId, imageId);
+        image.setImageRole(imageRole != null ? imageRole : MaintenanceImageRole.GENERAL);
+        return imageMapper.toResponse(imageRepository.save(image));
     }
 
     @Transactional(readOnly = true)
@@ -118,7 +139,6 @@ public class MaintenanceRecordImageService {
     @PreAuthorize("hasAnyRole('ADMINISTRATOR', 'PROPERTY_MANAGER', 'MAINTENANCE_STAFF')")
     public void delete(UUID maintenanceRecordId, UUID imageId) {
         MaintenanceRecordImage image = findImage(maintenanceRecordId, imageId);
-
         fileStorageService.delete(image.getS3Key());
         imageRepository.delete(image);
     }

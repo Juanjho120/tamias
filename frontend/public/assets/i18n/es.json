@@ -428,7 +428,8 @@
         "file": "Archivo de imagen",
         "help": "Tipos permitidos: JPG, PNG, WEBP. El tamaño máximo lo controla la configuración del backend.",
         "button": "Subir imagen",
-        "uploading": "Subiendo..."
+        "uploading": "Subiendo...",
+        "role": "Tipo de imagen"
       },
       "empty": {
         "title": "Aún no hay imágenes",
@@ -440,7 +441,30 @@
         "uploaded": "Imagen subida correctamente.",
         "uploadError": "No se pudo subir la imagen.",
         "deleted": "Imagen eliminada correctamente.",
-        "deleteError": "No se pudo eliminar la imagen."
+        "deleteError": "No se pudo eliminar la imagen.",
+        "roleUpdated": "Tipo de imagen actualizado correctamente.",
+        "roleUpdateError": "No se pudo actualizar el tipo de imagen."
+      },
+      "role": {
+        "label": "Clasificación",
+        "BEFORE": "Antes",
+        "AFTER": "Después",
+        "GENERAL": "General"
+      },
+      "groups": {
+        "empty": "No hay imágenes en este grupo.",
+        "BEFORE": {
+          "title": "Antes",
+          "description": "Fotos tomadas antes de realizar el mantenimiento."
+        },
+        "AFTER": {
+          "title": "Después",
+          "description": "Fotos tomadas después de realizar el mantenimiento."
+        },
+        "GENERAL": {
+          "title": "General",
+          "description": "Fotos relacionadas que no pertenecen al antes ni al después."
+        }
       }
     },
     "details": {
@@ -479,7 +503,27 @@
         "materialUpdated": "Material actualizado correctamente.",
         "materialSaveError": "No se pudo guardar el material.",
         "itemRemoved": "Item removido correctamente.",
-        "deleteError": "No se pudo remover el detalle."
+        "deleteError": "No se pudo remover el detalle.",
+        "servicedItemRequired": "Selecciona un item de inventario o escribe un nombre manual.",
+        "servicedItemAdded": "Item con mantenimiento agregado correctamente.",
+        "servicedItemUpdated": "Item con mantenimiento actualizado correctamente.",
+        "servicedItemSaveError": "No se pudo guardar el item con mantenimiento.",
+        "servicedItemRemoved": "Item con mantenimiento eliminado correctamente."
+      },
+      "confirmRemoveServicedItemMessage": "¿Seguro que deseas eliminar el item con mantenimiento \"{{name}}\"?",
+      "servicedItems": {
+        "title": "Items con mantenimiento",
+        "description": "Registra los items, equipos o productos a los que se les realizó mantenimiento.",
+        "item": "Item",
+        "noCatalogItem": "Sin item de inventario",
+        "manualItemName": "Nombre manual",
+        "quantity": "Cantidad",
+        "unit": "Unidad",
+        "notes": "Notas",
+        "add": "Agregar item con mantenimiento",
+        "update": "Actualizar item con mantenimiento",
+        "empty": "No hay items con mantenimiento registrados.",
+        "button": "Items con mantenimiento"
       }
     }
   },

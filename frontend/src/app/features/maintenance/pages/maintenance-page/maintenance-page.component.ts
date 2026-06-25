@@ -11,6 +11,7 @@ import { ToastService } from '../../../../shared/toast/toast.service';
 import { RelatedTaskListsModalComponent } from '../../../tasks/components/related-task-lists-modal/related-task-lists-modal.component';
 import { MaintenanceDetailsModalComponent } from '../../components/maintenance-details-modal/maintenance-details-modal.component';
 import { MaintenanceImagesModalComponent } from '../../components/maintenance-images-modal/maintenance-images-modal.component';
+import { MaintenanceServicedItemsModalComponent } from '../../components/maintenance-serviced-items-modal/maintenance-serviced-items-modal.component';
 import { MaintenanceRecordFormModalComponent } from '../../components/maintenance-record-form-modal/maintenance-record-form-modal.component';
 import {
   MaintenanceRecord,
@@ -37,7 +38,8 @@ type FormMode = 'create' | 'edit';
     RelatedTaskListsModalComponent,
     MaintenanceDetailsModalComponent,
     MaintenanceImagesModalComponent,
-    MaintenanceRecordFormModalComponent
+    MaintenanceRecordFormModalComponent,
+    MaintenanceServicedItemsModalComponent
   ],
   templateUrl: './maintenance-page.component.html'
 })
@@ -57,6 +59,7 @@ export class MaintenancePageComponent implements OnInit {
   readonly selectedRecord = signal<MaintenanceRecord | null>(null);
   readonly selectedRecordForImages = signal<MaintenanceRecordSummary | null>(null);
   readonly selectedRecordForDetails = signal<MaintenanceRecordSummary | null>(null);
+  readonly selectedRecordForServicedItems = signal<MaintenanceRecordSummary | null>(null);
   readonly selectedRecordForTasks = signal<MaintenanceRecordSummary | null>(null);
   readonly recordToDelete = signal<MaintenanceRecordSummary | null>(null);
 
@@ -303,6 +306,14 @@ export class MaintenancePageComponent implements OnInit {
 
   closeDetails(): void {
     this.selectedRecordForDetails.set(null);
+  }
+
+  openServicedItems(record: MaintenanceRecordSummary): void {
+    this.selectedRecordForServicedItems.set(record);
+  }
+
+  closeServicedItems(): void {
+    this.selectedRecordForServicedItems.set(null);
   }
 
   openTasks(record: MaintenanceRecordSummary): void {

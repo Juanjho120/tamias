@@ -5,7 +5,7 @@ import { LanguageService } from '../../../../core/i18n/language.service';
 import { ApiError } from '../../../../core/models/api-error.model';
 import { ConfirmModalComponent } from '../../../../shared/confirm-modal/confirm-modal.component';
 import { ToastService } from '../../../../shared/toast/toast.service';
-import { MaintenanceImage } from '../../models/maintenance-image.model';
+import { MaintenanceImage, MaintenanceImageRole } from '../../models/maintenance-image.model';
 import { MaintenanceRecordSummary } from '../../models/maintenance-record.model';
 import { MaintenanceImageService } from '../../services/maintenance-image.service';
 
@@ -26,18 +26,25 @@ export class MaintenanceImagesModalComponent implements OnChanges {
   @Output() close = new EventEmitter<void>();
   @Output() imagesChanged = new EventEmitter<void>();
 
+  readonly imageRoles: MaintenanceImageRole[] = ['BEFORE', 'AFTER', 'GENERAL'];
   readonly images = signal<MaintenanceImage[]>([]);
   readonly loading = signal(false);
   readonly uploading = signal(false);
   readonly deletingId = signal<string | null>(null);
+  readonly changingRoleId = signal<string | null>(null);
   readonly imageToDelete = signal<MaintenanceImage | null>(null);
-
   readonly selectedFile = signal<File | null>(null);
   readonly selectedPreviewUrl = signal<string | null>(null);
+  readonly selectedImageRole = signal<MaintenanceImageRole>('GENERAL');
+
+  readonly groupedImages = computed(() => ({
+    BEFORE: this.images().filter((image) => this.normalizeRole(image.imageRole) === 'BEFORE'),
+    AFTER: this.images().filter((image) => this.normalizeRole(image.imageRole) === 'AFTER'),
+    GENERAL: this.images().filter((image) => this.normalizeRole(image.imageRole) === 'GENERAL')
+  }));
 
   readonly deleteMessage = computed(() => {
     const image = this.imageToDelete();
-
     if (!image) {
       return '';
     }
@@ -54,7 +61,7 @@ export class MaintenanceImagesModalComponent implements OnChanges {
   }
 
   requestClose(): void {
-    if (this.uploading() || this.deletingId()) {
+    if (this.uploading() || this.deletingId() || this.changingRoleId()) {
       return;
     }
 
@@ -65,13 +72,11 @@ export class MaintenanceImagesModalComponent implements OnChanges {
 
   loadImages(): void {
     const maintenanceRecord = this.maintenanceRecord;
-
     if (!maintenanceRecord) {
       return;
     }
 
     this.loading.set(true);
-
     this.maintenanceImageService.findAll(maintenanceRecord.id).subscribe({
       next: (images: MaintenanceImage[]) => {
         this.images.set(this.sortImages(images));
@@ -96,6 +101,11 @@ export class MaintenanceImagesModalComponent implements OnChanges {
     }
   }
 
+  onUploadRoleSelected(event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    this.selectedImageRole.set(select.value as MaintenanceImageRole);
+  }
+
   upload(): void {
     const maintenanceRecord = this.maintenanceRecord;
     const file = this.selectedFile();
@@ -106,8 +116,7 @@ export class MaintenanceImagesModalComponent implements OnChanges {
     }
 
     this.uploading.set(true);
-
-    this.maintenanceImageService.upload(maintenanceRecord.id, file).subscribe({
+    this.maintenanceImageService.upload(maintenanceRecord.id, file, this.selectedImageRole()).subscribe({
       next: () => {
         this.uploading.set(false);
         this.toastService.success(this.languageService.instant('maintenance.images.messages.uploaded'));
@@ -118,6 +127,36 @@ export class MaintenanceImagesModalComponent implements OnChanges {
       error: (error: unknown) => {
         this.uploading.set(false);
         this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('maintenance.images.messages.uploadError')));
+      }
+    });
+  }
+
+  updateRole(image: MaintenanceImage, event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    const nextRole = select.value as MaintenanceImageRole;
+    const currentRole = this.normalizeRole(image.imageRole);
+
+    if (nextRole === currentRole) {
+      return;
+    }
+
+    const maintenanceRecord = this.maintenanceRecord;
+    if (!maintenanceRecord) {
+      return;
+    }
+
+    this.changingRoleId.set(image.id);
+    this.maintenanceImageService.updateRole(maintenanceRecord.id, image.id, nextRole).subscribe({
+      next: () => {
+        this.changingRoleId.set(null);
+        this.toastService.success(this.languageService.instant('maintenance.images.messages.roleUpdated'));
+        this.imagesChanged.emit();
+        this.loadImages();
+      },
+      error: (error: unknown) => {
+        this.changingRoleId.set(null);
+        select.value = currentRole;
+        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('maintenance.images.messages.roleUpdateError')));
       }
     });
   }
@@ -143,7 +182,6 @@ export class MaintenanceImagesModalComponent implements OnChanges {
     }
 
     this.deletingId.set(image.id);
-
     this.maintenanceImageService.delete(maintenanceRecord.id, image.id).subscribe({
       next: () => {
         this.deletingId.set(null);
@@ -161,13 +199,34 @@ export class MaintenanceImagesModalComponent implements OnChanges {
 
   clearUploadSelection(): void {
     this.selectedFile.set(null);
+    this.selectedImageRole.set('GENERAL');
     this.revokeSelectedPreview();
 
     const input = document.getElementById('maintenance-image-file') as HTMLInputElement | null;
-
     if (input) {
       input.value = '';
     }
+  }
+
+  roleLabelKey(role: MaintenanceImageRole): string {
+    return `maintenance.images.role.${role}`;
+  }
+
+  groupTitleKey(role: MaintenanceImageRole): string {
+    return `maintenance.images.groups.${role}.title`;
+  }
+
+  groupDescriptionKey(role: MaintenanceImageRole): string {
+    return `maintenance.images.groups.${role}.description`;
+  }
+
+  normalizeRole(role: MaintenanceImageRole | null | undefined): MaintenanceImageRole {
+    return role ?? 'GENERAL';
+  }
+
+
+  imagesForRole(role: MaintenanceImageRole): MaintenanceImage[] {
+    return this.groupedImages()[role];
   }
 
   trackByImageId(index: number, image: MaintenanceImage): string {
@@ -180,7 +239,6 @@ export class MaintenanceImagesModalComponent implements OnChanges {
 
   private revokeSelectedPreview(): void {
     const previewUrl = this.selectedPreviewUrl();
-
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
       this.selectedPreviewUrl.set(null);

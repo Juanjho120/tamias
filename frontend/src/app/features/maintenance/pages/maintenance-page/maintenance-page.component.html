@@ -112,6 +112,10 @@
                       <i class="bi bi-list-check me-1"></i>
                       {{ 'maintenance.details.button' | translate }}
                     </button>
+                    <button type="button" class="btn btn-outline-warning btn-sm" (click)="openServicedItems(record)">
+                      <i class="bi bi-wrench-adjustable-circle me-1"></i>
+                      {{ 'maintenance.details.servicedItems.button' | translate }}
+                    </button>
                     <button type="button" class="btn btn-outline-dark btn-sm" (click)="openTasks(record)">
                       <i class="bi bi-list-check me-1"></i>
                       {{ 'tasks.related.button' | translate }}
@@ -189,6 +193,13 @@
   [inventoryItemOptions]="references().inventoryItems"
   (close)="closeDetails()"
   (detailsChanged)="loadRecords()" />
+
+<app-maintenance-serviced-items-modal
+  [open]="!!selectedRecordForServicedItems()"
+  [maintenanceRecord]="selectedRecordForServicedItems()"
+  [inventoryItemOptions]="references().inventoryItems"
+  (close)="closeServicedItems()"
+  (servicedItemsChanged)="loadRecords()" />
 
 <app-related-task-lists-modal
   [open]="!!selectedRecordForTasks()"

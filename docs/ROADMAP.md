@@ -164,11 +164,11 @@ Phase decisions:
 - `SUPER_ADMIN` payment queries use the organization selected in the token, not a global cross-organization query.
 - Payment AI awareness is implemented with a dedicated handler/service/repository and does not grow `AiReadOnlyToolSupport` again.
 
-## Active / next implementation block before Reports
+## Active implementation block before Reports
 
 ### Pre-Reports Operational Polish
 
-Status: Planned / next.
+Status: In progress through A.
 
 Documentation: `110-pre-reports-operational-polish.md`
 
@@ -177,10 +177,15 @@ Purpose:
 - Stabilize maintenance imagery, maintenance item tracking, AI chat session management, TAMI speech sync, organization selector refresh, dashboard calendar dates and mobile tooltip behavior before starting Reports.
 - Keep Reports as Phase 17, but do not begin report implementation until this polish block is completed.
 
-Planned subphases:
+Completed subphases:
 
 ```text
 A Maintenance before/after/general images and serviced items
+```
+
+Remaining subphases:
+
+```text
 B AI sessions sort/delete, organization selector refresh and TAMI speech sync
 C Dashboard calendar date/timezone and mobile tooltip behavior
 D Maintenance last-by-person AI tool
