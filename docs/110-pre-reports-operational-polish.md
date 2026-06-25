@@ -57,6 +57,7 @@ Rules:
 - Upload accepts a selected role.
 - Existing images can be reassigned between `BEFORE`, `AFTER` and `GENERAL`.
 - The maintenance images modal groups images by role.
+- The upload role selector and the per-image role selectors must stay synchronized with the value being submitted or displayed.
 - S3 behavior does not change.
 - Deletion remains hard delete: object removed from S3 and row removed from database.
 - No images are stored in `bytea`.
@@ -75,6 +76,7 @@ Frontend additions:
 Upload role selector
 Per-image role selector
 Grouped image sections: Before, After, General
+Selector synchronization fix for upload and existing image role controls
 ```
 
 ### A2 — Serviced maintenance items
@@ -82,7 +84,7 @@ Grouped image sections: Before, After, General
 Maintenance now distinguishes:
 
 ```text
-maintenance_record_items = items used during the maintenance
+maintenance_record_items = items/materials used during the maintenance
 maintenance_record_serviced_items = items/equipment that received maintenance
 ```
 
@@ -118,6 +120,7 @@ Rules:
 - `item_name_snapshot` preserves the label used at maintenance time.
 - If an inventory item is selected, it must belong to the selected organization and be available for maintenance.
 - Organization scoping follows the maintenance record.
+- Serviced items are independent from the items/materials used during maintenance.
 
 Backend endpoints:
 
@@ -135,6 +138,53 @@ Items usados
 Items con mantenimiento
 ```
 
+### A3 — Maintenance detail modal split
+
+The maintenance detail UI was refined so each responsibility has its own action and modal.
+
+Final UI structure:
+
+```text
+People modal
+- Component: maintenance-people-modal
+- Purpose: add/list/remove people involved in the maintenance.
+- Table action icon: people icon.
+
+Used materials/details modal
+- Component: maintenance-details-modal
+- Purpose: add/list/remove items/materials used during the maintenance.
+- This modal no longer manages people.
+- Table action icon: box/materials icon.
+
+Serviced items modal
+- Component: maintenance-serviced-items-modal
+- Purpose: add/list/update/remove items/equipment that received maintenance.
+- Table action icon: wrench-adjustable-circle icon.
+
+Tasks
+- Existing tasks behavior remains unchanged.
+- The Tasks icon remains the same.
+```
+
+Rationale:
+
+- `maintenance-details-modal` had grown to mix people and used materials.
+- People are not materials, and serviced items are not used materials.
+- Separate modals make the maintenance table actions clearer and reduce confusion between Tasks, Details/Materials and Serviced items.
+- The Details action now means only materials/items used during maintenance.
+
+Button/icon decision:
+
+```text
+People: people icon
+Materials used / Details: box-seam icon
+Serviced items: wrench-adjustable-circle icon
+Tasks: list-check icon
+Images: images icon
+Edit: pencil-square icon
+Delete: trash icon
+```
+
 ## B — AI sessions sort/delete, organization selector refresh and TAMI speech sync
 
 Status: Planned.
@@ -150,6 +200,24 @@ Status: Planned.
 ## E — Closure checks before Reports
 
 Status: Planned.
+
+Before starting Phase 17 — Reports, verify:
+
+```text
+- Maintenance images can be grouped as before/after/general.
+- Existing maintenance images appear as general.
+- Image role selectors stay synchronized with the actual image role.
+- Used materials, people and serviced items are handled in separate modals.
+- Serviced items are independent from used items/materials.
+- AI sessions can be sorted by created date ascending/descending.
+- AI sessions can be deleted without orphaning debug records.
+- TAMI speaking animation and audio start together after idle.
+- Organization selector refreshes after SUPER_ADMIN organization changes.
+- Dashboard calendar maintenance icons use performed date first.
+- Dashboard calendar no longer shifts local late-night maintenance into next UTC day.
+- Dashboard/mobile tooltips dismiss predictably.
+- TAMI answers last maintenance by person from responsible and involved people.
+```
 
 ## Non-goals
 
