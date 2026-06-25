@@ -620,9 +620,15 @@ export class TamiBrandingService {
     ].includes(text);
   }
 
+  setSpeaking(isSpeaking: boolean): void {
+    const shouldSpeak = isSpeaking && this.isAiAssistantRoute();
+    this.document.body.classList.toggle('tami-is-speaking', shouldSpeak);
+  }
+
   private updateSpeakingState(): void {
-    const isTyping = this.isAiAssistantRoute() && Boolean(this.document.querySelector('.ai-typing-cursor'));
-    this.document.body.classList.toggle('tami-is-speaking', isTyping);
+    if (!this.isAiAssistantRoute()) {
+      this.setSpeaking(false);
+    }
   }
 
   private createRobotElement(extraClasses: string, headOnly: boolean): HTMLElement {

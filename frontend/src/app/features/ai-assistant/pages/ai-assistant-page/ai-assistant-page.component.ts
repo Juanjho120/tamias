@@ -7,6 +7,7 @@ import { ApiError } from '../../../../core/models/api-error.model';
 import { PageResponse } from '../../../../core/models/page-response.model';
 import { ConfirmModalComponent } from '../../../../shared/confirm-modal/confirm-modal.component';
 import { ToastService } from '../../../../shared/toast/toast.service';
+import { TamiBrandingService } from '../../../../shared/tami-robot/tami-branding.service';
 import { AiSourceListComponent } from '../../components/ai-source-list/ai-source-list.component';
 import { AiSessionTitleModalComponent } from '../../components/ai-session-title-modal/ai-session-title-modal.component';
 import {
@@ -64,12 +65,14 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
   private readonly referenceDataService = inject(AiReferenceDataService);
   private readonly toastService = inject(ToastService);
   private readonly languageService = inject(LanguageService);
+  private readonly tamiBrandingService = inject(TamiBrandingService);
   private readonly tamiSpeechAudioService = inject(TamiSpeechAudioService);
   private readonly typingDelayMs = 12;
   private readonly typingTimers = new Map<string, ReturnType<typeof setInterval>>();
   private readonly tamiSpeechSpeedRatio = 0.75;
   readonly tamiMouthAnimationDurationMs = Math.round((this.typingDelayMs * 4) / this.tamiSpeechSpeedRatio);
   private readonly tamiSpeechBlipIntervalMs = this.tamiMouthAnimationDurationMs;
+  private pendingTamiSpeechPreparation?: Promise<boolean>;
 
   readonly loadingReferences = signal(false);
   readonly loadingSessions = signal(false);
@@ -247,7 +250,7 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
       return;
     }
 
-    void this.tamiSpeechAudioService.prepare();
+    this.pendingTamiSpeechPreparation = this.tamiSpeechAudioService.prepare();
     this.chat(question);
   }
 
@@ -306,8 +309,6 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
           assistantMessage
         ]);
         this.sending.set(false);
-        this.typingAssistant.set(true);
-
         if (!currentSession || currentSession.id !== response.chatSessionId) {
           this.activeSession.set({
             id: response.chatSessionId,
@@ -329,8 +330,11 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
         });
       },
       error: (error: unknown) => {
+        this.pendingTamiSpeechPreparation = undefined;
         this.sending.set(false);
         this.typingAssistant.set(false);
+        this.tamiBrandingService.setSpeaking(false);
+        this.tamiSpeechAudioService.stop();
         this.messages.update((messages) => messages.filter((message) => message.id !== temporaryUserMessage.id));
         this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('aiAssistant.messages.chatError')));
       }
@@ -567,20 +571,36 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
       return;
     }
 
+    await this.pendingTamiSpeechPreparation?.catch(() => false);
+    this.pendingTamiSpeechPreparation = undefined;
+
     await this.tamiSpeechAudioService.start({ intervalMs: this.tamiSpeechBlipIntervalMs });
 
     if (!this.messages().some((message) => message.id === messageId)) {
       this.tamiSpeechAudioService.stop();
+      this.tamiBrandingService.setSpeaking(false);
       return;
     }
 
+    const chunkSize = this.resolveTypingChunkSize(answer);
+    let currentIndex = Math.min(chunkSize, answer.length);
+    const initialDisplayedContent = answer.slice(0, currentIndex);
+    const initiallyDone = currentIndex >= answer.length;
+
+    this.typingAssistant.set(true);
+    this.tamiBrandingService.setSpeaking(!initiallyDone);
+
     this.messages.update((messages) => messages.map((message) => message.id === messageId
-      ? { ...message, typing: true }
+      ? { ...message, displayedContent: initialDisplayedContent, typing: !initiallyDone }
       : message
     ));
+    setTimeout(() => this.scrollToBottom(), 0);
 
-    let currentIndex = 0;
-    const chunkSize = this.resolveTypingChunkSize(answer);
+    if (initiallyDone) {
+      this.finishTypingMessage(messageId, answer, onComplete);
+      return;
+    }
+
     const timer = setInterval(() => {
       currentIndex = Math.min(currentIndex + chunkSize, answer.length);
       const displayedContent = answer.slice(0, currentIndex);
@@ -606,7 +626,9 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
       : message
     ));
     this.stopTypingTimer(messageId);
+    this.typingAssistant.set(false);
     this.tamiSpeechAudioService.stop();
+    this.tamiBrandingService.setSpeaking(false);
     onComplete?.();
   }
 
@@ -625,8 +647,10 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
   }
 
   private clearTypingTimers(): void {
+    this.pendingTamiSpeechPreparation = undefined;
     this.typingAssistant.set(false);
     this.tamiSpeechAudioService.stop();
+    this.tamiBrandingService.setSpeaking(false);
 
     for (const timer of this.typingTimers.values()) {
       clearInterval(timer);
@@ -645,7 +669,9 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
     this.typingTimers.delete(messageId);
 
     if (this.typingTimers.size === 0) {
+      this.typingAssistant.set(false);
       this.tamiSpeechAudioService.stop();
+      this.tamiBrandingService.setSpeaking(false);
     }
   }
 
