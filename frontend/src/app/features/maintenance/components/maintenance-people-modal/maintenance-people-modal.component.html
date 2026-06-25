@@ -1,0 +1,121 @@
+@if (open) {
+  <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title">{{ 'maintenance.details.people.title' | translate }}</h5>
+            <div class="small text-muted">
+              {{ maintenanceRecord?.title }} · {{ maintenanceRecord?.propertyName }}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            class="btn-close"
+            aria-label="Close"
+            [disabled]="loading() || addingPerson() || deleting()"
+            (click)="requestClose()">
+          </button>
+        </div>
+
+        <div class="modal-body">
+          @if (loading()) {
+            <div class="p-5 text-center">
+              <div class="spinner-border text-primary" role="status"></div>
+              <div class="text-muted mt-3">{{ 'maintenance.details.loading' | translate }}</div>
+            </div>
+          } @else {
+            <div class="card border-0 bg-light">
+              <div class="card-body">
+                <p class="text-muted small mb-3">{{ 'maintenance.details.people.description' | translate }}</p>
+
+                <form [formGroup]="personForm" class="row g-2 align-items-end mb-3" (ngSubmit)="addPerson()">
+                  <div class="col-12 col-lg-8">
+                    <label for="maintenance-person-modal-person" class="form-label">
+                      {{ 'maintenance.details.people.person' | translate }}
+                    </label>
+                    <select
+                      id="maintenance-person-modal-person"
+                      class="form-select"
+                      formControlName="maintenancePersonId">
+                      <option value="">{{ 'maintenance.details.people.selectPerson' | translate }}</option>
+                      @for (person of availablePeople(); track person.id) {
+                        <option [value]="person.id">{{ person.fullName }}</option>
+                      }
+                    </select>
+                  </div>
+
+                  <div class="col-12 col-lg-4">
+                    <button type="submit" class="btn btn-primary w-100" [disabled]="addingPerson() || availablePeople().length === 0">
+                      @if (addingPerson()) {
+                        <span class="spinner-border spinner-border-sm me-1"></span>
+                      } @else {
+                        <i class="bi bi-plus-lg me-1"></i>
+                      }
+                      {{ 'maintenance.details.people.add' | translate }}
+                    </button>
+                  </div>
+                </form>
+
+                @if (people().length === 0) {
+                  <div class="text-muted small border rounded-3 p-3 bg-white">
+                    {{ 'maintenance.details.people.empty' | translate }}
+                  </div>
+                } @else {
+                  <div class="list-group">
+                    @for (person of people(); track trackById($index, person)) {
+                      <div class="list-group-item d-flex justify-content-between align-items-start gap-3">
+                        <div>
+                          <div class="fw-semibold">{{ person.fullName }}</div>
+                          <div class="small text-muted">
+                            {{ person.phone || '—' }} · {{ person.email || '—' }}
+                          </div>
+
+                          @if (person.notes) {
+                            <div class="small text-muted">{{ person.notes }}</div>
+                          }
+                        </div>
+
+                        <button
+                          type="button"
+                          class="btn btn-outline-danger btn-sm"
+                          [disabled]="deleting()"
+                          (click)="requestRemovePerson(person)">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            [disabled]="loading() || addingPerson() || deleting()"
+            (click)="requestClose()">
+            {{ 'common.close' | translate }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop fade show"></div>
+}
+
+<app-confirm-modal
+  [open]="!!deleteTarget()"
+  title="maintenance.details.confirmDeleteTitle"
+  [message]="deleteMessage()"
+  confirmText="common.delete"
+  cancelText="common.cancel"
+  confirmButtonClass="btn-danger"
+  [loading]="deleting()"
+  (confirm)="confirmDelete()"
+  (cancel)="cancelDelete()" />

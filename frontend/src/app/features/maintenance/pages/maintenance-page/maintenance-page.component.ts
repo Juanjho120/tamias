@@ -2,6 +2,7 @@ import { DatePipe, NgClass } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '@ngx-translate/core';
+
 import { LanguageService } from '../../../../core/i18n/language.service';
 import { ApiError } from '../../../../core/models/api-error.model';
 import { PageResponse } from '../../../../core/models/page-response.model';
@@ -11,8 +12,9 @@ import { ToastService } from '../../../../shared/toast/toast.service';
 import { RelatedTaskListsModalComponent } from '../../../tasks/components/related-task-lists-modal/related-task-lists-modal.component';
 import { MaintenanceDetailsModalComponent } from '../../components/maintenance-details-modal/maintenance-details-modal.component';
 import { MaintenanceImagesModalComponent } from '../../components/maintenance-images-modal/maintenance-images-modal.component';
-import { MaintenanceServicedItemsModalComponent } from '../../components/maintenance-serviced-items-modal/maintenance-serviced-items-modal.component';
+import { MaintenancePeopleModalComponent } from '../../components/maintenance-people-modal/maintenance-people-modal.component';
 import { MaintenanceRecordFormModalComponent } from '../../components/maintenance-record-form-modal/maintenance-record-form-modal.component';
+import { MaintenanceServicedItemsModalComponent } from '../../components/maintenance-serviced-items-modal/maintenance-serviced-items-modal.component';
 import {
   MaintenanceRecord,
   MaintenanceRecordRequest,
@@ -20,7 +22,10 @@ import {
   MaintenanceStatus,
   MAINTENANCE_STATUSES
 } from '../../models/maintenance-record.model';
-import { MaintenanceReferenceData, MaintenanceReferenceDataService } from '../../services/maintenance-reference-data.service';
+import {
+  MaintenanceReferenceData,
+  MaintenanceReferenceDataService
+} from '../../services/maintenance-reference-data.service';
 import { MaintenanceRecordService } from '../../services/maintenance-record.service';
 
 type FormMode = 'create' | 'edit';
@@ -38,6 +43,7 @@ type FormMode = 'create' | 'edit';
     RelatedTaskListsModalComponent,
     MaintenanceDetailsModalComponent,
     MaintenanceImagesModalComponent,
+    MaintenancePeopleModalComponent,
     MaintenanceRecordFormModalComponent,
     MaintenanceServicedItemsModalComponent
   ],
@@ -49,7 +55,6 @@ export class MaintenancePageComponent implements OnInit {
   private readonly referenceDataService = inject(MaintenanceReferenceDataService);
 
   readonly statuses = MAINTENANCE_STATUSES;
-
   readonly loading = signal(false);
   readonly saving = signal(false);
   readonly deletingId = signal<string | null>(null);
@@ -57,6 +62,7 @@ export class MaintenancePageComponent implements OnInit {
 
   readonly records = signal<MaintenanceRecordSummary[]>([]);
   readonly selectedRecord = signal<MaintenanceRecord | null>(null);
+  readonly selectedRecordForPeople = signal<MaintenanceRecordSummary | null>(null);
   readonly selectedRecordForImages = signal<MaintenanceRecordSummary | null>(null);
   readonly selectedRecordForDetails = signal<MaintenanceRecordSummary | null>(null);
   readonly selectedRecordForServicedItems = signal<MaintenanceRecordSummary | null>(null);
@@ -101,9 +107,7 @@ export class MaintenancePageComponent implements OnInit {
       return '';
     }
 
-    return this.languageService.instant('maintenance.confirmDeleteMessage', {
-      title: record.title
-    });
+    return this.languageService.instant('maintenance.confirmDeleteMessage', { title: record.title });
   });
 
   readonly taskContextTitle = computed(() => {
@@ -111,8 +115,7 @@ export class MaintenancePageComponent implements OnInit {
     return record ? `${record.title} · ${record.propertyName}` : '';
   });
 
-  constructor(private readonly maintenanceRecordService: MaintenanceRecordService) {
-  }
+  constructor(private readonly maintenanceRecordService: MaintenanceRecordService) {}
 
   ngOnInit(): void {
     this.loadReferences();
@@ -129,7 +132,9 @@ export class MaintenancePageComponent implements OnInit {
       },
       error: (error: unknown) => {
         this.loadingReferences.set(false);
-        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('maintenance.messages.referencesError')));
+        this.toastService.error(
+          this.extractErrorMessage(error, this.languageService.instant('maintenance.messages.referencesError'))
+        );
       }
     });
   }
@@ -137,28 +142,32 @@ export class MaintenancePageComponent implements OnInit {
   loadRecords(): void {
     this.loading.set(true);
 
-    this.maintenanceRecordService.findAll({
-      propertyId: this.propertyId() || undefined,
-      status: this.status(),
-      page: this.page(),
-      size: this.size(),
-      sort: 'createdAt,desc'
-    }).subscribe({
-      next: (response: PageResponse<MaintenanceRecordSummary>) => {
-        this.records.set(response.content);
-        this.page.set(response.page);
-        this.size.set(response.size);
-        this.totalElements.set(response.totalElements);
-        this.totalPages.set(response.totalPages);
-        this.first.set(response.first);
-        this.last.set(response.last);
-        this.loading.set(false);
-      },
-      error: (error: unknown) => {
-        this.loading.set(false);
-        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('maintenance.messages.loadError')));
-      }
-    });
+    this.maintenanceRecordService
+      .findAll({
+        propertyId: this.propertyId() || undefined,
+        status: this.status(),
+        page: this.page(),
+        size: this.size(),
+        sort: 'createdAt,desc'
+      })
+      .subscribe({
+        next: (response: PageResponse<MaintenanceRecordSummary>) => {
+          this.records.set(response.content);
+          this.page.set(response.page);
+          this.size.set(response.size);
+          this.totalElements.set(response.totalElements);
+          this.totalPages.set(response.totalPages);
+          this.first.set(response.first);
+          this.last.set(response.last);
+          this.loading.set(false);
+        },
+        error: (error: unknown) => {
+          this.loading.set(false);
+          this.toastService.error(
+            this.extractErrorMessage(error, this.languageService.instant('maintenance.messages.loadError'))
+          );
+        }
+      });
   }
 
   applyFilters(): void {
@@ -215,7 +224,9 @@ export class MaintenancePageComponent implements OnInit {
       },
       error: (error: unknown) => {
         this.loading.set(false);
-        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('maintenance.messages.detailError')));
+        this.toastService.error(
+          this.extractErrorMessage(error, this.languageService.instant('maintenance.messages.detailError'))
+        );
       }
     });
   }
@@ -232,12 +243,12 @@ export class MaintenancePageComponent implements OnInit {
 
   saveRecord(request: MaintenanceRecordRequest): void {
     const selectedRecord = this.selectedRecord();
-
     this.saving.set(true);
 
-    const saveRequest = this.formMode() === 'edit' && selectedRecord
-      ? this.maintenanceRecordService.update(selectedRecord.id, request)
-      : this.maintenanceRecordService.create(request);
+    const saveRequest =
+      this.formMode() === 'edit' && selectedRecord
+        ? this.maintenanceRecordService.update(selectedRecord.id, request)
+        : this.maintenanceRecordService.create(request);
 
     saveRequest.subscribe({
       next: () => {
@@ -252,7 +263,9 @@ export class MaintenancePageComponent implements OnInit {
       },
       error: (error: unknown) => {
         this.saving.set(false);
-        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('maintenance.messages.saveError')));
+        this.toastService.error(
+          this.extractErrorMessage(error, this.languageService.instant('maintenance.messages.saveError'))
+        );
       }
     });
   }
@@ -287,9 +300,19 @@ export class MaintenancePageComponent implements OnInit {
       },
       error: (error: unknown) => {
         this.deletingId.set(null);
-        this.toastService.error(this.extractErrorMessage(error, this.languageService.instant('maintenance.messages.deleteError')));
+        this.toastService.error(
+          this.extractErrorMessage(error, this.languageService.instant('maintenance.messages.deleteError'))
+        );
       }
     });
+  }
+
+  openPeople(record: MaintenanceRecordSummary): void {
+    this.selectedRecordForPeople.set(record);
+  }
+
+  closePeople(): void {
+    this.selectedRecordForPeople.set(null);
   }
 
   openImages(record: MaintenanceRecordSummary): void {

@@ -492,7 +492,8 @@
         "notes": "Notes",
         "add": "Add",
         "update": "Update",
-        "empty": "No materials used yet."
+        "empty": "No materials used yet.",
+        "button": "Used items"
       },
       "messages": {
         "loadError": "Unable to load maintenance details.",

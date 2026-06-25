@@ -491,7 +491,8 @@
         "notes": "Notas",
         "add": "Agregar",
         "update": "Actualizar",
-        "empty": "Aún no hay materiales usados."
+        "empty": "Aún no hay materiales usados.",
+        "button": "Items usados"
       },
       "messages": {
         "loadError": "No se pudieron cargar los detalles del mantenimiento.",

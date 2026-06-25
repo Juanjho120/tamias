@@ -46,6 +46,7 @@
           <i class="bi bi-search me-1"></i>
           {{ 'common.search' | translate }}
         </button>
+
         <button type="button" class="btn btn-outline-secondary" (click)="clearFilters()">
           {{ 'common.clear' | translate }}
         </button>
@@ -66,8 +67,10 @@
         <div class="d-inline-flex align-items-center justify-content-center rounded-4 bg-secondary-subtle text-secondary p-4 mb-3">
           <i class="bi bi-tools fs-1"></i>
         </div>
+
         <h2 class="h5">{{ 'maintenance.empty.title' | translate }}</h2>
         <p class="text-muted mb-3">{{ 'maintenance.empty.description' | translate }}</p>
+
         <button type="button" class="btn btn-primary" [disabled]="loadingReferences()" (click)="openCreateForm()">
           {{ 'maintenance.newRecord' | translate }}
         </button>
@@ -76,17 +79,17 @@
       <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
           <thead class="table-light">
-          <tr>
-            <th>{{ 'maintenance.table.title' | translate }}</th>
-            <th>{{ 'maintenance.table.property' | translate }}</th>
-            <th>{{ 'maintenance.table.category' | translate }}</th>
-            <th>{{ 'maintenance.table.type' | translate }}</th>
-            <th>{{ 'maintenance.table.scheduledAt' | translate }}</th>
-            <th>{{ 'maintenance.table.performedAt' | translate }}</th>
-            <th>{{ 'maintenance.table.cost' | translate }}</th>
-            <th>{{ 'maintenance.table.status' | translate }}</th>
-            <th class="text-end">{{ 'maintenance.table.actions' | translate }}</th>
-          </tr>
+            <tr>
+              <th>{{ 'maintenance.table.title' | translate }}</th>
+              <th>{{ 'maintenance.table.property' | translate }}</th>
+              <th>{{ 'maintenance.table.category' | translate }}</th>
+              <th>{{ 'maintenance.table.type' | translate }}</th>
+              <th>{{ 'maintenance.table.scheduledAt' | translate }}</th>
+              <th>{{ 'maintenance.table.performedAt' | translate }}</th>
+              <th>{{ 'maintenance.table.cost' | translate }}</th>
+              <th>{{ 'maintenance.table.status' | translate }}</th>
+              <th class="text-end">{{ 'maintenance.table.actions' | translate }}</th>
+            </tr>
           </thead>
           <tbody>
             @for (record of records(); track record.id) {
@@ -95,6 +98,7 @@
                   <div class="fw-semibold">{{ record.title }}</div>
                   <div class="small text-muted">{{ record.createdAt | date:'mediumDate' }}</div>
                 </td>
+
                 <td>{{ record.propertyName }}</td>
                 <td>{{ record.maintenanceCategoryName || '—' }}</td>
                 <td>{{ record.maintenanceTypeName || '—' }}</td>
@@ -108,26 +112,36 @@
                 </td>
                 <td class="text-end">
                   <div class="btn-group">
-                    <button type="button" class="btn btn-outline-dark btn-sm" (click)="openDetails(record)">
-                      <i class="bi bi-list-check me-1"></i>
-                      {{ 'maintenance.details.button' | translate }}
+                    <button type="button" class="btn btn-outline-info btn-sm" (click)="openPeople(record)">
+                      <i class="bi bi-people me-1"></i>
+                      {{ 'maintenance.details.people.button' | translate }}
                     </button>
+
+                    <button type="button" class="btn btn-outline-dark btn-sm" (click)="openDetails(record)">
+                      <i class="bi bi-box-seam me-1"></i>
+                      {{ 'maintenance.details.materials.button' | translate }}
+                    </button>
+
                     <button type="button" class="btn btn-outline-warning btn-sm" (click)="openServicedItems(record)">
                       <i class="bi bi-wrench-adjustable-circle me-1"></i>
                       {{ 'maintenance.details.servicedItems.button' | translate }}
                     </button>
+
                     <button type="button" class="btn btn-outline-dark btn-sm" (click)="openTasks(record)">
                       <i class="bi bi-list-check me-1"></i>
                       {{ 'tasks.related.button' | translate }}
                     </button>
+
                     <button type="button" class="btn btn-outline-secondary btn-sm" (click)="openImages(record)">
                       <i class="bi bi-images me-1"></i>
                       {{ 'maintenance.images.button' | translate }}
                     </button>
+
                     <button type="button" class="btn btn-outline-primary btn-sm" (click)="openEditForm(record.id)">
                       <i class="bi bi-pencil-square me-1"></i>
                       {{ 'common.edit' | translate }}
                     </button>
+
                     <button
                       type="button"
                       class="btn btn-outline-danger btn-sm"
@@ -186,10 +200,16 @@
   (save)="saveRecord($event)"
   (cancel)="closeForm()" />
 
+<app-maintenance-people-modal
+  [open]="!!selectedRecordForPeople()"
+  [maintenanceRecord]="selectedRecordForPeople()"
+  [peopleOptions]="references().people"
+  (close)="closePeople()"
+  (peopleChanged)="loadRecords()" />
+
 <app-maintenance-details-modal
   [open]="!!selectedRecordForDetails()"
   [maintenanceRecord]="selectedRecordForDetails()"
-  [peopleOptions]="references().people"
   [inventoryItemOptions]="references().inventoryItems"
   (close)="closeDetails()"
   (detailsChanged)="loadRecords()" />
