@@ -60,6 +60,7 @@ type AiAnimatedLocalMessage = AiLocalMessage & {
 })
 export class AiAssistantPageComponent implements OnInit, OnDestroy {
   @ViewChild('messagesContainer') messagesContainer?: ElementRef<HTMLElement>;
+  @ViewChild('questionInput') questionInput?: ElementRef<HTMLTextAreaElement>;
 
   private readonly aiAssistantService = inject(AiAssistantService);
   private readonly referenceDataService = inject(AiReferenceDataService);
@@ -641,6 +642,7 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
     this.tamiSpeechAudioService.stop();
     this.tamiBrandingService.setSpeaking(false);
     onComplete?.();
+    this.focusQuestionInput();
   }
 
   private resolveTypingChunkSize(answer: string): number {
@@ -684,6 +686,20 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
       this.tamiSpeechAudioService.stop();
       this.tamiBrandingService.setSpeaking(false);
     }
+  }
+
+  private focusQuestionInput(): void {
+    setTimeout(() => {
+      if (this.mode() !== 'chat') {
+        return;
+      }
+
+      if (this.sending() || this.typingAssistant() || this.searching()) {
+        return;
+      }
+
+      this.questionInput?.nativeElement.focus();
+    }, 0);
   }
 
   private scrollToBottom(): void {
