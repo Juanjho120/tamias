@@ -40,7 +40,7 @@
                     [value]="selectedImageRole()"
                     (change)="onUploadRoleSelected($event)">
                     @for (role of imageRoles; track role) {
-                      <option [value]="role">{{ roleLabelKey(role) | translate }}</option>
+                      <option [value]="role" [selected]="role === selectedImageRole()">{{ roleLabelKey(role) | translate }}</option>
                     }
                   </select>
                 </div>
@@ -157,7 +157,7 @@
                                 [disabled]="changingRoleId() === image.id || deletingId() === image.id"
                                 (change)="updateRole(image, $event)">
                                 @for (optionRole of imageRoles; track optionRole) {
-                                  <option [value]="optionRole">{{ roleLabelKey(optionRole) | translate }}</option>
+                                  <option [value]="optionRole" [selected]="optionRole === normalizeRole(image.imageRole)">{{ roleLabelKey(optionRole) | translate }}</option>
                                 }
                               </select>
                             </div>
