@@ -220,6 +220,7 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
     this.messages.set([]);
     this.searchResult.set(null);
     this.question.set('');
+    this.focusQuestionInput();
   }
 
   openSession(sessionId: string): void {
@@ -232,7 +233,11 @@ export class AiAssistantPageComponent implements OnInit, OnDestroy {
         this.propertyId.set(session.propertyId ?? this.propertyId());
         this.messages.set((session.messages ?? []).map((message) => this.toLocalMessage(message)));
         this.loadingSession.set(false);
-        setTimeout(() => this.scrollToBottom(), 0);
+        
+        setTimeout(() => {
+          this.scrollToBottom();
+          this.focusQuestionInput();
+        }, 0);
       },
       error: (error: unknown) => {
         this.loadingSession.set(false);
